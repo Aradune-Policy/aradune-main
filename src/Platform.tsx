@@ -18,7 +18,7 @@ function useRoute() {
   return route;
 }
 
-function navigate(path) {
+function navigate(path: string) {
   window.location.hash = path;
 }
 
@@ -84,11 +84,11 @@ const TOOLS = [
     status:"live", icon:"🧮", color:C.accent },
   { id:"analyst", name:"Policy Analyst", tagline:"AI-powered Medicaid rate analysis.",
     desc:"Ask complex rate-setting questions. Grounded in Aradune's complete dataset.",
-    status:"beta", icon:"🤖", color:(C as any).orange },
+    status:"beta", icon:"🤖", color:C.accent },
 ];
 
 // ── Platform Nav ─────────────────────────────────────────────────────────
-function PlatformNav({ route }) {
+function PlatformNav({ route }: { route: string }) {
   const activeTool = TOOLS.find((t) => route === `/${t.id}`);
   return (
     <nav
@@ -238,8 +238,8 @@ function Landing() {
               textDecoration: "none",
               transition: "background 0.15s",
             }}
-            onMouseEnter={(e) => ((e.target as HTMLElement).style.background = C.brandDeep)}
-            onMouseLeave={(e) => ((e.target as HTMLElement).style.background = C.brand)}
+            onMouseEnter={(e) => (e.currentTarget.style.background = C.brandDeep)}
+            onMouseLeave={(e) => (e.currentTarget.style.background = C.brand)}
           >
             Explore Spending Data
           </a>
@@ -757,7 +757,7 @@ function About() {
 }
 
 // ── Coming Soon Page ─────────────────────────────────────────────────────
-function ComingSoon({ tool }) {
+function ComingSoon({ tool }: { tool: { name: string; icon: string; desc: string; color: string } }) {
   return (
     <div style={{ maxWidth: 520, margin: "0 auto", padding: "72px 20px", textAlign: "center" }}>
       <div

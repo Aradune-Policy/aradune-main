@@ -1,5 +1,6 @@
 import React, { useState, useMemo, useEffect, useCallback } from "react";
 import { ScatterChart, Scatter, XAxis, YAxis, Tooltip, ResponsiveContainer, CartesianGrid, ReferenceLine, Cell, BarChart, Bar, Legend } from "recharts";
+import type { QualData, LinkedMeasure, MeasureHcpcsInfo, MeasureMeta, SafeTipProps, TooltipEntry, QualHcpcsRecord } from "../types";
 
 // ── Design System (matches Aradune) ─────────────────────────────────────
 const A = "#0A2540";
@@ -15,7 +16,17 @@ const cO = "#C4590A";
 const FM = "'SF Mono',Menlo,monospace";
 const SH = "0 1px 3px rgba(0,0,0,.04),0 4px 12px rgba(0,0,0,.03)";
 
-const STATE_NAMES = {AL:"Alabama",AK:"Alaska",AZ:"Arizona",AR:"Arkansas",CA:"California",CO:"Colorado",CT:"Connecticut",DE:"Delaware",DC:"D.C.",FL:"Florida",GA:"Georgia",HI:"Hawaii",ID:"Idaho",IL:"Illinois",IN:"Indiana",IA:"Iowa",KS:"Kansas",KY:"Kentucky",LA:"Louisiana",ME:"Maine",MD:"Maryland",MA:"Massachusetts",MI:"Michigan",MN:"Minnesota",MS:"Mississippi",MO:"Missouri",MT:"Montana",NE:"Nebraska",NV:"Nevada",NH:"New Hampshire",NJ:"New Jersey",NM:"New Mexico",NY:"New York",NC:"N. Carolina",ND:"N. Dakota",OH:"Ohio",OK:"Oklahoma",OR:"Oregon",PA:"Pennsylvania",RI:"Rhode Island",SC:"S. Carolina",SD:"S. Dakota",TN:"Tennessee",TX:"Texas",UT:"Utah",VT:"Vermont",VA:"Virginia",WA:"Washington",WV:"W. Virginia",WI:"Wisconsin",WY:"Wyoming",PR:"Puerto Rico",GU:"Guam",VI:"Virgin Islands"};
+const STATE_NAMES: Record<string, string> = {AL:"Alabama",AK:"Alaska",AZ:"Arizona",AR:"Arkansas",CA:"California",CO:"Colorado",CT:"Connecticut",DE:"Delaware",DC:"D.C.",FL:"Florida",GA:"Georgia",HI:"Hawaii",ID:"Idaho",IL:"Illinois",IN:"Indiana",IA:"Iowa",KS:"Kansas",KY:"Kentucky",LA:"Louisiana",ME:"Maine",MD:"Maryland",MA:"Massachusetts",MI:"Michigan",MN:"Minnesota",MS:"Mississippi",MO:"Missouri",MT:"Montana",NE:"Nebraska",NV:"Nevada",NH:"New Hampshire",NJ:"New Jersey",NM:"New Mexico",NY:"New York",NC:"N. Carolina",ND:"N. Dakota",OH:"Ohio",OK:"Oklahoma",OR:"Oregon",PA:"Pennsylvania",RI:"Rhode Island",SC:"S. Carolina",SD:"S. Dakota",TN:"Tennessee",TX:"Texas",UT:"Utah",VT:"Vermont",VA:"Virginia",WA:"Washington",WV:"W. Virginia",WI:"Wisconsin",WY:"Wyoming",PR:"Puerto Rico",GU:"Guam",VI:"Virgin Islands"};
+
+const DOMAIN_COLORS: Record<string, string> = {
+  "Behavioral Health Care": "#6B46C1",
+  "Dental and Oral Health Services": "#2E6B4A",
+  "Primary Care Access and Preventive Care": "#2563EB",
+  "Maternal and Perinatal Health": "#DB2777",
+  "Care of Acute and Chronic Conditions": "#C4590A",
+  "Long-Term Services and Supports": "#B8860B",
+  "Experience of Care": "#64748B",
+};
 
 // ── Shared Components ─────────────────────────────────────────────────
 const Card = ({ children, accent }: { children: React.ReactNode; accent?: string }) => (
@@ -37,19 +48,19 @@ const Met = ({ l, v, cl, sub }: { l: string; v: React.ReactNode; cl?: string; su
 const Pill = ({ on, onClick, children }: { on: boolean; onClick: () => void; children: React.ReactNode }) => (
   <button onClick={onClick} style={{ padding:"3px 9px",fontSize:10,fontWeight:on?700:400,color:on?WH:AL,background:on?cB:"transparent",border:`1px solid ${on?cB:BD}`,borderRadius:5,cursor:"pointer",whiteSpace:"nowrap" }}>{children}</button>
 );
-const SafeTip = ({ active, payload, render }: { active?: boolean; payload?: any[]; render: (d: any) => React.ReactNode }) => {
+const SafeTip = ({ active, payload, render }: SafeTipProps) => {
   if (!active||!payload?.length) return null;
   const d = payload[0]?.payload;
   if (!d) return null;
   return <div style={{ background:"rgba(10,37,64,0.95)",color:WH,padding:"8px 12px",borderRadius:6,fontSize:11,lineHeight:1.6,maxWidth:300,boxShadow:"0 4px 16px rgba(0,0,0,.2)" }}>{render(d)}</div>;
 };
-const f$ = v => {
+const f$ = (v: number): string => {
   if (v==null||isNaN(v)) return "$0";
   return v < 10 ? `$${v.toFixed(2)}` : `$${v.toFixed(0)}`;
 };
 
-function downloadCSV(name, headers, rows) {
-  const esc = v => `"${String(v??"").replace(/"/g,'""')}"`;
+function downloadCSV(name: string, headers: string[], rows: (string | number | null | undefined)[][]) {
+  const esc = (v: string | number | null | undefined) => `"${String(v??"").replace(/"/g,'""')}"`;
   const csv = [headers.map(esc).join(","), ...rows.map(r => r.map(esc).join(","))].join("\n");
   const a = document.createElement("a");
   a.href = "data:text/csv;charset=utf-8," + encodeURIComponent(csv);
@@ -59,22 +70,11 @@ const ExportBtn = ({ onClick, label }: { onClick: () => void; label?: string }) 
   <button onClick={onClick} style={{ fontSize:9,color:AL,background:SF,border:`1px solid ${BD}`,borderRadius:5,padding:"3px 8px",cursor:"pointer",fontFamily:FM }}>{label||"Export CSV"}</button>
 );
 
-// ── Measure domains for grouping ────────────────────────────────────────
-const DOMAIN_COLORS = {
-  "Behavioral Health Care": "#6B46C1",
-  "Dental and Oral Health Services": "#2E6B4A",
-  "Primary Care Access and Preventive Care": "#2563EB",
-  "Maternal and Perinatal Health": "#DB2777",
-  "Care of Acute and Chronic Conditions": "#C4590A",
-  "Long-Term Services and Supports": "#B8860B",
-  "Experience of Care": "#64748B",
-};
-
 // ── Main Component ──────────────────────────────────────────────────────
 export default function QualityLinkage() {
-  const [qualData, setQual] = useState(null);
-  const [hcpcsData, setHCPCS] = useState(null);
-  const [selectedMeasure, setMeasure] = useState(null);
+  const [qualData, setQual] = useState<QualData | null>(null);
+  const [hcpcsData, setHCPCS] = useState<QualHcpcsRecord[] | null>(null);
+  const [selectedMeasure, setMeasure] = useState<string | null>(null);
   const [highlightState, setHighlight] = useState("FL");
   const [domainFilter, setDomain] = useState("all");
   const [loading, setLoading] = useState(true);
@@ -105,36 +105,36 @@ export default function QualityLinkage() {
   }, [qualData, selectedMeasure]);
 
   // Get T-MSIS rate for a code in a state
-  const getTmsisRate = useCallback((state, code) => {
+  const getTmsisRate = useCallback((state: string, code: string): number | null => {
     if (!hcpcsData || !Array.isArray(hcpcsData)) return null;
-    const h = hcpcsData.find(r => (r.code||r.c) === code);
+    const h = hcpcsData.find((r: QualHcpcsRecord) => (r.code||r.c) === code);
     if (!h) return null;
     if (h.r && typeof h.r === 'object') return h.r[state] || null;
     if (h.rates_by_state) {
-      const sr = h.rates_by_state.find(s => s.state === state);
+      const sr = h.rates_by_state.find((s: { state: string; avg_rate: number }) => s.state === state);
       return sr?.avg_rate || null;
     }
     return null;
   }, [hcpcsData]);
 
   // Build linked measures list with metadata
-  const linkedMeasures = useMemo(() => {
+  const linkedMeasures: LinkedMeasure[] = useMemo(() => {
     if (!qualData?.measure_hcpcs || !qualData?.measures) return [];
-    return Object.entries(qualData.measure_hcpcs).map(([id, info]) => {
-      const meta = qualData.measures[id];
+    return Object.entries(qualData.measure_hcpcs).map(([id, info]: [string, MeasureHcpcsInfo]) => {
+      const meta: MeasureMeta | undefined = qualData.measures[id];
       if (!meta) return null;
-      return { id, ...(info as any), ...(meta as any) };
-    }).filter(Boolean).sort((a,b) => (a.domain||"").localeCompare(b.domain||""));
+      return { id, ...info, ...meta } as LinkedMeasure;
+    }).filter((m): m is LinkedMeasure => m !== null).sort((a, b) => (a.domain||"").localeCompare(b.domain||""));
   }, [qualData]);
 
   // Filter by domain
   const filteredMeasures = useMemo(() => {
     if (domainFilter === "all") return linkedMeasures;
-    return linkedMeasures.filter(m => m.domain === domainFilter);
+    return linkedMeasures.filter((m: LinkedMeasure) => m.domain === domainFilter);
   }, [linkedMeasures, domainFilter]);
 
   const domains = useMemo(() => {
-    const d = new Set(linkedMeasures.map(m => m.domain));
+    const d = new Set(linkedMeasures.map((m: LinkedMeasure) => m.domain));
     return ["all", ...Array.from(d).sort()];
   }, [linkedMeasures]);
 
@@ -151,8 +151,8 @@ export default function QualityLinkage() {
     return states.map(st => {
       const qualRate = rates[st];
       // Get average T-MSIS rate across linked codes for this state
-      const codeRates = codes.map(c => getTmsisRate(st, c)).filter(r => r != null && r > 0);
-      const avgRate = codeRates.length > 0 ? codeRates.reduce((a,b) => a+b, 0) / codeRates.length : null;
+      const codeRates = codes.map((c: string) => getTmsisRate(st, c)).filter((r): r is number => r != null && r > 0);
+      const avgRate = codeRates.length > 0 ? codeRates.reduce((a: number, b: number) => a+b, 0) / codeRates.length : null;
 
       return {
         st,
@@ -173,7 +173,7 @@ export default function QualityLinkage() {
   const correlation = useMemo(() => {
     if (withRates.length < 5) return null;
     const n = withRates.length;
-    const xs = withRates.map(d => d.medicaidRate);
+    const xs = withRates.map(d => d.medicaidRate!);
     const ys = withRates.map(d => d.qualRate);
     const mx = xs.reduce((a,b)=>a+b,0) / n;
     const my = ys.reduce((a,b)=>a+b,0) / n;
@@ -211,7 +211,7 @@ export default function QualityLinkage() {
   // All-measures overview for highlighted state
   const stateOverview = useMemo(() => {
     if (!qualData || !highlightState) return [];
-    return linkedMeasures.map(m => {
+    return linkedMeasures.map((m: LinkedMeasure) => {
       const rate = qualData.rates[m.id]?.[highlightState];
       const median = m.median;
       return {
@@ -270,7 +270,7 @@ export default function QualityLinkage() {
       <div style={{ display:"flex",gap:10,alignItems:"flex-end",flexWrap:"wrap",margin:"10px 0" }}>
         <div style={{ display:"flex",flexDirection:"column",gap:2 }}>
           <span style={{ fontSize:8,color:AL,fontFamily:FM,textTransform:"uppercase",letterSpacing:0.5 }}>Highlight State</span>
-          <select value={highlightState} onChange={e=>setHighlight(e.target.value)} style={{ background:SF,border:`1px solid ${BD}`,padding:"5px 10px",borderRadius:6,fontSize:11,color:A }}>
+          <select value={highlightState} onChange={e=>setHighlight(e.currentTarget.value)} style={{ background:SF,border:`1px solid ${BD}`,padding:"5px 10px",borderRadius:6,fontSize:11,color:A }}>
             {Object.keys(STATE_NAMES).sort((a,b)=>(STATE_NAMES[a]).localeCompare(STATE_NAMES[b])).map(k=><option key={k} value={k}>{STATE_NAMES[k]}</option>)}
           </select>
         </div>
@@ -286,7 +286,7 @@ export default function QualityLinkage() {
       <Card>
         <CH t="Select Quality Measure" b={`${filteredMeasures.length} measures with HCPCS linkage`}/>
         <div style={{ padding:"4px 14px 10px",maxHeight:220,overflowY:"auto" }}>
-          {filteredMeasures.map(m => {
+          {filteredMeasures.map((m: LinkedMeasure) => {
             const stRate = qualData.rates[m.id]?.[highlightState];
             const domColor = DOMAIN_COLORS[m.domain] || AL;
             return (
@@ -301,7 +301,7 @@ export default function QualityLinkage() {
                   <div style={{ fontSize:8,color:domColor,fontWeight:500 }}>{m.domain} · {m.codes.slice(0,3).join(", ")}{m.codes.length>3?"...":""}</div>
                 </div>
                 <div style={{ textAlign:"right",flexShrink:0,width:70 }}>
-                  <div style={{ fontFamily:FM,fontSize:11,fontWeight:600,color:stRate!=null?(stRate>=m.median?POS:NEG):AL }}>{stRate!=null?`${stRate}%`:"—"}</div>
+                  <div style={{ fontFamily:FM,fontSize:11,fontWeight:600,color:stRate!=null?(stRate>=(m.median??0)?POS:NEG):AL }}>{stRate!=null?`${stRate}%`:"—"}</div>
                   <div style={{ fontSize:7,color:AL }}>med {m.median}%</div>
                 </div>
               </div>
@@ -321,14 +321,14 @@ export default function QualityLinkage() {
             <div style={{ fontSize:10,color:AL,marginTop:4,lineHeight:1.5 }}>{curMeasure.rate_def}</div>
           </div>
           <div style={{ display:"grid",gridTemplateColumns:"repeat(3,1fr)",padding:"4px 6px 10px" }}>
-            <Met l={`${STATE_NAMES[highlightState]} Rate`} v={qualData.rates[selectedMeasure]?.[highlightState]!=null?`${qualData.rates[selectedMeasure][highlightState]}%`:"—"} cl={qualData.rates[selectedMeasure]?.[highlightState]>=curMeasure.median?POS:NEG}/>
+            <Met l={`${STATE_NAMES[highlightState]} Rate`} v={selectedMeasure && qualData.rates[selectedMeasure]?.[highlightState]!=null?`${qualData.rates[selectedMeasure][highlightState]}%`:"—"} cl={selectedMeasure && qualData.rates[selectedMeasure]?.[highlightState]>=(curMeasure.median??0)?POS:NEG}/>
             <Met l="National Median" v={curMeasure.median!=null?`${curMeasure.median}%`:"—"}/>
             <Met l="States Reporting" v={`${curMeasure.n_states}`} sub={`of ${Object.keys(STATE_NAMES).length}`}/>
           </div>
           <div style={{ padding:"4px 16px 10px" }}>
             <div style={{ fontSize:8,color:AL,fontFamily:FM,textTransform:"uppercase",letterSpacing:0.5,marginBottom:4 }}>Linked HCPCS Codes</div>
             <div style={{ display:"flex",gap:4,flexWrap:"wrap" }}>
-              {curMeasure.codes.map(c => (
+              {curMeasure.codes?.map((c: string) => (
                 <span key={c} style={{ fontFamily:FM,fontSize:10,background:SF,padding:"2px 6px",borderRadius:4,border:`1px solid ${BD}` }}>{c}</span>
               ))}
             </div>
@@ -344,15 +344,15 @@ export default function QualityLinkage() {
               <ResponsiveContainer width="100%" height={260}>
                 <ScatterChart margin={{ left:8,right:16,top:8,bottom:8 }}>
                   <CartesianGrid strokeDasharray="3 3" stroke={BD}/>
-                  <XAxis type="number" dataKey="medicaidRate" name="Medicaid Rate" tick={{ fill:AL,fontSize:8,fontFamily:FM }} tickFormatter={v=>`$${v.toFixed(0)}`} label={{ value:"Avg Medicaid Rate ($)",position:"bottom",offset:-2,style:{fontSize:9,fill:AL} }}/>
-                  <YAxis type="number" dataKey="qualRate" name="Quality %" tick={{ fill:AL,fontSize:8,fontFamily:FM }} tickFormatter={v=>`${v}%`} label={{ value:"Quality Measure %",angle:-90,position:"insideLeft",style:{fontSize:9,fill:AL} }}/>
+                  <XAxis type="number" dataKey="medicaidRate" name="Medicaid Rate" tick={{ fill:AL,fontSize:8,fontFamily:FM }} tickFormatter={(v: number)=>`$${v.toFixed(0)}`} label={{ value:"Avg Medicaid Rate ($)",position:"bottom",offset:-2,style:{fontSize:9,fill:AL} }}/>
+                  <YAxis type="number" dataKey="qualRate" name="Quality %" tick={{ fill:AL,fontSize:8,fontFamily:FM }} tickFormatter={(v: number)=>`${v}%`} label={{ value:"Quality Measure %",angle:-90,position:"insideLeft",style:{fontSize:9,fill:AL} }}/>
                   {curMeasure.median && <ReferenceLine y={curMeasure.median} stroke={WARN} strokeDasharray="4 4" label={{ value:`Median ${curMeasure.median}%`,position:"right",style:{fontSize:8,fill:WARN} }}/>}
-                  <Tooltip content={<SafeTip render={d=>(
+                  <Tooltip content={<SafeTip render={(d: Record<string, unknown>)=>(
                     <div>
-                      <div style={{ fontWeight:600 }}>{d.name} ({d.st})</div>
-                      <div>Quality: <b>{d.qualRate}%</b></div>
-                      <div>Avg Medicaid rate: <b>${d.medicaidRate?.toFixed(2)}</b></div>
-                      <div style={{ fontSize:9 }}>{d.nCodes} of {curMeasure.codes.length} linked codes found in T-MSIS</div>
+                      <div style={{ fontWeight:600 }}>{d.name as string} ({d.st as string})</div>
+                      <div>Quality: <b>{d.qualRate as number}%</b></div>
+                      <div>Avg Medicaid rate: <b>${(d.medicaidRate as number)?.toFixed(2)}</b></div>
+                      <div style={{ fontSize:9 }}>{d.nCodes as number} of {curMeasure.codes?.length ?? 0} linked codes found in T-MSIS</div>
                     </div>
                   )}/>}/>
                   <Scatter data={withRates} fill={cB}>
@@ -382,25 +382,25 @@ export default function QualityLinkage() {
           <ResponsiveContainer width="100%" height={Math.max(200, Math.min(stateRanking.length * 12, 500))}>
             <BarChart data={stateRanking} layout="vertical" margin={{ left:52,right:16 }}>
               <CartesianGrid strokeDasharray="3 3" stroke={BD} horizontal={false}/>
-              <XAxis type="number" domain={[0,'auto']} tick={{ fill:AL,fontSize:8,fontFamily:FM }} tickFormatter={v=>`${v}%`}/>
+              <XAxis type="number" domain={[0,'auto']} tick={{ fill:AL,fontSize:8,fontFamily:FM }} tickFormatter={(v: number)=>`${v}%`}/>
               <YAxis type="category" dataKey="st" tick={{ fill:A,fontSize:7,fontFamily:FM }} width={28}/>
               {curMeasure.median && <ReferenceLine x={curMeasure.median} stroke={WARN} strokeWidth={1.5} strokeDasharray="4 4"/>}
-              <Tooltip content={<SafeTip render={d=>(
+              <Tooltip content={<SafeTip render={(d: Record<string, unknown>)=>(
                 <div>
-                  <div style={{ fontWeight:600 }}>{d.name}</div>
-                  <div>Quality: <b>{d.qualRate}%</b> {d.qualRate>=curMeasure.median?"(above median)":"(below median)"}</div>
-                  {d.medicaidRate && <div>Avg Medicaid rate: <b>${d.medicaidRate.toFixed(2)}</b></div>}
+                  <div style={{ fontWeight:600 }}>{d.name as string}</div>
+                  <div>Quality: <b>{d.qualRate as number}%</b> {(d.qualRate as number)>=(curMeasure.median??0)?"(above median)":"(below median)"}</div>
+                  {d.medicaidRate != null && <div>Avg Medicaid rate: <b>${(d.medicaidRate as number).toFixed(2)}</b></div>}
                 </div>
               )}/>}/>
               <Bar dataKey="qualRate" barSize={7} radius={[0,3,3,0]}>
-                {stateRanking.map((d,i)=><Cell key={i} fill={d.st===highlightState?cO:d.qualRate>=curMeasure.median?POS:NEG} opacity={d.st===highlightState?1:0.45}/>)}
+                {stateRanking.map((d,i)=><Cell key={i} fill={d.st===highlightState?cO:d.qualRate>=(curMeasure.median??0)?POS:NEG} opacity={d.st===highlightState?1:0.45}/>)}
               </Bar>
             </BarChart>
           </ResponsiveContainer>
           <div style={{ display:"flex",gap:12,fontSize:9,color:AL,padding:"4px 0" }}>
             <span><span style={{ display:"inline-block",width:8,height:8,borderRadius:"50%",background:cO,verticalAlign:"middle",marginRight:3 }}/>{STATE_NAMES[highlightState]}</span>
             <span><span style={{ display:"inline-block",width:8,height:8,borderRadius:"50%",background:WARN,verticalAlign:"middle",marginRight:3 }}/>National median ({curMeasure.median}%)</span>
-            <span>{stateRanking.filter(s=>s.qualRate>=curMeasure.median).length} above median · {stateRanking.filter(s=>s.qualRate<curMeasure.median).length} below</span>
+            <span>{stateRanking.filter(s=>s.qualRate>=(curMeasure.median??0)).length} above median · {stateRanking.filter(s=>s.qualRate<(curMeasure.median??0)).length} below</span>
           </div>
         </div>
       </Card>}
@@ -422,7 +422,7 @@ export default function QualityLinkage() {
                   <td style={{ padding:"4px",color:DOMAIN_COLORS[m.domain]||AL,fontSize:9,maxWidth:140,overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap" }}>{m.domain}</td>
                   <td style={{ fontFamily:FM,fontWeight:600 }}>{m.rate}%</td>
                   <td style={{ fontFamily:FM,color:AL }}>{m.median}%</td>
-                  <td style={{ fontFamily:FM,fontWeight:700,color:m.gap>=0?POS:NEG }}>{m.gap>=0?"+":""}{m.gap?.toFixed(1)}pp</td>
+                  <td style={{ fontFamily:FM,fontWeight:700,color:(m.gap ?? 0)>=0?POS:NEG }}>{(m.gap ?? 0)>=0?"+":""}{m.gap?.toFixed(1)}pp</td>
                   <td>{m.aboveMedian?<span style={{ fontSize:8,padding:"1px 6px",borderRadius:8,background:"rgba(46,107,74,0.1)",color:POS,fontWeight:600 }}>Above</span>:<span style={{ fontSize:8,padding:"1px 6px",borderRadius:8,background:"rgba(164,38,44,0.1)",color:NEG,fontWeight:600 }}>Below</span>}</td>
                 </tr>
               ))}

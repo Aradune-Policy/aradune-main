@@ -1,5 +1,6 @@
 import React, { useState, useMemo, useEffect, useCallback, useRef, Fragment } from "react";
 import { BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer, Cell, CartesianGrid, Area, AreaChart, LineChart, Line, ScatterChart, Scatter, ZAxis, Legend, ReferenceLine } from "recharts";
+import type { StateData, HcpcsCode, NatlTrend, SafeTipProps, CatAccumulator, TooltipEntry, RawState, RawHcpcs, RawTrend, PipelineMeta, MedicareRates, RiskAdjData, FeeScheduleData, FeeScheduleState, FeeScheduleDirectory, ProviderRecord, SpecialtyRecord } from "../types";
 
 // ── Design System (Aradune v13) ──────────────────────────────────────────
 const A = "#0A2540";
@@ -88,7 +89,7 @@ const SYNONYMS = {
   "day program":["T2021","S5100","S5102","HCBS"],
 };
 
-function expandSearch(query, codes) {
+function expandSearch(query: string, codes: HcpcsCode[]): HcpcsCode[] {
   if (!query) return codes;
   const lq = query.toLowerCase().trim();
   // Direct code/description/category match
@@ -98,7 +99,7 @@ function expandSearch(query, codes) {
     h.cat.toLowerCase().includes(lq)
   );
   // Synonym expansion (require 2+ chars to avoid matching everything)
-  const synMatches = new Set();
+  const synMatches = new Set<string>();
   if (lq.length >= 2) {
     for (const [term, targets] of Object.entries(SYNONYMS)) {
       if (term.includes(lq) || lq.includes(term)) {
@@ -110,14 +111,14 @@ function expandSearch(query, codes) {
   const synCodes = codes.filter(h =>
     synMatches.has(h.c.toUpperCase()) ||
     synMatches.has(h.cat.toUpperCase()) ||
-    [...synMatches].some(s => h.d.toUpperCase().includes(s))
+    [...synMatches].some(s => h.d.toUpperCase().includes(s as string))
   );
   // Merge: direct first, then synonym hits not already included
   const seen = new Set(direct.map(h => h.c));
   return [...direct, ...synCodes.filter(h => !seen.has(h.c))];
 }
 
-const f$ = v => {
+const f$ = (v: number): string => {
   if (v == null || isNaN(v) || !isFinite(v)) return "$0";
   const abs = Math.abs(v);
   const sign = v < 0 ? "-" : "";
@@ -129,7 +130,7 @@ const f$ = v => {
   return `${sign}$${abs.toFixed(0)}`;
 };
 // Super-compact formatter for hex map (max ~6 chars)
-const f$c = v => {
+const f$c = (v: number): string => {
   if (v == null || isNaN(v) || !isFinite(v)) return "$0";
   if (v >= 1e12) return `$${(v / 1e12).toFixed(0)}T`;
   if (v >= 1e9) return `$${(v / 1e9).toFixed(1)}B`;
@@ -138,30 +139,30 @@ const f$c = v => {
   if (v < 10) return `$${v.toFixed(1)}`;
   return `$${v.toFixed(0)}`;
 };
-const fNc = v => {
+const fNc = (v: number): string => {
   if (v == null || isNaN(v) || !isFinite(v)) return "0";
   if (v >= 1e9) return `${(v / 1e9).toFixed(1)}B`;
   if (v >= 1e6) return `${(v / 1e6).toFixed(1)}M`;
   if (v >= 1e3) return `${(v / 1e3).toFixed(1)}K`;
   return `${v}`;
 };
-const fN = v => {
+const fN = (v: number): string => {
   if (v == null || isNaN(v) || !isFinite(v)) return "0";
   if (v >= 1e9) return `${(v / 1e9).toFixed(1)}B`;
   if (v >= 1e6) return `${(v / 1e6).toFixed(1)}M`;
   if (v >= 1e3) return `${(v / 1e3).toFixed(0)}K`;
   return `${v}`;
 };
-const pD = (a, b) => {
+const pD = (a: number | null | undefined, b: number | null | undefined): number => {
   if (b == null || b === 0 || a == null) return 0;
   const r = (a / b - 1) * 100;
   if (!isFinite(r) || isNaN(r)) return 0;
   return r;
 };
-const safe = (v, fallback = 0) => (v == null || isNaN(v)) ? fallback : v;
+const safe = (v: number | null | undefined, fallback = 0): number => (v == null || isNaN(v)) ? fallback : v;
 
 // ── Simulated Fallback Data ───────────────────────────────────────────────
-const SIM_STATES = {
+const SIM_STATES: Record<string, StateData> = {
   FL:{name:"Florida",spend:32.8e9,enroll:3624248,pe:9050,fmap:58.6,mc:77,provs:68500,em:12800,hcbs:14200,bh:5800,dn:6400,pi:0.87,mi:0.95},
   NY:{name:"New York",spend:91.2e9,enroll:5952946,pe:15319,fmap:50,mc:76,provs:142e3,em:28200,hcbs:35e3,bh:14200,dn:14800,pi:1.30,mi:1.15},
   TX:{name:"Texas",spend:47.2e9,enroll:3833095,pe:12313,fmap:61.8,mc:73,provs:78400,em:14800,hcbs:15200,bh:6200,dn:7800,pi:0.94,mi:1.02},
@@ -183,7 +184,7 @@ const SIM_STATES = {
   IN:{name:"Indiana",spend:15.3e9,enroll:1626670,pe:9406,fmap:66.9,mc:78,provs:24300,em:4800,hcbs:5100,bh:2400,dn:2500,pi:0.90,mi:0.99},
   OR:{name:"Oregon",spend:13.2e9,enroll:1119407,pe:11792,fmap:60.1,mc:88,provs:18900,em:3800,hcbs:4600,bh:2400,dn:2e3,pi:1.05,mi:1.01}
 };
-const SIM_HC = [
+const SIM_HC: HcpcsCode[] = [
   {c:"99213",d:"Office Visit (Low)",cat:"E&M",na:48.52,r:{FL:42.18,NY:62.4,TX:45.8,CA:55.9,PA:51.2,OH:46.3,GA:40.5,MN:52.1,AZ:44.6,MA:58.2,IL:47.8,MI:45.1,NC:43.8,WA:52.4,CO:49.2,NJ:50.8,MD:50.1,VA:44.9,IN:43.6,OR:50.8},nc:48.2e6},
   {c:"99214",d:"Office Visit (Mod)",cat:"E&M",na:74.6,r:{FL:64.8,NY:95.2,TX:70.1,CA:86.5,PA:78.4,OH:71.2,GA:62.8,MN:80.3,AZ:68.4,MA:89.8,IL:73.1,MI:69.4,NC:67.2,WA:80.8,CO:75.6,NJ:78.2,MD:77.2,VA:69,IN:67,OR:78.4},nc:38.6e6},
   {c:"T1019",d:"Personal Care /15m",cat:"HCBS/Waiver",na:5.82,r:{FL:4.95,NY:8.4,TX:5.2,CA:7.1,PA:6.2,OH:5.6,GA:4.8,MN:7.8,AZ:6.9,MA:7.2,IL:5.4,MI:5.3,NC:4.6,WA:7.5,CO:6.8,NJ:6.4,MD:6.1,VA:5.5,IN:5.1,OR:7.4},nc:2.1e9,tr:[{y:2018,v:3.8},{y:2019,v:4.1},{y:2020,v:4.6},{y:2021,v:5.2},{y:2022,v:5.9},{y:2023,v:6.4},{y:2024,v:7.1}],cn:{t1:42.5,t5:68.2,t10:81.4,gi:0.89}},
@@ -195,21 +196,21 @@ const SIM_HC = [
   {c:"J3490",d:"Unclassified Drugs",cat:"Drugs",na:185,r:{FL:162,NY:242,TX:174,CA:215,PA:196,OH:178,GA:156,MN:205,AZ:180,MA:218,IL:182,MI:172,NC:168,WA:202,CO:190,NJ:198,MD:192,VA:174,IN:170,OR:198},nc:52.4e6},
   {c:"91124",d:"Esophageal Motility",cat:"Diagnostic",na:188,r:{FL:164,NY:248,TX:178,CA:220,PA:198,OH:182,GA:158,MN:210,AZ:184,MA:224,IL:186,MI:176,NC:170,WA:206,CO:192,NJ:202,MD:196,VA:176,IN:172,OR:202},nc:420e3}
 ];
-const SIM_NATL = [
+const SIM_NATL: NatlTrend[] = [
   {y:2018,s:597,e:72.4,pe:8243},{y:2019,s:613,e:71.5,pe:8573},
   {y:2020,s:671,e:76.8,pe:8737},{y:2021,s:734,e:83.4,pe:8802},
   {y:2022,s:805,e:90.8,pe:8865},{y:2023,s:849,e:89.6,pe:9475},
   {y:2024,s:862,e:83.2,pe:10360}
 ];
 
-const STATE_NAMES = {AL:"Alabama",AK:"Alaska",AZ:"Arizona",AR:"Arkansas",CA:"California",CO:"Colorado",CT:"Connecticut",DE:"Delaware",DC:"D.C.",FL:"Florida",GA:"Georgia",HI:"Hawaii",ID:"Idaho",IL:"Illinois",IN:"Indiana",IA:"Iowa",KS:"Kansas",KY:"Kentucky",LA:"Louisiana",ME:"Maine",MD:"Maryland",MA:"Massachusetts",MI:"Michigan",MN:"Minnesota",MS:"Mississippi",MO:"Missouri",MT:"Montana",NE:"Nebraska",NV:"Nevada",NH:"New Hampshire",NJ:"New Jersey",NM:"New Mexico",NY:"New York",NC:"N. Carolina",ND:"N. Dakota",OH:"Ohio",OK:"Oklahoma",OR:"Oregon",PA:"Pennsylvania",RI:"Rhode Island",SC:"S. Carolina",SD:"S. Dakota",TN:"Tennessee",TX:"Texas",UT:"Utah",VT:"Vermont",VA:"Virginia",WA:"Washington",WV:"W. Virginia",WI:"Wisconsin",WY:"Wyoming",PR:"Puerto Rico",GU:"Guam",VI:"Virgin Islands",AS:"American Samoa",MP:"N. Mariana Is."};
+const STATE_NAMES: Record<string, string> = {AL:"Alabama",AK:"Alaska",AZ:"Arizona",AR:"Arkansas",CA:"California",CO:"Colorado",CT:"Connecticut",DE:"Delaware",DC:"D.C.",FL:"Florida",GA:"Georgia",HI:"Hawaii",ID:"Idaho",IL:"Illinois",IN:"Indiana",IA:"Iowa",KS:"Kansas",KY:"Kentucky",LA:"Louisiana",ME:"Maine",MD:"Maryland",MA:"Massachusetts",MI:"Michigan",MN:"Minnesota",MS:"Mississippi",MO:"Missouri",MT:"Montana",NE:"Nebraska",NV:"Nevada",NH:"New Hampshire",NJ:"New Jersey",NM:"New Mexico",NY:"New York",NC:"N. Carolina",ND:"N. Dakota",OH:"Ohio",OK:"Oklahoma",OR:"Oregon",PA:"Pennsylvania",RI:"Rhode Island",SC:"S. Carolina",SD:"S. Dakota",TN:"Tennessee",TX:"Texas",UT:"Utah",VT:"Vermont",VA:"Virginia",WA:"Washington",WV:"W. Virginia",WI:"Wisconsin",WY:"Wyoming",PR:"Puerto Rico",GU:"Guam",VI:"Virgin Islands",AS:"American Samoa",MP:"N. Mariana Is."};
 
 // FFS share by state (1 - managed care penetration). Source: KFF/CMS 2023.
-const FFS_SHARE = {AK:0.78,AL:0.28,AR:0.30,AZ:0.15,CA:0.18,CO:0.30,CT:0.22,DC:0.25,DE:0.33,FL:0.23,GA:0.28,GU:1.0,HI:0.22,IA:0.18,ID:0.38,IL:0.35,IN:0.22,KS:0.22,KY:0.17,LA:0.22,MA:0.28,MD:0.22,ME:0.35,MI:0.22,MN:0.28,MO:0.28,MS:0.30,MT:0.55,NC:0.25,ND:0.38,NE:0.18,NH:0.30,NJ:0.18,NM:0.18,NV:0.22,NY:0.24,OH:0.16,OK:0.35,OR:0.12,PA:0.22,PR:0.35,RI:0.22,SC:0.28,SD:0.48,TN:0.12,TX:0.27,UT:0.30,VA:0.18,VI:1.0,VT:0.40,WA:0.15,WI:0.22,WV:0.30,WY:0.58,AS:1.0,MP:1.0};
+const FFS_SHARE: Record<string, number> = {AK:0.78,AL:0.28,AR:0.30,AZ:0.15,CA:0.18,CO:0.30,CT:0.22,DC:0.25,DE:0.33,FL:0.23,GA:0.28,GU:1.0,HI:0.22,IA:0.18,ID:0.38,IL:0.35,IN:0.22,KS:0.22,KY:0.17,LA:0.22,MA:0.28,MD:0.22,ME:0.35,MI:0.22,MN:0.28,MO:0.28,MS:0.30,MT:0.55,NC:0.25,ND:0.38,NE:0.18,NH:0.30,NJ:0.18,NM:0.18,NV:0.22,NY:0.24,OH:0.16,OK:0.35,OR:0.12,PA:0.22,PR:0.35,RI:0.22,SC:0.28,SD:0.48,TN:0.12,TX:0.27,UT:0.30,VA:0.18,VI:1.0,VT:0.40,WA:0.15,WI:0.22,WV:0.30,WY:0.58,AS:1.0,MP:1.0};
 // ── Data transformation helpers ───────────────────────────────────────────
-function transformStates(raw) {
+function transformStates(raw: RawState[] | null): Record<string, StateData> {
   if (!raw || !Array.isArray(raw) || raw.length === 0) return SIM_STATES;
-  const out = {};
+  const out: Record<string, StateData> = {};
   for (const s of raw) {
     if (!s.state) continue;
     out[s.state] = {
@@ -225,7 +226,7 @@ function transformStates(raw) {
   return Object.keys(out).length > 0 ? out : SIM_STATES;
 }
 
-function transformHcpcs(raw) {
+function transformHcpcs(raw: RawHcpcs[] | null): HcpcsCode[] {
   if (!raw || !Array.isArray(raw) || raw.length === 0) return SIM_HC;
   return raw.map(h => ({
     c: h.code || "?", d: h.desc || h.code || "Unknown", cat: h.category || "Other",
@@ -240,10 +241,10 @@ function transformHcpcs(raw) {
   }));
 }
 
-function transformTrends(raw) {
+function transformTrends(raw: RawTrend[] | null): NatlTrend[] {
   if (!raw || !Array.isArray(raw) || raw.length === 0) return SIM_NATL;
   // Known CMS enrollment milestones (millions) - from published CMS data
-  const ENROLL = {2018:72.4,2019:71.5,2020:76.8,2021:83.4,2022:90.8,2023:89.6,2024:83.2};
+  const ENROLL: Record<number, number> = {2018:72.4,2019:71.5,2020:76.8,2021:83.4,2022:90.8,2023:89.6,2024:83.2};
   return raw.map(t => {
     const y = t.year;
     const s = safe(t.total_spend) / 1e9;
@@ -259,7 +260,7 @@ function transformTrends(raw) {
 // ── UI Components ────────────────────────────────────────────────────────
 function ChartModal({ children, onClose }: { children: React.ReactNode; onClose: () => void }) {
   useEffect(() => {
-    const handler = e => { if (e.key === "Escape") onClose(); };
+    const handler = (e: KeyboardEvent) => { if (e.key === "Escape") onClose(); };
     window.addEventListener("keydown", handler);
     return () => window.removeEventListener("keydown", handler);
   }, [onClose]);
@@ -286,7 +287,7 @@ function Card({ children, accent, x }: { children: React.ReactNode; accent?: str
   </>);
 }
 
-const CH = ({ t, b, r }: { t: string; b?: any; r?: string }) => (
+const CH = ({ t, b, r }: { t: string; b?: React.ReactNode; r?: string }) => (
   <div style={{ padding: "10px 14px 4px", display: "flex", justifyContent: "space-between", alignItems: "baseline" }}>
     <div>
       <span style={{ fontSize: 11, fontWeight: 700, color: A }}>{t}</span>
@@ -331,8 +332,8 @@ const ExportBtn = ({ onClick, label }: { onClick: () => void; label?: string }) 
   </button>
 );
 
-function downloadCSV(filename, headers, rows) {
-  const esc = v => typeof v === "string" && (v.includes(",") || v.includes('"')) ? `"${v.replace(/"/g, '""')}"` : String(v ?? "");
+function downloadCSV(filename: string, headers: string[], rows: (string | number)[][]) {
+  const esc = (v: string | number) => typeof v === "string" && (v.includes(",") || v.includes('"')) ? `"${v.replace(/"/g, '""')}"` : String(v ?? "");
   const csv = [headers.join(","), ...rows.map(r => r.map(esc).join(","))].join("\n");
   const a = document.createElement("a");
   a.href = URL.createObjectURL(new Blob([csv], { type: "text/csv" }));
@@ -341,7 +342,7 @@ function downloadCSV(filename, headers, rows) {
 }
 
 // Safe tooltip for Recharts
-function SafeTip({ active, payload, render }: { active?: boolean; payload?: any[]; render: (d: any) => React.ReactNode }) {
+function SafeTip({ active, payload, render }: SafeTipProps) {
   if (!active || !payload || !payload[0] || !payload[0].payload) return null;
   try {
     return (
@@ -350,11 +351,11 @@ function SafeTip({ active, payload, render }: { active?: boolean; payload?: any[
         {render(payload[0].payload)}
       </div>
     );
-  } catch (e) { return null; }
+  } catch (_e: unknown) { return null; }
 }
 
 // ── Hex Map ─────────────────────────────────────────────────────────────
-const HEX_POS = {
+const HEX_POS: Record<string, [number, number]> = {
   ME:[10,0],VT:[9,1],NH:[10,1],WA:[1,2],MT:[2,2],ND:[3,2],MN:[4,2],WI:[5,2],MI:[7,2],NY:[8,2],MA:[9,2],CT:[10,2],
   OR:[1,3],ID:[2,3],SD:[3,3],IA:[4,3],IL:[5,3],IN:[6,3],OH:[7,3],PA:[8,3],NJ:[9,3],RI:[10,3],
   CA:[0,4],NV:[1,4],WY:[2,4],NE:[3,4],MO:[4,4],KY:[5,4],WV:[6,4],VA:[7,4],MD:[8,4],DE:[9,4],DC:[10,4],
@@ -362,7 +363,7 @@ const HEX_POS = {
   NM:[2,6],OK:[4,6],LA:[5,6],MS:[6,6],AL:[7,6],GA:[8,6],HI:[1,7],TX:[4,7],FL:[8,7],AK:[0,7]
 };
 
-function HexMap({ states, fn, fmt, onSel, sel }: { states: any; fn: (s: any) => number; fmt: (v: number) => string; onSel: (k: string) => void; sel: string }) {
+function HexMap({ states, fn, fmt, onSel, sel }: { states: Record<string, StateData>; fn: (s: StateData) => number; fmt: (v: number) => string; onSel: (k: string) => void; sel: string }) {
   const keys = Object.keys(states).filter(k => HEX_POS[k]);
   const territories = Object.keys(states).filter(k => !HEX_POS[k] && k !== "US");
   if (keys.length === 0 && territories.length === 0) return null;
@@ -406,10 +407,10 @@ function HexMap({ states, fn, fmt, onSel, sel }: { states: any; fn: (s: any) => 
 }
 
 // ── Code Search ─────────────────────────────────────────────────────────
-function CodeSearch({ codes, value, onChange, maxShow = 50 }: { codes: any[]; value: string; onChange: (v: string) => void; maxShow?: number }) {
+function CodeSearch({ codes, value, onChange, maxShow = 50 }: { codes: HcpcsCode[]; value: string | null; onChange: (v: string) => void; maxShow?: number }) {
   const [sq, setSQ] = useState("");
   const [open, setOpen] = useState(false);
-  const ref = useRef(null);
+  const ref = useRef<HTMLDivElement>(null);
   const filtered = useMemo(() => {
     if (!sq) return [];
     return expandSearch(sq, codes).slice(0, maxShow);
@@ -424,7 +425,7 @@ function CodeSearch({ codes, value, onChange, maxShow = 50 }: { codes: any[]; va
 
   // Close on outside click
   useEffect(() => {
-    const handler = (e) => { if (ref.current && !ref.current.contains(e.target)) setOpen(false); };
+    const handler = (e: MouseEvent) => { if (ref.current && !ref.current.contains(e.target as Node)) setOpen(false); };
     document.addEventListener("mousedown", handler);
     return () => document.removeEventListener("mousedown", handler);
   }, []);
@@ -432,7 +433,7 @@ function CodeSearch({ codes, value, onChange, maxShow = 50 }: { codes: any[]; va
   return (
     <div ref={ref} style={{ position: "relative", maxWidth: 420, flex: 1 }}>
       <div style={{ position: "relative" }}>
-        <input value={sq} onChange={e => { setSQ(e.target.value); setOpen(true); }}
+        <input value={sq} onChange={e => { setSQ(e.currentTarget.value); setOpen(true); }}
           onFocus={() => { if (sq) setOpen(true); }}
           placeholder={current ? `${current.c} — ${current.d.substring(0,40)}` : "Search by code, name, or category..."}
           style={{ width: "100%", background: S, border: `1px solid ${B}`,
@@ -483,33 +484,33 @@ export default function TmsisExplorer() {
   const [bCat, setBC] = useState("All");
   const [bSort, setBS] = useState("fiscal");
   const [mixAdj, setMixAdj] = useState(false);
-  const [dc, setDC] = useState(null);
+  const [dc, setDC] = useState<string | null>(null);
   const [ac, setAC] = useState("em");
-  const [insightOpen, setIO] = useState(null);
+  const [insightOpen, setIO] = useState<string | null>(null);
   const [showAllIns, setSAI] = useState(false);
   const [pq, setPQ] = useState("");
-  const [selNpi, setSelNpi] = useState(null); // separate selection from search
+  const [selNpi, setSelNpi] = useState<string | null>(null); // separate selection from search
   const [provMode, setPM] = useState("providers"); // "providers" or "specialties"
   const [specQuery, setSpecQuery] = useState("");
-  const [selSpecTax, setSelSpecTax] = useState(null);
+  const [selSpecTax, setSelSpecTax] = useState<string | null>(null);
   const [simCat, setSimCat] = useState("All");
   const [simPct, setSimPct] = useState(10);
   const [simState, setSimSt] = useState("FL");
 
-  const [meta, setMeta] = useState(null);
-  const [states, setStates] = useState<Record<string, any>>(SIM_STATES);
-  const [codes, setCodes] = useState<any[]>(SIM_HC);
-  const [trends, setTrends] = useState(SIM_NATL);
-  const [regions, setRegions] = useState(null);
-  const [providerData, setPD] = useState(null);
-  const [specData, setSpec] = useState(null);
+  const [meta, setMeta] = useState<PipelineMeta | null>(null);
+  const [states, setStates] = useState<Record<string, StateData>>(SIM_STATES);
+  const [codes, setCodes] = useState<HcpcsCode[]>(SIM_HC);
+  const [trends, setTrends] = useState<NatlTrend[]>(SIM_NATL);
+  const [regions, setRegions] = useState<Record<string, unknown> | null>(null);
+  const [providerData, setPD] = useState<ProviderRecord[] | null>(null);
+  const [specData, setSpec] = useState<SpecialtyRecord[] | null>(null);
   const [loading, setLoading] = useState(true);
 
   // Reference data: Medicare rates, risk adjustment, fee schedules
-  const [mcRates, setMCR] = useState(null);   // { rates: { HCPCS: { r, fr, rvu, w } }, cf, year }
-  const [riskAdj, setRA] = useState(null);     // { states: { ST: { factor, adjusted_pe, mix } } }
-  const [feeScheds, setFS] = useState(null);   // { states: { ST: { rates: { HCPCS: rate } } } }
-  const [fsDir, setFSD] = useState(null);      // { directory: [...], compiled, count }
+  const [mcRates, setMCR] = useState<MedicareRates | null>(null);
+  const [riskAdj, setRA] = useState<RiskAdjData | null>(null);
+  const [feeScheds, setFS] = useState<FeeScheduleData | null>(null);
+  const [fsDir, setFSD] = useState<FeeScheduleDirectory | null>(null);
   const [peMode, setPEM] = useState("raw");    // "raw" or "adj" (risk-adjusted per enrollee)
 
   const isLive = meta?.live === true;
@@ -547,29 +548,29 @@ export default function TmsisExplorer() {
         try {
           const regRaw = await fetch("/data/regions.json").then(r => r.json());
           if (!cancelled) setRegions(regRaw);
-        } catch (e) {}
+        } catch (_e: unknown) {}
         try {
           const provRaw = await fetch("/data/providers.json").then(r => r.json());
           if (!cancelled && Array.isArray(provRaw)) setPD(provRaw);
-        } catch (e) {}
+        } catch (_e: unknown) {}
         try {
           const specRaw = await fetch("/data/specialties.json").then(r => r.json());
           if (!cancelled && Array.isArray(specRaw)) setSpec(specRaw);
-        } catch (e) {}
+        } catch (_e: unknown) {}
         // Reference data (optional — enhance display when available)
         try {
           const ra = await fetch("/data/risk_adj.json").then(r => r.json());
           if (!cancelled && ra?.states) setRA(ra);
-        } catch (e) {}
+        } catch (_e: unknown) {}
         try {
           const fs = await fetch("/data/fee_schedules.json").then(r => r.json());
           if (!cancelled && fs?.states) setFS(fs);
-        } catch (e) {}
+        } catch (_e: unknown) {}
         try {
           const fsd = await fetch("/data/fee_schedule_directory.json").then(r => r.json());
           if (!cancelled && fsd?.directory) setFSD(fsd);
-        } catch (e) {}
-      } catch (e) {
+        } catch (_e: unknown) {}
+      } catch (_e: unknown) {
         if (!cancelled) setMeta({ live: false, source: "simulated" });
       }
       if (!cancelled) setLoading(false);
@@ -586,34 +587,34 @@ export default function TmsisExplorer() {
     (states[a]?.name || a).localeCompare(states[b]?.name || b)
   ), [states]);
 
-  const emptyState = { name: "—", spend: 0, enroll: 0, pe: 0, fmap: 50, mc: 0, provs: 0, em: 0, hcbs: 0, bh: 0, dn: 0 };
-  const g = useCallback(k => states[k] || { ...emptyState, name: k }, [states]);
+  const emptyState: StateData = { name: "—", spend: 0, enroll: 0, pe: 0, fmap: 50, mc: 0, provs: 0, em: 0, hcbs: 0, bh: 0, dn: 0 };
+  const g = useCallback((k: string): StateData => states[k] || { ...emptyState, name: k }, [states]);
   const CATS = useMemo(() => [...new Set(codes.map(h => h.cat))].sort(), [codes]);
 
-  const ACC = [{ k:"em",l:"E&M",fn:s=>safe(s?.em) },{ k:"hcbs",l:"HCBS",fn:s=>safe(s?.hcbs) },{ k:"bh",l:"Behavioral",fn:s=>safe(s?.bh) },{ k:"dn",l:"Dental",fn:s=>safe(s?.dn) }];
+  const ACC = [{ k:"em",l:"E&M",fn:(s: StateData)=>safe(s?.em) },{ k:"hcbs",l:"HCBS",fn:(s: StateData)=>safe(s?.hcbs) },{ k:"bh",l:"Behavioral",fn:(s: StateData)=>safe(s?.bh) },{ k:"dn",l:"Dental",fn:(s: StateData)=>safe(s?.dn) }];
 
   // Reference data helpers
-  const getMcRate = useCallback(code => mcRates?.rates?.[code]?.r || 0, [mcRates]);
-  const getFsRate = useCallback((state, code) => { const e = feeScheds?.states?.[state]?.rates?.[code]; return typeof e === "number" ? e : e?.r || 0; }, [feeScheds]);
-  const getAdj = useCallback(state => riskAdj?.states?.[state]?.factor || 1.0, [riskAdj]);
+  const getMcRate = useCallback((code: string) => mcRates?.rates?.[code]?.r || 0, [mcRates]);
+  const getFsRate = useCallback((state: string, code: string) => { const e = feeScheds?.states?.[state]?.rates?.[code]; return typeof e === "number" ? e : (e && typeof e === "object" && "r" in e ? e.r : 0); }, [feeScheds]);
+  const getAdj = useCallback((state: string) => riskAdj?.states?.[state]?.factor || 1.0, [riskAdj]);
   const hasRef = mcRates || feeScheds;
   const hasAdj = !!riskAdj;
 
-  const mms = {
-    pe: { l: "Per Cap", fn: s => {
+  const mms: Record<string, { l: string; fn: (s: StateData) => number; f: (v: number) => string; fc?: (v: number) => string }> = {
+    pe: { l: "Per Cap", fn: (s: StateData) => {
       // In adjusted mode, divide by eligibility-mix factor
       const raw = safe(s?.pe);
       if (peMode === "adj" && hasAdj) {
         // Find state key — s is a state object with name property
-        const sk = Object.entries(states).find(([k,v]) => v === s)?.[0];
+        const sk = Object.entries(states).find(([_k,v]) => v === s)?.[0];
         if (sk) { const f = getAdj(sk); return f > 0 ? raw / f : raw; }
       }
       return raw;
-    }, f: v => `$${safe(v).toLocaleString(undefined,{maximumFractionDigits:0})}`, fc: f$c },
-    s: { l: "Spend", fn: s => safe(s?.spend), f: f$, fc: f$c },
-    e: { l: "Enroll", fn: s => safe(s?.enroll), f: fN, fc: fNc },
-    pv: { l: "Provs", fn: s => safe(s?.provs), f: fN, fc: fNc },
-    ac: { l: "Access", fn: s => { const sc = ACC.find(x=>x.k===ac)||ACC[0]; const cp=sc.fn(s); return safe(s?.enroll)>0?cp/(safe(s?.enroll)/1e3):0; }, f: v => `${safe(v).toFixed(1)}/1K`, fc: v => `${safe(v).toFixed(0)}` }
+    }, f: (v: number) => `$${safe(v).toLocaleString(undefined,{maximumFractionDigits:0})}`, fc: f$c },
+    s: { l: "Spend", fn: (s: StateData) => safe(s?.spend), f: f$, fc: f$c },
+    e: { l: "Enroll", fn: (s: StateData) => safe(s?.enroll), f: fN, fc: fNc },
+    pv: { l: "Provs", fn: (s: StateData) => safe(s?.provs), f: fN, fc: fNc },
+    ac: { l: "Access", fn: (s: StateData) => { const sc = ACC.find(x=>x.k===ac)||ACC[0]; const cp=sc.fn(s); return safe(s?.enroll)>0?cp/(safe(s?.enroll)/1e3):0; }, f: (v: number) => `${safe(v).toFixed(1)}/1K`, fc: (v: number) => `${safe(v).toFixed(0)}` }
   };
   const curM = mms[mm] || mms.pe;
   const d1 = g(s1);
@@ -701,12 +702,12 @@ export default function TmsisExplorer() {
       }
     }
     // Concentration
-    const concCodes = codes.filter(h=>h.cn&&h.cn.gi>0).sort((a,b)=>b.cn.gi-a.cn.gi).slice(0,5);
+    const concCodes = codes.filter(h=>h.cn&&h.cn.gi>0).sort((a,b)=>(b.cn?.gi ?? 0)-(a.cn?.gi ?? 0)).slice(0,5);
     if (concCodes.length > 2) {
       ins.push({
         id:"conc", q:"Which services are dominated by a few providers?",
-        a:`${concCodes[0].d} (${concCodes[0].c}) has a Gini coefficient of ${concCodes[0].cn.gi.toFixed(2)}. The top 1% of providers account for ${concCodes[0].cn.t1}% of spending on this code.`,
-        data:concCodes.map(s=>({n:s.c,v:+s.cn.gi.toFixed(2)})), color:cO, unit:"gini",
+        a:`${concCodes[0].d} (${concCodes[0].c}) has a Gini coefficient of ${(concCodes[0].cn?.gi ?? 0).toFixed(2)}. The top 1% of providers account for ${concCodes[0].cn?.t1 ?? 0}% of spending on this code.`,
+        data:concCodes.map(s=>({n:s.c,v:+(s.cn?.gi ?? 0).toFixed(2)})), color:cO, unit:"gini",
         action:()=>{setDC(concCodes[0].c);setTab("code");}
       });
     }
@@ -743,7 +744,7 @@ export default function TmsisExplorer() {
   const Sel = ({ value, onChange, label, optional }: { value: string; onChange: (v: string) => void; label: string; optional?: boolean }) => (
     <div style={{ display:"flex",flexDirection:"column",gap:2 }}>
       {label && <span style={{ fontSize:8,color:AL,fontFamily:FM,textTransform:"uppercase",letterSpacing:0.5 }}>{label}</span>}
-      <select value={value} onChange={e => onChange(e.target.value)}
+      <select value={value} onChange={e => onChange(e.currentTarget.value)}
         style={{ background: S, border: `1px solid ${B}`, padding: "5px 10px", borderRadius: 6, fontSize: 11, color: value ? A : AL }}>
         {optional && <option value="">— None —</option>}
         {SL.map(k => <option key={k} value={k}>{states[k]?.name || k}</option>)}
@@ -772,7 +773,8 @@ export default function TmsisExplorer() {
       const fs1 = getFsRate(s1, h.c);
       return { ...h, r1, r2, r3, mc, fs1, naRef, g1: pD(r1, naRef), g2: has2 && r2>0 ? pD(r2, naRef) : null, g3: has3 && r3>0 ? pD(r3, naRef) : null, fi: (naRef - r1) * estStateClaims };
     });
-    const sf = { gap:(a,b)=>Math.abs(b.g1)-Math.abs(a.g1), high:(a,b)=>b.r1-a.r1, fiscal:(a,b)=>Math.abs(b.fi)-Math.abs(a.fi) };
+    type BenchItem = (typeof list)[number];
+    const sf: Record<string, (a: BenchItem, b: BenchItem) => number> = { gap:(a,b)=>Math.abs(b.g1)-Math.abs(a.g1), high:(a,b)=>b.r1-a.r1, fiscal:(a,b)=>Math.abs(b.fi)-Math.abs(a.fi) };
     list.sort(sf[bSort] || sf.fiscal);
     return list.slice(0, 200);
   }, [codes, s1, s2, s3, bCat, bSort, q, states, getMcRate, getFsRate, mixAdj, getAdj]);
@@ -781,7 +783,7 @@ export default function TmsisExplorer() {
   const catSummary = useMemo(() => {
     const has2 = s2 && s2 !== s1;
     const has3 = s3 && s3 !== s1 && s3 !== s2;
-    const cats: Record<string, any> = {};
+    const cats: Record<string, CatAccumulator> = {};
     codes.forEach(h => {
       if (!h.r || h.r[s1] === undefined) return;
       const cat = h.cat || "Other";
@@ -821,7 +823,7 @@ export default function TmsisExplorer() {
     const adj1 = getAdj(s1);
     const naAdjAll = naAll * adj1;
     const raData = riskAdj?.states?.[s1];
-    return { s1All, naAll, naAdjAll, adj1, totalW, pe: raData?.actual_pe, adjPe: raData?.adjusted_pe };
+    return { s1All, naAll, naAdjAll, adj1, totalW, adjPe: raData?.adjusted_pe };
   }, [catSummary, s1, getAdj, riskAdj]);
 
   const dC = useMemo(() => codes.find(h => h.c === dc) || null, [codes, dc]);
@@ -830,9 +832,11 @@ export default function TmsisExplorer() {
     return Object.entries(dC.r).map(([ab, r]) => ({ ab, r: safe(r), n: states[ab]?.name || ab, gp: pD(safe(r), dC.na) })).sort((a, b) => b.r - a.r);
   }, [dC, states]);
 
-  const stateRegions = useMemo(() => {
-    const r = regions?.summary?.[s1];
-    return Array.isArray(r) ? [...r].sort((a,b) => safe(b.total_paid) - safe(a.total_paid)) : null;
+  interface RegionRecord { zip3?: string; region_name?: string; total_paid?: number; n_providers?: number; [key: string]: unknown }
+  const stateRegions = useMemo((): RegionRecord[] | null => {
+    const summary = (regions as Record<string, Record<string, RegionRecord[]>> | null)?.summary;
+    const r = summary?.[s1];
+    return Array.isArray(r) ? [...r].sort((a, b) => safe(a.total_paid) - safe(b.total_paid)).reverse() : null;
   }, [regions, s1]);
 
   const ranking = useMemo(() => SL.map(k => ({ k, ...g(k) })).sort((a, b) => curM.fn(b) - curM.fn(a)), [SL, curM, states]);
@@ -855,7 +859,7 @@ export default function TmsisExplorer() {
         <div style={{ display:"flex",alignItems:"center",gap:6 }}>
           {!isLive && <span style={{ fontSize:8,padding:"1px 6px",borderRadius:8,background:"rgba(184,134,11,0.12)",color:WARN,fontWeight:600 }}>PROTOTYPE</span>}
           {isLive && <span style={{ fontSize:8,padding:"1px 6px",borderRadius:8,background:"rgba(14,98,69,0.1)",color:POS,fontWeight:600 }}>LIVE DATA</span>}
-          {isLive && meta?.years && <span style={{ fontSize:9,color:AL,fontFamily:FM }}>{meta.years[0]}–{meta.years[meta.years.length-1]}</span>}
+          {isLive && Array.isArray(meta?.years) && <span style={{ fontSize:9,color:AL,fontFamily:FM }}>{(meta.years as number[])[0]}–{(meta.years as number[])[(meta.years as number[]).length-1]}</span>}
         </div>
         <div style={{ display:"flex",gap:1,flexWrap:"wrap" }}>
           {TABS.map(t => <button key={t.k} onClick={()=>setTab(t.k)} style={{ padding:"4px 8px",fontSize:10,fontWeight:tab===t.k?700:400,color:tab===t.k?cB:AL,background:tab===t.k?"rgba(46,107,74,0.05)":"transparent",border:"none",borderRadius:6,cursor:"pointer",borderBottom:tab===t.k?`2px solid ${cB}`:"2px solid transparent",whiteSpace:"nowrap" }}>{t.l}</button>)}
@@ -978,7 +982,7 @@ export default function TmsisExplorer() {
                   <YAxis type="number" dataKey="mi" name="Mix" domain={["auto","auto"]} tick={{fill:AL,fontSize:9,fontFamily:FM}} axisLine={false} tickLine={false} label={{value:"Mix Index →",angle:-90,position:"left",fontSize:9,fill:AL}}/>
                   <ReferenceLine x={1} stroke={B} strokeDasharray="4 4"/>
                   <ReferenceLine y={1} stroke={B} strokeDasharray="4 4"/>
-                  <Tooltip content={<SafeTip render={d=>d.k?(<div><div style={{fontWeight:600}}>{states[d.k]?.name||d.k}</div><div>Price: {d.pi?.toFixed(3)} ({d.pi>1?"+":""}{ ((d.pi-1)*100).toFixed(1)}%)</div><div>Mix: {d.mi?.toFixed(3)} ({d.mi>1?"+":""}{((d.mi-1)*100).toFixed(1)}%)</div><div style={{color:AL,fontSize:9}}>Per enrollee: {f$(d.pe)}</div></div>):null}/>}/>
+                  <Tooltip content={<SafeTip render={(_d)=>{ const d = _d as {k:string;pi:number;mi:number;pe:number}; return d.k?(<div><div style={{fontWeight:600}}>{states[d.k]?.name||d.k}</div><div>Price: {d.pi?.toFixed(3)} ({d.pi>1?"+":""}{ ((d.pi-1)*100).toFixed(1)}%)</div><div>Mix: {d.mi?.toFixed(3)} ({d.mi>1?"+":""}{((d.mi-1)*100).toFixed(1)}%)</div><div style={{color:AL,fontSize:9}}>Per enrollee: {f$(d.pe)}</div></div>):null; }}/>}/>
                   <Scatter data={cmData} fill={cB} stroke={cB}>
                     {cmData.map(s=><Cell key={s.k} fill={s.k===s1?cO:(s2&&s.k===s2)?WARN:cB} stroke={s.k===s1?cO:(s2&&s.k===s2)?WARN:cB} r={s.k===s1||(s2&&s.k===s2)?6:4} opacity={s.k===s1||(s2&&s.k===s2)?1:0.6}/>)}
                   </Scatter>
@@ -995,7 +999,7 @@ export default function TmsisExplorer() {
                 <CartesianGrid strokeDasharray="3 3" stroke={B} vertical={false}/>
                 <XAxis dataKey="y" tick={{fill:AL,fontSize:9}} axisLine={false} tickLine={false} interval={0}/>
                 <YAxis tick={{fill:AL,fontSize:9}} axisLine={false} tickLine={false} domain={[80,'auto']}/>
-                <Tooltip content={<SafeTip render={d=>(<div><div style={{fontWeight:600}}>{d.y}</div><div style={{color:cB}}>Spend: {d.si}</div><div style={{color:cG}}>Enroll: {d.ei}</div><div style={{color:cO}}>Per cap: {d.pi}</div></div>)}/>}/>
+                <Tooltip content={<SafeTip render={(_d)=>{ const d=_d as {y:number;si:number;ei:number;pi:number}; return (<div><div style={{fontWeight:600}}>{d.y}</div><div style={{color:cB}}>Spend: {d.si}</div><div style={{color:cG}}>Enroll: {d.ei}</div><div style={{color:cO}}>Per cap: {d.pi}</div></div>); }}/>}/>
                 <Line type="monotone" dataKey="si" stroke={cB} strokeWidth={2.5} dot={{r:2}} name="Spend"/>
                 <Line type="monotone" dataKey="ei" stroke={cG} strokeWidth={2.5} dot={{r:2}} name="Enroll"/>
                 <Line type="monotone" dataKey="pi" stroke={cO} strokeWidth={2.5} dot={{r:2}} strokeDasharray="6 3" name="Per Cap"/>
@@ -1055,7 +1059,7 @@ export default function TmsisExplorer() {
           <Sel value={s3} onChange={setS3} label="Compare 2" optional/>
           <div style={{ display:"flex",flexDirection:"column",gap:2 }}>
             <span style={{ fontSize:8,color:AL,fontFamily:FM,textTransform:"uppercase",letterSpacing:0.5 }}>Category</span>
-            <select value={bCat} onChange={e=>setBC(e.target.value)} style={{ background:S,border:`1px solid ${B}`,padding:"6px 8px",borderRadius:6,fontSize:11 }}>
+            <select value={bCat} onChange={e=>setBC(e.currentTarget.value)} style={{ background:S,border:`1px solid ${B}`,padding:"6px 8px",borderRadius:6,fontSize:11 }}>
               <option value="All">All Categories ({codes.filter(h=>h.r&&h.r[s1]!==undefined).length})</option>
               {CATS.map(c=><option key={c} value={c}>{c} ({codes.filter(h=>h.r&&h.r[s1]!==undefined&&h.cat===c).length})</option>)}
             </select>
@@ -1063,7 +1067,7 @@ export default function TmsisExplorer() {
           <div style={{ display:"flex",flexDirection:"column",gap:2,flex:1,maxWidth:200 }}>
             <span style={{ fontSize:8,color:AL,fontFamily:FM,textTransform:"uppercase",letterSpacing:0.5 }}>Search Codes</span>
             <div style={{ position:"relative" }}>
-              <input value={q} onChange={e=>setQ(e.target.value)} placeholder="Try 'dental', 'home care', 'office visit'..." style={{ width:"100%",background:S,border:`1px solid ${B}`,padding:"6px 10px 6px 24px",borderRadius:6,fontSize:11,outline:"none",boxSizing:"border-box" }}/>
+              <input value={q} onChange={e=>setQ(e.currentTarget.value)} placeholder="Try 'dental', 'home care', 'office visit'..." style={{ width:"100%",background:S,border:`1px solid ${B}`,padding:"6px 10px 6px 24px",borderRadius:6,fontSize:11,outline:"none",boxSizing:"border-box" }}/>
               <span style={{ position:"absolute",left:7,top:"50%",transform:"translateY(-50%)",color:AL,fontSize:12 }}>&#x2315;</span>
             </div>
           </div>
@@ -1075,11 +1079,11 @@ export default function TmsisExplorer() {
           const has3 = s3 && s3 !== s1 && s3 !== s2;
           const maxGap = catSummary.reduce((m,c) => {
             const vals = [Math.abs(mixAdj?c.g1a:c.g1)];
-            if (c.g2!==null) vals.push(Math.abs(mixAdj?c.g2a:c.g2));
-            if (c.g3!==null) vals.push(Math.abs(mixAdj?c.g3a:c.g3));
+            if (c.g2!==null && c.g2a!==null) vals.push(Math.abs(mixAdj?(c.g2a ?? 0):(c.g2 ?? 0)));
+            if (c.g3!==null && c.g3a!==null) vals.push(Math.abs(mixAdj?(c.g3a ?? 0):(c.g3 ?? 0)));
             return Math.max(m, ...vals);
           }, 20);
-          const GapBar = ({gap, color}) => {
+          const GapBar = ({gap, color}: {gap: number | null | undefined; color?: string}) => {
             if (gap === null || gap === undefined) return <span style={{color:B}}>—</span>;
             const w = Math.min(Math.abs(gap) / maxGap * 100, 100);
             return <div style={{ display:"flex",alignItems:"center",gap:4 }}>
@@ -1170,10 +1174,11 @@ export default function TmsisExplorer() {
               <XAxis type="number" dataKey="nc" name="Claims" scale="log" domain={["auto","auto"]} tick={{fill:AL,fontSize:8,fontFamily:FM}} axisLine={false} tickLine={false} tickFormatter={v=>v>=1e9?`${(v/1e9).toFixed(0)}B`:v>=1e6?`${(v/1e6).toFixed(0)}M`:v>=1e3?`${(v/1e3).toFixed(0)}K`:String(v)} label={{value:"Claims Volume →",position:"bottom",fontSize:9,fill:AL,offset:-2}}/>
               <YAxis type="number" dataKey="g1" name="Gap" domain={([a,b])=>[Math.max(a,-200),Math.min(b,200)]} tick={{fill:AL,fontSize:8,fontFamily:FM}} axisLine={false} tickLine={false} tickFormatter={v=>`${v>0?"+":""}${v.toFixed(0)}%`} label={{value:`Gap vs ${mixAdj?"Adj ":""}Natl Avg →`,angle:-90,position:"left",fontSize:9,fill:AL}}/>
               <ReferenceLine y={0} stroke={AL} strokeDasharray="4 4"/>
-              <Tooltip content={<SafeTip render={d=>{
+              <Tooltip content={<SafeTip render={(_d)=>{
+                const d = _d as {c:string;d:string;_st?:string;_r?:number;naRef:number;g1:number;nc:number;r1:number;fi:number;mc:number;fs1:number};
                 if(d._st) return (<div>
                   <div style={{fontWeight:600}}>{d.c} — {d.d}</div>
-                  <div>{d._st}: <b>{f$(d._r)}</b> · {mixAdj?"Adj ":""}Natl: {f$(d.naRef)}</div>
+                  <div>{d._st}: <b>{f$(d._r ?? 0)}</b> · {mixAdj?"Adj ":""}Natl: {f$(d.naRef)}</div>
                   <div style={{color:d.g1>0?POS:NEG}}>Gap: {d.g1>0?"+":""}{d.g1.toFixed(1)}%</div>
                   <div style={{color:AL,fontSize:9}}>Volume: {fN(d.nc)} claims</div>
                 </div>);
@@ -1256,7 +1261,7 @@ export default function TmsisExplorer() {
         </div>
         {dC && <div style={{ display:"grid",gridTemplateColumns:"repeat(auto-fit,minmax(90px,1fr))",padding:"0 10px 10px",gap:4 }}>
           <Met l="Natl Avg" v={f$(dC.na)}/><Met l="Claims" v={fN(dC.nc)}/><Met l="Natl Spend" v={f$(dC.ns||safe(dC.na)*safe(dC.nc))}/><Met l="States" v={dC.nst||Object.keys(dC.r||{}).length}/>
-          {dC.np>0&&<Met l="Provs" v={fN(dC.np)}/>}{dC.cn&&<Fragment><Met l="Top1%" v={`${dC.cn.t1}%`} cl={dC.cn.t1>30?NEG:POS}/><Met l="Gini" v={safe(dC.cn.gi).toFixed(2)}/></Fragment>}
+          {(dC.np ?? 0)>0&&<Met l="Provs" v={fN(dC.np ?? 0)}/>}{dC.cn&&<Fragment><Met l="Top1%" v={`${dC.cn.t1}%`} cl={dC.cn.t1>30?NEG:POS}/><Met l="Gini" v={safe(dC.cn.gi).toFixed(2)}/></Fragment>}
           {getMcRate(dC.c)>0&&<Met l="Medicare" v={f$(getMcRate(dC.c))} cl="#1565C0"/>}
           {getFsRate(s1,dC.c)>0&&<Met l={`${states[s1]?.name||s1} Sched`} v={f$(getFsRate(s1,dC.c))} cl="#6A1B9A"/>}
         </div>}</Card>
@@ -1269,7 +1274,7 @@ export default function TmsisExplorer() {
                 <YAxis type="category" dataKey="ab" tick={{fill:A,fontSize:7,fontFamily:FM}} axisLine={false} tickLine={false} width={26}/>
                 <ReferenceLine x={dC.na} stroke={NEG} strokeDasharray="4 2" strokeWidth={1.5}/>
                 {getMcRate(dC.c)>0&&<ReferenceLine x={getMcRate(dC.c)} stroke="#1565C0" strokeDasharray="6 3" strokeWidth={1.5}/>}
-                <Tooltip content={<SafeTip render={d=>(<div><div style={{fontWeight:600}}>{d.n}: {f$(d.r)}</div><div style={{color:d.gp<0?NEG:POS}}>{d.gp>0?"+":""}{d.gp.toFixed(1)}% vs natl avg of {f$(dC.na)}</div>{getMcRate(dC.c)>0&&<div style={{color:"#1565C0"}}>Medicare: {f$(getMcRate(dC.c))} ({pD(d.r,getMcRate(dC.c))>0?"+":""}{pD(d.r,getMcRate(dC.c)).toFixed(0)}%)</div>}</div>)}/>}/>
+                <Tooltip content={<SafeTip render={(_d)=>{ const d=_d as {n:string;r:number;gp:number}; return (<div><div style={{fontWeight:600}}>{d.n}: {f$(d.r)}</div><div style={{color:d.gp<0?NEG:POS}}>{d.gp>0?"+":""}{d.gp.toFixed(1)}% vs natl avg of {f$(dC.na)}</div>{getMcRate(dC.c)>0&&<div style={{color:"#1565C0"}}>Medicare: {f$(getMcRate(dC.c))} ({pD(d.r,getMcRate(dC.c))>0?"+":""}{pD(d.r,getMcRate(dC.c)).toFixed(0)}%)</div>}</div>); }}/>}/>
                 <Bar dataKey="r" barSize={8} radius={[0,3,3,0]}>{dCS.map((d,i)=><Cell key={i} fill={d.ab===s1?cO:d.ab===s2?WARN:d.gp<0?"rgba(164,38,44,0.35)":"rgba(46,107,74,0.4)"}/>)}</Bar>
               </BarChart>
             </ResponsiveContainer>
@@ -1277,7 +1282,7 @@ export default function TmsisExplorer() {
           <div style={{ display:"grid",gap:8 }}>
             {dC.tr && <Card x><CH t="Trend" b={`${dC.tr.length}Y`}/><div style={{ padding:"0 14px 8px" }}>
               <ResponsiveContainer width="100%" height={140}>
-                <AreaChart data={dC.tr} margin={{right:20}}><CartesianGrid strokeDasharray="3 3" stroke={B} vertical={false}/><XAxis dataKey="y" tick={{fill:AL,fontSize:9}} axisLine={false} tickLine={false} interval={0}/><YAxis tick={{fill:AL,fontSize:9}} axisLine={false} tickLine={false}/><Tooltip content={<SafeTip render={d=><div>{d.y}: <b>{f$(d.v)}</b>/claim</div>}/>}/><Area type="monotone" dataKey="v" stroke={cB} strokeWidth={2} fill="rgba(46,107,74,0.08)" dot={{fill:cB,r:2.5}}/></AreaChart>
+                <AreaChart data={dC.tr} margin={{right:20}}><CartesianGrid strokeDasharray="3 3" stroke={B} vertical={false}/><XAxis dataKey="y" tick={{fill:AL,fontSize:9}} axisLine={false} tickLine={false} interval={0}/><YAxis tick={{fill:AL,fontSize:9}} axisLine={false} tickLine={false}/><Tooltip content={<SafeTip render={(_d)=>{ const d=_d as {y:number;v:number}; return <div>{d.y}: <b>{f$(d.v)}</b>/claim</div>; }}/>}/><Area type="monotone" dataKey="v" stroke={cB} strokeWidth={2} fill="rgba(46,107,74,0.08)" dot={{fill:cB,r:2.5}}/></AreaChart>
               </ResponsiveContainer>
             </div></Card>}
             {dC.cn && <Card x><CH t="Concentration"/><div style={{ padding:"6px 14px 10px" }}>
@@ -1302,7 +1307,7 @@ export default function TmsisExplorer() {
             if(provMode==="providers"&&providerData){
               const pql=pq.toLowerCase();
               const rows=providerData.filter(p=>(s1==="US"||p.state===s1)&&(!pql||(p.name||"").toLowerCase().includes(pql)||(p.npi||"").includes(pql))).slice(0,200);
-              downloadCSV(`providers_${s1}.csv`,["NPI","Name","State","Specialty","Total Paid","Claims","Codes"],rows.map(p=>[p.npi,p.name,p.state,p.taxonomy,safe(p.total_paid),safe(p.claims),safe(p.codes)]));
+              downloadCSV(`providers_${s1}.csv`,["NPI","Name","State","Specialty","Total Paid","Claims","Codes"],rows.map(p=>[p.npi,p.name,p.state||"",p.taxonomy||"",safe(p.paid),safe(p.claims),safe(p["codes"] as number | null | undefined)]));
             }
           }}/>
         </div>
@@ -1313,23 +1318,24 @@ export default function TmsisExplorer() {
             <Pill on={provMode==="specialties"} onClick={()=>setPM("specialties")}>By Specialty</Pill>
           </div>
           {provMode==="providers" && <div style={{ position:"relative",flex:1,maxWidth:280 }}>
-            <input value={pq} onChange={e=>setPQ(e.target.value)} placeholder="Search by name, NPI, or specialty..." style={{ width:"100%",background:S,border:`1px solid ${B}`,padding:"6px 10px 6px 24px",borderRadius:6,fontSize:11,outline:"none",boxSizing:"border-box" }}/>
+            <input value={pq} onChange={e=>setPQ(e.currentTarget.value)} placeholder="Search by name, NPI, or specialty..." style={{ width:"100%",background:S,border:`1px solid ${B}`,padding:"6px 10px 6px 24px",borderRadius:6,fontSize:11,outline:"none",boxSizing:"border-box" }}/>
             <span style={{ position:"absolute",left:7,top:"50%",transform:"translateY(-50%)",color:AL,fontSize:12 }}>&#x2315;</span>
           </div>}
           {provMode==="specialties" && <div style={{ position:"relative",flex:1,maxWidth:280 }}>
-            <input value={specQuery} onChange={e=>setSpecQuery(e.target.value)} placeholder="Search taxonomy code or keyword..." style={{ width:"100%",background:S,border:`1px solid ${B}`,padding:"6px 10px 6px 24px",borderRadius:6,fontSize:11,outline:"none",boxSizing:"border-box" }}/>
+            <input value={specQuery} onChange={e=>setSpecQuery(e.currentTarget.value)} placeholder="Search taxonomy code or keyword..." style={{ width:"100%",background:S,border:`1px solid ${B}`,padding:"6px 10px 6px 24px",borderRadius:6,fontSize:11,outline:"none",boxSizing:"border-box" }}/>
             <span style={{ position:"absolute",left:7,top:"50%",transform:"translateY(-50%)",color:AL,fontSize:12 }}>&#x2315;</span>
           </div>}
         </div>
 
         {/* INDIVIDUAL PROVIDERS MODE */}
         {provMode==="providers" && (() => {
+          type ProvExt = ProviderRecord & { type?: string; n_codes?: number; total_claims?: number; total_paid?: number; total_bene?: number; peer?: { n_peers: number; med_paid: number; vs_med: number; med_claims: number }; trend?: { y: number; paid: number; claims: number }[]; category_shares?: Record<string, number>; top_codes?: { code: string; desc?: string; paid?: number; share?: number }[] };
           if (!providerData || providerData.length === 0) return <Card><div style={{ padding:20,textAlign:"center",color:AL,fontSize:12 }}>
             <div style={{ fontSize:14,marginBottom:4 }}>Provider profiles available with pipeline + NPPES</div>
             <div>Run the pipeline with NPPES to see top 200 providers per state with case mix, trends, and peer comparison.</div>
           </div></Card>;
           const pql = pq.toLowerCase();
-          const filtered = providerData.filter(p => {
+          const filtered = (providerData as ProvExt[]).filter(p => {
             if (s1 !== "US" && p.state !== s1) return false;
             if (!pql) return true;
             return (p.name||"").toLowerCase().includes(pql) || (p.npi||"").includes(pql) || (p.taxonomy||"").toLowerCase().includes(pql);
@@ -1343,7 +1349,7 @@ export default function TmsisExplorer() {
                   <div style={{ width:24,height:24,borderRadius:12,background:p.type==="org"?cT:cB,display:"flex",alignItems:"center",justifyContent:"center",color:"#fff",fontSize:10,fontWeight:700,flexShrink:0 }}>{p.type==="org"?"O":"I"}</div>
                   <div style={{ flex:1,minWidth:0 }}>
                     <div title={p.name||`NPI ${p.npi}`} style={{ fontSize:11,fontWeight:isSel?600:400,whiteSpace:"nowrap",overflow:"hidden",textOverflow:"ellipsis" }}>{p.name||`NPI ${p.npi}`}</div>
-                    <div style={{ fontSize:9,color:AL }}>{p.state} · {p.n_codes} codes · {fN(safe(p.total_claims))} claims</div>
+                    <div style={{ fontSize:9,color:AL }}>{p.state} · {p.n_codes ?? 0} codes · {fN(safe(p.total_claims))} claims</div>
                   </div>
                   <div style={{ textAlign:"right",flexShrink:0 }}>
                     <div style={{ fontSize:11,fontFamily:FM,fontWeight:600 }}>{f$(safe(p.total_paid))}</div>
@@ -1358,10 +1364,10 @@ export default function TmsisExplorer() {
                 <div style={{ fontSize:10,color:AL,marginTop:2 }}>NPI: {selProv.npi} · {selProv.type==="org"?"Organization":"Individual"}{selProv.taxonomy?` · ${selProv.taxonomy}`:""}</div>
                 <div style={{ display:"grid",gridTemplateColumns:"repeat(3,1fr)",marginTop:8,gap:4 }}>
                   <Met l="Total Paid" v={f$(safe(selProv.total_paid))}/><Met l="Claims" v={fN(safe(selProv.total_claims))}/><Met l="Beneficiaries" v={fN(safe(selProv.total_bene))}/>
-                  <Met l="State" v={states[selProv.state]?.name||selProv.state}/><Met l="Codes Billed" v={selProv.n_codes}/><Met l="Avg/Claim" v={selProv.total_claims>0?`$${(selProv.total_paid/selProv.total_claims).toFixed(2)}`:"—"}/>
+                  <Met l="State" v={states[selProv.state || ""]?.name||selProv.state||""}/><Met l="Codes Billed" v={selProv.n_codes ?? 0}/><Met l="Avg/Claim" v={(selProv.total_claims ?? 0)>0?`$${((selProv.total_paid ?? 0)/(selProv.total_claims ?? 1)).toFixed(2)}`:"—"}/>
                 </div>
                 {selProv.peer && <div style={{ marginTop:6,padding:"6px 0 0",borderTop:`1px solid ${S}` }}>
-                  <div style={{ fontSize:10,color:AL,marginBottom:3 }}>Peer Comparison ({selProv.peer.n_peers} peers in {states[selProv.state]?.name||selProv.state} with same taxonomy)</div>
+                  <div style={{ fontSize:10,color:AL,marginBottom:3 }}>Peer Comparison ({selProv.peer.n_peers} peers in {states[selProv.state || ""]?.name||selProv.state||""} with same taxonomy)</div>
                   <div style={{ display:"grid",gridTemplateColumns:"repeat(3,1fr)",gap:4 }}>
                     <Met l="Peer Median" v={f$(safe(selProv.peer.med_paid))}/>
                     <Met l="vs Median" v={<span style={{color:selProv.peer.vs_med>0?NEG:POS}}>{selProv.peer.vs_med>0?"+":""}{selProv.peer.vs_med}%</span>}/>
@@ -1371,7 +1377,7 @@ export default function TmsisExplorer() {
               </div></Card>
               {selProv.trend && selProv.trend.length>1 && <Card x><CH t="Yearly Spending" b={`${selProv.trend.length} years`}/><div style={{ padding:"0 14px 8px" }}>
                 <ResponsiveContainer width="100%" height={120}>
-                  <AreaChart data={selProv.trend} margin={{right:20}}><CartesianGrid strokeDasharray="3 3" stroke={B} vertical={false}/><XAxis dataKey="y" tick={{fill:AL,fontSize:9}} axisLine={false} tickLine={false} interval={0}/><YAxis tick={{fill:AL,fontSize:9}} axisLine={false} tickLine={false} tickFormatter={v=>f$(v)}/><Tooltip content={<SafeTip render={d=><div>{d.y}: <b>{f$(d.paid)}</b> · {fN(safe(d.claims))} claims</div>}/>}/><Area type="monotone" dataKey="paid" stroke={cB} strokeWidth={2} fill="rgba(46,107,74,0.08)" dot={{fill:cB,r:2.5}}/></AreaChart>
+                  <AreaChart data={selProv.trend} margin={{right:20}}><CartesianGrid strokeDasharray="3 3" stroke={B} vertical={false}/><XAxis dataKey="y" tick={{fill:AL,fontSize:9}} axisLine={false} tickLine={false} interval={0}/><YAxis tick={{fill:AL,fontSize:9}} axisLine={false} tickLine={false} tickFormatter={v=>f$(v)}/><Tooltip content={<SafeTip render={(_d)=>{ const d=_d as {y:number;paid:number;claims:number}; return <div>{d.y}: <b>{f$(d.paid)}</b> · {fN(safe(d.claims))} claims</div>; }}/>}/><Area type="monotone" dataKey="paid" stroke={cB} strokeWidth={2} fill="rgba(46,107,74,0.08)" dot={{fill:cB,r:2.5}}/></AreaChart>
                 </ResponsiveContainer>
               </div></Card>}
               {selProv.category_shares && <Card x><CH t="Case Mix" b="Spending by service category"/><div style={{ padding:"6px 14px 10px" }}>
@@ -1399,14 +1405,16 @@ export default function TmsisExplorer() {
 
         {/* SPECIALTIES MODE */}
         {provMode==="specialties" && (() => {
+          type SpecState = { state: string; avg_per_prov: number; avg_per_claim: number; provs: number };
+          type SpecExt = SpecialtyRecord & { n_states?: number; national_providers?: number; national_paid?: number; states?: SpecState[] };
           if (!specData || specData.length === 0) return <Card><div style={{ padding:20,textAlign:"center",color:AL,fontSize:12 }}>
             <div style={{ fontSize:14,marginBottom:4 }}>Specialty comparison available with pipeline + NPPES</div>
             <div>Run the pipeline with NPPES to see spending by provider taxonomy across all states.</div>
           </div></Card>;
           const sql = specQuery.toLowerCase();
-          const filtSpec = specData.filter(sp => !sql || sp.taxonomy.toLowerCase().includes(sql)).slice(0, 50);
+          const filtSpec = (specData as SpecExt[]).filter(sp => !sql || sp.taxonomy.toLowerCase().includes(sql)).slice(0, 50);
           const selSpec = (selSpecTax && filtSpec.find(sp => sp.taxonomy === selSpecTax)) || filtSpec[0];
-          const selStates = selSpec ? [...selSpec.states].sort((a,b)=>b.avg_per_prov-a.avg_per_prov) : [];
+          const selStates = selSpec?.states ? [...selSpec.states].sort((a,b)=>b.avg_per_prov-a.avg_per_prov) : [];
           const maxPP = selStates.length > 0 ? selStates[0].avg_per_prov : 1;
           return <div style={{ display:"grid",gridTemplateColumns:"repeat(auto-fit,minmax(340px,1fr))",gap:10 }}>
             <Card x><CH t="Specialties" b={`${filtSpec.length} taxonomy codes`}/><div style={{ padding:"0 14px 8px",maxHeight:440,overflowY:"auto" }}>
@@ -1415,7 +1423,7 @@ export default function TmsisExplorer() {
                 return <div key={sp.taxonomy} style={{ display:"flex",alignItems:"center",gap:6,padding:"5px 4px",borderBottom:`1px solid ${S}`,cursor:"pointer",background:isSel?"rgba(46,107,74,0.06)":"transparent",borderRadius:4 }} onClick={()=>setSelSpecTax(sp.taxonomy)}>
                   <div style={{ flex:1,minWidth:0 }}>
                     <div style={{ fontSize:11,fontWeight:isSel?600:400,fontFamily:FM }}>{sp.taxonomy}</div>
-                    <div style={{ fontSize:9,color:AL }}>{sp.n_states} states · {fN(safe(sp.national_providers))} providers</div>
+                    <div style={{ fontSize:9,color:AL }}>{sp.n_states ?? 0} states · {fN(safe(sp.national_providers))} providers</div>
                   </div>
                   <div style={{ textAlign:"right",flexShrink:0 }}>
                     <div style={{ fontSize:11,fontFamily:FM,fontWeight:600 }}>{f$(safe(sp.national_paid))}</div>
@@ -1427,7 +1435,7 @@ export default function TmsisExplorer() {
               <Card accent={cT}><div style={{ padding:"10px 14px 8px" }}>
                 <div style={{ fontSize:16,fontWeight:300,fontFamily:FM }}>{selSpec.taxonomy}</div>
                 <div style={{ display:"grid",gridTemplateColumns:"repeat(3,1fr)",marginTop:8,gap:4 }}>
-                  <Met l="Total Paid" v={f$(safe(selSpec.national_paid))}/><Met l="Providers" v={fN(safe(selSpec.national_providers))}/><Met l="States" v={selSpec.n_states}/>
+                  <Met l="Total Paid" v={f$(safe(selSpec.national_paid))}/><Met l="Providers" v={fN(safe(selSpec.national_providers))}/><Met l="States" v={selSpec.n_states ?? 0}/>
                 </div>
               </div></Card>
               <Card x><CH t="Cross-State Comparison" b="Avg spending per provider"/><div style={{ padding:"0 14px 8px",maxHeight:320,overflowY:"auto" }}>
@@ -1447,7 +1455,7 @@ export default function TmsisExplorer() {
                     <CartesianGrid strokeDasharray="3 3" stroke={B} horizontal={true} vertical={false}/>
                     <XAxis dataKey="n" tick={{fill:AL,fontSize:8}} axisLine={false} tickLine={false} interval={0} angle={-30} textAnchor="end" height={40}/>
                     <YAxis tick={{fill:AL,fontSize:9,fontFamily:FM}} axisLine={false} tickLine={false} tickFormatter={v=>`$${v}`}/>
-                    <Tooltip content={<SafeTip render={d=><div>{states[d.st]?.name||d.st}: <b>${safe(d.v).toFixed(2)}</b>/claim</div>}/>}/>
+                    <Tooltip content={<SafeTip render={(_d)=>{ const d=_d as {st:string;v:number}; return <div>{states[d.st]?.name||d.st}: <b>${safe(d.v).toFixed(2)}</b>/claim</div>; }}/>}/>
                     <Bar dataKey="v" radius={[3,3,0,0]}>{selStates.slice(0,20).map(st=><Cell key={st.state} fill={st.state===s1?cO:cB} opacity={0.7}/>)}</Bar>
                   </BarChart>
                 </ResponsiveContainer>
@@ -1473,19 +1481,19 @@ export default function TmsisExplorer() {
           <div style={{ fontSize:14,fontWeight:300,marginBottom:8 }}>Rate Impact Simulator</div>
           <div style={{ display:"flex",gap:10,alignItems:"center",flexWrap:"wrap" }}>
             <div><span style={{ fontSize:10,color:AL }}>State</span><br/>
-              <select value={simState} onChange={e=>setSimSt(e.target.value)} style={{ background:S,border:`1px solid ${B}`,padding:"5px 8px",borderRadius:6,fontSize:11 }}>
+              <select value={simState} onChange={e=>setSimSt(e.currentTarget.value)} style={{ background:S,border:`1px solid ${B}`,padding:"5px 8px",borderRadius:6,fontSize:11 }}>
                 {SL.map(k=><option key={k} value={k}>{states[k]?.name||k}</option>)}
               </select>
             </div>
             <div><span style={{ fontSize:10,color:AL }}>Category</span><br/>
-              <select value={simCat} onChange={e=>setSimCat(e.target.value)} style={{ background:S,border:`1px solid ${B}`,padding:"5px 8px",borderRadius:6,fontSize:11 }}>
+              <select value={simCat} onChange={e=>setSimCat(e.currentTarget.value)} style={{ background:S,border:`1px solid ${B}`,padding:"5px 8px",borderRadius:6,fontSize:11 }}>
                 <option value="All">All Codes</option>
                 {[...new Set(codes.map(h=>h.cat))].sort().map(c=><option key={c} value={c}>{c}</option>)}
               </select>
             </div>
             <div><span style={{ fontSize:10,color:AL }}>Rate Change</span><br/>
               <div style={{ display:"flex",alignItems:"center",gap:4 }}>
-                <input type="range" min={-50} max={50} value={simPct} onChange={e=>setSimPct(+e.target.value)} style={{ width:120 }}/>
+                <input type="range" min={-50} max={50} value={simPct} onChange={e=>setSimPct(+e.currentTarget.value)} style={{ width:120 }}/>
                 <span style={{ fontFamily:FM,fontSize:14,fontWeight:700,color:simPct>=0?POS:NEG,minWidth:45 }}>{simPct>0?"+":""}{simPct}%</span>
               </div>
             </div>
@@ -1593,7 +1601,7 @@ export default function TmsisExplorer() {
       {/* ABOUT */}
       {tab==="about" && <div style={{ maxWidth:640,display:"grid",gap:10 }}>
         <Card><CH t="About This Tool"/><div style={{ padding:"4px 16px 12px",fontSize:11,color:A,lineHeight:1.8 }}>
-          {isLive ? <span>This dashboard is built from <b>HHS Medicaid Provider Spending data</b> published on opendata.hhs.gov. It covers {safe(meta?.source_rows).toLocaleString()} rows, {safe(meta?.n_codes).toLocaleString()} HCPCS codes across {safe(meta?.n_states)} jurisdictions{meta?.years?`, ${meta.years[0]}–${meta.years[meta.years.length-1]}`:""}.
+          {isLive ? <span>This dashboard is built from <b>HHS Medicaid Provider Spending data</b> published on opendata.hhs.gov. It covers {safe(meta?.source_rows as number | null | undefined).toLocaleString()} rows, {safe(meta?.n_codes as number | null | undefined).toLocaleString()} HCPCS codes across {safe(meta?.n_states as number | null | undefined)} jurisdictions{meta?.years?`, ${(meta.years as number[])[0]}–${(meta.years as number[])[(meta.years as number[]).length-1]}`:""}.
           Every number comes from actual Medicaid claims: NPI × HCPCS × month, aggregated through a DuckDB pipeline that runs locally. Nothing is estimated except per-enrollee figures, which use CMS enrollment data (Nov 2024, Medicaid only).</span>
           : <span>This prototype uses <b>simulated data</b> modeled on real HHS dataset structure. The numbers are directionally plausible but not from actual claims. Run the DuckDB pipeline with real HHS data to replace everything you see here with actuals.</span>}
         </div></Card>
@@ -1601,11 +1609,11 @@ export default function TmsisExplorer() {
         <Card><CH t="Reference Data" b="loaded alongside T-MSIS claims"/><div style={{ padding:"4px 16px 12px",fontSize:11,color:A,lineHeight:1.8 }}>
           {mcRates ? <div style={{marginBottom:4}}><span style={{color:POS,fontWeight:600}}>✓ Medicare PFS</span> — CY{mcRates.year} Physician Fee Schedule ({Object.keys(mcRates.rates).length.toLocaleString()} codes, CF=${mcRates.cf}). Shows Medicare non-facility rates in Rate Engine and Code Profile for direct Medicaid-to-Medicare comparisons.</div>
           : <div style={{color:AL,marginBottom:4}}>○ Medicare PFS — not loaded. Place medicare_rates.json in /data to enable.</div>}
-          {feeScheds ? <div style={{marginBottom:4}}><span style={{color:POS,fontWeight:600}}>✓ State Fee Schedules</span> — {Object.keys(feeScheds.states).map(k=>`${feeScheds.states[k].name} (${feeScheds.states[k].n?.toLocaleString()} codes, ${feeScheds.states[k].source})`).join("; ")}. Shows official Medicaid fee schedule rates alongside T-MSIS actual-paid rates.</div>
+          {feeScheds ? <div style={{marginBottom:4}}><span style={{color:POS,fontWeight:600}}>✓ State Fee Schedules</span> — {Object.keys(feeScheds.states).map(k=>{ const st = feeScheds.states[k] as FeeScheduleState & {name?:string;n?:number;source?:string}; return `${st.name ?? k} (${st.n?.toLocaleString() ?? "?"} codes, ${st.source ?? "unknown"})`; }).join("; ")}. Shows official Medicaid fee schedule rates alongside T-MSIS actual-paid rates.</div>
           : <div style={{color:AL,marginBottom:4}}>○ Fee Schedules — not loaded. Place fee_schedules.json in /data to enable.</div>}
           {fsDir ? <div style={{marginBottom:4}}><span style={{color:POS,fontWeight:600}}>✓ Fee Schedule Directory</span> — Links to {fsDir.count} state Medicaid fee schedule pages (compiled {fsDir.compiled}).</div>
           : <div style={{color:AL,marginBottom:4}}>○ Fee Schedule Directory — not loaded. Place fee_schedule_directory.json in /data to enable.</div>}
-          {riskAdj ? <div style={{marginBottom:4}}><span style={{color:POS,fontWeight:600}}>✓ Risk Adjustment</span> — Eligibility-mix adjustment for {Object.keys(riskAdj.states).length} states (source: {riskAdj.source}). Toggle "Raw/Mix-Adj" in Per Cap mode to see spending adjusted for state enrollment demographics.</div>
+          {riskAdj ? <div style={{marginBottom:4}}><span style={{color:POS,fontWeight:600}}>✓ Risk Adjustment</span> — Eligibility-mix adjustment for {Object.keys(riskAdj.states).length} states (source: {(riskAdj as RiskAdjData & {source?:string}).source ?? "unknown"}). Toggle "Raw/Mix-Adj" in Per Cap mode to see spending adjusted for state enrollment demographics.</div>
           : <div style={{color:AL,marginBottom:4}}>○ Risk Adjustment — not loaded. Place risk_adj.json in /data to enable.</div>}
         </div></Card>
         <Card><CH t="Methodology"/><div style={{ padding:"4px 16px 12px",fontSize:11,color:A,lineHeight:1.8 }}>

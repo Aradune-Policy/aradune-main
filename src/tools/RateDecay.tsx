@@ -1,5 +1,6 @@
 import React, { useState, useMemo, useEffect, useCallback } from "react";
 import { BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer, CartesianGrid, ReferenceLine, Cell, ScatterChart, Scatter, ZAxis } from "recharts";
+import type { SafeTipProps, TooltipEntry, DecayHcpcs } from "../types";
 
 // ── Design System ───────────────────────────────────────────────────────
 const A = "#0A2540";
@@ -15,7 +16,7 @@ const cO = "#C4590A";
 const FM = "'SF Mono',Menlo,monospace";
 const SH = "0 1px 3px rgba(0,0,0,.04),0 4px 12px rgba(0,0,0,.03)";
 
-const STATE_NAMES = {AL:"Alabama",AK:"Alaska",AZ:"Arizona",AR:"Arkansas",CA:"California",CO:"Colorado",CT:"Connecticut",DE:"Delaware",DC:"D.C.",FL:"Florida",GA:"Georgia",HI:"Hawaii",ID:"Idaho",IL:"Illinois",IN:"Indiana",IA:"Iowa",KS:"Kansas",KY:"Kentucky",LA:"Louisiana",ME:"Maine",MD:"Maryland",MA:"Massachusetts",MI:"Michigan",MN:"Minnesota",MS:"Mississippi",MO:"Missouri",MT:"Montana",NE:"Nebraska",NV:"Nevada",NH:"New Hampshire",NJ:"New Jersey",NM:"New Mexico",NY:"New York",NC:"N. Carolina",ND:"N. Dakota",OH:"Ohio",OK:"Oklahoma",OR:"Oregon",PA:"Pennsylvania",RI:"Rhode Island",SC:"S. Carolina",SD:"S. Dakota",TN:"Tennessee",TX:"Texas",UT:"Utah",VT:"Vermont",VA:"Virginia",WA:"Washington",WV:"W. Virginia",WI:"Wisconsin",WY:"Wyoming"};
+const STATE_NAMES: Record<string, string> = {AL:"Alabama",AK:"Alaska",AZ:"Arizona",AR:"Arkansas",CA:"California",CO:"Colorado",CT:"Connecticut",DE:"Delaware",DC:"D.C.",FL:"Florida",GA:"Georgia",HI:"Hawaii",ID:"Idaho",IL:"Illinois",IN:"Indiana",IA:"Iowa",KS:"Kansas",KY:"Kentucky",LA:"Louisiana",ME:"Maine",MD:"Maryland",MA:"Massachusetts",MI:"Michigan",MN:"Minnesota",MS:"Mississippi",MO:"Missouri",MT:"Montana",NE:"Nebraska",NV:"Nevada",NH:"New Hampshire",NJ:"New Jersey",NM:"New Mexico",NY:"New York",NC:"N. Carolina",ND:"N. Dakota",OH:"Ohio",OK:"Oklahoma",OR:"Oregon",PA:"Pennsylvania",RI:"Rhode Island",SC:"S. Carolina",SD:"S. Dakota",TN:"Tennessee",TX:"Texas",UT:"Utah",VT:"Vermont",VA:"Virginia",WA:"Washington",WV:"W. Virginia",WI:"Wisconsin",WY:"Wyoming"};
 
 // Common E&M and high-volume codes for comparison
 const BENCHMARK_CODES = [
@@ -68,15 +69,15 @@ const Met = ({ l, v, cl, sub }: { l: string; v: React.ReactNode; cl?: string; su
 const Pill = ({ on, onClick, children }: { on: boolean; onClick: () => void; children: React.ReactNode }) => (
   <button onClick={onClick} style={{ padding:"3px 9px",fontSize:10,fontWeight:on?700:400,color:on?WH:AL,background:on?cB:"transparent",border:`1px solid ${on?cB:BD}`,borderRadius:5,cursor:"pointer" }}>{children}</button>
 );
-const SafeTip = ({ active, payload, render }: { active?: boolean; payload?: any[]; render: (d: any) => React.ReactNode }) => {
+const SafeTip = ({ active, payload, render }: SafeTipProps) => {
   if (!active||!payload?.length) return null;
   const d = payload[0]?.payload;
   if (!d) return null;
   return <div style={{ background:"rgba(10,37,64,0.95)",color:WH,padding:"8px 12px",borderRadius:6,fontSize:11,lineHeight:1.6,maxWidth:300,boxShadow:"0 4px 16px rgba(0,0,0,.2)" }}>{render(d)}</div>;
 };
-function downloadCSV(name, headers, rows) {
-  const esc = v => `"${String(v??"").replace(/"/g,'""')}"`;
-  const csv = [headers.map(esc).join(","), ...rows.map(r => r.map(esc).join(","))].join("\n");
+function downloadCSV(name: string, headers: string[], rows: (string | number | null | undefined)[][]) {
+  const esc = (v: string | number | null | undefined) => `"${String(v??"").replace(/"/g,'""')}"`;
+  const csv = [headers.map(esc).join(","), ...rows.map((r: (string | number | null | undefined)[]) => r.map(esc).join(","))].join("\n");
   const a = document.createElement("a");
   a.href = "data:text/csv;charset=utf-8," + encodeURIComponent(csv);
   a.download = name; a.click();
@@ -85,13 +86,37 @@ const ExportBtn = ({ onClick, label }: { onClick: () => void; label?: string }) 
   <button onClick={onClick} style={{ fontSize:9,color:AL,background:SF,border:`1px solid ${BD}`,borderRadius:5,padding:"3px 8px",cursor:"pointer",fontFamily:FM }}>{label||"Export CSV"}</button>
 );
 
+// ── Chart data shapes (for SafeTip render callbacks) ────────────────────
+interface DecayChartRow {
+  code: string;
+  desc: string;
+  category: string;
+  medicare: number | null;
+  effectiveRate: number | null;
+  pctMedicare: number | null;
+  gap: number | null;
+  rateSource: string | null;
+  tmsis: number | null;
+  tmsisPctMedicare: number | null;
+  feeSchedule: number | null;
+}
+
+interface MultiStateRow {
+  st: string;
+  name: string;
+  tmsis: number;
+  medicare: number;
+  pct: number;
+  isHighlight: boolean;
+}
+
 // ── Main Component ──────────────────────────────────────────────────────
 export default function RateDecay() {
   const [s1, setS1] = useState("FL");
   const [catFilter, setCat] = useState("All");
-  const [hcpcsData, setHCPCS] = useState(null);
-  const [medicareData, setMedicare] = useState(null);
-  const [feeSchedules, setFS] = useState(null);
+  const [hcpcsData, setHCPCS] = useState<DecayHcpcs[] | null>(null);
+  const [medicareData, setMedicare] = useState<Record<string, { nf_rate?: number; rate?: number; nf?: number; r?: number; d?: string }> | null>(null);
+  const [feeSchedules, setFS] = useState<Record<string, { rate?: number; nf_rate?: number }> | null>(null);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
@@ -136,13 +161,8 @@ export default function RateDecay() {
   }, []);
 
   // Get Medicare rate for a code
-  const getMedicareRate = useCallback((code) => {
+  const getMedicareRate = useCallback((code: string): number | null => {
     if (!medicareData) return null;
-    if (Array.isArray(medicareData)) {
-      const r = medicareData.find(m => (m.code||m.c||m.hcpcs) === code);
-      if (!r) return null;
-      return r.nf_rate || r.rate || r.nf || null;
-    }
     if (medicareData[code]) {
       const r = medicareData[code];
       return r.nf_rate || r.rate || r.nf || null;
@@ -151,25 +171,21 @@ export default function RateDecay() {
   }, [medicareData]);
 
   // Get T-MSIS actual-paid rate for a code + state
-  const getTmsisRate = useCallback((state, code) => {
+  const getTmsisRate = useCallback((state: string, code: string): number | null => {
     if (!hcpcsData || !Array.isArray(hcpcsData)) return null;
-    const h = hcpcsData.find(r => (r.code||r.c) === code);
+    const h = hcpcsData.find((r: DecayHcpcs) => (r.code||r.c) === code);
     if (!h) return null;
     if (h.r && typeof h.r === 'object') return h.r[state] || null;
     if (h.rates_by_state) {
-      const sr = h.rates_by_state.find(s => s.state === state);
+      const sr = (h.rates_by_state as { state: string; avg_rate: number }[]).find((s: { state: string; avg_rate: number }) => s.state === state);
       return sr?.avg_rate || null;
     }
     return null;
   }, [hcpcsData]);
 
   // Get fee schedule rate for a code
-  const getFSRate = useCallback((code) => {
+  const getFSRate = useCallback((code: string): number | null => {
     if (!feeSchedules) return null;
-    if (Array.isArray(feeSchedules)) {
-      const r = feeSchedules.find(f => (f.code||f.hcpcs) === code);
-      return r?.rate || r?.nf_rate || null;
-    }
     if (feeSchedules[code]) {
       return feeSchedules[code].rate || feeSchedules[code].nf_rate || null;
     }
@@ -213,14 +229,14 @@ export default function RateDecay() {
   // Summary stats
   const stats = useMemo(() => {
     if (withBoth.length === 0) return null;
-    const pcts = withBoth.map(d => d.pctMedicare).sort((a,b) => a-b);
+    const pcts = withBoth.map(d => d.pctMedicare!).sort((a,b) => a-b);
     const median = pcts[Math.floor(pcts.length / 2)];
     const mean = pcts.reduce((a,b)=>a+b,0) / pcts.length;
     const below50 = pcts.filter(p => p < 50).length;
     const below75 = pcts.filter(p => p < 75).length;
     const above100 = pcts.filter(p => p >= 100).length;
-    const lowest = withBoth.reduce((a,b) => (a.pctMedicare < b.pctMedicare ? a : b));
-    const highest = withBoth.reduce((a,b) => (a.pctMedicare > b.pctMedicare ? a : b));
+    const lowest = withBoth.reduce((a,b) => (a.pctMedicare! < b.pctMedicare! ? a : b));
+    const highest = withBoth.reduce((a,b) => (a.pctMedicare! > b.pctMedicare! ? a : b));
     return { median, mean, below50, below75, above100, lowest, highest, n: withBoth.length };
   }, [withBoth]);
 
@@ -240,7 +256,7 @@ export default function RateDecay() {
         pct: (tmsis / mcr * 100),
         isHighlight: st === s1,
       };
-    }).filter(Boolean).sort((a,b) => a.pct - b.pct);
+    }).filter((d): d is NonNullable<typeof d> => d != null).sort((a,b) => a.pct - b.pct);
   }, [compareCode, stateList, getMedicareRate, getTmsisRate, s1]);
 
   if (loading) return (
@@ -313,29 +329,32 @@ export default function RateDecay() {
         <CH t={`${STATE_NAMES[s1]} Rates as % of Medicare`} b={`${withBoth.length} codes · CY2025 Medicare PFS`} r="100% = Medicare parity"/>
         <div style={{ padding:"0 14px 8px" }}>
           <ResponsiveContainer width="100%" height={Math.max(200, withBoth.length * 18)}>
-            <BarChart data={[...withBoth].sort((a,b)=>a.pctMedicare-b.pctMedicare)} layout="vertical" margin={{ left:90,right:16 }}>
+            <BarChart data={[...withBoth].sort((a,b)=>(a.pctMedicare??0)-(b.pctMedicare??0))} layout="vertical" margin={{ left:90,right:16 }}>
               <CartesianGrid strokeDasharray="3 3" stroke={BD} horizontal={false}/>
-              <XAxis type="number" domain={[0, Math.max(120, ...withBoth.map(d=>d.pctMedicare+5))]} tick={{ fill:AL,fontSize:8,fontFamily:FM }} tickFormatter={v=>`${v}%`}/>
-              <YAxis type="category" dataKey="code" tick={{ fill:A,fontSize:8,fontFamily:FM }} width={85} tickFormatter={v => {
+              <XAxis type="number" domain={[0, Math.max(120, ...withBoth.map(d=>(d.pctMedicare??0)+5))]} tick={{ fill:AL,fontSize:8,fontFamily:FM }} tickFormatter={(v: number)=>`${v}%`}/>
+              <YAxis type="category" dataKey="code" tick={{ fill:A,fontSize:8,fontFamily:FM }} width={85} tickFormatter={(v: string) => {
                 const d = withBoth.find(x=>x.code===v);
                 return d ? `${v} ${d.desc?.substring(0,15)||""}` : v;
               }}/>
               <ReferenceLine x={100} stroke={A} strokeWidth={2} label={{ value:"Medicare",position:"top",style:{fontSize:8,fill:A,fontFamily:FM} }}/>
               <ReferenceLine x={75} stroke={WARN} strokeDasharray="4 4" label={{ value:"75%",position:"top",style:{fontSize:7,fill:WARN} }}/>
               <ReferenceLine x={50} stroke={NEG} strokeDasharray="4 4" label={{ value:"50%",position:"top",style:{fontSize:7,fill:NEG} }}/>
-              <Tooltip content={<SafeTip render={d=>(
+              <Tooltip content={<SafeTip render={(raw)=>{
+                const d = raw as unknown as DecayChartRow;
+                return (
                 <div>
                   <div style={{ fontWeight:600 }}>{d.code} — {d.desc}</div>
                   <div>Medicare: <b>${d.medicare?.toFixed(2)}</b></div>
                   <div>{d.rateSource}: <b>${d.effectiveRate?.toFixed(2)}</b></div>
-                  <div style={{ color:d.pctMedicare<75?"#ff9999":d.pctMedicare<100?"#ffcc99":"#99ff99" }}>
-                    <b>{d.pctMedicare?.toFixed(1)}%</b> of Medicare ({d.gap>=0?"+":""}${d.gap?.toFixed(2)})
+                  <div style={{ color:(d.pctMedicare??0)<75?"#ff9999":(d.pctMedicare??0)<100?"#ffcc99":"#99ff99" }}>
+                    <b>{d.pctMedicare?.toFixed(1)}%</b> of Medicare ({(d.gap??0)>=0?"+":""}${d.gap?.toFixed(2)})
                   </div>
                 </div>
-              )}/>}/>
+                );
+              }}/>}/>
               <Bar dataKey="pctMedicare" barSize={10} radius={[0,3,3,0]}>
-                {[...withBoth].sort((a,b)=>a.pctMedicare-b.pctMedicare).map((d,i)=>(
-                  <Cell key={i} fill={d.pctMedicare<50?NEG:d.pctMedicare<75?WARN:d.pctMedicare<100?cO:POS} opacity={0.7}/>
+                {[...withBoth].sort((a,b)=>(a.pctMedicare??0)-(b.pctMedicare??0)).map((d,i)=>(
+                  <Cell key={i} fill={(d.pctMedicare??0)<50?NEG:(d.pctMedicare??0)<75?WARN:(d.pctMedicare??0)<100?cO:POS} opacity={0.7}/>
                 ))}
               </Bar>
             </BarChart>
@@ -390,14 +409,17 @@ export default function RateDecay() {
               <XAxis type="number" tick={{ fill:AL,fontSize:8,fontFamily:FM }} tickFormatter={v=>`${v.toFixed(0)}%`}/>
               <YAxis type="category" dataKey="st" tick={{ fill:A,fontSize:7,fontFamily:FM }} width={28}/>
               <ReferenceLine x={100} stroke={A} strokeWidth={1.5}/>
-              <Tooltip content={<SafeTip render={d=>(
+              <Tooltip content={<SafeTip render={(raw)=>{
+                const d = raw as unknown as MultiStateRow;
+                return (
                 <div>
                   <div style={{ fontWeight:600 }}>{d.name}</div>
                   <div>T-MSIS actual paid: <b>${d.tmsis.toFixed(2)}</b></div>
                   <div>Medicare: <b>${d.medicare.toFixed(2)}</b></div>
                   <div style={{ color:d.pct<75?"#ff9999":"#99ff99" }}><b>{d.pct.toFixed(1)}%</b> of Medicare</div>
                 </div>
-              )}/>}/>
+                );
+              }}/>}/>
               <Bar dataKey="pct" barSize={7} radius={[0,3,3,0]}>
                 {multiState.map((d,i)=><Cell key={i} fill={d.isHighlight?cO:d.pct<75?NEG:d.pct<100?WARN:POS} opacity={d.isHighlight?1:0.45}/>)}
               </Bar>

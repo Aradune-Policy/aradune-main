@@ -219,7 +219,7 @@ export default function PolicyAnalyst() {
                 type="password"
                 placeholder="Enter your access token"
                 defaultValue={token}
-                onKeyDown={e => e.key === "Enter" && handleTokenSubmit(e.target.value)}
+                onKeyDown={e => e.key === "Enter" && handleTokenSubmit((e.target as HTMLInputElement).value)}
                 onChange={e => setTokenState(e.target.value)}
                 style={{ width:"100%",padding:"10px 12px",border:`1px solid ${BD}`,borderRadius:6,fontSize:13,fontFamily:FM,boxSizing:"border-box" }}
               />
@@ -280,8 +280,8 @@ export default function PolicyAnalyst() {
               {STARTERS.map((s,i) => (
                 <button key={i} onClick={()=>sendMessage(s.q)}
                   style={{ textAlign:"left",padding:"10px 12px",background:WH,border:`1px solid ${BD}`,borderRadius:8,cursor:"pointer",transition:"all 0.15s",fontSize:11,color:A,lineHeight:1.4 }}
-                  onMouseEnter={e=>e.target.style.borderColor=cB}
-                  onMouseLeave={e=>e.target.style.borderColor=BD}>
+                  onMouseEnter={e=>(e.target as HTMLElement).style.borderColor=cB}
+                  onMouseLeave={e=>(e.target as HTMLElement).style.borderColor=BD}>
                   <span style={{ marginRight:4 }}>{s.icon}</span> {s.q}
                 </button>
               ))}

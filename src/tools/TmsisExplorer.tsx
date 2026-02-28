@@ -257,7 +257,7 @@ function transformTrends(raw) {
 }
 
 // ── UI Components ────────────────────────────────────────────────────────
-function ChartModal({ children, onClose }) {
+function ChartModal({ children, onClose }: { children: React.ReactNode; onClose: () => void }) {
   useEffect(() => {
     const handler = e => { if (e.key === "Escape") onClose(); };
     window.addEventListener("keydown", handler);
@@ -274,7 +274,7 @@ function ChartModal({ children, onClose }) {
   );
 }
 
-function Card({ children, accent, x }) {
+function Card({ children, accent, x }: { children: React.ReactNode; accent?: string; x?: boolean }) {
   const [open, setOpen] = useState(false);
   return (<>
     <div style={{ background: WH, borderRadius: 10, boxShadow: SH, overflow: "hidden",
@@ -286,7 +286,7 @@ function Card({ children, accent, x }) {
   </>);
 }
 
-const CH = ({ t, b, r }) => (
+const CH = ({ t, b, r }: { t: string; b?: any; r?: string }) => (
   <div style={{ padding: "10px 14px 4px", display: "flex", justifyContent: "space-between", alignItems: "baseline" }}>
     <div>
       <span style={{ fontSize: 11, fontWeight: 700, color: A }}>{t}</span>
@@ -296,14 +296,14 @@ const CH = ({ t, b, r }) => (
   </div>
 );
 
-const Met = ({ l, v, cl }) => (
+const Met = ({ l, v, cl }: { l: string; v: React.ReactNode; cl?: string }) => (
   <div style={{ textAlign: "center", padding: "3px 2px" }}>
     <div style={{ fontSize: 8, color: AL, textTransform: "uppercase", letterSpacing: 0.5, marginBottom: 1 }}>{l}</div>
     <div style={{ fontFamily: FM, fontSize: 13, fontWeight: 600, color: cl || A }}>{v}</div>
   </div>
 );
 
-const Pill = ({ children, on, onClick }) => (
+const Pill = ({ children, on, onClick }: { children: React.ReactNode; on: boolean; onClick: () => void }) => (
   <button onClick={onClick} style={{
     padding: "3px 10px", borderRadius: 20, border: `1px solid ${on ? cB : B}`,
     background: on ? "rgba(46,107,74,0.07)" : WH, color: on ? cB : AL,
@@ -311,13 +311,13 @@ const Pill = ({ children, on, onClick }) => (
   }}>{children}</button>
 );
 
-const Bdg = ({ children }) => (
+const Bdg = ({ children }: { children: React.ReactNode }) => (
   <span style={{ fontSize: 8, padding: "1px 6px", borderRadius: 8,
     background: "rgba(46,107,74,0.06)", color: cB, fontWeight: 600, whiteSpace: "nowrap"
   }}>{children}</span>
 );
 
-const TabGuide = ({ title, desc, tips }) => (
+const TabGuide = ({ title, desc, tips }: { title: string; desc: string; tips?: string }) => (
   <div style={{ background: `${cB}08`, border: `1px solid ${cB}18`, borderRadius: 10, padding: "10px 16px", marginBottom: 2 }}>
     <div style={{ fontSize: 12, fontWeight: 600, color: A, marginBottom: 3 }}>{title}</div>
     <div style={{ fontSize: 11, color: AL, lineHeight: 1.6 }}>{desc}</div>
@@ -325,7 +325,7 @@ const TabGuide = ({ title, desc, tips }) => (
   </div>
 );
 
-const ExportBtn = ({ onClick, label }) => (
+const ExportBtn = ({ onClick, label }: { onClick: () => void; label?: string }) => (
   <button onClick={onClick} style={{ fontSize: 9, color: cB, background: WH, border: `1px solid ${B}`, borderRadius: 5, padding: "4px 10px", cursor: "pointer", whiteSpace: "nowrap", fontWeight: 600, display: "inline-flex", alignItems: "center", gap: 3 }}>
     <span style={{ fontSize: 10 }}>↓</span> {label || "Export CSV"}
   </button>
@@ -341,7 +341,7 @@ function downloadCSV(filename, headers, rows) {
 }
 
 // Safe tooltip for Recharts
-function SafeTip({ active, payload, render }) {
+function SafeTip({ active, payload, render }: { active?: boolean; payload?: any[]; render: (d: any) => React.ReactNode }) {
   if (!active || !payload || !payload[0] || !payload[0].payload) return null;
   try {
     return (
@@ -362,7 +362,7 @@ const HEX_POS = {
   NM:[2,6],OK:[4,6],LA:[5,6],MS:[6,6],AL:[7,6],GA:[8,6],HI:[1,7],TX:[4,7],FL:[8,7],AK:[0,7]
 };
 
-function HexMap({ states, fn, fmt, onSel, sel }) {
+function HexMap({ states, fn, fmt, onSel, sel }: { states: any; fn: (s: any) => number; fmt: (v: number) => string; onSel: (k: string) => void; sel: string }) {
   const keys = Object.keys(states).filter(k => HEX_POS[k]);
   const territories = Object.keys(states).filter(k => !HEX_POS[k] && k !== "US");
   if (keys.length === 0 && territories.length === 0) return null;
@@ -406,7 +406,7 @@ function HexMap({ states, fn, fmt, onSel, sel }) {
 }
 
 // ── Code Search ─────────────────────────────────────────────────────────
-function CodeSearch({ codes, value, onChange, maxShow = 50 }) {
+function CodeSearch({ codes, value, onChange, maxShow = 50 }: { codes: any[]; value: string; onChange: (v: string) => void; maxShow?: number }) {
   const [sq, setSQ] = useState("");
   const [open, setOpen] = useState(false);
   const ref = useRef(null);
@@ -497,8 +497,8 @@ export default function TmsisExplorer() {
   const [simState, setSimSt] = useState("FL");
 
   const [meta, setMeta] = useState(null);
-  const [states, setStates] = useState(SIM_STATES);
-  const [codes, setCodes] = useState(SIM_HC);
+  const [states, setStates] = useState<Record<string, any>>(SIM_STATES);
+  const [codes, setCodes] = useState<any[]>(SIM_HC);
   const [trends, setTrends] = useState(SIM_NATL);
   const [regions, setRegions] = useState(null);
   const [providerData, setPD] = useState(null);
@@ -740,7 +740,7 @@ export default function TmsisExplorer() {
   }, [SL, states, codes, trends, natlPE, g]);
 
 
-  const Sel = ({ value, onChange, label, optional }) => (
+  const Sel = ({ value, onChange, label, optional }: { value: string; onChange: (v: string) => void; label: string; optional?: boolean }) => (
     <div style={{ display:"flex",flexDirection:"column",gap:2 }}>
       {label && <span style={{ fontSize:8,color:AL,fontFamily:FM,textTransform:"uppercase",letterSpacing:0.5 }}>{label}</span>}
       <select value={value} onChange={e => onChange(e.target.value)}
@@ -781,7 +781,7 @@ export default function TmsisExplorer() {
   const catSummary = useMemo(() => {
     const has2 = s2 && s2 !== s1;
     const has3 = s3 && s3 !== s1 && s3 !== s2;
-    const cats = {};
+    const cats: Record<string, any> = {};
     codes.forEach(h => {
       if (!h.r || h.r[s1] === undefined) return;
       const cat = h.cat || "Other";
@@ -1281,7 +1281,7 @@ export default function TmsisExplorer() {
               </ResponsiveContainer>
             </div></Card>}
             {dC.cn && <Card x><CH t="Concentration"/><div style={{ padding:"6px 14px 10px" }}>
-              {[["Top 1%",dC.cn.t1],["Top 5%",dC.cn.t5],["Top 10%",dC.cn.t10]].map(([l,v])=>(
+              {([["Top 1%",dC.cn.t1],["Top 5%",dC.cn.t5],["Top 10%",dC.cn.t10]] as [string, number][]).map(([l,v])=>(
                 <div key={l} style={{ display:"flex",alignItems:"center",gap:8,marginBottom:6 }}>
                   <span style={{ fontSize:10,color:AL,width:48 }}>{l}</span>
                   <div style={{ flex:1,height:12,background:S,borderRadius:4,overflow:"hidden" }}><div style={{ width:`${safe(v)}%`,height:"100%",background:v>40?NEG:v>25?cO:POS,borderRadius:4 }}/></div>
@@ -1514,7 +1514,7 @@ export default function TmsisExplorer() {
           // FFS-adjusted: only the FFS share of claims is directly affected by rate changes
           const ffsDelta = totalDelta * ffsShare;
           const topImpact = [...affected].sort((a,b) => Math.abs(b.delta) - Math.abs(a.delta)).slice(0, 15);
-          const catImpact = {};
+          const catImpact: Record<string, number> = {};
           affected.forEach(h => { catImpact[h.cat] = (catImpact[h.cat] || 0) + h.delta; });
           const catSorted = Object.entries(catImpact).sort((a,b) => Math.abs(b[1]) - Math.abs(a[1]));
           const maxCatImp = catSorted.length > 0 ? Math.max(...catSorted.map(c => Math.abs(c[1]))) : 1;

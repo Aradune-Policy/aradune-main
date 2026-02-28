@@ -18,26 +18,26 @@ const SH = "0 1px 3px rgba(0,0,0,.04),0 4px 12px rgba(0,0,0,.03)";
 const STATE_NAMES = {AL:"Alabama",AK:"Alaska",AZ:"Arizona",AR:"Arkansas",CA:"California",CO:"Colorado",CT:"Connecticut",DE:"Delaware",DC:"D.C.",FL:"Florida",GA:"Georgia",HI:"Hawaii",ID:"Idaho",IL:"Illinois",IN:"Indiana",IA:"Iowa",KS:"Kansas",KY:"Kentucky",LA:"Louisiana",ME:"Maine",MD:"Maryland",MA:"Massachusetts",MI:"Michigan",MN:"Minnesota",MS:"Mississippi",MO:"Missouri",MT:"Montana",NE:"Nebraska",NV:"Nevada",NH:"New Hampshire",NJ:"New Jersey",NM:"New Mexico",NY:"New York",NC:"N. Carolina",ND:"N. Dakota",OH:"Ohio",OK:"Oklahoma",OR:"Oregon",PA:"Pennsylvania",RI:"Rhode Island",SC:"S. Carolina",SD:"S. Dakota",TN:"Tennessee",TX:"Texas",UT:"Utah",VT:"Vermont",VA:"Virginia",WA:"Washington",WV:"W. Virginia",WI:"Wisconsin",WY:"Wyoming",PR:"Puerto Rico",GU:"Guam",VI:"Virgin Islands"};
 
 // ── Shared Components ─────────────────────────────────────────────────
-const Card = ({ children, accent }) => (
+const Card = ({ children, accent }: { children: React.ReactNode; accent?: string }) => (
   <div style={{ background:WH,borderRadius:10,boxShadow:SH,overflow:"hidden",borderTop:accent?`3px solid ${accent}`:"none",border:`1px solid ${BD}`,marginBottom:10 }}>{children}</div>
 );
-const CH = ({ t, b, r }) => (
+const CH = ({ t, b, r }: { t: string; b?: string; r?: string }) => (
   <div style={{ display:"flex",justifyContent:"space-between",alignItems:"baseline",padding:"10px 14px 2px",flexWrap:"wrap",gap:4 }}>
     <div><span style={{ fontSize:11,fontWeight:700,color:A }}>{t}</span>{b&&<span style={{ fontSize:9,color:AL,marginLeft:6 }}>{b}</span>}</div>
     {r&&<span style={{ fontSize:9,color:AL,fontFamily:FM }}>{r}</span>}
   </div>
 );
-const Met = ({ l, v, cl, sub }) => (
+const Met = ({ l, v, cl, sub }: { l: string; v: React.ReactNode; cl?: string; sub?: string }) => (
   <div style={{ padding:"6px 10px" }}>
     <div style={{ fontSize:8,color:AL,textTransform:"uppercase",letterSpacing:0.5,fontFamily:FM }}>{l}</div>
     <div style={{ fontSize:16,fontWeight:300,color:cl||A,fontFamily:FM }}>{v}</div>
     {sub&&<div style={{ fontSize:9,color:AL }}>{sub}</div>}
   </div>
 );
-const Pill = ({ on, onClick, children }) => (
+const Pill = ({ on, onClick, children }: { on: boolean; onClick: () => void; children: React.ReactNode }) => (
   <button onClick={onClick} style={{ padding:"3px 9px",fontSize:10,fontWeight:on?700:400,color:on?WH:AL,background:on?cB:"transparent",border:`1px solid ${on?cB:BD}`,borderRadius:5,cursor:"pointer",whiteSpace:"nowrap" }}>{children}</button>
 );
-const SafeTip = ({ active, payload, render }) => {
+const SafeTip = ({ active, payload, render }: { active?: boolean; payload?: any[]; render: (d: any) => React.ReactNode }) => {
   if (!active||!payload?.length) return null;
   const d = payload[0]?.payload;
   if (!d) return null;
@@ -55,7 +55,7 @@ function downloadCSV(name, headers, rows) {
   a.href = "data:text/csv;charset=utf-8," + encodeURIComponent(csv);
   a.download = name; a.click();
 }
-const ExportBtn = ({ onClick, label }) => (
+const ExportBtn = ({ onClick, label }: { onClick: () => void; label?: string }) => (
   <button onClick={onClick} style={{ fontSize:9,color:AL,background:SF,border:`1px solid ${BD}`,borderRadius:5,padding:"3px 8px",cursor:"pointer",fontFamily:FM }}>{label||"Export CSV"}</button>
 );
 
@@ -123,7 +123,7 @@ export default function QualityLinkage() {
     return Object.entries(qualData.measure_hcpcs).map(([id, info]) => {
       const meta = qualData.measures[id];
       if (!meta) return null;
-      return { id, ...info, ...meta };
+      return { id, ...(info as any), ...(meta as any) };
     }).filter(Boolean).sort((a,b) => (a.domain||"").localeCompare(b.domain||""));
   }, [qualData]);
 

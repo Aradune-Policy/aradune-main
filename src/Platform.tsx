@@ -1,12 +1,12 @@
 import React, { useState, useEffect } from "react";
-import { C, FONT, SHADOW, SHADOW_LG } from "./design.js";
-import TmsisExplorer from "./tools/TmsisExplorer.jsx";
+import { C, FONT, SHADOW, SHADOW_LG } from "./design";
+import TmsisExplorer from "./tools/TmsisExplorer";
 
-import WageAdequacy from "./tools/WageAdequacy.jsx";
-import QualityLinkage from "./tools/QualityLinkage.jsx";
-import RateDecay from "./tools/RateDecay.jsx";
-import RateBuilder from "./tools/RateBuilder.jsx";
-import PolicyAnalyst from "./tools/PolicyAnalyst.jsx";
+import WageAdequacy from "./tools/WageAdequacy";
+import QualityLinkage from "./tools/QualityLinkage";
+import RateDecay from "./tools/RateDecay";
+import RateBuilder from "./tools/RateBuilder";
+import PolicyAnalyst from "./tools/PolicyAnalyst";
 // ── Hash Router ──────────────────────────────────────────────────────────
 function useRoute() {
   const [route, setRoute] = useState(window.location.hash.slice(1) || "/");
@@ -84,7 +84,7 @@ const TOOLS = [
     status:"live", icon:"🧮", color:C.accent },
   { id:"analyst", name:"Policy Analyst", tagline:"AI-powered Medicaid rate analysis.",
     desc:"Ask complex rate-setting questions. Grounded in Aradune's complete dataset.",
-    status:"beta", icon:"🤖", color:C.orange },
+    status:"beta", icon:"🤖", color:(C as any).orange },
 ];
 
 // ── Platform Nav ─────────────────────────────────────────────────────────
@@ -238,8 +238,8 @@ function Landing() {
               textDecoration: "none",
               transition: "background 0.15s",
             }}
-            onMouseEnter={(e) => (e.target.style.background = C.brandDeep)}
-            onMouseLeave={(e) => (e.target.style.background = C.brand)}
+            onMouseEnter={(e) => ((e.target as HTMLElement).style.background = C.brandDeep)}
+            onMouseLeave={(e) => ((e.target as HTMLElement).style.background = C.brand)}
           >
             Explore Spending Data
           </a>

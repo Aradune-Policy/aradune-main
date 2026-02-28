@@ -1,0 +1,10 @@
+node_modules/
+dist/
+.vercel
+.DS_Store
+
+# Large data files (not for git)
+data/*.csv
+data/*.duckdb
+data/*.zip
+data/*.xlsx

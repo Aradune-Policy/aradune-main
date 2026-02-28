@@ -1,0 +1,44 @@
+[
+  {
+    "year": 2018,
+    "total_spend": 105892577519.8378,
+    "total_claims": 1894153151,
+    "total_bene": 1126705783
+  },
+  {
+    "year": 2019,
+    "total_spend": 124445336472.9231,
+    "total_claims": 2168677591,
+    "total_bene": 1264716937
+  },
+  {
+    "year": 2020,
+    "total_spend": 131467296055.0025,
+    "total_claims": 2100359902,
+    "total_bene": 1198209131
+  },
+  {
+    "year": 2021,
+    "total_spend": 161987728248.1402,
+    "total_claims": 2634985442,
+    "total_bene": 1574224573
+  },
+  {
+    "year": 2022,
+    "total_spend": 179123294775.5554,
+    "total_claims": 2792911292,
+    "total_bene": 1655311954
+  },
+  {
+    "year": 2023,
+    "total_spend": 198449216014.654,
+    "total_claims": 2897973130,
+    "total_bene": 1715659673
+  },
+  {
+    "year": 2024,
+    "total_spend": 184753826638.1446,
+    "total_claims": 2494950073,
+    "total_bene": 1468457534
+  }
+]

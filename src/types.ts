@@ -350,7 +350,15 @@ export interface ToolDef {
   name: string;
   tagline: string;
   desc: string;
-  status: string;
+  status: "live" | "beta" | "coming";
   icon: string;
   color: string;
+  group: "explore" | "analyze" | "build";
+  navLabel?: string;
+}
+
+export interface NavGroup {
+  key: string;
+  label: string;
+  tools: ToolDef[];
 }

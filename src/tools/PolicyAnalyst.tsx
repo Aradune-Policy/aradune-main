@@ -1,4 +1,5 @@
 import React, { useState, useRef, useEffect, useCallback } from "react";
+import type { ChatMessage, ChatUsage } from "../types";
 
 // ── Design System ───────────────────────────────────────────────────────
 const A = "#0A2540";
@@ -15,19 +16,19 @@ const SH = "0 1px 3px rgba(0,0,0,.04),0 4px 12px rgba(0,0,0,.03)";
 
 // ── Token Management ────────────────────────────────────────────────────
 // Store in localStorage. In production, replace with proper session management.
-function getToken() { try { return localStorage.getItem("aradune_token") || ""; } catch { return ""; } }
-function setToken(t) { try { localStorage.setItem("aradune_token", t); } catch {} }
+function getToken(): string { try { return localStorage.getItem("aradune_token") || ""; } catch (_e) { return ""; } }
+function setToken(t: string): void { try { localStorage.setItem("aradune_token", t); } catch (_e) { /* noop */ } }
 
 // ── Markdown-lite renderer ──────────────────────────────────────────────
-function renderMarkdown(text) {
+function renderMarkdown(text: string): React.ReactNode[] | null {
   if (!text) return null;
-  const lines = text.split("\n");
-  const elements = [];
+  const lines: string[] = text.split("\n");
+  const elements: React.ReactNode[] = [];
   let inCode = false;
-  let codeBlock = [];
+  let codeBlock: string[] = [];
   let codeLang = "";
 
-  lines.forEach((line, i) => {
+  lines.forEach((line: string, i: number) => {
     if (line.startsWith("```")) {
       if (inCode) {
         elements.push(
@@ -55,15 +56,15 @@ function renderMarkdown(text) {
     } else if (line.startsWith("- ") || line.startsWith("* ")) {
       elements.push(<div key={i} style={{ paddingLeft:12,position:"relative",marginBottom:2 }}><span style={{ position:"absolute",left:0 }}>•</span>{renderInline(line.slice(2))}</div>);
     } else if (/^\d+\.\s/.test(line)) {
-      const num = line.match(/^(\d+)\.\s/)[1];
+      const num = line.match(/^(\d+)\.\s/)![1];
       elements.push(<div key={i} style={{ paddingLeft:16,position:"relative",marginBottom:2 }}><span style={{ position:"absolute",left:0,fontFamily:FM,fontSize:10,color:AL }}>{num}.</span>{renderInline(line.replace(/^\d+\.\s/,""))}</div>);
     } else if (line.startsWith("|") && line.endsWith("|")) {
       // Simple table row
-      const cells = line.split("|").filter(c=>c.trim()).map(c=>c.trim());
-      if (cells.some(c => /^[-:]+$/.test(c))) return; // separator row
+      const cells = line.split("|").filter((c: string) => c.trim()).map((c: string) => c.trim());
+      if (cells.some((c: string) => /^[-:]+$/.test(c))) return; // separator row
       elements.push(
         <div key={i} style={{ display:"flex",gap:1,fontSize:10 }}>
-          {cells.map((c,j)=><div key={j} style={{ flex:1,padding:"3px 6px",background:i===0||elements.length<3?SF:"transparent",fontWeight:i===0?"600":"400",fontFamily:FM,borderBottom:`1px solid ${BD}` }}>{c}</div>)}
+          {cells.map((c: string, j: number) => <div key={j} style={{ flex:1,padding:"3px 6px",background:i===0||elements.length<3?SF:"transparent",fontWeight:i===0?"600":"400",fontFamily:FM,borderBottom:`1px solid ${BD}` }}>{c}</div>)}
         </div>
       );
     } else if (line.startsWith("> ")) {
@@ -78,9 +79,9 @@ function renderMarkdown(text) {
   return elements;
 }
 
-function renderInline(text) {
+function renderInline(text: string): React.ReactNode[] {
   // Handle **bold**, `code`, and *italic*
-  const parts = [];
+  const parts: React.ReactNode[] = [];
   let remaining = text;
   let key = 0;
 
@@ -90,19 +91,20 @@ function renderInline(text) {
     // Code
     const codeMatch = remaining.match(/`(.+?)`/);
     // Pick earliest match
-    let earliest = null;
-    let type = null;
+    let earliest: RegExpMatchArray | null = null;
+    let type: string | null = null;
+    let earliestIdx = Infinity;
 
-    if (boldMatch && (!earliest || boldMatch.index < earliest.index)) { earliest = boldMatch; type = "bold"; }
-    if (codeMatch && (!earliest || codeMatch.index < earliest.index)) { earliest = codeMatch; type = "code"; }
+    if (boldMatch) { const idx = boldMatch.index ?? 0; if (idx < earliestIdx) { earliest = boldMatch; type = "bold"; earliestIdx = idx; } }
+    if (codeMatch) { const idx = codeMatch.index ?? 0; if (idx < earliestIdx) { earliest = codeMatch; type = "code"; earliestIdx = idx; } }
 
     if (!earliest) {
       parts.push(<span key={key++}>{remaining}</span>);
       break;
     }
 
-    if (earliest.index > 0) {
-      parts.push(<span key={key++}>{remaining.slice(0, earliest.index)}</span>);
+    if ((earliest.index ?? 0) > 0) {
+      parts.push(<span key={key++}>{remaining.slice(0, earliest.index ?? 0)}</span>);
     }
 
     if (type === "bold") {
@@ -111,7 +113,7 @@ function renderInline(text) {
       parts.push(<code key={key++} style={{ fontFamily:FM,background:SF,padding:"1px 4px",borderRadius:3,fontSize:"0.9em" }}>{earliest[1]}</code>);
     }
 
-    remaining = remaining.slice(earliest.index + earliest[0].length);
+    remaining = remaining.slice((earliest.index ?? 0) + earliest[0].length);
   }
 
   return parts;
@@ -129,31 +131,31 @@ const STARTERS = [
 
 // ── Main Component ──────────────────────────────────────────────────────
 export default function PolicyAnalyst() {
-  const [messages, setMessages] = useState([]);
+  const [messages, setMessages] = useState<ChatMessage[]>([]);
   const [input, setInput] = useState("");
   const [loading, setLoading] = useState(false);
   const [token, setTokenState] = useState(getToken());
   const [showAuth, setShowAuth] = useState(!getToken());
-  const [error, setError] = useState(null);
-  const [usage, setUsage] = useState(null);
-  const messagesEndRef = useRef(null);
-  const inputRef = useRef(null);
+  const [error, setError] = useState<string | null>(null);
+  const [usage, setUsage] = useState<ChatUsage | null>(null);
+  const messagesEndRef = useRef<HTMLDivElement>(null);
+  const inputRef = useRef<HTMLTextAreaElement>(null);
 
   useEffect(() => {
     messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
   }, [messages, loading]);
 
-  const handleTokenSubmit = (t) => {
+  const handleTokenSubmit = (t: string) => {
     setToken(t);
     setTokenState(t);
     setShowAuth(false);
     setError(null);
   };
 
-  const sendMessage = useCallback(async (text) => {
+  const sendMessage = useCallback(async (text: string) => {
     if (!text.trim() || loading) return;
 
-    const userMsg = { role: "user", content: text.trim() };
+    const userMsg: ChatMessage = { role: "user", content: text.trim() };
     const newMessages = [...messages, userMsg];
     setMessages(newMessages);
     setInput("");
@@ -191,10 +193,10 @@ export default function PolicyAnalyst() {
         return;
       }
 
-      setMessages([...newMessages, { role: "assistant", content: data.response }]);
+      setMessages([...newMessages, { role: "assistant", content: data.response } as ChatMessage]);
       setUsage(data.usage);
     } catch (e) {
-      setError(`Connection error: ${e.message}`);
+      setError(`Connection error: ${e instanceof Error ? e.message : String(e)}`);
     }
 
     setLoading(false);
@@ -219,8 +221,8 @@ export default function PolicyAnalyst() {
                 type="password"
                 placeholder="Enter your access token"
                 defaultValue={token}
-                onKeyDown={e => e.key === "Enter" && handleTokenSubmit(e.target.value)}
-                onChange={e => setTokenState(e.target.value)}
+                onKeyDown={e => e.key === "Enter" && handleTokenSubmit(e.currentTarget.value)}
+                onChange={e => setTokenState(e.currentTarget.value)}
                 style={{ width:"100%",padding:"10px 12px",border:`1px solid ${BD}`,borderRadius:6,fontSize:13,fontFamily:FM,boxSizing:"border-box" }}
               />
             </div>
@@ -234,7 +236,7 @@ export default function PolicyAnalyst() {
           <div style={{ padding:"16px 24px",background:SF,borderTop:`1px solid ${BD}` }}>
             <div style={{ fontSize:10,fontWeight:600,color:A,marginBottom:6 }}>What's included</div>
             <div style={{ fontSize:10,color:AL,lineHeight:1.7 }}>
-              {["Rate lookup across all states + Medicare","Cross-state methodology research","Fiscal impact estimation","New code pricing analysis","Quality measure ↔ rate analysis","BLS wage adequacy calculations"].map((f,i)=>(
+              {["Rate lookup across all states + Medicare","Cross-state methodology research","Fiscal impact estimation","New code pricing analysis","Quality measure ↔ rate analysis","BLS wage adequacy calculations"].map((f: string, i: number) => (
                 <div key={i}><span style={{ color:POS,marginRight:4 }}>✓</span>{f}</div>
               ))}
             </div>
@@ -280,8 +282,8 @@ export default function PolicyAnalyst() {
               {STARTERS.map((s,i) => (
                 <button key={i} onClick={()=>sendMessage(s.q)}
                   style={{ textAlign:"left",padding:"10px 12px",background:WH,border:`1px solid ${BD}`,borderRadius:8,cursor:"pointer",transition:"all 0.15s",fontSize:11,color:A,lineHeight:1.4 }}
-                  onMouseEnter={e=>e.target.style.borderColor=cB}
-                  onMouseLeave={e=>e.target.style.borderColor=BD}>
+                  onMouseEnter={e=>e.currentTarget.style.borderColor=cB}
+                  onMouseLeave={e=>e.currentTarget.style.borderColor=BD}>
                   <span style={{ marginRight:4 }}>{s.icon}</span> {s.q}
                 </button>
               ))}
@@ -334,7 +336,7 @@ export default function PolicyAnalyst() {
             <textarea
               ref={inputRef}
               value={input}
-              onChange={e => setInput(e.target.value)}
+              onChange={e => setInput(e.currentTarget.value)}
               onKeyDown={e => {
                 if (e.key === "Enter" && !e.shiftKey) {
                   e.preventDefault();
@@ -349,8 +351,8 @@ export default function PolicyAnalyst() {
                 minHeight:42,maxHeight:140,boxSizing:"border-box",
                 outline:"none",transition:"border-color 0.15s",
               }}
-              onFocus={e => e.target.style.borderColor=cB}
-              onBlur={e => e.target.style.borderColor=BD}
+              onFocus={e => e.currentTarget.style.borderColor=cB}
+              onBlur={e => e.currentTarget.style.borderColor=BD}
             />
           </div>
           <button

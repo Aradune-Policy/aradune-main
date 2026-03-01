@@ -1,12 +1,12 @@
 import React, { useState, useEffect } from "react";
-import { C, FONT, SHADOW, SHADOW_LG } from "./design.js";
-import TmsisExplorer from "./tools/TmsisExplorer.jsx";
+import { C, FONT, SHADOW, SHADOW_LG } from "./design";
+import TmsisExplorer from "./tools/TmsisExplorer";
 
-import WageAdequacy from "./tools/WageAdequacy.jsx";
-import QualityLinkage from "./tools/QualityLinkage.jsx";
-import RateDecay from "./tools/RateDecay.jsx";
-import RateBuilder from "./tools/RateBuilder.jsx";
-import PolicyAnalyst from "./tools/PolicyAnalyst.jsx";
+import WageAdequacy from "./tools/WageAdequacy";
+import QualityLinkage from "./tools/QualityLinkage";
+import RateDecay from "./tools/RateDecay";
+import RateBuilder from "./tools/RateBuilder";
+import PolicyAnalyst from "./tools/PolicyAnalyst";
 // ── Hash Router ──────────────────────────────────────────────────────────
 function useRoute() {
   const [route, setRoute] = useState(window.location.hash.slice(1) || "/");
@@ -18,7 +18,7 @@ function useRoute() {
   return route;
 }
 
-function navigate(path) {
+function navigate(path: string) {
   window.location.hash = path;
 }
 
@@ -70,25 +70,25 @@ const TOOLS = [
     color: "#5B6E8A",
   },
 
-  { id:"wages", name:"Rate-Wage Adequacy", tagline:"Can Medicaid rates sustain a workforce?",
+  { id:"wages", name:"Wages", tagline:"Can Medicaid rates sustain a workforce?",
     desc:"Compare Medicaid rates to BLS market wages. See where rates can't sustain competitive wages.",
     status:"live", icon:"⚖", color:C.accent },
-  { id:"quality", name:"Quality ↔ Rate Linkage", tagline:"Does paying more produce better outcomes?",
+  { id:"quality", name:"Quality", tagline:"Does paying more produce better outcomes?",
     desc:"Connect CMS Core Set quality measures to reimbursement rates for the services that drive them.",
     status:"live", icon:"📊", color:C.accent },
-  { id:"decay", name:"Rate Decay Tracker", tagline:"How stale is your fee schedule?",
+  { id:"decay", name:"Rate Decay", tagline:"How stale is your fee schedule?",
     desc:"Measure how far Medicaid rates have drifted from Medicare. See which codes are most eroded.",
     status:"live", icon:"📉", color:C.accent },
-  { id:"builder", name:"Rate Builder", tagline:"Calculate a rate with full documentation.",
+  { id:"builder", name:"Rate Setting", tagline:"Calculate a rate with full documentation.",
     desc:"Enter a code, pick a methodology, get a rate. Free. RBRVS, custom CF, peer median, or manual.",
     status:"live", icon:"🧮", color:C.accent },
-  { id:"analyst", name:"Policy Analyst", tagline:"AI-powered Medicaid rate analysis.",
+  { id:"analyst", name:"Policy Analysis", tagline:"AI-powered Medicaid rate analysis.",
     desc:"Ask complex rate-setting questions. Grounded in Aradune's complete dataset.",
-    status:"beta", icon:"🤖", color:C.orange },
+    status:"beta", icon:"🤖", color:C.accent },
 ];
 
 // ── Platform Nav ─────────────────────────────────────────────────────────
-function PlatformNav({ route }) {
+function PlatformNav({ route }: { route: string }) {
   const activeTool = TOOLS.find((t) => route === `/${t.id}`);
   return (
     <nav
@@ -238,8 +238,8 @@ function Landing() {
               textDecoration: "none",
               transition: "background 0.15s",
             }}
-            onMouseEnter={(e) => (e.target.style.background = C.brandDeep)}
-            onMouseLeave={(e) => (e.target.style.background = C.brand)}
+            onMouseEnter={(e) => (e.currentTarget.style.background = C.brandDeep)}
+            onMouseLeave={(e) => (e.currentTarget.style.background = C.brand)}
           >
             Explore Spending Data
           </a>
@@ -757,7 +757,7 @@ function About() {
 }
 
 // ── Coming Soon Page ─────────────────────────────────────────────────────
-function ComingSoon({ tool }) {
+function ComingSoon({ tool }: { tool: { name: string; icon: string; desc: string; color: string } }) {
   return (
     <div style={{ maxWidth: 520, margin: "0 auto", padding: "72px 20px", textAlign: "center" }}>
       <div

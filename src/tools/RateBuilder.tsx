@@ -1,4 +1,5 @@
 import React, { useState, useMemo, useEffect, useCallback } from "react";
+import type { Methodology, ComputeContext, RateResult, RateBuilderHcpcs, RateBuilderMedicare } from "../types";
 
 // ── Design System ───────────────────────────────────────────────────────
 const A = "#0A2540";
@@ -14,10 +15,10 @@ const cO = "#C4590A";
 const FM = "'SF Mono',Menlo,monospace";
 const SH = "0 1px 3px rgba(0,0,0,.04),0 4px 12px rgba(0,0,0,.03)";
 
-const STATE_NAMES = {AL:"Alabama",AK:"Alaska",AZ:"Arizona",AR:"Arkansas",CA:"California",CO:"Colorado",CT:"Connecticut",DE:"Delaware",DC:"D.C.",FL:"Florida",GA:"Georgia",HI:"Hawaii",ID:"Idaho",IL:"Illinois",IN:"Indiana",IA:"Iowa",KS:"Kansas",KY:"Kentucky",LA:"Louisiana",ME:"Maine",MD:"Maryland",MA:"Massachusetts",MI:"Michigan",MN:"Minnesota",MS:"Mississippi",MO:"Missouri",MT:"Montana",NE:"Nebraska",NV:"Nevada",NH:"New Hampshire",NJ:"New Jersey",NM:"New Mexico",NY:"New York",NC:"N. Carolina",ND:"N. Dakota",OH:"Ohio",OK:"Oklahoma",OR:"Oregon",PA:"Pennsylvania",RI:"Rhode Island",SC:"S. Carolina",SD:"S. Dakota",TN:"Tennessee",TX:"Texas",UT:"Utah",VT:"Vermont",VA:"Virginia",WA:"Washington",WV:"W. Virginia",WI:"Wisconsin",WY:"Wyoming"};
+const STATE_NAMES: Record<string, string> = {AL:"Alabama",AK:"Alaska",AZ:"Arizona",AR:"Arkansas",CA:"California",CO:"Colorado",CT:"Connecticut",DE:"Delaware",DC:"D.C.",FL:"Florida",GA:"Georgia",HI:"Hawaii",ID:"Idaho",IL:"Illinois",IN:"Indiana",IA:"Iowa",KS:"Kansas",KY:"Kentucky",LA:"Louisiana",ME:"Maine",MD:"Maryland",MA:"Massachusetts",MI:"Michigan",MN:"Minnesota",MS:"Mississippi",MO:"Missouri",MT:"Montana",NE:"Nebraska",NV:"Nevada",NH:"New Hampshire",NJ:"New Jersey",NM:"New Mexico",NY:"New York",NC:"N. Carolina",ND:"N. Dakota",OH:"Ohio",OK:"Oklahoma",OR:"Oregon",PA:"Pennsylvania",RI:"Rhode Island",SC:"S. Carolina",SD:"S. Dakota",TN:"Tennessee",TX:"Texas",UT:"Utah",VT:"Vermont",VA:"Virginia",WA:"Washington",WV:"W. Virginia",WI:"Wisconsin",WY:"Wyoming"};
 
 // Rate-setting methodologies
-const METHODOLOGIES = [
+const METHODOLOGIES: Methodology[] = [
   {
     id: "rbrvs",
     name: "RBRVS (% of Medicare)",
@@ -25,7 +26,7 @@ const METHODOLOGIES = [
     fields: [
       { id: "pctMedicare", label: "% of Medicare", type: "range", min: 25, max: 150, default: 80, step: 1, unit: "%" },
     ],
-    compute: (inputs, ctx) => {
+    compute: (inputs: Record<string, number>, ctx: ComputeContext): RateResult | null => {
       if (!ctx.medicareRate) return null;
       const rate = ctx.medicareRate * (inputs.pctMedicare / 100);
       return {
@@ -46,7 +47,7 @@ const METHODOLOGIES = [
     fields: [
       { id: "cf", label: "Conversion Factor ($)", type: "number", min: 0.01, max: 100, default: 28.25, step: 0.01, unit: "$" },
     ],
-    compute: (inputs, ctx) => {
+    compute: (inputs: Record<string, number>, ctx: ComputeContext): RateResult | null => {
       if (!ctx.rvu) return null;
       const rate = ctx.rvu * inputs.cf;
       return {
@@ -67,16 +68,16 @@ const METHODOLOGIES = [
     fields: [
       { id: "adjustment", label: "Adjustment Factor", type: "range", min: 50, max: 150, default: 100, step: 5, unit: "%" },
     ],
-    compute: (inputs, ctx) => {
+    compute: (inputs: Record<string, number>, ctx: ComputeContext): RateResult | null => {
       if (!ctx.peerRates || ctx.peerRates.length === 0) return null;
-      const sorted = [...ctx.peerRates].sort((a,b) => a.rate - b.rate);
+      const sorted = [...ctx.peerRates].sort((a, b) => a.rate - b.rate);
       const median = sorted[Math.floor(sorted.length / 2)].rate;
       const rate = median * (inputs.adjustment / 100);
       return {
         rate,
         formula: `Peer median $${median.toFixed(2)} × ${inputs.adjustment}% = $${rate.toFixed(2)}`,
         components: [
-          { label: "Peer States", value: `${ctx.peerRates.length} states`, note: ctx.peerRates.map(p=>p.st).join(", ") },
+          { label: "Peer States", value: `${ctx.peerRates.length} states`, note: ctx.peerRates.map((p: { st: string; rate: number }) => p.st).join(", ") },
           { label: "Median Rate", value: `$${median.toFixed(2)}`, note: `Range: $${sorted[0].rate.toFixed(2)} – $${sorted[sorted.length-1].rate.toFixed(2)}` },
           { label: "Adjustment", value: `${inputs.adjustment}%` },
           { label: "Calculated Rate", value: `$${rate.toFixed(2)}`, note: "Your Medicaid rate", bold: true },
@@ -91,7 +92,7 @@ const METHODOLOGIES = [
     fields: [
       { id: "flatRate", label: "Rate ($)", type: "number", min: 0.01, max: 10000, default: 50, step: 0.01, unit: "$" },
     ],
-    compute: (inputs, ctx) => {
+    compute: (inputs: Record<string, number>, ctx: ComputeContext): RateResult | null => {
       const rate = inputs.flatRate;
       const pctMcr = ctx.medicareRate ? (rate / ctx.medicareRate * 100) : null;
       return {
@@ -99,7 +100,7 @@ const METHODOLOGIES = [
         formula: `Manual rate: $${rate.toFixed(2)}`,
         components: [
           { label: "Set Rate", value: `$${rate.toFixed(2)}`, bold: true },
-          ...(pctMcr ? [{ label: "% of Medicare", value: `${pctMcr.toFixed(1)}%`, note: `Medicare = $${ctx.medicareRate.toFixed(2)}` }] : []),
+          ...(pctMcr && ctx.medicareRate ? [{ label: "% of Medicare", value: `${pctMcr.toFixed(1)}%`, note: `Medicare = $${ctx.medicareRate.toFixed(2)}` }] : []),
         ],
       };
     },
@@ -107,42 +108,62 @@ const METHODOLOGIES = [
 ];
 
 // ── Shared Components ─────────────────────────────────────────────────
-const Card = ({ children, accent }) => (
+const Card = ({ children, accent }: { children: React.ReactNode; accent?: string }) => (
   <div style={{ background:WH,borderRadius:10,boxShadow:SH,overflow:"hidden",borderTop:accent?`3px solid ${accent}`:"none",border:`1px solid ${BD}`,marginBottom:10 }}>{children}</div>
 );
-const CH = ({ t, b, r }) => (
+const CH = ({ t, b, r }: { t: string; b?: string; r?: string }) => (
   <div style={{ display:"flex",justifyContent:"space-between",alignItems:"baseline",padding:"10px 14px 2px",flexWrap:"wrap",gap:4 }}>
     <div><span style={{ fontSize:11,fontWeight:700,color:A }}>{t}</span>{b&&<span style={{ fontSize:9,color:AL,marginLeft:6 }}>{b}</span>}</div>
     {r&&<span style={{ fontSize:9,color:AL,fontFamily:FM }}>{r}</span>}
   </div>
 );
-const Met = ({ l, v, cl, sub }) => (
+const Met = ({ l, v, cl, sub }: { l: string; v: React.ReactNode; cl?: string; sub?: string }) => (
   <div style={{ padding:"6px 10px" }}>
     <div style={{ fontSize:8,color:AL,textTransform:"uppercase",letterSpacing:0.5,fontFamily:FM }}>{l}</div>
     <div style={{ fontSize:16,fontWeight:300,color:cl||A,fontFamily:FM }}>{v}</div>
     {sub&&<div style={{ fontSize:9,color:AL }}>{sub}</div>}
   </div>
 );
-const Pill = ({ on, onClick, children }) => (
+const Pill = ({ on, onClick, children }: { on: boolean; onClick: () => void; children: React.ReactNode }) => (
   <button onClick={onClick} style={{ padding:"3px 9px",fontSize:10,fontWeight:on?700:400,color:on?WH:AL,background:on?cB:"transparent",border:`1px solid ${on?cB:BD}`,borderRadius:5,cursor:"pointer" }}>{children}</button>
 );
 
-function downloadCSV(name, headers, rows) {
-  const esc = v => `"${String(v??"").replace(/"/g,'""')}"`;
-  const csv = [headers.map(esc).join(","), ...rows.map(r => r.map(esc).join(","))].join("\n");
+function downloadCSV(name: string, headers: string[], rows: (string | number | null | undefined)[][]) {
+  const esc = (v: string | number | null | undefined) => `"${String(v??"").replace(/"/g,'""')}"`;
+  const csv = [headers.map(esc).join(","), ...rows.map((r: (string | number | null | undefined)[]) => r.map(esc).join(","))].join("\n");
   const a = document.createElement("a");
   a.href = "data:text/csv;charset=utf-8," + encodeURIComponent(csv);
   a.download = name; a.click();
 }
 
+// ── Selected Code State Shape ────────────────────────────────────────
+interface StateRate {
+  st: string;
+  rate: number;
+  name: string;
+}
+
+interface SelectedCodeData {
+  code: string;
+  medicare: Record<string, unknown> | null;
+  medicareRate: number | null;
+  rvu: number | null;
+  workRvu: number | null;
+  peRvu: number | null;
+  mpRvu: number | null;
+  desc: string | null;
+  stateRates: StateRate[];
+  nStates: number;
+}
+
 // ── Main Component ──────────────────────────────────────────────────────
 export default function RateBuilder() {
   const [codeInput, setCodeInput] = useState("");
-  const [selectedCode, setSelectedCode] = useState(null);
+  const [selectedCode, setSelectedCode] = useState<SelectedCodeData | null>(null);
   const [methodology, setMethodology] = useState("rbrvs");
-  const [methodInputs, setInputs] = useState({});
-  const [hcpcsData, setHCPCS] = useState(null);
-  const [medicareData, setMedicare] = useState(null);
+  const [methodInputs, setInputs] = useState<Record<string, number>>({});
+  const [hcpcsData, setHCPCS] = useState<RateBuilderHcpcs[] | null>(null);
+  const [medicareData, setMedicare] = useState<RateBuilderMedicare | null>(null);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
@@ -154,8 +175,8 @@ export default function RateBuilder() {
           fetch("/data/medicare_pfs.json").then(r=>r.ok?r.json():null).catch(()=>null),
         ]);
         if (cancelled) return;
-        if (hcpcs) setHCPCS(hcpcs);
-        if (medicare) setMedicare(medicare);
+        if (hcpcs) setHCPCS(hcpcs as RateBuilderHcpcs[]);
+        if (medicare) setMedicare(medicare as RateBuilderMedicare);
       } catch(e) { console.error(e); }
       if (!cancelled) setLoading(false);
     }
@@ -167,31 +188,30 @@ export default function RateBuilder() {
   useEffect(() => {
     const meth = METHODOLOGIES.find(m => m.id === methodology);
     if (meth) {
-      const defaults = {};
+      const defaults: Record<string, number> = {};
       meth.fields.forEach(f => { defaults[f.id] = f.default; });
       setInputs(prev => ({ ...defaults, ...prev }));
     }
   }, [methodology]);
 
   // Get Medicare data for a code
-  const getMedicareData = useCallback((code) => {
+  const getMedicareData = useCallback((code: string): Record<string, unknown> | null => {
     if (!medicareData) return null;
-    if (Array.isArray(medicareData)) {
-      return medicareData.find(m => (m.code||m.c||m.hcpcs) === code) || null;
-    }
-    return medicareData[code] || null;
+    const entry = medicareData.rates[code];
+    if (entry) return entry as unknown as Record<string, unknown>;
+    return null;
   }, [medicareData]);
 
   // Get T-MSIS rates across states for a code
-  const getStateRates = useCallback((code) => {
+  const getStateRates = useCallback((code: string): StateRate[] => {
     if (!hcpcsData || !Array.isArray(hcpcsData)) return [];
-    const h = hcpcsData.find(r => (r.code||r.c) === code);
+    const h = hcpcsData.find((r: RateBuilderHcpcs) => (r.code||r.c) === code);
     if (!h) return [];
     if (h.r && typeof h.r === 'object') {
-      return Object.entries(h.r).map(([st, rate]) => ({ st, rate, name: STATE_NAMES[st]||st })).filter(d => d.rate > 0);
+      return Object.entries(h.r).map(([st, rate]: [string, number]) => ({ st, rate, name: STATE_NAMES[st]||st })).filter((d: StateRate) => d.rate > 0);
     }
     if (h.rates_by_state) {
-      return h.rates_by_state.map(s => ({ st: s.state, rate: s.avg_rate, name: STATE_NAMES[s.state]||s.state })).filter(d => d.rate > 0);
+      return h.rates_by_state.map((s: { state: string; avg_rate: number }) => ({ st: s.state, rate: s.avg_rate, name: STATE_NAMES[s.state]||s.state })).filter((d: StateRate) => d.rate > 0);
     }
     return [];
   }, [hcpcsData]);
@@ -205,13 +225,13 @@ export default function RateBuilder() {
     setSelectedCode({
       code,
       medicare: mcr,
-      medicareRate: mcr?.nf_rate || mcr?.rate || mcr?.nf || null,
-      rvu: mcr?.nf_rvu || mcr?.total_rvu || mcr?.rvu || null,
-      workRvu: mcr?.work_rvu || mcr?.work || null,
-      peRvu: mcr?.pe_rvu || mcr?.pe || null,
-      mpRvu: mcr?.mp_rvu || mcr?.mp || null,
-      desc: mcr?.desc || mcr?.description || mcr?.d || null,
-      stateRates: states.sort((a,b) => a.rate - b.rate),
+      medicareRate: (mcr?.nf_rate || mcr?.rate || mcr?.nf || null) as number | null,
+      rvu: (mcr?.nf_rvu || mcr?.total_rvu || mcr?.rvu || null) as number | null,
+      workRvu: (mcr?.work_rvu || mcr?.work || null) as number | null,
+      peRvu: (mcr?.pe_rvu || mcr?.pe || null) as number | null,
+      mpRvu: (mcr?.mp_rvu || mcr?.mp || null) as number | null,
+      desc: (mcr?.desc || mcr?.description || mcr?.d || null) as string | null,
+      stateRates: states.sort((a: StateRate, b: StateRate) => a.rate - b.rate),
       nStates: states.length,
     });
   }, [codeInput, getMedicareData, getStateRates]);
@@ -219,11 +239,11 @@ export default function RateBuilder() {
   const curMethod = METHODOLOGIES.find(m => m.id === methodology);
 
   // Compute rate
-  const result = useMemo(() => {
+  const result = useMemo((): RateResult | null => {
     if (!selectedCode || !curMethod) return null;
-    const ctx = {
-      medicareRate: selectedCode.medicareRate,
-      rvu: selectedCode.rvu,
+    const ctx: ComputeContext = {
+      medicareRate: selectedCode.medicareRate ?? undefined,
+      rvu: selectedCode.rvu ?? undefined,
       peerRates: selectedCode.stateRates,
     };
     try {
@@ -236,12 +256,9 @@ export default function RateBuilder() {
   // Fiscal impact estimate
   const fiscalImpact = useMemo(() => {
     if (!result || !selectedCode || selectedCode.stateRates.length === 0) return null;
-    // Use T-MSIS data to estimate: we know actual-paid rates by state
-    // We can estimate utilization from the T-MSIS spending data (if available)
-    // For now, show comparison to current T-MSIS rates
     const curRates = selectedCode.stateRates;
     const newRate = result.rate;
-    return curRates.map(s => ({
+    return curRates.map((s: StateRate) => ({
       ...s,
       newRate,
       change: newRate - s.rate,
@@ -275,7 +292,7 @@ export default function RateBuilder() {
           <input
             type="text"
             value={codeInput}
-            onChange={e => setCodeInput(e.target.value.toUpperCase())}
+            onChange={e => setCodeInput(e.currentTarget.value.toUpperCase())}
             onKeyDown={e => e.key === "Enter" && lookupCode()}
             placeholder="e.g., 99213, 90834, D1351"
             style={{ flex:1,padding:"8px 12px",border:`1px solid ${BD}`,borderRadius:6,fontSize:14,fontFamily:FM,color:A,background:SF }}
@@ -349,11 +366,11 @@ export default function RateBuilder() {
               </div>
               {f.type === "range" ? (
                 <input type="range" min={f.min} max={f.max} step={f.step} value={methodInputs[f.id]??f.default}
-                  onChange={e=>setInputs(prev=>({...prev,[f.id]:+e.target.value}))}
+                  onChange={e=>setInputs(prev=>({...prev,[f.id]:+e.currentTarget.value}))}
                   style={{ width:"100%" }}/>
               ) : (
                 <input type="number" min={f.min} max={f.max} step={f.step} value={methodInputs[f.id]??f.default}
-                  onChange={e=>setInputs(prev=>({...prev,[f.id]:+e.target.value}))}
+                  onChange={e=>setInputs(prev=>({...prev,[f.id]:+e.currentTarget.value}))}
                   style={{ width:120,padding:"6px 10px",border:`1px solid ${BD}`,borderRadius:6,fontSize:13,fontFamily:FM,color:A }}/>
               )}
             </div>
@@ -362,7 +379,7 @@ export default function RateBuilder() {
       </Card>}
 
       {/* Result */}
-      {result && <Card accent={cB}>
+      {result && selectedCode && <Card accent={cB}>
         <CH t="4. Calculated Rate" r={result.formula}/>
         <div style={{ padding:"6px 14px 14px" }}>
           {result.components.map((c,i) => (
@@ -385,8 +402,8 @@ export default function RateBuilder() {
                   <span style={{ fontFamily:FM,fontWeight:700,color:(result.rate/selectedCode.medicareRate*100)<75?NEG:cB }}>{(result.rate/selectedCode.medicareRate*100).toFixed(1)}%</span>
                 </div>
                 {selectedCode.stateRates.length > 0 && (() => {
-                  const sorted = selectedCode.stateRates.map(s=>s.rate).sort((a,b)=>a-b);
-                  const rank = sorted.filter(r => r <= result.rate).length;
+                  const sorted = selectedCode.stateRates.map((s: StateRate)=>s.rate).sort((a: number, b: number)=>a-b);
+                  const rank = sorted.filter((r: number) => r <= result.rate).length;
                   const pctile = (rank / sorted.length * 100).toFixed(0);
                   return <div style={{ fontSize:10 }}>
                     <span style={{ color:AL }}>Percentile among states: </span>
@@ -410,7 +427,7 @@ export default function RateBuilder() {
               `RATE CALCULATION — ${selectedCode.code}`,
               `${selectedCode.desc || ""}`,
               ``,
-              `Methodology: ${curMethod.name}`,
+              `Methodology: ${curMethod ? curMethod.name : ""}`,
               `Formula: ${result.formula}`,
               ``,
               ...result.components.map(c => `${c.label}: ${c.value}${c.note ? ` (${c.note})` : ""}`),
@@ -434,7 +451,7 @@ export default function RateBuilder() {
           {selectedCode.stateRates.length > 0 && <button onClick={() => {
             downloadCSV(`state_rates_${selectedCode.code}.csv`,
               ["State","T-MSIS Rate","Calculated Rate","Change","Change %"],
-              selectedCode.stateRates.map(s=>[s.name,s.rate.toFixed(2),result.rate.toFixed(2),(result.rate-s.rate).toFixed(2),((result.rate/s.rate-1)*100).toFixed(1)])
+              selectedCode.stateRates.map((s: StateRate)=>[s.name,s.rate.toFixed(2),result.rate.toFixed(2),(result.rate-s.rate).toFixed(2),((result.rate/s.rate-1)*100).toFixed(1)])
             );
           }} style={{ padding:"6px 16px",background:SF,color:A,border:`1px solid ${BD}`,borderRadius:6,fontSize:11,cursor:"pointer" }}>
             Export State Comparison
@@ -443,7 +460,7 @@ export default function RateBuilder() {
       </Card>}
 
       {/* State Rate Comparison */}
-      {result && selectedCode.stateRates.length > 0 && <Card>
+      {result && selectedCode && selectedCode.stateRates.length > 0 && <Card>
         <CH t={`${selectedCode.code} by State vs Your Rate`} b={`$${result.rate.toFixed(2)} calculated`}/>
         <div style={{ padding:"6px 14px 10px",maxHeight:400,overflowY:"auto" }}>
           <table style={{ width:"100%",borderCollapse:"collapse",fontSize:10 }}>
@@ -453,7 +470,7 @@ export default function RateBuilder() {
               ))}
             </tr></thead>
             <tbody>
-              {selectedCode.stateRates.map(s => {
+              {selectedCode.stateRates.map((s: StateRate) => {
                 const diff = result.rate - s.rate;
                 const pct = ((result.rate / s.rate) - 1) * 100;
                 return (

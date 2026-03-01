@@ -1,5 +1,6 @@
 import React, { useState, useMemo, useEffect, useCallback } from "react";
 import { BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer, Cell, CartesianGrid, ReferenceLine, ScatterChart, Scatter, ZAxis } from "recharts";
+import type { SafeTipProps, TooltipEntry, WageCategory } from "../types";
 
 // ── Design System (matches Aradune v14) ─────────────────────────────────
 const A = "#0A2540";
@@ -15,34 +16,129 @@ const cO = "#C4590A";
 const FM = "'SF Mono',Menlo,monospace";
 const SH = "0 1px 3px rgba(0,0,0,.04),0 4px 12px rgba(0,0,0,.03)";
 
-const STATE_NAMES = {AL:"Alabama",AK:"Alaska",AZ:"Arizona",AR:"Arkansas",CA:"California",CO:"Colorado",CT:"Connecticut",DE:"Delaware",DC:"D.C.",FL:"Florida",GA:"Georgia",HI:"Hawaii",ID:"Idaho",IL:"Illinois",IN:"Indiana",IA:"Iowa",KS:"Kansas",KY:"Kentucky",LA:"Louisiana",ME:"Maine",MD:"Maryland",MA:"Massachusetts",MI:"Michigan",MN:"Minnesota",MS:"Mississippi",MO:"Missouri",MT:"Montana",NE:"Nebraska",NV:"Nevada",NH:"New Hampshire",NJ:"New Jersey",NM:"New Mexico",NY:"New York",NC:"N. Carolina",ND:"N. Dakota",OH:"Ohio",OK:"Oklahoma",OR:"Oregon",PA:"Pennsylvania",RI:"Rhode Island",SC:"S. Carolina",SD:"S. Dakota",TN:"Tennessee",TX:"Texas",UT:"Utah",VT:"Vermont",VA:"Virginia",WA:"Washington",WV:"W. Virginia",WI:"Wisconsin",WY:"Wyoming",PR:"Puerto Rico",GU:"Guam",VI:"Virgin Islands"};
+const STATE_NAMES: Record<string, string> = {AL:"Alabama",AK:"Alaska",AZ:"Arizona",AR:"Arkansas",CA:"California",CO:"Colorado",CT:"Connecticut",DE:"Delaware",DC:"D.C.",FL:"Florida",GA:"Georgia",HI:"Hawaii",ID:"Idaho",IL:"Illinois",IN:"Indiana",IA:"Iowa",KS:"Kansas",KY:"Kentucky",LA:"Louisiana",ME:"Maine",MD:"Maryland",MA:"Massachusetts",MI:"Michigan",MN:"Minnesota",MS:"Mississippi",MO:"Missouri",MT:"Montana",NE:"Nebraska",NV:"Nevada",NH:"New Hampshire",NJ:"New Jersey",NM:"New Mexico",NY:"New York",NC:"N. Carolina",ND:"N. Dakota",OH:"Ohio",OK:"Oklahoma",OR:"Oregon",PA:"Pennsylvania",RI:"Rhode Island",SC:"S. Carolina",SD:"S. Dakota",TN:"Tennessee",TX:"Texas",UT:"Utah",VT:"Vermont",VA:"Virginia",WA:"Washington",WV:"W. Virginia",WI:"Wisconsin",WY:"Wyoming",PR:"Puerto Rico",GU:"Guam",VI:"Virgin Islands"};
 
 // State minimum wages (2024)
-const MIN_WAGE = {AL:7.25,AK:11.73,AZ:14.35,AR:11.00,CA:16.00,CO:14.42,CT:15.69,DE:13.25,DC:17.50,FL:13.00,GA:7.25,HI:14.00,ID:7.25,IL:14.00,IN:7.25,IA:7.25,KS:7.25,KY:7.25,LA:7.25,ME:14.15,MD:15.00,MA:15.00,MI:10.33,MN:10.85,MS:7.25,MO:12.30,MT:10.30,NE:12.00,NV:12.00,NH:7.25,NJ:15.13,NM:12.00,NY:15.00,NC:7.25,ND:7.25,OH:10.45,OK:7.25,OR:14.70,PA:7.25,RI:14.00,SC:7.25,SD:11.20,TN:7.25,TX:7.25,UT:7.25,VT:13.67,VA:12.00,WA:16.28,WV:8.75,WI:7.25,WY:7.25,PR:10.50};
+const MIN_WAGE: Record<string, number> = {AL:7.25,AK:11.73,AZ:14.35,AR:11.00,CA:16.00,CO:14.42,CT:15.69,DE:13.25,DC:17.50,FL:13.00,GA:7.25,HI:14.00,ID:7.25,IL:14.00,IN:7.25,IA:7.25,KS:7.25,KY:7.25,LA:7.25,ME:14.15,MD:15.00,MA:15.00,MI:10.33,MN:10.85,MS:7.25,MO:12.30,MT:10.30,NE:12.00,NV:12.00,NH:7.25,NJ:15.13,NM:12.00,NY:15.00,NC:7.25,ND:7.25,OH:10.45,OK:7.25,OR:14.70,PA:7.25,RI:14.00,SC:7.25,SD:11.20,TN:7.25,TX:7.25,UT:7.25,VT:13.67,VA:12.00,WA:16.28,WV:8.75,WI:7.25,WY:7.25,PR:10.50};
 const FED_MIN = 7.25;
 
+// ── Data Shape Interfaces ─────────────────────────────────────────────
+interface WageDetail {
+  h_median?: number;
+  h_p10?: number;
+  h_p25?: number;
+  h_p75?: number;
+  h_p90?: number;
+  emp?: number;
+  title?: string;
+  [key: string]: unknown;
+}
+
+interface BlsData {
+  states: Record<string, Record<string, WageDetail>>;
+  national?: Record<string, WageDetail>;
+}
+
+interface CrosswalkCode {
+  hcpcs: string;
+  desc?: string;
+  unit?: string;
+  units_per_hour?: number;
+  [key: string]: unknown;
+}
+
+interface CrosswalkCategory {
+  id: string;
+  name: string;
+  soc: string;
+  codes: CrosswalkCode[];
+  overhead_range?: [number, number];
+  overhead_note?: string;
+  [key: string]: unknown;
+}
+
+interface CrosswalkData {
+  categories: CrosswalkCategory[];
+}
+
+interface HcpcsEntry {
+  code?: string;
+  c?: string;
+  r?: Record<string, number>;
+  rates_by_state?: { state: string; avg_rate: number }[];
+  [key: string]: unknown;
+}
+
+interface QualMeasureMeta {
+  name: string;
+  domain: string;
+  median?: number;
+  type?: string;
+  [key: string]: unknown;
+}
+
+interface QualDataShape {
+  rates?: Record<string, Record<string, number>>;
+  measures?: Record<string, QualMeasureMeta>;
+}
+
+interface CodeAnalysisEntry {
+  hcpcs: string;
+  desc?: string;
+  unit?: string;
+  units_per_hour?: number;
+  tmsisRate: number | null;
+  impliedHourly: number | null;
+  gapVsBls: number | null;
+  gapVsMin: number | null;
+  [key: string]: unknown;
+}
+
+interface AllStateEntry {
+  st: string;
+  name: string;
+  blsMedian: number | null;
+  impliedHourly: number | null;
+  tmsisRate: number | null;
+  gap: number | null;
+  gapPct: number | null;
+  minWage: number;
+  belowMin: boolean;
+  emp: number;
+}
+
+interface QualityLinkEntry {
+  id: string;
+  name: string;
+  domain: string;
+  stateRate: number | undefined;
+  median: number | undefined;
+  gapVsMedian: number | null;
+  direction: string | undefined;
+}
+
 // ── Shared Components ─────────────────────────────────────────────────
-const Card = ({ children, accent, x }) => (
+const Card = ({ children, accent, x }: { children: React.ReactNode; accent?: string; x?: boolean }) => (
   <div style={{ background:WH,borderRadius:10,boxShadow:SH,overflow:"hidden",borderTop:accent?`3px solid ${accent}`:"none",border:x?"none":`1px solid ${BD}` }}>{children}</div>
 );
-const CH = ({ t, b, r }) => (
+const CH = ({ t, b, r }: { t: string; b?: string; r?: string }) => (
   <div style={{ display:"flex",justifyContent:"space-between",alignItems:"baseline",padding:"10px 14px 2px" }}>
     <div><span style={{ fontSize:11,fontWeight:700,color:A }}>{t}</span>{b&&<span style={{ fontSize:9,color:AL,marginLeft:6 }}>{b}</span>}</div>
     {r&&<span style={{ fontSize:9,color:AL,fontFamily:FM }}>{r}</span>}
   </div>
 );
-const Met = ({ l, v, cl, sub }) => (
+const Met = ({ l, v, cl, sub }: { l: string; v: React.ReactNode; cl?: string; sub?: string }) => (
   <div style={{ padding:"6px 10px" }}>
     <div style={{ fontSize:8,color:AL,textTransform:"uppercase",letterSpacing:0.5,fontFamily:FM }}>{l}</div>
     <div style={{ fontSize:16,fontWeight:300,color:cl||A,fontFamily:FM }}>{v}</div>
     {sub&&<div style={{ fontSize:9,color:AL }}>{sub}</div>}
   </div>
 );
-const Pill = ({ on, onClick, children }) => (
+const Pill = ({ on, onClick, children }: { on: boolean; onClick: () => void; children: React.ReactNode }) => (
   <button onClick={onClick} style={{ padding:"3px 9px",fontSize:10,fontWeight:on?700:400,color:on?WH:AL,background:on?cB:"transparent",border:`1px solid ${on?cB:BD}`,borderRadius:5,cursor:"pointer" }}>{children}</button>
 );
 
-const f$ = v => {
+const f$ = (v: number): string => {
   if (v==null||isNaN(v)||!isFinite(v)) return "$0";
   const abs=Math.abs(v),sign=v<0?"-":"";
   if(abs>=1e9)return `${sign}$${(abs/1e9).toFixed(1)}B`;
@@ -51,29 +147,29 @@ const f$ = v => {
   if(abs<10)return `${sign}$${abs.toFixed(2)}`;
   return `${sign}$${abs.toFixed(0)}`;
 };
-const fN = v => {
+const fN = (v: number): string => {
   if(v==null||isNaN(v)||!isFinite(v)) return "0";
   if(v>=1e6)return `${(v/1e6).toFixed(1)}M`;
   if(v>=1e3)return `${(v/1e3).toFixed(0)}K`;
   return `${v}`;
 };
-const safe = (v, fb=0) => (v==null||isNaN(v))?fb:v;
+const safe = (v: number | null | undefined, fb: number = 0): number => (v==null||isNaN(v))?fb:v;
 
-const SafeTip = ({ active, payload, render }) => {
+const SafeTip = ({ active, payload, render }: SafeTipProps) => {
   if (!active||!payload?.length) return null;
   const d = payload[0]?.payload;
   if (!d) return null;
   return <div style={{ background:"rgba(10,37,64,0.95)",color:WH,padding:"8px 12px",borderRadius:6,fontSize:11,lineHeight:1.6,maxWidth:280,boxShadow:"0 4px 16px rgba(0,0,0,.2)" }}>{render(d)}</div>;
 };
 
-function downloadCSV(name, headers, rows) {
-  const esc = v => `"${String(v??"").replace(/"/g,'""')}"`;
-  const csv = [headers.map(esc).join(","), ...rows.map(r => r.map(esc).join(","))].join("\n");
+function downloadCSV(name: string, headers: string[], rows: (string | number | null | undefined)[][]) {
+  const esc = (v: string | number | null | undefined) => `"${String(v??"").replace(/"/g,'""')}"`;
+  const csv = [headers.map(esc).join(","), ...rows.map((r: (string | number | null | undefined)[]) => r.map(esc).join(","))].join("\n");
   const a = document.createElement("a");
   a.href = "data:text/csv;charset=utf-8," + encodeURIComponent(csv);
   a.download = name; a.click();
 }
-const ExportBtn = ({ onClick, label }) => (
+const ExportBtn = ({ onClick, label }: { onClick: () => void; label?: string }) => (
   <button onClick={onClick} style={{ fontSize:9,color:AL,background:SF,border:`1px solid ${BD}`,borderRadius:5,padding:"3px 8px",cursor:"pointer",fontFamily:FM }}>{label||"Export CSV"}</button>
 );
 
@@ -82,11 +178,11 @@ export default function WageAdequacy() {
   const [s1, setS1] = useState("FL");
   const [cat, setCat] = useState("hcbs");
   const [overhead, setOverhead] = useState(35);
-  const [blsData, setBLS] = useState(null);
-  const [crosswalk, setCW] = useState(null);
-  const [hcpcsData, setHCPCS] = useState(null);
-  const [statesData, setStates] = useState(null);
-  const [qualData, setQual] = useState(null);
+  const [blsData, setBLS] = useState<BlsData | null>(null);
+  const [crosswalk, setCW] = useState<CrosswalkData | null>(null);
+  const [hcpcsData, setHCPCS] = useState<HcpcsEntry[] | null>(null);
+  const [statesData, setStates] = useState<Record<string, unknown> | null>(null);
+  const [qualData, setQual] = useState<QualDataShape | null>(null);
   const [loading, setLoading] = useState(true);
 
   // Load data
@@ -102,11 +198,11 @@ export default function WageAdequacy() {
           fetch("/data/quality_measures.json").then(r=>r.ok?r.json():null).catch(()=>null),
         ]);
         if (cancelled) return;
-        if (bls) setBLS(bls);
-        if (cw) setCW(cw);
-        if (hcpcs) setHCPCS(hcpcs);
-        if (states) setStates(states);
-        if (qual) setQual(qual);
+        if (bls) setBLS(bls as BlsData);
+        if (cw) setCW(cw as CrosswalkData);
+        if (hcpcs) setHCPCS(hcpcs as HcpcsEntry[]);
+        if (states) setStates(states as Record<string, unknown>);
+        if (qual) setQual(qual as QualDataShape);
       } catch(e) { console.error(e); }
       if (!cancelled) setLoading(false);
     }
@@ -116,35 +212,35 @@ export default function WageAdequacy() {
 
   const SL = useMemo(() => {
     if (!blsData?.states) return [];
-    return Object.keys(blsData.states).filter(k=>k!=="US").sort((a,b)=>(STATE_NAMES[a]||a).localeCompare(STATE_NAMES[b]||b));
+    return Object.keys(blsData.states).filter((k: string)=>k!=="US").sort((a: string, b: string)=>(STATE_NAMES[a]||a).localeCompare(STATE_NAMES[b]||b));
   }, [blsData]);
 
-  const curCat = useMemo(() => {
+  const curCat = useMemo((): CrosswalkCategory | null => {
     if (!crosswalk?.categories) return null;
-    return crosswalk.categories.find(c => c.id === cat) || crosswalk.categories[0];
+    return crosswalk.categories.find((c: CrosswalkCategory) => c.id === cat) || crosswalk.categories[0] || null;
   }, [crosswalk, cat]);
 
   // Get T-MSIS rate for a code in a state
-  const getTmsisRate = useCallback((state, code) => {
+  const getTmsisRate = useCallback((state: string, code: string): number | null => {
     if (!hcpcsData || !Array.isArray(hcpcsData)) return null;
-    const h = hcpcsData.find(r => r.code === code);
+    const h = hcpcsData.find((r: HcpcsEntry) => r.code === code);
     if (!h?.rates_by_state) return null;
-    const sr = h.rates_by_state.find(s => s.state === state);
+    const sr = h.rates_by_state.find((s: { state: string; avg_rate: number }) => s.state === state);
     return sr?.avg_rate || null;
   }, [hcpcsData]);
 
   // Get T-MSIS rate from simulated/transformed data (different format)
-  const getTmsisRateAlt = useCallback((state, code) => {
+  const getTmsisRateAlt = useCallback((state: string, code: string): number | null => {
     if (!hcpcsData) return null;
     // Handle array of objects with .c and .r keys (transformed format)
     if (Array.isArray(hcpcsData)) {
-      const h = hcpcsData.find(r => (r.code||r.c) === code);
+      const h = hcpcsData.find((r: HcpcsEntry) => (r.code||r.c) === code);
       if (!h) return null;
       // Transformed format: h.r = { FL: 4.95, NY: 8.40, ... }
       if (h.r && typeof h.r === 'object') return h.r[state] || null;
       // Raw format: h.rates_by_state = [...]
       if (h.rates_by_state) {
-        const sr = h.rates_by_state.find(s => s.state === state);
+        const sr = h.rates_by_state.find((s: { state: string; avg_rate: number }) => s.state === state);
         return sr?.avg_rate || null;
       }
     }
@@ -167,9 +263,9 @@ export default function WageAdequacy() {
     const minWage = MIN_WAGE[s1] || FED_MIN;
 
     // Get T-MSIS rates for each code in this category
-    const codeAnalysis = curCat.codes.map(code => {
+    const codeAnalysis: CodeAnalysisEntry[] = curCat.codes.map((code: CrosswalkCode) => {
       const tmsisRate = getTmsisRateAlt(s1, code.hcpcs);
-      let impliedHourly = null;
+      let impliedHourly: number | null = null;
       if (tmsisRate && code.units_per_hour) {
         const hourlyRevenue = tmsisRate * code.units_per_hour;
         impliedHourly = hourlyRevenue * (1 - overhead / 100);
@@ -181,10 +277,10 @@ export default function WageAdequacy() {
         gapVsBls: impliedHourly && wage.h_median ? impliedHourly - wage.h_median : null,
         gapVsMin: impliedHourly ? impliedHourly - minWage : null,
       };
-    }).filter(c => c.tmsisRate > 0);
+    }).filter((c: CodeAnalysisEntry) => c.tmsisRate != null && c.tmsisRate > 0);
 
     // Primary code (first with per-hour conversion)
-    const primary = codeAnalysis.find(c => c.impliedHourly != null) || codeAnalysis[0];
+    const primary = codeAnalysis.find((c: CodeAnalysisEntry) => c.impliedHourly != null) || codeAnalysis[0] || null;
 
     return {
       state: s1,
@@ -199,15 +295,15 @@ export default function WageAdequacy() {
   }, [blsData, curCat, s1, overhead, getTmsisRateAlt]);
 
   // All-state comparison for the primary code
-  const allStates = useMemo(() => {
+  const allStates = useMemo((): AllStateEntry[] => {
     if (!blsData || !curCat || !curCat.codes[0]) return [];
     const socCode = curCat.soc;
-    const primaryCode = curCat.codes.find(c => c.units_per_hour) || curCat.codes[0];
+    const primaryCode = curCat.codes.find((c: CrosswalkCode) => c.units_per_hour) || curCat.codes[0];
 
-    return SL.map(st => {
+    return SL.map((st: string) => {
       const wage = blsData.states[st]?.[socCode];
       const tmsisRate = getTmsisRateAlt(st, primaryCode.hcpcs);
-      let impliedHourly = null;
+      let impliedHourly: number | null = null;
       if (tmsisRate && primaryCode.units_per_hour) {
         impliedHourly = tmsisRate * primaryCode.units_per_hour * (1 - overhead / 100);
       }
@@ -225,15 +321,15 @@ export default function WageAdequacy() {
         belowMin: impliedHourly != null && impliedHourly < minW,
         emp: wage?.emp || 0,
       };
-    }).filter(s => s.impliedHourly != null && s.blsMedian != null)
-      .sort((a, b) => safe(a.gap) - safe(b.gap));
+    }).filter((s: AllStateEntry) => s.impliedHourly != null && s.blsMedian != null)
+      .sort((a: AllStateEntry, b: AllStateEntry) => safe(a.gap) - safe(b.gap));
   }, [blsData, curCat, SL, overhead, getTmsisRateAlt]);
 
   // Quality measure linkage
-  const qualityLink = useMemo(() => {
+  const qualityLink = useMemo((): QualityLinkEntry[] | null => {
     if (!qualData?.rates || !curCat) return null;
     // Find quality measures that relate to this service category
-    const catMeasures = {
+    const catMeasures: Record<string, string[]> = {
       hcbs: [],
       behavioral: ['FUH-AD', 'FUM-AD', 'IET-AD', 'CDF-AD'],
       dental: ['SFM-CH', 'OEV-CH', 'TFL-CH'],
@@ -245,7 +341,7 @@ export default function WageAdequacy() {
     const measureIds = catMeasures[cat] || [];
     if (measureIds.length === 0) return null;
 
-    const results = measureIds.map(mId => {
+    const mapped = measureIds.map((mId: string): QualityLinkEntry | null => {
       const meta = qualData.measures?.[mId];
       const rates = qualData.rates?.[mId];
       if (!meta || !rates) return null;
@@ -259,7 +355,8 @@ export default function WageAdequacy() {
         gapVsMedian: (stateRate != null && meta.median != null) ? stateRate - meta.median : null,
         direction: meta.type,
       };
-    }).filter(Boolean);
+    });
+    const results: QualityLinkEntry[] = mapped.filter((m): m is QualityLinkEntry => m != null);
 
     return results.length > 0 ? results : null;
   }, [qualData, curCat, cat, s1]);
@@ -295,10 +392,10 @@ export default function WageAdequacy() {
           </div>
           <ExportBtn label="Export Analysis" onClick={() => {
             if (!allStates.length) return;
-            const pc = curCat?.codes.find(c=>c.units_per_hour) || curCat?.codes[0];
+            const pc = curCat?.codes.find((c: CrosswalkCode)=>c.units_per_hour) || curCat?.codes[0];
             downloadCSV(`wage_adequacy_${cat}_${overhead}pct.csv`,
               ["State","BLS Median $/hr","Medicaid Rate","Implied Wage $/hr","Gap $/hr","Gap %","Min Wage","Below Min Wage","Employment"],
-              allStates.map(s=>[s.name,s.blsMedian?.toFixed(2),s.tmsisRate?.toFixed(2),s.impliedHourly?.toFixed(2),s.gap?.toFixed(2),s.gapPct?.toFixed(1),s.minWage,s.belowMin?"YES":"",s.emp])
+              allStates.map((s: AllStateEntry)=>[s.name,s.blsMedian?.toFixed(2),s.tmsisRate?.toFixed(2),s.impliedHourly?.toFixed(2),s.gap?.toFixed(2),s.gapPct?.toFixed(1),s.minWage,s.belowMin?"YES":"",s.emp])
             );
           }}/>
         </div>
@@ -313,20 +410,20 @@ export default function WageAdequacy() {
       <div style={{ display:"flex",gap:10,alignItems:"flex-end",flexWrap:"wrap",margin:"10px 0" }}>
         <div style={{ display:"flex",flexDirection:"column",gap:2 }}>
           <span style={{ fontSize:8,color:AL,fontFamily:FM,textTransform:"uppercase",letterSpacing:0.5 }}>State</span>
-          <select value={s1} onChange={e=>setS1(e.target.value)} style={{ background:SF,border:`1px solid ${BD}`,padding:"5px 10px",borderRadius:6,fontSize:11,color:A }}>
-            {SL.map(k=><option key={k} value={k}>{STATE_NAMES[k]||k}</option>)}
+          <select value={s1} onChange={e=>setS1(e.currentTarget.value)} style={{ background:SF,border:`1px solid ${BD}`,padding:"5px 10px",borderRadius:6,fontSize:11,color:A }}>
+            {SL.map((k: string)=><option key={k} value={k}>{STATE_NAMES[k]||k}</option>)}
           </select>
         </div>
         <div style={{ display:"flex",flexDirection:"column",gap:2 }}>
           <span style={{ fontSize:8,color:AL,fontFamily:FM,textTransform:"uppercase",letterSpacing:0.5 }}>Service Category</span>
           <div style={{ display:"flex",gap:3,flexWrap:"wrap" }}>
-            {categories.map(c=><Pill key={c.id} on={cat===c.id} onClick={()=>setCat(c.id)}>{c.name}</Pill>)}
+            {categories.map((c: CrosswalkCategory)=><Pill key={c.id} on={cat===c.id} onClick={()=>setCat(c.id)}>{c.name}</Pill>)}
           </div>
         </div>
         <div style={{ display:"flex",flexDirection:"column",gap:2 }}>
           <span style={{ fontSize:8,color:AL,fontFamily:FM,textTransform:"uppercase",letterSpacing:0.5 }}>Agency Overhead: {overhead}%</span>
           <div style={{ display:"flex",alignItems:"center",gap:6 }}>
-            <input type="range" min={curCat?.overhead_range?.[0]||20} max={curCat?.overhead_range?.[1]||50} value={overhead} onChange={e=>setOverhead(+e.target.value)} style={{ width:120 }}/>
+            <input type="range" min={curCat?.overhead_range?.[0]||20} max={curCat?.overhead_range?.[1]||50} value={overhead} onChange={e=>setOverhead(+e.currentTarget.value)} style={{ width:120 }}/>
             <span style={{ fontFamily:FM,fontSize:11,fontWeight:600,color:A }}>{overhead}%</span>
           </div>
         </div>
@@ -337,12 +434,12 @@ export default function WageAdequacy() {
         <Card accent={analysis.primary.gapVsBls!=null&&analysis.primary.gapVsBls<0?NEG:POS}>
           <div style={{ padding:"14px 16px 10px" }}>
             <div style={{ fontSize:18,fontWeight:300 }}>{analysis.stateName}</div>
-            <div style={{ fontSize:10,color:AL }}>{curCat.name} · {analysis.wage.title}</div>
+            <div style={{ fontSize:10,color:AL }}>{curCat?.name} · {analysis.wage.title}</div>
           </div>
           <div style={{ display:"grid",gridTemplateColumns:"repeat(3,1fr)",padding:"0 6px 12px" }}>
-            <Met l="BLS Median Wage" v={`$${safe(analysis.wage.h_median).toFixed(2)}/hr`} sub={`${fN(analysis.wage.emp)} employed`}/>
+            <Met l="BLS Median Wage" v={`$${safe(analysis.wage.h_median).toFixed(2)}/hr`} sub={`${fN(analysis.wage.emp ?? 0)} employed`}/>
             <Met l="Medicaid Implied Wage" v={analysis.primary.impliedHourly!=null?`$${analysis.primary.impliedHourly.toFixed(2)}/hr`:"—"} sub={`${analysis.primary.hcpcs} @ $${safe(analysis.primary.tmsisRate).toFixed(2)}/${analysis.primary.unit}`} cl={analysis.primary.gapVsBls!=null&&analysis.primary.gapVsBls<0?NEG:POS}/>
-            <Met l="Wage Gap" v={analysis.primary.gapVsBls!=null?`${analysis.primary.gapVsBls>=0?"+":""}$${analysis.primary.gapVsBls.toFixed(2)}/hr`:"—"} sub={analysis.primary.gapVsBls!=null?`${((analysis.primary.impliedHourly/analysis.wage.h_median-1)*100).toFixed(0)}% vs market`:"No rate data"} cl={analysis.primary.gapVsBls!=null&&analysis.primary.gapVsBls<0?NEG:POS}/>
+            <Met l="Wage Gap" v={analysis.primary.gapVsBls!=null?`${analysis.primary.gapVsBls>=0?"+":""}$${analysis.primary.gapVsBls.toFixed(2)}/hr`:"—"} sub={analysis.primary.gapVsBls!=null&&analysis.primary.impliedHourly!=null&&analysis.wage.h_median?`${((analysis.primary.impliedHourly/analysis.wage.h_median-1)*100).toFixed(0)}% vs market`:"No rate data"} cl={analysis.primary.gapVsBls!=null&&analysis.primary.gapVsBls<0?NEG:POS}/>
           </div>
           {analysis.primary.gapVsMin!=null && analysis.primary.gapVsMin<0 && (
             <div style={{ padding:"6px 16px 10px",borderTop:`1px solid ${BD}`,background:"rgba(164,38,44,0.04)" }}>
@@ -361,7 +458,7 @@ export default function WageAdequacy() {
           <div style={{ padding:"8px 14px 12px" }}>
             {(() => {
               const w = analysis.wage;
-              const implied = analysis.primary.impliedHourly;
+              const implied = analysis.primary?.impliedHourly ?? null;
               const maxVal = Math.max(safe(w.h_p90), safe(implied,0)) * 1.1;
               const markers = [
                 { label:"10th pct", val:w.h_p10, color:AL },
@@ -386,7 +483,7 @@ export default function WageAdequacy() {
                 {implied!=null && <><div style={{ position:"absolute",top:36,left:`${(implied/maxVal)*100}%`,width:3,height:32,background:implied<safe(w.h_median)?NEG:POS,borderRadius:2 }}/>
                 <div style={{ position:"absolute",top:84,left:`${(implied/maxVal)*100}%`,fontSize:8,color:implied<safe(w.h_median)?NEG:POS,fontFamily:FM,fontWeight:700,transform:"translateX(-50%)",whiteSpace:"nowrap" }}>Mcaid ${implied.toFixed(2)}</div></>}
                 {/* Percentile labels */}
-                {markers.map(m=>(
+                {markers.map((m: { label: string; val: number | undefined; color: string })=>(
                   <div key={m.label} style={{ position:"absolute",top:10,left:`${(safe(m.val)/maxVal)*100}%`,fontSize:6,color:m.color,fontFamily:FM,transform:"translateX(-50%)",whiteSpace:"nowrap",opacity:m.label==="Median"?1:0.5 }}>${safe(m.val).toFixed(0)}</div>
                 ))}
               </div>;
@@ -397,57 +494,57 @@ export default function WageAdequacy() {
 
       {/* All Codes in Category */}
       {analysis && analysis.codes.length > 0 && <Card x>
-        <CH t={`${curCat.name} Code Breakdown`} b={`${analysis.codes.length} codes with T-MSIS data`} r={`${overhead}% overhead`}/>
+        <CH t={`${curCat?.name} Code Breakdown`} b={`${analysis.codes.length} codes with T-MSIS data`} r={`${overhead}% overhead`}/>
         <div style={{ padding:"0 14px 10px",overflowX:"auto" }}>
           <table style={{ width:"100%",borderCollapse:"collapse",fontSize:10 }}>
             <thead><tr style={{ borderBottom:`2px solid ${BD}` }}>
-              {["Code","Description","Rate/Unit","Gross $/hr","After Overhead","BLS Median","Gap","vs Min Wage"].map(h=>(
+              {["Code","Description","Rate/Unit","Gross $/hr","After Overhead","BLS Median","Gap","vs Min Wage"].map((h: string)=>(
                 <th key={h} style={{ textAlign:"left",padding:"6px 4px",color:AL,fontWeight:600,fontSize:8,textTransform:"uppercase",fontFamily:FM }}>{h}</th>
               ))}
             </tr></thead>
             <tbody>
-              {analysis.codes.map(c => (
+              {analysis.codes.map((c: CodeAnalysisEntry) => (
                 <tr key={c.hcpcs} style={{ borderBottom:`1px solid ${SF}` }}>
                   <td style={{ padding:"4px",fontFamily:FM,fontWeight:600,color:cB }}>{c.hcpcs}</td>
                   <td style={{ padding:"4px",color:AL,maxWidth:140,overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap" }}>{c.desc}</td>
                   <td style={{ fontFamily:FM }}>${safe(c.tmsisRate).toFixed(2)}/{c.unit}</td>
-                  <td style={{ fontFamily:FM }}>{c.units_per_hour?`$${(c.tmsisRate*c.units_per_hour).toFixed(2)}`:"—"}</td>
+                  <td style={{ fontFamily:FM }}>{c.units_per_hour?`$${(safe(c.tmsisRate)*c.units_per_hour).toFixed(2)}`:"—"}</td>
                   <td style={{ fontFamily:FM,fontWeight:600,color:c.gapVsBls!=null&&c.gapVsBls<0?NEG:POS }}>{c.impliedHourly!=null?`$${c.impliedHourly.toFixed(2)}`:"—"}</td>
                   <td style={{ fontFamily:FM,color:AL }}>${safe(analysis.wage.h_median).toFixed(2)}</td>
-                  <td style={{ fontFamily:FM,fontWeight:700,color:c.gapVsBls!=null&&c.gapVsBls<0?NEG:c.gapVsBls>0?POS:AL }}>{c.gapVsBls!=null?`${c.gapVsBls>=0?"+":""}$${c.gapVsBls.toFixed(2)}`:"—"}</td>
+                  <td style={{ fontFamily:FM,fontWeight:700,color:c.gapVsBls!=null&&c.gapVsBls<0?NEG:c.gapVsBls!=null&&c.gapVsBls>0?POS:AL }}>{c.gapVsBls!=null?`${c.gapVsBls>=0?"+":""}$${c.gapVsBls.toFixed(2)}`:"—"}</td>
                   <td style={{ fontFamily:FM,color:c.gapVsMin!=null&&c.gapVsMin<0?NEG:POS }}>{c.gapVsMin!=null?`${c.gapVsMin>=0?"+":""}$${c.gapVsMin.toFixed(2)}`:"—"}</td>
                 </tr>
               ))}
             </tbody>
           </table>
           <div style={{ fontSize:9,color:AL,marginTop:6,lineHeight:1.6 }}>
-            T-MSIS rates = avg paid per claim (actual Medicaid payments, not fee schedule). {curCat.overhead_note}
+            T-MSIS rates = avg paid per claim (actual Medicaid payments, not fee schedule). {curCat?.overhead_note}
           </div>
         </div>
       </Card>}
 
       {/* National Comparison */}
       {allStates.length > 0 && <Card x>
-        <CH t="Rate-Wage Gap by State" b={`${curCat.codes.find(c=>c.units_per_hour)?.hcpcs||curCat.codes[0]?.hcpcs} · ${allStates.length} states`} r={`Negative = Medicaid can't match market`}/>
+        <CH t="Rate-Wage Gap by State" b={`${curCat?.codes.find((c: CrosswalkCode)=>c.units_per_hour)?.hcpcs||curCat?.codes[0]?.hcpcs} · ${allStates.length} states`} r={`Negative = Medicaid can't match market`}/>
         <div style={{ padding:"0 14px 8px" }}>
           <ResponsiveContainer width="100%" height={Math.max(240,allStates.length*13)}>
             <BarChart data={allStates} layout="vertical" margin={{ left:52,right:16 }}>
               <CartesianGrid strokeDasharray="3 3" stroke={BD} horizontal={false}/>
-              <XAxis type="number" tick={{ fill:AL,fontSize:8,fontFamily:FM }} axisLine={false} tickLine={false} tickFormatter={v=>`${v>=0?"+":""}$${v.toFixed(0)}`}/>
+              <XAxis type="number" tick={{ fill:AL,fontSize:8,fontFamily:FM }} axisLine={false} tickLine={false} tickFormatter={(v: number)=>`${v>=0?"+":""}$${v.toFixed(0)}`}/>
               <YAxis type="category" dataKey="st" tick={{ fill:A,fontSize:7,fontFamily:FM }} axisLine={false} tickLine={false} width={28}/>
               <ReferenceLine x={0} stroke={A} strokeWidth={1.5}/>
-              <Tooltip content={<SafeTip render={d=>(
+              <Tooltip content={<SafeTip render={(d: Record<string, unknown>)=>(
                 <div>
-                  <div style={{ fontWeight:600 }}>{d.name}</div>
-                  <div>BLS median: <b>${safe(d.blsMedian).toFixed(2)}/hr</b></div>
-                  <div style={{ color:d.gap<0?"#ff9999":"#99ff99" }}>Medicaid implied: <b>${safe(d.impliedHourly).toFixed(2)}/hr</b></div>
-                  <div>Gap: {d.gap>=0?"+":""}${safe(d.gap).toFixed(2)}/hr ({safe(d.gapPct).toFixed(0)}%)</div>
-                  <div style={{ fontSize:9 }}>Min wage: ${d.minWage} {d.belowMin?"⚠ BELOW":""}</div>
-                  <div style={{ fontSize:9 }}>{fN(d.emp)} workers in state</div>
+                  <div style={{ fontWeight:600 }}>{String(d.name ?? "")}</div>
+                  <div>BLS median: <b>${safe(d.blsMedian as number | null).toFixed(2)}/hr</b></div>
+                  <div style={{ color:((d.gap as number) ?? 0)<0?"#ff9999":"#99ff99" }}>Medicaid implied: <b>${safe(d.impliedHourly as number | null).toFixed(2)}/hr</b></div>
+                  <div>Gap: {((d.gap as number) ?? 0)>=0?"+":""}${safe(d.gap as number | null).toFixed(2)}/hr ({safe(d.gapPct as number | null).toFixed(0)}%)</div>
+                  <div style={{ fontSize:9 }}>Min wage: ${String(d.minWage ?? "")} {d.belowMin?"⚠ BELOW":""}</div>
+                  <div style={{ fontSize:9 }}>{fN(d.emp as number ?? 0)} workers in state</div>
                 </div>
               )}/>}/>
               <Bar dataKey="gap" barSize={8} radius={[0,3,3,0]}>
-                {allStates.map((d,i)=><Cell key={i} fill={d.st===s1?cO:d.gap<0?NEG:POS} opacity={d.st===s1?1:d.belowMin?0.9:0.5}/>)}
+                {allStates.map((d: AllStateEntry,i: number)=><Cell key={i} fill={d.st===s1?cO:(d.gap ?? 0)<0?NEG:POS} opacity={d.st===s1?1:d.belowMin?0.9:0.5}/>)}
               </Bar>
             </BarChart>
           </ResponsiveContainer>
@@ -455,20 +552,20 @@ export default function WageAdequacy() {
             <span><span style={{ display:"inline-block",width:8,height:8,borderRadius:"50%",background:cO,verticalAlign:"middle",marginRight:3 }}/>{STATE_NAMES[s1]||s1}</span>
             <span><span style={{ display:"inline-block",width:8,height:8,borderRadius:"50%",background:NEG,verticalAlign:"middle",marginRight:3 }}/>Below market (Medicaid can't match)</span>
             <span><span style={{ display:"inline-block",width:8,height:8,borderRadius:"50%",background:POS,verticalAlign:"middle",marginRight:3 }}/>At or above market</span>
-            <span>{allStates.filter(s=>s.gap<0).length} of {allStates.length} states below market · {allStates.filter(s=>s.belowMin).length} below min wage</span>
+            <span>{allStates.filter((s: AllStateEntry)=>(s.gap ?? 0)<0).length} of {allStates.length} states below market · {allStates.filter((s: AllStateEntry)=>s.belowMin).length} below min wage</span>
           </div>
         </div>
       </Card>}
 
       {/* Quality Measure Linkage */}
       {qualityLink && qualityLink.length > 0 && <Card x>
-        <CH t="Quality Outcome Linkage" b={`${curCat.name} quality measures for ${STATE_NAMES[s1]||s1}`}/>
+        <CH t="Quality Outcome Linkage" b={`${curCat?.name} quality measures for ${STATE_NAMES[s1]||s1}`}/>
         <div style={{ padding:"6px 14px 12px" }}>
           <div style={{ fontSize:10,color:AL,marginBottom:8,lineHeight:1.6 }}>
             These Medicaid quality measures are linked to the services in this category. Low rates and poor quality outcomes together suggest a rate adequacy problem — providers can't afford to deliver the services that drive these measures.
           </div>
-          {qualityLink.map(m => {
-            const isGood = m.direction?.includes("Higher") ? m.stateRate >= safe(m.median) : m.stateRate <= safe(m.median);
+          {qualityLink.map((m: QualityLinkEntry) => {
+            const isGood = m.direction?.includes("Higher") ? (m.stateRate ?? 0) >= safe(m.median) : (m.stateRate ?? 0) <= safe(m.median);
             return <div key={m.id} style={{ display:"flex",alignItems:"center",gap:8,padding:"5px 0",borderBottom:`1px solid ${SF}` }}>
               <span style={{ fontFamily:FM,fontSize:9,fontWeight:600,width:60,color:cB }}>{m.id}</span>
               <div style={{ flex:1,minWidth:0 }}>
@@ -486,11 +583,11 @@ export default function WageAdequacy() {
 
       {/* Summary Stats */}
       {allStates.length > 0 && <Card>
-        <CH t="National Summary" b={`${curCat.name} at ${overhead}% overhead`}/>
+        <CH t="National Summary" b={`${curCat?.name} at ${overhead}% overhead`}/>
         <div style={{ display:"grid",gridTemplateColumns:"repeat(auto-fit,minmax(120px,1fr))",padding:"0 6px 10px" }}>
-          <Met l="States Below Market" v={`${allStates.filter(s=>s.gap<0).length} / ${allStates.length}`} cl={allStates.filter(s=>s.gap<0).length > allStates.length/2?NEG:POS}/>
-          <Met l="States Below Min Wage" v={`${allStates.filter(s=>s.belowMin).length}`} cl={allStates.filter(s=>s.belowMin).length>0?NEG:POS}/>
-          <Met l="Median Gap" v={`$${(allStates.map(s=>s.gap).sort((a,b)=>a-b)[Math.floor(allStates.length/2)]||0).toFixed(2)}/hr`}/>
+          <Met l="States Below Market" v={`${allStates.filter((s: AllStateEntry)=>(s.gap ?? 0)<0).length} / ${allStates.length}`} cl={allStates.filter((s: AllStateEntry)=>(s.gap ?? 0)<0).length > allStates.length/2?NEG:POS}/>
+          <Met l="States Below Min Wage" v={`${allStates.filter((s: AllStateEntry)=>s.belowMin).length}`} cl={allStates.filter((s: AllStateEntry)=>s.belowMin).length>0?NEG:POS}/>
+          <Met l="Median Gap" v={`$${(allStates.map((s: AllStateEntry)=>s.gap ?? 0).sort((a: number, b: number)=>a-b)[Math.floor(allStates.length/2)]||0).toFixed(2)}/hr`}/>
           <Met l="Worst Gap" v={allStates[0]?`${allStates[0].name}: $${allStates[0].gap?.toFixed(2)}`:"—"} cl={NEG}/>
           <Met l="Best Gap" v={allStates[allStates.length-1]?`${allStates[allStates.length-1].name}: +$${allStates[allStates.length-1].gap?.toFixed(2)}`:"—"} cl={POS}/>
         </div>

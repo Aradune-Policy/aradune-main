@@ -712,10 +712,7 @@ function Pricing() {
           padding: "28px 28px 24px", borderTop: `3px solid ${C.brand}`,
         }}>
           <div style={{ fontSize: 11, fontWeight: 700, color: C.brand, fontFamily: FONT.mono, textTransform: "uppercase", letterSpacing: 1, marginBottom: 6 }}>Free</div>
-          <div style={{ display: "flex", alignItems: "baseline", gap: 4, marginBottom: 4 }}>
-            <span style={{ fontSize: 32, fontWeight: 700, color: C.ink }}>$0</span>
-            <span style={{ fontSize: 12, color: C.inkLight }}>/forever</span>
-          </div>
+          <div style={{ fontSize: 18, fontWeight: 600, color: C.ink, marginBottom: 4 }}>Free, always</div>
           <div style={{ fontSize: 11, color: C.inkLight, marginBottom: 16 }}>No account needed</div>
           <div style={{ fontSize: 11, color: C.inkLight, lineHeight: 2 }}>
             {FREE_TOOLS.map(t => (
@@ -741,9 +738,7 @@ function Pricing() {
             <span style={{ fontSize: 11, fontWeight: 700, color: C.accent, fontFamily: FONT.mono, textTransform: "uppercase", letterSpacing: 1 }}>AI Tier</span>
             <span style={{ fontSize: 9, fontWeight: 600, padding: "2px 8px", borderRadius: 8, background: `${C.accent}12`, color: C.accent }}>In Development</span>
           </div>
-          <div style={{ display: "flex", alignItems: "baseline", gap: 4, marginBottom: 16 }}>
-            <span style={{ fontSize: 18, fontWeight: 600, color: C.inkLight }}>Pricing TBD</span>
-          </div>
+          <div style={{ fontSize: 18, fontWeight: 600, color: C.inkLight, marginBottom: 16 }}>Paid subscription</div>
           <div style={{ fontSize: 11, color: C.inkLight, lineHeight: 2 }}>
             <div><span style={{ color: C.brand, marginRight: 6 }}>&#10003;</span>Everything in Free</div>
             <div><span style={{ color: C.accent, marginRight: 6 }}>&#10003;</span>AI Policy Analyst (Claude-powered)</div>

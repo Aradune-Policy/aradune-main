@@ -355,33 +355,32 @@ export default function RateBuilder() {
         </div>
       </Card>}
 
-      {/* Method Parameters */}
-      {selectedCode && curMethod && <Card>
-        <CH t="3. Set Parameters"/>
-        <div style={{ padding:"6px 14px 14px" }}>
+      {/* Method Parameters — inline compact */}
+      {selectedCode && curMethod && (
+        <div style={{ padding:"0 0 10px" }}>
           {curMethod.fields.map(f => (
-            <div key={f.id} style={{ marginBottom:10 }}>
-              <div style={{ display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:4 }}>
-                <span style={{ fontSize:10,fontWeight:600,color:A }}>{f.label}</span>
-                <span style={{ fontFamily:FM,fontSize:14,fontWeight:600,color:cB }}>{f.unit==="$"?"$":""}{(methodInputs[f.id]??f.default)}{f.unit==="%"?"%":""}</span>
-              </div>
+            <div key={f.id} style={{ display:"flex",alignItems:"center",gap:10,padding:"6px 14px",background:SF,borderRadius:8,marginBottom:6 }}>
+              <span style={{ fontSize:10,fontWeight:600,color:AL,whiteSpace:"nowrap" }}>{f.label}</span>
               {f.type === "range" ? (
-                <input type="range" min={f.min} max={f.max} step={f.step} value={methodInputs[f.id]??f.default}
-                  onChange={e=>setInputs(prev=>({...prev,[f.id]:+e.currentTarget.value}))}
-                  style={{ width:"100%" }}/>
+                <input type="range" min={f.min} max={f.max} step={f.step}
+                  value={methodInputs[f.id]??f.default}
+                  onChange={e => { const v = Number(e.target.value); setInputs(prev => ({...prev, [f.id]: v})); }}
+                  style={{ flex:1,maxWidth:180 }}/>
               ) : (
-                <input type="number" min={f.min} max={f.max} step={f.step} value={methodInputs[f.id]??f.default}
-                  onChange={e=>setInputs(prev=>({...prev,[f.id]:+e.currentTarget.value}))}
-                  style={{ width:120,padding:"6px 10px",border:`1px solid ${BD}`,borderRadius:6,fontSize:13,fontFamily:FM,color:A }}/>
+                <input type="number" min={f.min} max={f.max} step={f.step}
+                  value={methodInputs[f.id]??f.default}
+                  onChange={e => { const v = Number(e.target.value); setInputs(prev => ({...prev, [f.id]: v})); }}
+                  style={{ width:90,padding:"4px 8px",border:`1px solid ${BD}`,borderRadius:6,fontSize:12,fontFamily:FM,color:A }}/>
               )}
+              <span style={{ fontFamily:FM,fontSize:13,fontWeight:700,color:cB,whiteSpace:"nowrap" }}>{f.unit==="$"?"$":""}{(methodInputs[f.id]??f.default)}{f.unit==="%"?"%":""}</span>
             </div>
           ))}
         </div>
-      </Card>}
+      )}
 
       {/* Result */}
       {result && selectedCode && <Card accent={cB}>
-        <CH t="4. Calculated Rate" r={result.formula}/>
+        <CH t="3. Calculated Rate" r={result.formula}/>
         <div style={{ padding:"6px 14px 14px" }}>
           {result.components.map((c,i) => (
             <div key={i} style={{ display:"flex",justifyContent:"space-between",alignItems:"baseline",padding:"4px 0",borderBottom:i<result.components.length-1?`1px solid ${SF}`:"none" }}>
@@ -497,7 +496,7 @@ export default function RateBuilder() {
             New code families, code splits, cross-state methodology research, fiscal impact analysis with utilization modeling — the <b>Policy Analyst</b> tier uses AI grounded in Aradune's complete dataset to handle the hard cases.
           </div>
           <div style={{ marginTop:8 }}>
-            <span style={{ fontFamily:FM,fontSize:10,color:cO,fontWeight:600 }}>Coming soon — $99/mo individual · $299/mo organization</span>
+            <span style={{ fontFamily:FM,fontSize:10,color:cO,fontWeight:600 }}>Coming soon</span>
           </div>
         </div>
       </Card>

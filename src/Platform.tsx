@@ -11,6 +11,7 @@ import QualityLinkage from "./tools/QualityLinkage";
 import RateDecay from "./tools/RateDecay";
 import RateBuilder from "./tools/RateBuilder";
 import PolicyAnalyst from "./tools/PolicyAnalyst";
+import AheadCalculator from "./tools/AheadCalculator";
 
 // ── Hash Router ──────────────────────────────────────────────────────────
 function useRoute() {
@@ -71,7 +72,7 @@ const TOOLS: ToolDef[] = [
     id: "ahead", group: "build", name: "AHEAD Calculator",
     tagline: "Model hospital global budgets under CMS's AHEAD framework",
     desc: "Project what global budgets would look like under AHEAD parameters. Compare participation scenarios and estimate savings targets.",
-    status: "coming", icon: "△", color: C.teal,
+    status: "live", icon: "△", color: C.teal,
   },
   {
     id: "methods", group: "build", name: "Methodology Library",
@@ -371,7 +372,7 @@ function Landing() {
             <span style={{ fontSize: 18, width: 36, height: 36, display: "flex", alignItems: "center", justifyContent: "center", borderRadius: 8, background: "rgba(46,107,74,0.2)", color: "#7FD4A0" }}>△</span>
             <div>
               <div style={{ fontSize: 15, fontWeight: 600, color: C.white }}><Term term="AHEAD">AHEAD</Term> Hospital Global Budgets</div>
-              <div style={{ fontSize: 11, color: "rgba(255,255,255,0.5)" }}>Coming soon — dual-payer budget modeling</div>
+              <div style={{ fontSize: 11, color: "rgba(255,255,255,0.5)" }}>Live — dual-payer budget modeling with 12 engines</div>
             </div>
           </div>
           <div style={{ fontSize: 12, color: "rgba(255,255,255,0.6)", lineHeight: 1.7, maxWidth: 600 }}>
@@ -390,6 +391,16 @@ function Landing() {
                 <div style={{ fontSize: 10, color: "rgba(255,255,255,0.4)", marginTop: 3 }}>{desc}</div>
               </div>
             ))}
+          </div>
+          <div style={{ marginTop: 18 }}>
+            <a href="#/ahead" style={{
+              display: "inline-flex", alignItems: "center", padding: "8px 18px",
+              background: "rgba(46,107,74,0.25)", color: "#7FD4A0", borderRadius: 8,
+              fontSize: 12, fontWeight: 600, textDecoration: "none",
+              border: "1px solid rgba(127,212,160,0.2)",
+            }}>
+              Try Demo →
+            </a>
           </div>
         </div>
       </div>
@@ -662,6 +673,7 @@ export default function Platform() {
     if (route === "/decay") return <RateDecay />;
     if (route === "/builder") return <RateBuilder />;
     if (route === "/analyst") return <PolicyAnalyst />;
+    if (route === "/ahead") return <AheadCalculator />;
     const tool = TOOLS.find(t => route === `/${t.id}`);
     if (tool && (tool.status === "coming")) return <ComingSoon tool={tool} />;
     return (

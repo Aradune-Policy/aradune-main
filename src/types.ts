@@ -285,7 +285,6 @@ export interface RateBuilderHcpcs {
   d?: string;
   rates?: Record<string, number>;
   r?: Record<string, number>;
-  rates_by_state?: { state: string; avg_rate: number }[];
   [key: string]: unknown;
 }
 

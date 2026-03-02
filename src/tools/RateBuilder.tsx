@@ -211,9 +211,6 @@ export default function RateBuilder() {
     if (ratesObj && typeof ratesObj === 'object') {
       return Object.entries(ratesObj).map(([st, rate]: [string, unknown]) => ({ st, rate: rate as number, name: STATE_NAMES[st]||st })).filter((d: StateRate) => d.rate > 0);
     }
-    if (h.rates_by_state) {
-      return h.rates_by_state.map((s: { state: string; avg_rate: number }) => ({ st: s.state, rate: s.avg_rate, name: STATE_NAMES[s.state]||s.state })).filter((d: StateRate) => d.rate > 0);
-    }
     return [];
   }, [hcpcsData]);
 
@@ -229,12 +226,12 @@ export default function RateBuilder() {
     setSelectedCode({
       code,
       medicare: mcr,
-      medicareRate: (mcr?.r || mcr?.nf_rate || mcr?.rate || null) as number | null,
-      rvu: (mcr?.rvu || mcr?.nf_rvu || mcr?.total_rvu || null) as number | null,
-      workRvu: (mcr?.w || mcr?.work_rvu || mcr?.work || null) as number | null,
-      peRvu: (mcr?.pe_rvu || mcr?.pe || null) as number | null,
-      mpRvu: (mcr?.mp_rvu || mcr?.mp || null) as number | null,
-      desc: (mcr?.d || mcr?.desc || hRec?.desc || hRec?.d || null) as string | null,
+      medicareRate: (mcr?.r || null) as number | null,
+      rvu: (mcr?.rvu || null) as number | null,
+      workRvu: (mcr?.w || null) as number | null,
+      peRvu: (mcr?.pe || null) as number | null,
+      mpRvu: (mcr?.mp || null) as number | null,
+      desc: (mcr?.d || hRec?.desc || hRec?.d || null) as string | null,
       stateRates: states.sort((a: StateRate, b: StateRate) => a.rate - b.rate),
       nStates: states.length,
     });

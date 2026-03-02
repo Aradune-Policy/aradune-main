@@ -238,8 +238,8 @@ export default function PolicyAnalyst() {
           <div style={{ padding:"24px 24px 0",textAlign:"center" }}>
             <div style={{ fontSize:20,fontWeight:600,marginBottom:4 }}>AI Tier — Policy Analyst</div>
             <div style={{ fontSize:11,color:AL,lineHeight:1.6,maxWidth:340,margin:"0 auto" }}>
-              This tool uses Claude AI with Aradune's full dataset. Each query costs
-              us real money, so access requires a subscription.
+              This tool uses Claude AI with Aradune's full dataset. Access is
+              currently limited while we finalize the subscription model.
             </div>
           </div>
 
@@ -273,10 +273,10 @@ export default function PolicyAnalyst() {
               ))}
             </div>
             <div style={{ marginTop:10,fontSize:10,color:AL }}>
-              <b>$99/mo</b> individual · <b>$299/mo</b> organization
+              Paid subscription coming soon.
             </div>
             <div style={{ marginTop:8 }}>
-              <a href="#/pricing" style={{ fontSize:11,color:cO,fontWeight:600,textDecoration:"none" }}>Don't have a token? Subscribe &#8594;</a>
+              <a href="#/pricing" style={{ fontSize:11,color:cO,fontWeight:600,textDecoration:"none" }}>Learn more about the AI tier &#8594;</a>
             </div>
           </div>
         </div>

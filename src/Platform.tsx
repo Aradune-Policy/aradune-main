@@ -520,7 +520,7 @@ function Landing() {
         }}>
           <div style={{ display: "flex", alignItems: "center", gap: 10, marginBottom: 4 }}>
             <span style={{ fontSize: 16, fontWeight: 700, color: C.accent }}>AI Tier</span>
-            <span style={{ fontSize: 10, fontWeight: 600, padding: "2px 8px", borderRadius: 8, background: `${C.accent}12`, color: C.accent }}>$99/mo</span>
+            <span style={{ fontSize: 10, fontWeight: 600, padding: "2px 8px", borderRadius: 8, background: `${C.accent}12`, color: C.accent }}>Coming Soon</span>
           </div>
           <div style={{ fontSize: 12, color: C.inkLight, lineHeight: 1.7, marginBottom: 10 }}>
             Ask complex policy questions in plain English. The AI analyst looks up real
@@ -528,15 +528,15 @@ function Landing() {
             language — grounded in Aradune's dataset.
           </div>
           <div style={{ fontSize: 11, color: C.inkLight, lineHeight: 1.7, fontStyle: "italic", marginBottom: 14, padding: "8px 12px", background: C.surface, borderRadius: 6 }}>
-            We charge for this tier because every query costs us money — the AI runs
-            on Claude and makes multiple data lookups per question.
+            This tier will be a paid subscription — every AI query runs a Claude model
+            with multiple data lookups, which costs real money. Pricing details coming soon.
           </div>
           <a href="#/pricing" style={{
             display: "inline-flex", alignItems: "center", padding: "9px 18px",
             background: C.accent, color: C.white, borderRadius: 8,
             fontSize: 12, fontWeight: 600, textDecoration: "none",
           }}>
-            Subscribe &#8594;
+            Learn more &#8594;
           </a>
         </div>
       </div>
@@ -689,29 +689,6 @@ function ComingSoon({ tool }: { tool: { name: string; icon: string; desc: string
 
 // ── Pricing Page ──────────────────────────────────────────────────────
 function Pricing() {
-  const [loading, setLoading] = useState<string | null>(null);
-
-  const handleSubscribe = async (plan: "individual" | "organization") => {
-    setLoading(plan);
-    try {
-      const resp = await fetch("/api/create-checkout", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ plan }),
-      });
-      const data = await resp.json();
-      if (data.url) {
-        window.location.href = data.url;
-      } else {
-        alert(data.error || "Failed to start checkout");
-        setLoading(null);
-      }
-    } catch {
-      alert("Connection error. Please try again.");
-      setLoading(null);
-    }
-  };
-
   const FREE_TOOLS = TOOLS.filter(t => t.id !== "analyst");
 
   return (
@@ -723,7 +700,7 @@ function Pricing() {
         </h1>
         <p style={{ fontSize: 13, color: C.inkLight, lineHeight: 1.7, maxWidth: 480, margin: "0 auto" }}>
           Aradune exists to make Medicaid data accessible. The tools are free.
-          The AI tier covers its own costs.
+          A paid AI tier is in development.
         </p>
       </div>
 
@@ -760,43 +737,25 @@ function Pricing() {
           padding: "28px 28px 24px", borderTop: `3px solid ${C.accent}`,
           position: "relative",
         }}>
-          <div style={{ fontSize: 11, fontWeight: 700, color: C.accent, fontFamily: FONT.mono, textTransform: "uppercase", letterSpacing: 1, marginBottom: 6 }}>AI Tier</div>
-          <div style={{ display: "flex", alignItems: "baseline", gap: 4, marginBottom: 4 }}>
-            <span style={{ fontSize: 32, fontWeight: 700, color: C.ink }}>$99</span>
-            <span style={{ fontSize: 12, color: C.inkLight }}>/mo individual</span>
+          <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 6 }}>
+            <span style={{ fontSize: 11, fontWeight: 700, color: C.accent, fontFamily: FONT.mono, textTransform: "uppercase", letterSpacing: 1 }}>AI Tier</span>
+            <span style={{ fontSize: 9, fontWeight: 600, padding: "2px 8px", borderRadius: 8, background: `${C.accent}12`, color: C.accent }}>In Development</span>
           </div>
-          <div style={{ fontSize: 11, color: C.inkLight, marginBottom: 16 }}>
-            <b style={{ color: C.ink }}>$299/mo</b> organization
+          <div style={{ display: "flex", alignItems: "baseline", gap: 4, marginBottom: 16 }}>
+            <span style={{ fontSize: 18, fontWeight: 600, color: C.inkLight }}>Pricing TBD</span>
           </div>
           <div style={{ fontSize: 11, color: C.inkLight, lineHeight: 2 }}>
             <div><span style={{ color: C.brand, marginRight: 6 }}>&#10003;</span>Everything in Free</div>
             <div><span style={{ color: C.accent, marginRight: 6 }}>&#10003;</span>AI Policy Analyst (Claude-powered)</div>
-            <div><span style={{ color: C.accent, marginRight: 6 }}>&#10003;</span>30 queries/hour</div>
             <div><span style={{ color: C.accent, marginRight: 6 }}>&#10003;</span>Tool-augmented answers grounded in Aradune data</div>
             <div><span style={{ color: C.accent, marginRight: 6 }}>&#10003;</span>Cross-state comparisons, fiscal impact</div>
             <div><span style={{ color: C.accent, marginRight: 6 }}>&#10003;</span>SPA methodology drafting</div>
           </div>
-          <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 8, marginTop: 20 }}>
-            <button
-              onClick={() => handleSubscribe("individual")}
-              disabled={loading !== null}
-              style={{
-                padding: "10px 16px", background: C.accent, color: C.white, border: "none", borderRadius: 8,
-                fontSize: 12, fontWeight: 600, cursor: loading ? "wait" : "pointer",
-              }}
-            >
-              {loading === "individual" ? "..." : "Individual $99/mo"}
-            </button>
-            <button
-              onClick={() => handleSubscribe("organization")}
-              disabled={loading !== null}
-              style={{
-                padding: "10px 16px", background: C.ink, color: C.white, border: "none", borderRadius: 8,
-                fontSize: 12, fontWeight: 600, cursor: loading ? "wait" : "pointer",
-              }}
-            >
-              {loading === "organization" ? "..." : "Organization $299/mo"}
-            </button>
+          <div style={{
+            marginTop: 20, padding: "10px 16px", background: C.surface, borderRadius: 8,
+            fontSize: 11, color: C.inkLight, textAlign: "center",
+          }}>
+            Subscription access coming soon. Existing token holders can continue using the tool.
           </div>
         </div>
       </div>
@@ -806,11 +765,11 @@ function Pricing() {
         padding: "20px 24px", background: C.surface, borderRadius: 10,
         borderLeft: `3px solid ${C.accent}`, marginBottom: 36,
       }}>
-        <div style={{ fontSize: 13, fontWeight: 600, color: C.ink, marginBottom: 6 }}>Why we charge for the AI tier</div>
+        <div style={{ fontSize: 13, fontWeight: 600, color: C.ink, marginBottom: 6 }}>Why the AI tier will be paid</div>
         <div style={{ fontSize: 12, color: C.inkLight, lineHeight: 1.7 }}>
           Every AI query runs a Claude model with multiple Aradune data lookups.
-          That costs real money. The subscription covers API costs so we can keep
-          everything else free.
+          That costs real money. A subscription will cover API costs so we can keep
+          everything else free. We're finalizing pricing and will share details soon.
         </div>
       </div>
 

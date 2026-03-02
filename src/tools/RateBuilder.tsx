@@ -1,5 +1,6 @@
 import React, { useState, useMemo, useEffect, useCallback } from "react";
 import type { Methodology, ComputeContext, RateResult, RateBuilderHcpcs, RateBuilderMedicare } from "../types";
+import { useProAccess, ProBadge, ProGateModal } from "../components/ProGate";
 
 // ── Design System ───────────────────────────────────────────────────────
 const A = "#0A2540";
@@ -165,6 +166,9 @@ export default function RateBuilder() {
   const [hcpcsData, setHCPCS] = useState<RateBuilderHcpcs[] | null>(null);
   const [medicareData, setMedicare] = useState<RateBuilderMedicare | null>(null);
   const [loading, setLoading] = useState(true);
+  const { isPro } = useProAccess();
+  const [showGate, setShowGate] = useState(false);
+  const [gateFeature, setGateFeature] = useState("");
 
   useEffect(() => {
     let cancelled = false;
@@ -456,6 +460,26 @@ export default function RateBuilder() {
           }} style={{ padding:"6px 16px",background:SF,color:A,border:`1px solid ${BD}`,borderRadius:6,fontSize:11,cursor:"pointer" }}>
             Export State Comparison
           </button>}
+          <button onClick={() => {
+            if (!isPro) { setGateFeature("PDF Report"); setShowGate(true); return; }
+            import("../utils/rateBuilderPdf").then(m => m.generateRateBuilderPdf({
+              code: selectedCode.code, desc: selectedCode.desc, medicareRate: selectedCode.medicareRate,
+              methodology: curMethod?.name || "", formula: result.formula, components: result.components,
+              rate: result.rate, stateRates: selectedCode.stateRates, nStates: selectedCode.nStates,
+            }));
+          }} style={{ padding:"6px 16px",background:SF,color:A,border:`1px solid ${BD}`,borderRadius:6,fontSize:11,cursor:"pointer",display:"inline-flex",alignItems:"center" }}>
+            Export PDF<ProBadge />
+          </button>
+          <button onClick={() => {
+            if (!isPro) { setGateFeature("Excel Export"); setShowGate(true); return; }
+            import("../utils/rateBuilderXlsx").then(m => m.generateRateBuilderXlsx({
+              code: selectedCode.code, desc: selectedCode.desc, medicareRate: selectedCode.medicareRate,
+              methodology: curMethod?.name || "", formula: result.formula, components: result.components,
+              rate: result.rate, stateRates: selectedCode.stateRates, nStates: selectedCode.nStates,
+            }));
+          }} style={{ padding:"6px 16px",background:SF,color:A,border:`1px solid ${BD}`,borderRadius:6,fontSize:11,cursor:"pointer",display:"inline-flex",alignItems:"center" }}>
+            Export XLSX<ProBadge />
+          </button>
         </div>
       </Card>}
 
@@ -511,6 +535,7 @@ export default function RateBuilder() {
       </div></Card>
 
       <div style={{ fontSize:10,color:AL,marginTop:8 }}>Aradune Rate Builder v1.0 · Free Tool · CY2025 Medicare PFS + T-MSIS</div>
+      <ProGateModal feature={gateFeature} open={showGate} onClose={() => setShowGate(false)} />
     </div>
   );
 }

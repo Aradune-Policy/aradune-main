@@ -1,6 +1,7 @@
 import React, { useState, useMemo, useEffect, useCallback, useRef, Fragment } from "react";
 import { BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer, Cell, CartesianGrid, Area, AreaChart, LineChart, Line, ScatterChart, Scatter, ZAxis, Legend, ReferenceLine } from "recharts";
 import type { StateData, HcpcsCode, NatlTrend, SafeTipProps, CatAccumulator, TooltipEntry, RawState, RawHcpcs, RawTrend, PipelineMeta, MedicareRates, RiskAdjData, FeeScheduleData, FeeScheduleState, FeeScheduleDirectory, ProviderRecord, SpecialtyRecord } from "../types";
+import { useProAccess, ProBadge, ProGateModal } from "../components/ProGate";
 
 // ── Design System (Aradune v13) ──────────────────────────────────────────
 const A = "#0A2540";
@@ -496,6 +497,10 @@ export default function TmsisExplorer() {
   const [simCat, setSimCat] = useState("All");
   const [simPct, setSimPct] = useState(10);
   const [simState, setSimSt] = useState("FL");
+  const { isPro } = useProAccess();
+  const [showGate, setShowGate] = useState(false);
+  const [batchInput, setBatchInput] = useState("");
+  const [batchResults, setBatchResults] = useState<{ code: string; desc: string; rates: Record<string, number>; mcr: number | null }[] | null>(null);
 
   const [meta, setMeta] = useState<PipelineMeta | null>(null);
   const [states, setStates] = useState<Record<string, StateData>>(SIM_STATES);
@@ -849,7 +854,7 @@ export default function TmsisExplorer() {
     </div>
   );
 
-  const TABS = [{k:"dash",l:"Dashboard"},{k:"rate",l:"Rate Engine"},{k:"code",l:"Code Profile"},{k:"sim",l:"Simulator"},{k:"provider",l:"Providers"},{k:"about",l:"About"}];
+  const TABS = [{k:"dash",l:"Dashboard"},{k:"rate",l:"Rate Engine"},{k:"code",l:"Code Profile"},{k:"sim",l:"Simulator"},{k:"provider",l:"Providers"},{k:"batch",l:"Batch",pro:true},{k:"about",l:"About"}];
 
   return (
     <div style={{ maxWidth:960,margin:"0 auto",padding:"10px 16px 40px",fontFamily:"Helvetica Neue,Arial,sans-serif",color:A }}>
@@ -862,7 +867,7 @@ export default function TmsisExplorer() {
           {isLive && Array.isArray(meta?.years) && <span style={{ fontSize:9,color:AL,fontFamily:FM }}>{(meta.years as number[])[0]}–{(meta.years as number[])[(meta.years as number[]).length-1]}</span>}
         </div>
         <div style={{ display:"flex",gap:1,flexWrap:"wrap" }}>
-          {TABS.map(t => <button key={t.k} onClick={()=>setTab(t.k)} style={{ padding:"4px 8px",fontSize:10,fontWeight:tab===t.k?700:400,color:tab===t.k?cB:AL,background:tab===t.k?"rgba(46,107,74,0.05)":"transparent",border:"none",borderRadius:6,cursor:"pointer",borderBottom:tab===t.k?`2px solid ${cB}`:"2px solid transparent",whiteSpace:"nowrap" }}>{t.l}</button>)}
+          {TABS.map(t => <button key={t.k} onClick={()=>{if((t as any).pro&&!isPro){setShowGate(true);return;}setTab(t.k);}} style={{ padding:"4px 8px",fontSize:10,fontWeight:tab===t.k?700:400,color:tab===t.k?cB:AL,background:tab===t.k?"rgba(46,107,74,0.05)":"transparent",border:"none",borderRadius:6,cursor:"pointer",borderBottom:tab===t.k?`2px solid ${cB}`:"2px solid transparent",whiteSpace:"nowrap",display:"inline-flex",alignItems:"center" }}>{t.l}{(t as any).pro&&<ProBadge/>}</button>)}
         </div>
       </div>
 
@@ -1598,6 +1603,89 @@ export default function TmsisExplorer() {
         })()}
       </div>}
 
+      {/* BATCH LOOKUP */}
+      {tab==="batch" && <div style={{ display:"grid",gap:10 }}>
+        <TabGuide title="Batch Code Lookup" desc="Paste up to 500 HCPCS codes to get a cross-state rate matrix. Upload a CSV/TXT file or paste codes directly." tips="Results show T-MSIS actual-paid rates by state for each code. Export to XLSX for full analysis."/>
+        <Card><CH t="Input Codes"/><div style={{ padding:"8px 14px 12px",display:"grid",gap:8 }}>
+          <textarea value={batchInput} onChange={e=>setBatchInput(e.target.value)} placeholder="Paste HCPCS codes (one per line, comma-separated, or space-separated)&#10;&#10;Example: 99213, 99214, 99215, 97110" style={{ width:"100%",minHeight:100,padding:"8px 10px",borderRadius:6,border:`1px solid ${B}`,fontSize:11,fontFamily:FM,resize:"vertical",outline:"none",boxSizing:"border-box" }}/>
+          <div style={{ display:"flex",gap:8,alignItems:"center",flexWrap:"wrap" }}>
+            <label style={{ padding:"5px 12px",background:S,border:`1px solid ${B}`,borderRadius:6,fontSize:10,cursor:"pointer",fontWeight:600 }}>
+              Upload CSV/TXT
+              <input type="file" accept=".csv,.txt" style={{ display:"none" }} onChange={e=>{
+                const file=e.target.files?.[0];if(!file)return;
+                const reader=new FileReader();
+                reader.onload=ev=>{const text=ev.target?.result as string;setBatchInput(prev=>prev?(prev+"\n"+text):text);};
+                reader.readAsText(file);
+                e.target.value="";
+              }}/>
+            </label>
+            <button onClick={()=>{
+              const raw=batchInput.replace(/[,;\t]/g," ").split(/\s+/).map(s=>s.trim().toUpperCase()).filter(s=>s.length>=3&&s.length<=7);
+              const unique=[...new Set(raw)].slice(0,500);
+              if(unique.length===0)return;
+              const results=unique.map(code=>{
+                const h=codes.find(c=>c.c===code);
+                const mcr=mcRates?.rates?.[code];
+                return{
+                  code,
+                  desc:h?.d||mcr?.d||"",
+                  rates:h?.r||{},
+                  mcr:(mcr?.r as number)||null,
+                };
+              }).filter(r=>Object.keys(r.rates).length>0||r.mcr!==null);
+              setBatchResults(results);
+            }} style={{ padding:"5px 16px",background:cB,color:WH,border:"none",borderRadius:6,fontSize:11,fontWeight:600,cursor:"pointer" }}>
+              Look Up ({batchInput.replace(/[,;\t]/g," ").split(/\s+/).filter(s=>s.trim().length>=3).length} codes)
+            </button>
+            {batchInput.replace(/[,;\t]/g," ").split(/\s+/).filter(s=>s.trim().length>=3).length>500&&<span style={{ fontSize:10,color:WARN }}>Max 500 codes — only first 500 will be processed</span>}
+          </div>
+        </div></Card>
+        {batchResults&&batchResults.length>0&&<Card><CH t={`Results: ${batchResults.length} codes found`} b={`${batchResults.filter(r=>Object.keys(r.rates).length>0).length} with state data`}/><div style={{ padding:"8px 14px 12px" }}>
+          <div style={{ display:"flex",gap:8,marginBottom:8 }}>
+            <button onClick={()=>{
+              import("xlsx").then(XLSX=>{
+                const allStates=[...new Set(batchResults.flatMap(r=>Object.keys(r.rates)))].sort();
+                const headers=["Code","Description","Medicare",...allStates];
+                const rows=batchResults.map(r=>[r.code,r.desc,r.mcr??"",...allStates.map(st=>r.rates[st]??"")] as (string|number)[]);
+                const ws=XLSX.utils.aoa_to_sheet([headers,...rows]);
+                ws["!cols"]=[{wch:10},{wch:30},{wch:12},...allStates.map(()=>({wch:10}))];
+                const wb=XLSX.utils.book_new();
+                XLSX.utils.book_append_sheet(wb,ws,"Batch Rates");
+                XLSX.writeFile(wb,`batch_rates_${new Date().toISOString().split("T")[0]}.xlsx`);
+              });
+            }} style={{ padding:"5px 12px",background:S,border:`1px solid ${B}`,borderRadius:6,fontSize:10,cursor:"pointer",fontWeight:600,display:"inline-flex",alignItems:"center",gap:3 }}>
+              <span style={{ fontSize:10 }}>↓</span> Export XLSX<ProBadge/>
+            </button>
+            <ExportBtn label="Export CSV" onClick={()=>{
+              const allStates=[...new Set(batchResults.flatMap(r=>Object.keys(r.rates)))].sort();
+              downloadCSV("batch_rates.csv",["Code","Description","Medicare",...allStates],
+                batchResults.map(r=>[r.code,r.desc,r.mcr?.toFixed(2)??"",
+                  ...allStates.map(st=>r.rates[st]?.toFixed(2)??"")] as (string|number)[]));
+            }}/>
+          </div>
+          <div style={{ maxHeight:500,overflowY:"auto",overflowX:"auto" }}>
+            {(()=>{
+              const allStates=[...new Set(batchResults.flatMap(r=>Object.keys(r.rates)))].sort();
+              return <table style={{ borderCollapse:"collapse",fontSize:9,whiteSpace:"nowrap" }}>
+                <thead><tr style={{ borderBottom:`2px solid ${B}`,position:"sticky",top:0,background:WH }}>
+                  <th style={{ padding:"4px 6px",textAlign:"left",fontFamily:FM,fontSize:8,color:AL,position:"sticky",left:0,background:WH,zIndex:2 }}>Code</th>
+                  <th style={{ padding:"4px 6px",textAlign:"left",fontSize:8,color:AL }}>Description</th>
+                  <th style={{ padding:"4px 6px",textAlign:"right",fontFamily:FM,fontSize:8,color:AL }}>MCR</th>
+                  {allStates.map(st=><th key={st} style={{ padding:"4px 4px",textAlign:"right",fontFamily:FM,fontSize:8,color:AL }}>{st}</th>)}
+                </tr></thead>
+                <tbody>{batchResults.map(r=><tr key={r.code} style={{ borderBottom:`1px solid ${S}` }}>
+                  <td style={{ padding:"3px 6px",fontFamily:FM,fontWeight:600,position:"sticky",left:0,background:WH }}>{r.code}</td>
+                  <td style={{ padding:"3px 6px",maxWidth:200,overflow:"hidden",textOverflow:"ellipsis",color:AL }}>{r.desc}</td>
+                  <td style={{ padding:"3px 6px",fontFamily:FM,textAlign:"right",color:cB }}>{r.mcr?`$${r.mcr.toFixed(2)}`:""}</td>
+                  {allStates.map(st=><td key={st} style={{ padding:"3px 4px",fontFamily:FM,textAlign:"right" }}>{r.rates[st]?`$${r.rates[st].toFixed(2)}`:""}</td>)}
+                </tr>)}</tbody>
+              </table>;
+            })()}
+          </div>
+        </div></Card>}
+        {batchResults&&batchResults.length===0&&<Card><div style={{ padding:"16px",textAlign:"center",fontSize:12,color:AL }}>No matching codes found. Check that codes are valid HCPCS codes present in the T-MSIS dataset.</div></Card>}
+      </div>}
+
       {/* ABOUT */}
       {tab==="about" && <div style={{ maxWidth:640,display:"grid",gap:10 }}>
         <Card><CH t="About This Tool"/><div style={{ padding:"4px 16px 12px",fontSize:11,color:A,lineHeight:1.8 }}>
@@ -1637,6 +1725,7 @@ export default function TmsisExplorer() {
         <div style={{ fontSize:10,color:AL }}>Aradune T-MSIS Explorer v0.7.5 · Built by <a href="https://aradune.co" style={{ color:cB,textDecoration:"none",fontWeight:600 }}>Aradune</a></div>
       </div>}
 
+      <ProGateModal feature="Batch Code Lookup" open={showGate} onClose={()=>setShowGate(false)}/>
     </div>
   );
 }

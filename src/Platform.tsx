@@ -487,7 +487,7 @@ function Landing() {
         ))}
       </div>
 
-      {/* 9. Free vs AI Tier */}
+      {/* 9. Free vs Professional */}
       <div style={{
         display: "grid", gridTemplateColumns: "repeat(auto-fit,minmax(280px,1fr))", gap: 16,
         marginBottom: 40,
@@ -500,6 +500,7 @@ function Landing() {
           <div style={{ fontSize: 12, color: C.inkLight, lineHeight: 1.7, marginBottom: 14 }}>
             Every tool on this platform is free — spending explorer, rate analysis,
             adequacy comparisons, AHEAD modeling, rate builder. No login, no paywall.
+            CSV exports included on every tool.
           </div>
           <div style={{ fontSize: 11, color: C.inkLight, lineHeight: 1.9 }}>
             {TOOLS.filter(t => t.id !== "analyst").map(t => (
@@ -512,17 +513,20 @@ function Landing() {
           borderTop: `3px solid ${C.accent}`,
         }}>
           <div style={{ display: "flex", alignItems: "center", gap: 10, marginBottom: 4 }}>
-            <span style={{ fontSize: 16, fontWeight: 700, color: C.accent }}>AI Tier</span>
+            <span style={{ fontSize: 16, fontWeight: 700, color: C.accent }}>Professional</span>
             <span style={{ fontSize: 10, fontWeight: 600, padding: "2px 8px", borderRadius: 8, background: `${C.accent}12`, color: C.accent }}>Coming Soon</span>
           </div>
           <div style={{ fontSize: 12, color: C.inkLight, lineHeight: 1.7, marginBottom: 10 }}>
-            Ask complex policy questions in plain English. The AI analyst looks up real
-            rates, compares states, estimates fiscal impact, and drafts methodology
-            language — grounded in Aradune's dataset.
+            A professional output layer for policy teams, consultants, and researchers.
+            Same free tools — with branded reports, formatted exports, and workflow features
+            designed for production analysis.
           </div>
-          <div style={{ fontSize: 11, color: C.inkLight, lineHeight: 1.7, fontStyle: "italic", marginBottom: 14, padding: "8px 12px", background: C.surface, borderRadius: 6 }}>
-            This tier will be a paid subscription — every AI query runs a Claude model
-            with multiple data lookups, which costs real money. Pricing details coming soon.
+          <div style={{ fontSize: 11, color: C.inkLight, lineHeight: 1.9, marginBottom: 14 }}>
+            <div><span style={{ color: C.accent, marginRight: 6 }}>&#10003;</span>Branded PDF reports</div>
+            <div><span style={{ color: C.accent, marginRight: 6 }}>&#10003;</span>Formatted Excel workbooks</div>
+            <div><span style={{ color: C.accent, marginRight: 6 }}>&#10003;</span>Persistent saved scenarios</div>
+            <div><span style={{ color: C.accent, marginRight: 6 }}>&#10003;</span>Batch HCPCS code lookup</div>
+            <div><span style={{ color: C.accent, marginRight: 6 }}>&#10003;</span>AI Policy Analyst</div>
           </div>
           <a href="#/pricing" style={{
             display: "inline-flex", alignItems: "center", padding: "9px 18px",
@@ -693,7 +697,7 @@ function Pricing() {
         </h1>
         <p style={{ fontSize: 13, color: C.inkLight, lineHeight: 1.7, maxWidth: 480, margin: "0 auto" }}>
           Aradune exists to make Medicaid data accessible. The tools are free.
-          A paid AI tier is in development.
+          A paid Professional tier is in development.
         </p>
       </div>
 
@@ -721,29 +725,30 @@ function Pricing() {
           </a>
         </div>
 
-        {/* AI Tier */}
+        {/* Professional Tier */}
         <div style={{
           background: C.white, borderRadius: 12, boxShadow: SHADOW_LG,
           padding: "28px 28px 24px", borderTop: `3px solid ${C.accent}`,
           position: "relative",
         }}>
           <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 6 }}>
-            <span style={{ fontSize: 11, fontWeight: 700, color: C.accent, fontFamily: FONT.mono, textTransform: "uppercase", letterSpacing: 1 }}>AI Tier</span>
+            <span style={{ fontSize: 11, fontWeight: 700, color: C.accent, fontFamily: FONT.mono, textTransform: "uppercase", letterSpacing: 1 }}>Professional</span>
             <span style={{ fontSize: 9, fontWeight: 600, padding: "2px 8px", borderRadius: 8, background: `${C.accent}12`, color: C.accent }}>In Development</span>
           </div>
           <div style={{ fontSize: 18, fontWeight: 600, color: C.inkLight, marginBottom: 16 }}>Paid subscription</div>
           <div style={{ fontSize: 11, color: C.inkLight, lineHeight: 2 }}>
             <div><span style={{ color: C.brand, marginRight: 6 }}>&#10003;</span>Everything in Free</div>
+            <div><span style={{ color: C.accent, marginRight: 6 }}>&#10003;</span>Branded PDF reports</div>
+            <div><span style={{ color: C.accent, marginRight: 6 }}>&#10003;</span>Formatted Excel workbooks (XLSX)</div>
+            <div><span style={{ color: C.accent, marginRight: 6 }}>&#10003;</span>Persistent saved scenarios</div>
+            <div><span style={{ color: C.accent, marginRight: 6 }}>&#10003;</span>Batch HCPCS code lookup (up to 500 codes)</div>
             <div><span style={{ color: C.accent, marginRight: 6 }}>&#10003;</span>AI Policy Analyst (Claude-powered)</div>
-            <div><span style={{ color: C.accent, marginRight: 6 }}>&#10003;</span>Tool-augmented answers grounded in Aradune data</div>
-            <div><span style={{ color: C.accent, marginRight: 6 }}>&#10003;</span>Cross-state comparisons, fiscal impact</div>
-            <div><span style={{ color: C.accent, marginRight: 6 }}>&#10003;</span>SPA methodology drafting</div>
           </div>
           <div style={{
             marginTop: 20, padding: "10px 16px", background: C.surface, borderRadius: 8,
             fontSize: 11, color: C.inkLight, textAlign: "center",
           }}>
-            Subscription access coming soon. Existing token holders can continue using the tool.
+            Subscription access coming soon. Existing token holders can continue using all professional features.
           </div>
         </div>
       </div>
@@ -753,11 +758,13 @@ function Pricing() {
         padding: "20px 24px", background: C.surface, borderRadius: 10,
         borderLeft: `3px solid ${C.accent}`, marginBottom: 36,
       }}>
-        <div style={{ fontSize: 13, fontWeight: 600, color: C.ink, marginBottom: 6 }}>Why the AI tier will be paid</div>
+        <div style={{ fontSize: 13, fontWeight: 600, color: C.ink, marginBottom: 6 }}>Why the Professional tier will be paid</div>
         <div style={{ fontSize: 12, color: C.inkLight, lineHeight: 1.7 }}>
-          Every AI query runs a Claude model with multiple Aradune data lookups.
-          That costs real money. A subscription will cover API costs so we can keep
-          everything else free. We're finalizing pricing and will share details soon.
+          The AI Policy Analyst runs a Claude model with multiple Aradune data lookups
+          on every query — that costs real money. PDF generation and Excel formatting
+          libraries add to the bundle. A subscription covers these costs so we can keep
+          every tool and CSV export free for everyone. We're finalizing pricing and will
+          share details soon.
         </div>
       </div>
 
@@ -783,7 +790,7 @@ export default function Platform() {
     if (route === "/decay") return <RateDecay />;
     if (route === "/builder") return <RateBuilder />;
     if (route === "/analyst") return <PolicyAnalyst />;
-    if (route === "/ahead") return <AheadCalculator />;
+    if (route === "/ahead" || route.startsWith("/ahead?")) return <AheadCalculator />;
     const tool = TOOLS.find(t => route === `/${t.id}`);
     if (tool && (tool.status === "coming")) return <ComingSoon tool={tool} />;
     return (

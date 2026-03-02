@@ -28,7 +28,7 @@ let _quality = null;
 let _crosswalk = null;
 
 function getHCPCS() { if (!_hcpcs) _hcpcs = loadJSON("hcpcs.json"); return _hcpcs; }
-function getMedicare() { if (!_medicare) _medicare = loadJSON("medicare_pfs.json"); return _medicare; }
+function getMedicare() { if (!_medicare) _medicare = loadJSON("medicare_rates.json"); return _medicare; }
 function getBLS() { if (!_bls) _bls = loadJSON("bls_wages.json"); return _bls; }
 function getQuality() { if (!_quality) _quality = loadJSON("quality_measures.json"); return _quality; }
 function getCrosswalk() { if (!_crosswalk) _crosswalk = loadJSON("soc_hcpcs_crosswalk.json"); return _crosswalk; }
@@ -81,6 +81,8 @@ function lookupMedicare(code) {
   let record = null;
   if (Array.isArray(mcr)) {
     record = mcr.find(r => (r.code || r.c || r.hcpcs) === code);
+  } else if (mcr.rates && mcr.rates[code]) {
+    record = mcr.rates[code];
   } else if (mcr[code]) {
     record = mcr[code];
   }
@@ -89,13 +91,13 @@ function lookupMedicare(code) {
   return {
     code,
     source: "CY2025 Medicare Physician Fee Schedule",
-    nf_rate: record.nf_rate || record.rate || record.nf || null,
-    f_rate: record.f_rate || record.facility || null,
-    total_rvu: record.nf_rvu || record.total_rvu || record.rvu || null,
-    work_rvu: record.work_rvu || record.work || null,
+    nf_rate: record.r || record.nf_rate || record.rate || null,
+    f_rate: record.fr || record.f_rate || record.facility || null,
+    total_rvu: record.rvu || record.nf_rvu || record.total_rvu || null,
+    work_rvu: record.w || record.work_rvu || record.work || null,
     pe_rvu: record.pe_rvu || record.pe || null,
     mp_rvu: record.mp_rvu || record.mp || null,
-    description: record.desc || record.description || record.d || null,
+    description: record.d || record.desc || record.description || null,
     global_days: record.global_days || record.global || null,
     pc_tc: record.pc_tc || null,
     conversion_factor: 32.7442, // CY2025 CF

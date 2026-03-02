@@ -105,7 +105,6 @@ function PlatformNav({ route }: { route: string }) {
       backdropFilter: "blur(12px)",
       WebkitBackdropFilter: "blur(12px)",
       borderBottom: `1px solid ${C.border}`,
-      overflowX: "hidden",
     }}>
       <div style={{
         maxWidth: 1080, margin: "0 auto", padding: "0 12px",

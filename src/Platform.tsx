@@ -45,10 +45,10 @@ const TOOLS: ToolDef[] = [
     status: "live", icon: "◈", color: C.accent,
   },
   {
-    id: "decay", group: "analyze", name: "Rate Decay",
+    id: "decay", group: "explore", name: "Rate Decay",
     tagline: "Track how far state rates have fallen behind Medicare",
     desc: "Every HCPCS code as a percentage of the Medicare PFS. Identify which services have decayed most and which states are furthest behind.",
-    status: "live", icon: "◧", color: C.accent,
+    status: "live", icon: "◧", color: C.brand,
   },
   {
     id: "builder", group: "build", name: "Rate Builder",
@@ -84,9 +84,9 @@ const NAV_GROUPS: NavGroup[] = [
 
 const GROUP_COLORS: Record<string, string> = { explore: C.brand, analyze: C.accent, build: C.teal };
 const GROUP_DESCS: Record<string, string> = {
-  explore: "Browse and query T-MSIS claims data across every state and service code.",
-  analyze: "Three lenses on rate adequacy — workforce viability, health outcomes, and Medicare benchmarking.",
-  build: "Calculate rates, estimate fiscal impact, draft SPA language, and model hospital global budgets.",
+  explore: "What does Medicaid spend, and how do rates compare?",
+  analyze: "Are rates adequate? What are the gaps?",
+  build: "Calculate rates, model scenarios, draft policy.",
 };
 
 // ── Platform Nav ─────────────────────────────────────────────────────────
@@ -123,16 +123,7 @@ function PlatformNav({ route }: { route: string }) {
               All Tools
             </a>
           )}
-          <a href="#/explorer" style={{
-            fontSize: 11, fontFamily: FONT.body,
-            color: route === "/explorer" ? C.brand : C.inkLight,
-            fontWeight: route === "/explorer" ? 600 : 400,
-            textDecoration: "none", padding: "4px 10px", borderRadius: 6, whiteSpace: "nowrap",
-            background: route === "/explorer" ? "rgba(46,107,74,0.06)" : "none",
-          }}>
-            Explorer
-          </a>
-          {NAV_GROUPS.filter(g => g.tools.length > 1).map(g => <NavDrop key={g.key} group={g} route={route} />)}
+          {NAV_GROUPS.map(g => <NavDrop key={g.key} group={g} route={route} />)}
           <a href="#/about" style={{
             fontSize: 11, fontFamily: FONT.body,
             color: route === "/about" ? C.brand : C.inkLight,
@@ -159,11 +150,12 @@ function Landing() {
       {/* 1. Hero */}
       <div style={{ padding: "56px 0 44px", maxWidth: 640 }}>
         <h1 style={{ fontSize: 30, fontWeight: 700, color: C.ink, lineHeight: 1.25, letterSpacing: -0.5, margin: 0 }}>
-          Medicaid data that's actually usable.
+          The open Medicaid policy platform.
         </h1>
         <p style={{ fontSize: 14, color: C.inkLight, lineHeight: 1.7, marginTop: 14, maxWidth: 540 }}>
-          For policy analysts, researchers, advocates,
-          and anyone who needs to understand how Medicaid dollars move.
+          Spending analysis, rate adequacy, fiscal modeling, and policy
+          drafting — the kind of work that used to require a consulting
+          engagement, built as free tools for anyone who works in Medicaid.
         </p>
         <div style={{ display: "flex", gap: 10, marginTop: 22, flexWrap: "wrap" }}>
           <a href="#/explorer" style={{
@@ -413,21 +405,21 @@ function Landing() {
           Explore → Analyze → Build
         </div>
         <div style={{ fontSize: 12, color: C.inkLight, lineHeight: 1.7, maxWidth: 560, marginBottom: 20 }}>
-          Aradune organizes nine tools around one workflow. Start by understanding
-          what your state spends and on what. Measure whether those rates are adequate.
-          Then calculate what rates should be and draft the policy to get there.
+          Start by understanding what your state spends. Measure whether those
+          rates are adequate. Then calculate what rates should be, model the
+          scenarios, and draft the policy to get there.
         </div>
         <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit,minmax(240px,1fr))", gap: 14 }}>
           {([
-            { num: "1", label: "Explore", q: "What are we spending?",
-              desc: "Browse 227M+ claims across 54 jurisdictions. Compare rates by code, category, or state. Filter, visualize, and export.",
-              tools: "Spending Explorer", color: C.brand },
+            { num: "1", label: "Explore", q: "What does the data show?",
+              desc: "Browse 227M+ claims across 54 jurisdictions. Compare rates by code, category, or state. See how far Medicaid has fallen behind Medicare.",
+              tools: "Spending Explorer · Rate Decay", color: C.brand },
             { num: "2", label: "Analyze", q: "Are rates adequate?",
-              desc: "Three lenses: compare against BLS market wages, map quality outcomes to payment levels, and track how far rates have eroded relative to Medicare.",
-              tools: "Rate & Wage Comparison · Quality Linkage · Rate Decay", color: C.accent },
-            { num: "3", label: "Build", q: "What should we pay?",
-              desc: "Calculate defensible rates using real RVUs and conversion factors. Estimate fiscal impact. Draft SPA methodology language. Model hospital global budgets.",
-              tools: "Rate Builder · Policy Analyst · AHEAD Calculator", color: C.teal },
+              desc: "Compare Medicaid reimbursement against BLS market wages and map quality outcomes to payment levels. Two lenses on the same question.",
+              tools: "Rate & Wage Comparison · Quality Linkage", color: C.accent },
+            { num: "3", label: "Build", q: "What should change?",
+              desc: "Calculate defensible rates using real RVUs and conversion factors. Model hospital global budgets. Draft methodology language. Get AI-powered policy analysis.",
+              tools: "Rate Builder · AHEAD Calculator · Policy Analyst", color: C.teal },
           ] as const).map(item => (
             <div key={item.num} style={{
               background: C.white, borderRadius: 12, boxShadow: SHADOW,

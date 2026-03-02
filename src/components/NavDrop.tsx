@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef } from "react";
+import { useState, useEffect, useRef, useCallback } from "react";
 import { C, FONT, SHADOW_LG } from "../design";
 import type { NavGroup } from "../types";
 
@@ -10,22 +10,43 @@ interface NavDropProps {
 export default function NavDrop({ group, route }: NavDropProps) {
   const [open, setOpen] = useState(false);
   const ref = useRef<HTMLDivElement>(null);
+  const timer = useRef<ReturnType<typeof setTimeout> | null>(null);
   const isActive = group.tools.some(t => route === `/${t.id}`);
+
+  const clearTimer = useCallback(() => {
+    if (timer.current) { clearTimeout(timer.current); timer.current = null; }
+  }, []);
+
+  const handleEnter = useCallback(() => {
+    clearTimer();
+    setOpen(true);
+  }, [clearTimer]);
+
+  const handleLeave = useCallback(() => {
+    clearTimer();
+    timer.current = setTimeout(() => setOpen(false), 150);
+  }, [clearTimer]);
 
   useEffect(() => {
     const handler = (e: MouseEvent) => {
-      if (ref.current && !ref.current.contains(e.target as Node)) setOpen(false);
+      if (ref.current && !ref.current.contains(e.target as Node)) {
+        clearTimer();
+        setOpen(false);
+      }
     };
     document.addEventListener("mousedown", handler);
-    return () => document.removeEventListener("mousedown", handler);
-  }, []);
+    return () => {
+      document.removeEventListener("mousedown", handler);
+      clearTimer();
+    };
+  }, [clearTimer]);
 
   return (
     <div
       ref={ref}
-      style={{ position: "relative" }}
-      onMouseEnter={() => setOpen(true)}
-      onMouseLeave={() => setOpen(false)}
+      style={{ position: "relative", alignSelf: "stretch", display: "flex", alignItems: "center" }}
+      onMouseEnter={handleEnter}
+      onMouseLeave={handleLeave}
     >
       <button
         onClick={() => setOpen(!open)}

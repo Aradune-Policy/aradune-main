@@ -49,16 +49,16 @@ const spGet=(st:string):StateParams=>SP[st]||{fmap:.50,mcPct:.70,ipT:1.036,opT:1
 
 const H:AheadHospital[]=[
   {id:"210009",nm:"Johns Hopkins",st:"MD",co:1,ty:"ACH",beds:1059,tch:"MAJOR",sn:false,cah:false,wi:1.0396,ms:.155,bn:38000,dp:.22,cdi:54,hcc:1.42,bl:{ip:738e6,op:458e6,uc:19e6},q:{vbp:1.018,hrrp:.9921,hacrp:1.0,ra:.123,pqi:.032,ed:.41},tcoc:{t:1380,a:1345},cost:0,mcd:{ip:280e6,op:180e6,supp:{dsh:45e6,dir:12e6},bn:42000,hedis:{pre:.82,ed:.72,dia:.78,fu:.68}}},
-  {id:"210002",nm:"Univ of Maryland",st:"MD",co:1,ty:"ACH",beds:757,tch:"MAJOR",sn:true,cah:false,wi:1.0396,ms:.098,bn:24000,dp:.42,cdi:78,hcc:1.55,bl:{ip:442e6,op:266e6,uc:24e6},q:{vbp:.987,hrrp:.9845,hacrp:.99,ra:.168,pqi:.058,ed:.56},tcoc:{t:1520,a:1580},cost:0,mcd:{ip:195e6,op:120e6,supp:{dsh:58e6,dir:22e6},bn:35000,hedis:{pre:.74,ed:.62,dia:.70,fu:.58}}},
+  {id:"210002",nm:"Univ of Maryland",st:"MD",co:1,ty:"ACH",beds:757,tch:"MAJOR",sn:true,cah:false,wi:1.0396,ms:.098,bn:24000,dp:.42,cdi:78,hcc:1.55,bl:{ip:442e6,op:266e6,uc:24e6},q:{vbp:.965,hrrp:.9750,hacrp:.98,ra:.168,pqi:.058,ed:.56},tcoc:{t:1520,a:1580},cost:0,mcd:{ip:195e6,op:120e6,supp:{dsh:58e6,dir:22e6},bn:35000,hedis:{pre:.62,ed:.50,dia:.56,fu:.44}}},
   {id:"210022",nm:"Suburban Hospital",st:"MD",co:1,ty:"ACH",beds:228,tch:"NONE",sn:false,cah:false,wi:1.071,ms:.146,bn:9500,dp:.08,cdi:22,hcc:1.08,bl:{ip:106e6,op:90e6,uc:2.7e6},q:{vbp:1.008,hrrp:.9965,hacrp:1.0,ra:.138,pqi:.038,ed:.44},tcoc:{t:1050,a:1020},cost:0,mcd:{ip:28e6,op:22e6,supp:{dsh:3e6,dir:0},bn:4500,hedis:{pre:.88,ed:.80,dia:.85,fu:.76}}},
-  {id:"471001",nm:"Grace Cottage",st:"VT",co:2,ty:"CAH",beds:19,tch:"NONE",sn:false,cah:true,wi:.9685,ms:.224,bn:850,dp:.20,cdi:52,hcc:1.02,bl:{ip:4.1e6,op:4.6e6,uc:.38e6},q:{vbp:.998,hrrp:1.0,hacrp:1.0,ra:.165,pqi:.055,ed:.58},tcoc:{t:980,a:1010},cost:8.6e6,mcd:{ip:1.8e6,op:2.1e6,supp:{dsh:.5e6,dir:0},bn:600,hedis:{pre:.79,ed:.70,dia:.75,fu:.65}}},
-  {id:"330059",nm:"Montefiore",st:"NY",co:3,ty:"ACH",beds:1491,tch:"MAJOR",sn:true,cah:false,wi:1.3652,ms:.108,bn:52000,dp:.52,cdi:88,hcc:1.62,bl:{ip:845e6,op:555e6,uc:49e6},q:{vbp:.975,hrrp:.9785,hacrp:.99,ra:.182,pqi:.068,ed:.62},tcoc:{t:1620,a:1720},cost:0,mcd:{ip:520e6,op:340e6,supp:{dsh:85e6,dir:45e6},bn:78000,hedis:{pre:.71,ed:.58,dia:.65,fu:.54}}},
+  {id:"471001",nm:"Grace Cottage",st:"VT",co:2,ty:"CAH",beds:19,tch:"NONE",sn:false,cah:true,wi:.9685,ms:.224,bn:850,dp:.20,cdi:52,hcc:1.02,bl:{ip:4.1e6,op:4.6e6,uc:.38e6},q:{vbp:.975,hrrp:.9850,hacrp:.99,ra:.165,pqi:.055,ed:.58},tcoc:{t:980,a:1010},cost:8.6e6,mcd:{ip:1.8e6,op:2.1e6,supp:{dsh:.5e6,dir:0},bn:600,hedis:{pre:.62,ed:.52,dia:.58,fu:.45}}},
+  {id:"330059",nm:"Montefiore",st:"NY",co:3,ty:"ACH",beds:1491,tch:"MAJOR",sn:true,cah:false,wi:1.3652,ms:.108,bn:52000,dp:.52,cdi:88,hcc:1.62,bl:{ip:845e6,op:555e6,uc:49e6},q:{vbp:.955,hrrp:.9700,hacrp:.98,ra:.182,pqi:.068,ed:.62},tcoc:{t:1580,a:1780},cost:0,mcd:{ip:520e6,op:340e6,supp:{dsh:85e6,dir:45e6},bn:78000,hedis:{pre:.58,ed:.45,dia:.50,fu:.40}}},
   {id:"070022",nm:"Yale New Haven",st:"CT",co:2,ty:"ACH",beds:1541,tch:"MAJOR",sn:true,cah:false,wi:1.2318,ms:.25,bn:45000,dp:.24,cdi:58,hcc:1.35,bl:{ip:998e6,op:632e6,uc:34e6},q:{vbp:1.012,hrrp:.9908,hacrp:1.0,ra:.128,pqi:.035,ed:.43},tcoc:{t:1320,a:1290},cost:0,mcd:{ip:380e6,op:240e6,supp:{dsh:52e6,dir:18e6},bn:48000,hedis:{pre:.84,ed:.76,dia:.80,fu:.72}}},
   {id:"120001",nm:"Queen's Medical",st:"HI",co:2,ty:"ACH",beds:575,tch:"MAJOR",sn:false,cah:false,wi:1.214,ms:.253,bn:24000,dp:.14,cdi:38,hcc:1.10,bl:{ip:335e6,op:224e6,uc:10.6e6},q:{vbp:1.006,hrrp:.9928,hacrp:1.0,ra:.135,pqi:.038,ed:.46},tcoc:{t:1150,a:1120},cost:0,mcd:{ip:120e6,op:85e6,supp:{dsh:15e6,dir:0},bn:22000,hedis:{pre:.86,ed:.78,dia:.82,fu:.74}}},
   {id:"410007",nm:"Rhode Island Hosp",st:"RI",co:3,ty:"ACH",beds:713,tch:"MAJOR",sn:true,cah:false,wi:1.1425,ms:.265,bn:18000,dp:.28,cdi:62,hcc:1.32,bl:{ip:374e6,op:250e6,uc:17e6},q:{vbp:.994,hrrp:.9868,hacrp:.99,ra:.162,pqi:.054,ed:.55},tcoc:{t:1300,a:1340},cost:0,mcd:{ip:145e6,op:95e6,supp:{dsh:28e6,dir:10e6},bn:20000,hedis:{pre:.77,ed:.68,dia:.73,fu:.62}}},
   {id:"070038",nm:"CT Children's",st:"CT",co:2,ty:"ACH",beds:187,tch:"MAJOR",sn:false,cah:false,wi:1.2318,ms:.31,bn:12000,dp:.18,cdi:35,hcc:.95,bl:{ip:165e6,op:142e6,uc:8e6},q:{vbp:1.022,hrrp:.9975,hacrp:1.0,ra:.095,pqi:.022,ed:.38},tcoc:{t:1080,a:1040},cost:0,mcd:{ip:210e6,op:168e6,supp:{dsh:18e6,dir:8e6},bn:65000,hedis:{pre:.90,ed:.82,dia:.88,fu:.80}}},
   {id:"410012",nm:"Westerly Hosp",st:"RI",co:3,ty:"ACH",beds:84,tch:"NONE",sn:false,cah:false,wi:1.1425,ms:.19,bn:3200,dp:.16,cdi:42,hcc:1.05,bl:{ip:32e6,op:28e6,uc:1.5e6},q:{vbp:1.004,hrrp:.9952,hacrp:1.0,ra:.142,pqi:.045,ed:.48},tcoc:{t:1020,a:1000},cost:0,mcd:{ip:12e6,op:9.5e6,supp:{dsh:2.5e6,dir:0},bn:2800,hedis:{pre:.80,ed:.74,dia:.78,fu:.70}}},
-  {id:"330201",nm:"Bellevue",st:"NY",co:3,ty:"ACH",beds:828,tch:"MAJOR",sn:true,cah:false,wi:1.3652,ms:.06,bn:22000,dp:.58,cdi:92,hcc:1.68,bl:{ip:385e6,op:275e6,uc:42e6},q:{vbp:.968,hrrp:.9762,hacrp:.99,ra:.195,pqi:.075,ed:.68},tcoc:{t:1680,a:1820},cost:0,mcd:{ip:445e6,op:310e6,supp:{dsh:110e6,dir:55e6},bn:88000,hedis:{pre:.66,ed:.52,dia:.60,fu:.48}}},
+  {id:"330201",nm:"Bellevue",st:"NY",co:3,ty:"ACH",beds:828,tch:"MAJOR",sn:true,cah:false,wi:1.3652,ms:.06,bn:22000,dp:.58,cdi:92,hcc:1.68,bl:{ip:385e6,op:275e6,uc:42e6},q:{vbp:.948,hrrp:.9650,hacrp:.97,ra:.22,pqi:.09,ed:.78},tcoc:{t:1600,a:1920},cost:0,mcd:{ip:445e6,op:310e6,supp:{dsh:110e6,dir:55e6},bn:88000,hedis:{pre:.52,ed:.40,dia:.45,fu:.35}}},
   {id:"210048",nm:"MedStar Good Sam",st:"MD",co:1,ty:"ACH",beds:302,tch:"MINOR",sn:false,cah:false,wi:1.0396,ms:.12,bn:11000,dp:.25,cdi:48,hcc:1.22,bl:{ip:145e6,op:112e6,uc:5.5e6},q:{vbp:1.005,hrrp:.9912,hacrp:1.0,ra:.148,pqi:.042,ed:.46},tcoc:{t:1180,a:1160},cost:0,mcd:{ip:52e6,op:38e6,supp:{dsh:8e6,dir:3e6},bn:8500,hedis:{pre:.81,ed:.73,dia:.77,fu:.69}}},
 ];
 const COH:Record<number,{py1:number;by:number[]}>={1:{py1:2026,by:[2023,2024,2025]},2:{py1:2028,by:[2025,2026,2027]},3:{py1:2028,by:[2025,2026,2027]}};
@@ -383,12 +383,12 @@ function calcSc(h:AheadHospital,mr:McrResult,dr:McdResult,mp:McrResult[],dp:McdR
   const f:{nm:string;sc:number;wt:number;det:string;cl:string}[]=[];const s=(v:number,t:number[])=>t.reduce((r,x,i)=>v>x?10-i*2:r,0);
   f.push({nm:"MCR",sc:s(mr.pct,[.02,.01,0,-.01,-.02]),wt:w.MCR||15,det:fP(mr.pct),cl:mr.pct>0?C.pos:C.neg});
   f.push({nm:"MCD",sc:s(dr.pct,[.02,.01,0,-.01,-.02]),wt:w.MCD||15,det:fP(dr.pct),cl:dr.pct>0?C.pos:C.neg});
-  const cT2=mp.reduce((a,p)=>a+p.delta,0)+dp.reduce((a,p)=>a+p.delta,0);const cS=cT2>0?Math.min(10,6+cT2/(mr.wT+dr.wT)*80):Math.max(0,4+cT2/(mr.wT+dr.wT)*40);
+  const cT2=mp.reduce((a,p)=>a+p.delta,0)+dp.reduce((a,p)=>a+p.delta,0);const cS=Math.max(0,Math.min(10,5+cT2/(mr.wT+dr.wT)*250));
   f.push({nm:"Multi-Yr",sc:Math.round(cS),wt:w["Multi-Yr"]||20,det:fmt(cT2),cl:cS>=6?C.pos:C.neg});
   const qC=h.q.vbp*h.q.hrrp*h.q.hacrp;f.push({nm:"Quality",sc:s(qC,[1.01,1.005,1,.995,.985]),wt:w.Quality||10,det:qC.toFixed(3)+"×",cl:qC>=1?C.pos:C.neg});
   f.push({nm:"HEDIS",sc:s(dr.hC,[.80,.75,.72,.68,.60]),wt:w.HEDIS||10,det:(dr.hC*100).toFixed(0)+"th",cl:dr.hC>=.75?C.pos:C.neg});
   const mcP=mc[0]?.pA||.5;f.push({nm:"P(>FFS)",sc:Math.round(mcP*10),wt:w["P(>FFS)"]||15,det:(mcP*100).toFixed(0)+"%",cl:mcP>=.7?C.pos:C.neg});
-  f.push({nm:"SDOH",sc:s((dr.sdA+mr.sra)/(mr.wT+dr.wT),[.012,.008,.004,0]),wt:w.SDOH||15,det:fmt(dr.sdA+mr.sra),cl:C.pos});
+  f.push({nm:"SDOH",sc:s((dr.sdA+mr.sra)/(mr.wT+dr.wT),[.012,.008,.004,.001]),wt:w.SDOH||15,det:fmt(dr.sdA+mr.sra),cl:C.pos});
   const tot=f.reduce((a,x)=>a+x.sc*x.wt,0)/f.reduce((a,x)=>a+10*x.wt,0)*100;
   return{factors:f,comp:Math.round(tot),rec:tot>=70?"Favorable":tot>=50?"Conditional":"Unfavorable",recCl:tot>=70?C.pos:tot>=50?C.warn:C.neg};
 }
@@ -416,12 +416,13 @@ function calcSynthesis(h:AheadHospital,mr:McrResult,dr:McdResult,mp:McrResult[],
   add("Markov",`Quality quartile jump worth ${fmt(markov.qImp)}. VBP at Q${markov.vbpQ+1}`,markov.vbpQ>=2?"FAVOR":"INVEST",markov.qImp,.5,markov.vbpQ<2?"Quality improvement has outsized ROI — invest before participation":"Quality position supports favorable trajectory");
   signals.sort((a,b)=>b.mat-a.mat);
   const contras:{a:string;b:string;res:string}[]=[];
-  const pro=signals.filter(s=>s.dir==="FAVOR"),con=signals.filter(s=>s.dir==="AGAINST");
-  if(pro.length&&con.length)contras.push({a:pro[0].engine,b:con[0].engine,res:pro[0].mat>con[0].mat?`${pro[0].engine} (${fmt(pro[0].mat)}) outweighs ${con[0].engine} (${fmt(con[0].mat)})`:`${con[0].engine} concern more material — requires mitigation`});
+  const pro=signals.filter(s=>s.dir==="FAVOR"||s.dir==="PROCEED"),con=signals.filter(s=>["AGAINST","CAUTION","DEFER","INVESTIGATE","INVEST"].includes(s.dir));
+  const hardCon=signals.filter(s=>s.dir==="AGAINST");
+  if(pro.length&&hardCon.length)contras.push({a:pro[0].engine,b:hardCon[0].engine,res:pro[0].mat>hardCon[0].mat?`${pro[0].engine} (${fmt(pro[0].mat)}) outweighs ${hardCon[0].engine} (${fmt(hardCon[0].mat)})`:`${hardCon[0].engine} concern more material — requires mitigation`});
   if(opts.exNow&&ptR<.85)contras.push({a:"Options",b:"Prospect Theory",res:"Present option value decomposition to reframe — show strategic/learning value beyond raw NPV"});
   if(delta>0&&!optStop.frontier.every(f=>f.shouldCont))contras.push({a:"HGB (PY1+)",b:"Opt Stopping",res:"Participate with built-in review triggers at exit thresholds"});
   const fav=pro.length,ag=con.length;
-  const pathway=fav>ag+2?"STRONG PARTICIPATE":fav>ag?"PARTICIPATE WITH CONDITIONS":fav===ag?"CONDITIONAL — INVESTIGATE":"DEFER";
+  const pathway=fav>ag+3?"STRONG PARTICIPATE":fav>ag?"PARTICIPATE WITH CONDITIONS":fav===ag?"CONDITIONAL — INVESTIGATE":"DEFER";
   const pathCl=pathway.includes("STRONG")?C.pos:pathway.includes("PARTICIPATE")?cG:pathway.includes("CONDITIONAL")?C.warn:C.neg;
   return{signals,contras,pathway,pathCl,actions:signals.slice(0,6).map(s=>s.action),fav,ag,caut:signals.filter(s=>s.dir==="CAUTION"||s.dir==="NEUTRAL").length};
 }

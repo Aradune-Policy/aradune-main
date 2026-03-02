@@ -227,8 +227,8 @@ export interface LinkedMeasure {
 export interface QualHcpcsRecord {
   code?: string;
   c?: string;
+  rates?: Record<string, number>;
   r?: Record<string, number>;
-  rates_by_state?: { state: string; avg_rate: number }[];
   [key: string]: unknown;
 }
 

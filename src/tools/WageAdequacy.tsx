@@ -64,8 +64,8 @@ interface CrosswalkData {
 interface HcpcsEntry {
   code?: string;
   c?: string;
+  rates?: Record<string, number>;
   r?: Record<string, number>;
-  rates_by_state?: { state: string; avg_rate: number }[];
   [key: string]: unknown;
 }
 
@@ -223,29 +223,15 @@ export default function WageAdequacy() {
   // Get T-MSIS rate for a code in a state
   const getTmsisRate = useCallback((state: string, code: string): number | null => {
     if (!hcpcsData || !Array.isArray(hcpcsData)) return null;
-    const h = hcpcsData.find((r: HcpcsEntry) => r.code === code);
-    if (!h?.rates_by_state) return null;
-    const sr = h.rates_by_state.find((s: { state: string; avg_rate: number }) => s.state === state);
-    return sr?.avg_rate || null;
-  }, [hcpcsData]);
-
-  // Get T-MSIS rate from simulated/transformed data (different format)
-  const getTmsisRateAlt = useCallback((state: string, code: string): number | null => {
-    if (!hcpcsData) return null;
-    // Handle array of objects with .c and .r keys (transformed format)
-    if (Array.isArray(hcpcsData)) {
-      const h = hcpcsData.find((r: HcpcsEntry) => (r.code||r.c) === code);
-      if (!h) return null;
-      // Transformed format: h.r = { FL: 4.95, NY: 8.40, ... }
-      if (h.r && typeof h.r === 'object') return h.r[state] || null;
-      // Raw format: h.rates_by_state = [...]
-      if (h.rates_by_state) {
-        const sr = h.rates_by_state.find((s: { state: string; avg_rate: number }) => s.state === state);
-        return sr?.avg_rate || null;
-      }
-    }
+    const h = hcpcsData.find((r: HcpcsEntry) => (r.code||r.c) === code);
+    if (!h) return null;
+    const ratesObj = h.rates || h.r;
+    if (ratesObj && typeof ratesObj === 'object') return (ratesObj as Record<string, number>)[state] || null;
     return null;
   }, [hcpcsData]);
+
+  // Get T-MSIS rate (alias for getTmsisRate)
+  const getTmsisRateAlt = getTmsisRate;
 
   // Compute analysis for current category + state
   const analysis = useMemo(() => {

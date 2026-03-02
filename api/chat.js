@@ -45,13 +45,10 @@ function lookupRate(state, code) {
   let stateRate = null;
   let allRates = {};
 
-  if (record.r && typeof record.r === "object") {
-    stateRate = record.r[state] || null;
-    allRates = record.r;
-  } else if (record.rates_by_state) {
-    const sr = record.rates_by_state.find(s => s.state === state);
-    stateRate = sr?.avg_rate || null;
-    record.rates_by_state.forEach(s => { allRates[s.state] = s.avg_rate; });
+  const ratesObj = record.rates || record.r;
+  if (ratesObj && typeof ratesObj === "object") {
+    stateRate = ratesObj[state] || null;
+    allRates = ratesObj;
   }
 
   const rates = Object.values(allRates).filter(r => r > 0).sort((a, b) => a - b);
@@ -114,10 +111,8 @@ function compareStates(code, states) {
   const medicareRate = mcr.nf_rate || null;
 
   let allRates = {};
-  if (record.r && typeof record.r === "object") allRates = record.r;
-  else if (record.rates_by_state) {
-    record.rates_by_state.forEach(s => { allRates[s.state] = s.avg_rate; });
-  }
+  const rObj = record.rates || record.r;
+  if (rObj && typeof rObj === "object") allRates = rObj;
 
   // If no specific states requested, return all
   const targetStates = states && states.length > 0
@@ -243,13 +238,16 @@ function searchCodes(query) {
 
   // Search Medicare data first (has descriptions)
   if (mcr) {
-    const arr = Array.isArray(mcr) ? mcr : Object.values(mcr);
-    arr.forEach(r => {
-      const code = r.code || r.c || r.hcpcs || "";
-      const desc = (r.desc || r.description || r.d || "").toLowerCase();
+    const ratesMap = mcr.rates || mcr;
+    const entries = Array.isArray(ratesMap)
+      ? ratesMap.map(r => [r.code || r.c || r.hcpcs || "", r])
+      : Object.entries(ratesMap);
+    entries.forEach(([key, r]) => {
+      const code = r.code || r.c || r.hcpcs || key || "";
+      const desc = (r.d || r.desc || r.description || "").toLowerCase();
       if ((code.toLowerCase().includes(q) || desc.includes(q)) && !seen.has(code)) {
         seen.add(code);
-        results.push({ code, description: r.desc || r.description || r.d, source: "Medicare PFS" });
+        results.push({ code, description: r.d || r.desc || r.description, source: "Medicare PFS" });
       }
     });
   }
@@ -258,10 +256,10 @@ function searchCodes(query) {
   if (hcpcs && Array.isArray(hcpcs)) {
     hcpcs.forEach(r => {
       const code = r.code || r.c || "";
-      const desc = (r.d || r.desc || "").toLowerCase();
+      const desc = (r.desc || r.d || "").toLowerCase();
       if ((code.toLowerCase().includes(q) || desc.includes(q)) && !seen.has(code)) {
         seen.add(code);
-        results.push({ code, description: r.d || r.desc, source: "T-MSIS" });
+        results.push({ code, description: r.desc || r.d, source: "T-MSIS" });
       }
     });
   }

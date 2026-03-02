@@ -115,8 +115,7 @@ export default function RateDecay() {
   const [s1, setS1] = useState("FL");
   const [catFilter, setCat] = useState("All");
   const [hcpcsData, setHCPCS] = useState<DecayHcpcs[] | null>(null);
-  const [medicareData, setMedicare] = useState<Record<string, { nf_rate?: number; rate?: number; nf?: number; r?: number; d?: string }> | null>(null);
-  const [feeSchedules, setFS] = useState<Record<string, { rate?: number; nf_rate?: number }> | null>(null);
+  const [medicareData, setMedicare] = useState<{ rates: Record<string, { r?: number; fr?: number; rvu?: number; w?: number; d?: string }> } | null>(null);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
@@ -125,35 +124,17 @@ export default function RateDecay() {
       try {
         const [hcpcs, medicare] = await Promise.all([
           fetch("/data/hcpcs.json").then(r=>r.ok?r.json():null).catch(()=>null),
-          fetch("/data/medicare_pfs.json").then(r=>r.ok?r.json():null).catch(()=>null),
+          fetch("/data/medicare_rates.json").then(r=>r.ok?r.json():null).catch(()=>null),
         ]);
         if (cancelled) return;
         if (hcpcs) setHCPCS(hcpcs);
         if (medicare) setMedicare(medicare);
-
-        // Try loading state fee schedules
-        try {
-          const fsResp = await fetch(`/data/fee_schedules/${s1}.json`);
-          if (fsResp.ok) setFS(await fsResp.json());
-        } catch(e) {}
       } catch(e) { console.error(e); }
       if (!cancelled) setLoading(false);
     }
     load();
     return () => { cancelled = true; };
   }, []);
-
-  // Reload fee schedule when state changes
-  useEffect(() => {
-    async function loadFS() {
-      try {
-        const resp = await fetch(`/data/fee_schedules/${s1}.json`);
-        if (resp.ok) setFS(await resp.json());
-        else setFS(null);
-      } catch(e) { setFS(null); }
-    }
-    loadFS();
-  }, [s1]);
 
   // Available states from T-MSIS data
   const stateList = useMemo(() => {
@@ -162,12 +143,10 @@ export default function RateDecay() {
 
   // Get Medicare rate for a code
   const getMedicareRate = useCallback((code: string): number | null => {
-    if (!medicareData) return null;
-    if (medicareData[code]) {
-      const r = medicareData[code];
-      return r.nf_rate || r.rate || r.nf || null;
-    }
-    return null;
+    if (!medicareData?.rates) return null;
+    const r = medicareData.rates[code];
+    if (!r) return null;
+    return r.r || null;
   }, [medicareData]);
 
   // Get T-MSIS actual-paid rate for a code + state
@@ -175,22 +154,10 @@ export default function RateDecay() {
     if (!hcpcsData || !Array.isArray(hcpcsData)) return null;
     const h = hcpcsData.find((r: DecayHcpcs) => (r.code||r.c) === code);
     if (!h) return null;
-    if (h.r && typeof h.r === 'object') return h.r[state] || null;
-    if (h.rates_by_state) {
-      const sr = (h.rates_by_state as { state: string; avg_rate: number }[]).find((s: { state: string; avg_rate: number }) => s.state === state);
-      return sr?.avg_rate || null;
-    }
+    const ratesObj = h.rates || h.r;
+    if (ratesObj && typeof ratesObj === 'object') return ratesObj[state] || null;
     return null;
   }, [hcpcsData]);
-
-  // Get fee schedule rate for a code
-  const getFSRate = useCallback((code: string): number | null => {
-    if (!feeSchedules) return null;
-    if (feeSchedules[code]) {
-      return feeSchedules[code].rate || feeSchedules[code].nf_rate || null;
-    }
-    return null;
-  }, [feeSchedules]);
 
   // Build analysis data
   const analysis = useMemo(() => {
@@ -202,26 +169,24 @@ export default function RateDecay() {
     return unique.map(bc => {
       const mcr = getMedicareRate(bc.code);
       const tmsis = getTmsisRate(s1, bc.code);
-      const fs = getFSRate(bc.code);
-      const effectiveRate = fs || tmsis; // Prefer fee schedule if available
+      const effectiveRate = tmsis;
 
       const pctMedicare = (effectiveRate && mcr && mcr > 0) ? (effectiveRate / mcr * 100) : null;
-      const tmsisPctMedicare = (tmsis && mcr && mcr > 0) ? (tmsis / mcr * 100) : null;
       const gap = (effectiveRate && mcr) ? effectiveRate - mcr : null;
 
       return {
         ...bc,
         medicare: mcr,
-        feeSchedule: fs,
+        feeSchedule: null,
         tmsis,
         effectiveRate,
         pctMedicare,
-        tmsisPctMedicare,
+        tmsisPctMedicare: pctMedicare,
         gap,
-        rateSource: fs ? "Fee Schedule" : tmsis ? "T-MSIS Actual" : null,
+        rateSource: tmsis ? "T-MSIS Actual" : null,
       };
     }).filter(d => d.effectiveRate != null || d.medicare != null);
-  }, [catFilter, s1, getMedicareRate, getTmsisRate, getFSRate]);
+  }, [catFilter, s1, getMedicareRate, getTmsisRate]);
 
   // Only rows with both rates
   const withBoth = useMemo(() => analysis.filter(d => d.pctMedicare != null), [analysis]);
@@ -433,7 +398,7 @@ export default function RateDecay() {
         <div style={{ padding:24,textAlign:"center" }}>
           <div style={{ fontSize:14,fontWeight:500,marginBottom:8,color:A }}>Limited Rate Data Available</div>
           <div style={{ fontSize:11,color:AL,lineHeight:1.7 }}>
-            The Rate Decay Tracker compares state Medicaid rates against Medicare. Currently using T-MSIS actual-paid rates{feeSchedules?" + fee schedule data":""}. As the all-state fee schedule database is built out, this tool will show fee schedule rates directly — providing a cleaner comparison than blended T-MSIS averages.
+            The Rate Decay Tracker compares state Medicaid rates against Medicare. Currently using T-MSIS actual-paid rates. As the all-state fee schedule database is built out, this tool will show fee schedule rates directly — providing a cleaner comparison than blended T-MSIS averages.
           </div>
         </div>
       </Card>}

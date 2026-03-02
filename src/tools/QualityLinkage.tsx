@@ -109,11 +109,8 @@ export default function QualityLinkage() {
     if (!hcpcsData || !Array.isArray(hcpcsData)) return null;
     const h = hcpcsData.find((r: QualHcpcsRecord) => (r.code||r.c) === code);
     if (!h) return null;
-    if (h.r && typeof h.r === 'object') return h.r[state] || null;
-    if (h.rates_by_state) {
-      const sr = h.rates_by_state.find((s: { state: string; avg_rate: number }) => s.state === state);
-      return sr?.avg_rate || null;
-    }
+    const ratesObj = h.rates || h.r;
+    if (ratesObj && typeof ratesObj === 'object') return ratesObj[state] || null;
     return null;
   }, [hcpcsData]);
 

@@ -53,8 +53,12 @@ export default function NavDrop({ group, route }: NavDropProps) {
       {open && (
         <div style={{
           position: "absolute",
-          top: "calc(100% + 4px)",
+          top: "100%",
           right: 0,
+          paddingTop: 4,
+          zIndex: 200,
+        }}>
+        <div style={{
           minWidth: 240,
           maxWidth: "calc(100vw - 24px)",
           background: C.white,
@@ -62,7 +66,6 @@ export default function NavDrop({ group, route }: NavDropProps) {
           borderRadius: 10,
           boxShadow: SHADOW_LG,
           padding: "4px 0",
-          zIndex: 200,
         }}>
           {group.tools.map(t => {
             const active = route === `/${t.id}`;
@@ -107,6 +110,7 @@ export default function NavDrop({ group, route }: NavDropProps) {
               </a>
             );
           })}
+        </div>
         </div>
       )}
     </div>

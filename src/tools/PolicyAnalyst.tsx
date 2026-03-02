@@ -138,8 +138,36 @@ export default function PolicyAnalyst() {
   const [showAuth, setShowAuth] = useState(!getToken());
   const [error, setError] = useState<string | null>(null);
   const [usage, setUsage] = useState<ChatUsage | null>(null);
+  const [activating, setActivating] = useState(false);
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLTextAreaElement>(null);
+
+  // Handle ?session= URL param from Stripe redirect
+  useEffect(() => {
+    const hash = window.location.hash;
+    const match = hash.match(/[?&]session=(cs_[^&]+)/);
+    if (!match) return;
+
+    const sessionId = match[1];
+    // Clean URL param
+    window.location.hash = hash.replace(/[?&]session=cs_[^&]+/, "");
+
+    setActivating(true);
+    fetch(`/api/activate?session=${sessionId}`)
+      .then(r => r.json())
+      .then(data => {
+        if (data.token) {
+          setToken(data.token);
+          setTokenState(data.token);
+          setShowAuth(false);
+          setError(null);
+        } else {
+          setError(data.error || "Activation failed");
+        }
+      })
+      .catch(() => setError("Connection error during activation"))
+      .finally(() => setActivating(false));
+  }, []);
 
   useEffect(() => {
     messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
@@ -208,11 +236,15 @@ export default function PolicyAnalyst() {
       <div style={{ maxWidth:480,margin:"60px auto",padding:"0 16px",fontFamily:"Helvetica Neue,Arial,sans-serif",color:A }}>
         <div style={{ background:WH,borderRadius:12,boxShadow:SH,border:`1px solid ${BD}`,overflow:"hidden" }}>
           <div style={{ padding:"24px 24px 0",textAlign:"center" }}>
-            <div style={{ fontSize:24,fontWeight:300,marginBottom:4 }}>Policy Analyst</div>
-            <div style={{ fontSize:11,color:AL }}>AI-powered Medicaid rate analysis, grounded in real data</div>
+            <div style={{ fontSize:20,fontWeight:600,marginBottom:4 }}>AI Tier — Policy Analyst</div>
+            <div style={{ fontSize:11,color:AL,lineHeight:1.6,maxWidth:340,margin:"0 auto" }}>
+              This tool uses Claude AI with Aradune's full dataset. Each query costs
+              us real money, so access requires a subscription.
+            </div>
           </div>
 
           <div style={{ padding:"20px 24px" }}>
+            {activating && <div style={{ padding:"8px 12px",background:"rgba(46,107,74,0.06)",border:`1px solid rgba(46,107,74,0.15)`,borderRadius:6,fontSize:11,color:POS,marginBottom:12 }}>Activating your subscription...</div>}
             {error && <div style={{ padding:"8px 12px",background:"rgba(164,38,44,0.06)",border:`1px solid rgba(164,38,44,0.15)`,borderRadius:6,fontSize:11,color:NEG,marginBottom:12 }}>{error}</div>}
 
             <div style={{ marginBottom:12 }}>
@@ -241,7 +273,10 @@ export default function PolicyAnalyst() {
               ))}
             </div>
             <div style={{ marginTop:10,fontSize:10,color:AL }}>
-              <b>$99/mo</b> individual · <b>$299/mo</b> organization · <a href="mailto:scott@aradune.co" style={{ color:cO }}>Contact for access</a>
+              <b>$99/mo</b> individual · <b>$299/mo</b> organization
+            </div>
+            <div style={{ marginTop:8 }}>
+              <a href="#/pricing" style={{ fontSize:11,color:cO,fontWeight:600,textDecoration:"none" }}>Don't have a token? Subscribe &#8594;</a>
             </div>
           </div>
         </div>

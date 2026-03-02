@@ -493,25 +493,51 @@ function Landing() {
         ))}
       </div>
 
-      {/* 9. Consulting CTA */}
+      {/* 9. Free vs AI Tier */}
       <div style={{
-        padding: "28px 32px", background: C.white, borderRadius: 12, boxShadow: SHADOW,
-        marginBottom: 40, display: "grid", gridTemplateColumns: "1fr auto", gap: 24, alignItems: "center",
+        display: "grid", gridTemplateColumns: "repeat(auto-fit,minmax(280px,1fr))", gap: 16,
+        marginBottom: 40,
       }}>
-        <div>
-          <div style={{ fontSize: 14, fontWeight: 600, color: C.ink, marginBottom: 6 }}>Need something more specific?</div>
-          <div style={{ fontSize: 12, color: C.inkLight, lineHeight: 1.7 }}>
-            The free tools cover most use cases. If you need custom rate studies,
-            <Term>AHEAD</Term> global budget modeling with your hospital data, or <Term>SPA</Term> methodology
-            consulting, reach out and we can discuss a tailored solution.
+        <div style={{
+          padding: "28px 28px 24px", background: C.white, borderRadius: 12, boxShadow: SHADOW,
+          borderTop: `3px solid ${C.brand}`,
+        }}>
+          <div style={{ fontSize: 16, fontWeight: 700, color: C.brand, marginBottom: 4 }}>Free, always</div>
+          <div style={{ fontSize: 12, color: C.inkLight, lineHeight: 1.7, marginBottom: 14 }}>
+            Every tool on this platform is free — spending explorer, rate analysis,
+            adequacy comparisons, AHEAD modeling, rate builder. No login, no paywall.
+          </div>
+          <div style={{ fontSize: 11, color: C.inkLight, lineHeight: 1.9 }}>
+            {TOOLS.filter(t => t.id !== "analyst").map(t => (
+              <div key={t.id}><span style={{ color: C.brand, marginRight: 6 }}>&#10003;</span>{t.name}</div>
+            ))}
           </div>
         </div>
-        <a href="mailto:aradune-medicaid@proton.me" style={{
-          padding: "10px 20px", background: C.brand, color: C.white, borderRadius: 8,
-          fontSize: 12, fontWeight: 600, textDecoration: "none", whiteSpace: "nowrap", flexShrink: 0,
+        <div style={{
+          padding: "28px 28px 24px", background: C.white, borderRadius: 12, boxShadow: SHADOW,
+          borderTop: `3px solid ${C.accent}`,
         }}>
-          Get in touch
-        </a>
+          <div style={{ display: "flex", alignItems: "center", gap: 10, marginBottom: 4 }}>
+            <span style={{ fontSize: 16, fontWeight: 700, color: C.accent }}>AI Tier</span>
+            <span style={{ fontSize: 10, fontWeight: 600, padding: "2px 8px", borderRadius: 8, background: `${C.accent}12`, color: C.accent }}>$99/mo</span>
+          </div>
+          <div style={{ fontSize: 12, color: C.inkLight, lineHeight: 1.7, marginBottom: 10 }}>
+            Ask complex policy questions in plain English. The AI analyst looks up real
+            rates, compares states, estimates fiscal impact, and drafts methodology
+            language — grounded in Aradune's dataset.
+          </div>
+          <div style={{ fontSize: 11, color: C.inkLight, lineHeight: 1.7, fontStyle: "italic", marginBottom: 14, padding: "8px 12px", background: C.surface, borderRadius: 6 }}>
+            We charge for this tier because every query costs us money — the AI runs
+            on Claude and makes multiple data lookups per question.
+          </div>
+          <a href="#/pricing" style={{
+            display: "inline-flex", alignItems: "center", padding: "9px 18px",
+            background: C.accent, color: C.white, borderRadius: 8,
+            fontSize: 12, fontWeight: 600, textDecoration: "none",
+          }}>
+            Subscribe &#8594;
+          </a>
+        </div>
       </div>
     </div>
   );
@@ -660,6 +686,141 @@ function ComingSoon({ tool }: { tool: { name: string; icon: string; desc: string
   );
 }
 
+// ── Pricing Page ──────────────────────────────────────────────────────
+function Pricing() {
+  const [loading, setLoading] = useState<string | null>(null);
+
+  const handleSubscribe = async (plan: "individual" | "organization") => {
+    setLoading(plan);
+    try {
+      const resp = await fetch("/api/create-checkout", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ plan }),
+      });
+      const data = await resp.json();
+      if (data.url) {
+        window.location.href = data.url;
+      } else {
+        alert(data.error || "Failed to start checkout");
+        setLoading(null);
+      }
+    } catch {
+      alert("Connection error. Please try again.");
+      setLoading(null);
+    }
+  };
+
+  const FREE_TOOLS = TOOLS.filter(t => t.id !== "analyst");
+
+  return (
+    <div style={{ maxWidth: 800, margin: "0 auto", padding: "48px 20px 60px", fontFamily: FONT.body }}>
+      {/* Hero */}
+      <div style={{ textAlign: "center", marginBottom: 40 }}>
+        <h1 style={{ fontSize: 26, fontWeight: 700, color: C.ink, margin: "0 0 10px", letterSpacing: -0.5 }}>
+          Simple, transparent pricing
+        </h1>
+        <p style={{ fontSize: 13, color: C.inkLight, lineHeight: 1.7, maxWidth: 480, margin: "0 auto" }}>
+          Aradune exists to make Medicaid data accessible. The tools are free.
+          The AI tier covers its own costs.
+        </p>
+      </div>
+
+      {/* Pricing cards */}
+      <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit,minmax(300px,1fr))", gap: 20, marginBottom: 36 }}>
+        {/* Free tier */}
+        <div style={{
+          background: C.white, borderRadius: 12, boxShadow: SHADOW,
+          padding: "28px 28px 24px", borderTop: `3px solid ${C.brand}`,
+        }}>
+          <div style={{ fontSize: 11, fontWeight: 700, color: C.brand, fontFamily: FONT.mono, textTransform: "uppercase", letterSpacing: 1, marginBottom: 6 }}>Free</div>
+          <div style={{ display: "flex", alignItems: "baseline", gap: 4, marginBottom: 4 }}>
+            <span style={{ fontSize: 32, fontWeight: 700, color: C.ink }}>$0</span>
+            <span style={{ fontSize: 12, color: C.inkLight }}>/forever</span>
+          </div>
+          <div style={{ fontSize: 11, color: C.inkLight, marginBottom: 16 }}>No account needed</div>
+          <div style={{ fontSize: 11, color: C.inkLight, lineHeight: 2 }}>
+            {FREE_TOOLS.map(t => (
+              <div key={t.id}><span style={{ color: C.brand, marginRight: 6 }}>&#10003;</span>{t.name}</div>
+            ))}
+          </div>
+          <a href="#/explorer" style={{
+            display: "block", textAlign: "center", marginTop: 20,
+            padding: "10px 20px", border: `1px solid ${C.border}`, borderRadius: 8,
+            fontSize: 12, fontWeight: 600, color: C.ink, textDecoration: "none",
+          }}>
+            Start exploring &#8594;
+          </a>
+        </div>
+
+        {/* AI Tier */}
+        <div style={{
+          background: C.white, borderRadius: 12, boxShadow: SHADOW_LG,
+          padding: "28px 28px 24px", borderTop: `3px solid ${C.accent}`,
+          position: "relative",
+        }}>
+          <div style={{ fontSize: 11, fontWeight: 700, color: C.accent, fontFamily: FONT.mono, textTransform: "uppercase", letterSpacing: 1, marginBottom: 6 }}>AI Tier</div>
+          <div style={{ display: "flex", alignItems: "baseline", gap: 4, marginBottom: 4 }}>
+            <span style={{ fontSize: 32, fontWeight: 700, color: C.ink }}>$99</span>
+            <span style={{ fontSize: 12, color: C.inkLight }}>/mo individual</span>
+          </div>
+          <div style={{ fontSize: 11, color: C.inkLight, marginBottom: 16 }}>
+            <b style={{ color: C.ink }}>$299/mo</b> organization
+          </div>
+          <div style={{ fontSize: 11, color: C.inkLight, lineHeight: 2 }}>
+            <div><span style={{ color: C.brand, marginRight: 6 }}>&#10003;</span>Everything in Free</div>
+            <div><span style={{ color: C.accent, marginRight: 6 }}>&#10003;</span>AI Policy Analyst (Claude-powered)</div>
+            <div><span style={{ color: C.accent, marginRight: 6 }}>&#10003;</span>30 queries/hour</div>
+            <div><span style={{ color: C.accent, marginRight: 6 }}>&#10003;</span>Tool-augmented answers grounded in Aradune data</div>
+            <div><span style={{ color: C.accent, marginRight: 6 }}>&#10003;</span>Cross-state comparisons, fiscal impact</div>
+            <div><span style={{ color: C.accent, marginRight: 6 }}>&#10003;</span>SPA methodology drafting</div>
+          </div>
+          <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 8, marginTop: 20 }}>
+            <button
+              onClick={() => handleSubscribe("individual")}
+              disabled={loading !== null}
+              style={{
+                padding: "10px 16px", background: C.accent, color: C.white, border: "none", borderRadius: 8,
+                fontSize: 12, fontWeight: 600, cursor: loading ? "wait" : "pointer",
+              }}
+            >
+              {loading === "individual" ? "..." : "Individual $99/mo"}
+            </button>
+            <button
+              onClick={() => handleSubscribe("organization")}
+              disabled={loading !== null}
+              style={{
+                padding: "10px 16px", background: C.ink, color: C.white, border: "none", borderRadius: 8,
+                fontSize: 12, fontWeight: 600, cursor: loading ? "wait" : "pointer",
+              }}
+            >
+              {loading === "organization" ? "..." : "Organization $299/mo"}
+            </button>
+          </div>
+        </div>
+      </div>
+
+      {/* Why we charge */}
+      <div style={{
+        padding: "20px 24px", background: C.surface, borderRadius: 10,
+        borderLeft: `3px solid ${C.accent}`, marginBottom: 36,
+      }}>
+        <div style={{ fontSize: 13, fontWeight: 600, color: C.ink, marginBottom: 6 }}>Why we charge for the AI tier</div>
+        <div style={{ fontSize: 12, color: C.inkLight, lineHeight: 1.7 }}>
+          Every AI query runs a Claude model with multiple Aradune data lookups.
+          That costs real money. The subscription covers API costs so we can keep
+          everything else free.
+        </div>
+      </div>
+
+      {/* Contact */}
+      <div style={{ textAlign: "center", fontSize: 12, color: C.inkLight }}>
+        Questions? <a href="mailto:aradune-medicaid@proton.me" style={{ color: C.brand, textDecoration: "none", fontWeight: 600 }}>aradune-medicaid@proton.me</a>
+      </div>
+    </div>
+  );
+}
+
 // ── Platform Shell ───────────────────────────────────────────────────────
 export default function Platform() {
   const route = useRoute();
@@ -668,6 +829,7 @@ export default function Platform() {
     if (route === "/" || route === "") return <Landing />;
     if (route === "/explorer") return <TmsisExplorer />;
     if (route === "/about") return <About />;
+    if (route === "/pricing") return <Pricing />;
     if (route === "/wages") return <WageAdequacy />;
     if (route === "/quality") return <QualityLinkage />;
     if (route === "/decay") return <RateDecay />;

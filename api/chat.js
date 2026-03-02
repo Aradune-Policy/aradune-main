@@ -355,17 +355,77 @@ function executeTool(name, input) {
 }
 
 // ── Auth & Rate Limiting ──────────────────────────────────────────────
-// Creative approach: token-based auth using Vercel KV (or env var for MVP)
-// No user database needed. Stripe webhook → creates token → stored in KV.
-// For MVP: comma-separated tokens in ANALYST_TOKENS env var.
+// Three auth paths:
+// 1. ADMIN_KEY — master key for admin
+// 2. ANALYST_TOKENS — comma-separated static tokens (backwards compat)
+// 3. Signed tokens — base64url(payload).hmac, verified via JWT_SECRET,
+//    then Stripe subscription check on extracted customer ID
 
-function validateToken(token) {
+import { createHmac } from "crypto";
+import Stripe from "stripe";
+
+function base64url(buf) {
+  return buf.toString("base64").replace(/\+/g, "-").replace(/\//g, "_").replace(/=+$/, "");
+}
+
+function base64urlDecode(str) {
+  const padded = str.replace(/-/g, "+").replace(/_/g, "/") + "=".repeat((4 - str.length % 4) % 4);
+  return Buffer.from(padded, "base64");
+}
+
+// Cache Stripe subscription status per customer per warm invocation
+const subscriptionCache = {};
+
+async function checkStripeSubscription(customerId) {
+  const now = Date.now();
+  const cached = subscriptionCache[customerId];
+  if (cached && now - cached.ts < 300000) return cached.active; // 5-min cache
+
+  try {
+    const stripe = new Stripe(process.env.STRIPE_SECRET_KEY);
+    const subs = await stripe.subscriptions.list({
+      customer: customerId,
+      status: "active",
+      limit: 1,
+    });
+    const active = subs.data.length > 0;
+    subscriptionCache[customerId] = { active, ts: now };
+    return active;
+  } catch {
+    return false;
+  }
+}
+
+async function validateToken(token) {
   if (!token) return false;
-  // MVP: check against env var
-  const validTokens = (process.env.ANALYST_TOKENS || "").split(",").map(t => t.trim()).filter(Boolean);
-  // Also accept a master key for the admin
+
+  // Admin key
   if (token === process.env.ADMIN_KEY) return true;
-  return validTokens.includes(token);
+
+  // Static tokens (backwards compat)
+  const validTokens = (process.env.ANALYST_TOKENS || "").split(",").map(t => t.trim()).filter(Boolean);
+  if (validTokens.includes(token)) return true;
+
+  // Signed token: payload.signature
+  if (token.includes(".") && process.env.JWT_SECRET) {
+    const [payloadB64, sigB64] = token.split(".");
+    if (!payloadB64 || !sigB64) return false;
+
+    const expectedSig = base64url(
+      createHmac("sha256", process.env.JWT_SECRET).update(payloadB64).digest()
+    );
+    if (sigB64 !== expectedSig) return false;
+
+    try {
+      const payload = JSON.parse(base64urlDecode(payloadB64).toString("utf-8"));
+      if (!payload.cid) return false;
+      return await checkStripeSubscription(payload.cid);
+    } catch {
+      return false;
+    }
+  }
+
+  return false;
 }
 
 // Simple in-memory rate limit (resets when function cold-starts, ~5-15 min)
@@ -414,7 +474,7 @@ export default async function handler(req, res) {
   const authHeader = req.headers.authorization || "";
   const token = authHeader.replace("Bearer ", "").trim();
 
-  if (!validateToken(token)) {
+  if (!(await validateToken(token))) {
     return res.status(401).json({
       error: "Invalid or missing access token",
       message: "The Policy Analyst requires a valid access token. Visit aradune.co/subscribe to get access.",

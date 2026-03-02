@@ -389,7 +389,7 @@ export default function WageAdequacy() {
 
       {/* Guide */}
       <Card><div style={{ padding:"10px 14px",fontSize:11,color:AL,lineHeight:1.6,background:"rgba(46,107,74,0.03)",borderLeft:`3px solid ${cB}` }}>
-        <span style={{ fontWeight:700,color:A }}>Rate-Wage Adequacy Analysis</span> — Compares Medicaid reimbursement rates to the actual wages required to recruit and retain workers. For each service, the tool converts the Medicaid rate into an implied hourly wage (after agency overhead), then compares to BLS market wages for the equivalent occupation. A negative gap means Medicaid rates can't sustain competitive wages.
+        <span style={{ fontWeight:700,color:A }}>Rate & Wage Comparison</span> — Compares Medicaid reimbursement rates to BLS market wages for the equivalent occupation. For each service category, the tool converts the Medicaid rate into an implied hourly wage (after agency overhead), then shows how it compares to what workers in that field actually earn.
       </div></Card>
 
       {/* Controls */}
@@ -589,7 +589,7 @@ export default function WageAdequacy() {
         <b>Limitations:</b> T-MSIS rates are averages across all claim types and may not reflect rates for specific programs (e.g., waiver rates vs. state plan rates). The overhead model is a simplification — actual overhead varies by agency size, geography, and program requirements. BLS wage data covers all employers, not just Medicaid-funded positions. This tool provides directional analysis for rate adequacy discussions, not definitive cost modeling.
       </div></Card>
 
-      <div style={{ fontSize:10,color:AL,marginTop:8 }}>Aradune Rate-Wage Adequacy Tool v1.0 · BLS OEWS May 2024 + T-MSIS + CMS Core Set 2024</div>
+      <div style={{ fontSize:10,color:AL,marginTop:8 }}>Aradune Rate & Wage Comparison v1.0 · BLS OEWS May 2024 + T-MSIS + CMS Core Set 2024</div>
     </div>
   );
 }

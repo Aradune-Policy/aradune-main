@@ -29,19 +29,13 @@ const TOOLS: ToolDef[] = [
   {
     id: "explorer", group: "explore", name: "Spending Explorer",
     tagline: "Search and compare Medicaid spending across every state",
-    desc: "227 million rows of claims data processed into a searchable interface. Cross-state rate comparisons, provider concentration, spending trends, and fiscal impact estimates for every HCPCS code.",
+    desc: "Free, open tools that turn T-MSIS claims data into cross-state rate comparisons, provider concentration analysis, spending trends, and fiscal impact estimates for every HCPCS code. Filter by state, category, or service — with full CSV export.",
     status: "live", icon: "⌕", color: C.brand,
   },
   {
-    id: "explore", group: "explore", name: "Data Explorer",
-    tagline: "Filter, group, and export T-MSIS data yourself",
-    desc: "Multi-select filters by state, code, and category. Group by any dimension. Bar charts, scatter plots, and full data tables with CSV export.",
-    status: "coming", icon: "⊞", color: C.brand,
-  },
-  {
-    id: "wages", group: "analyze", name: "Wage Adequacy",
+    id: "wages", group: "analyze", name: "Rate & Wage Comparison",
     tagline: "BLS market wages vs Medicaid reimbursement rates",
-    desc: "Compare what Medicaid rates can support against actual BLS wage data for 16 healthcare occupations across every state.",
+    desc: "Compare Medicaid reimbursement rates against BLS wage data for healthcare occupations across every state. See how rates translate to provider compensation.",
     status: "live", icon: "⊿", color: C.accent,
   },
   {
@@ -129,7 +123,16 @@ function PlatformNav({ route }: { route: string }) {
               All Tools
             </a>
           )}
-          {NAV_GROUPS.map(g => <NavDrop key={g.key} group={g} route={route} />)}
+          <a href="#/explorer" style={{
+            fontSize: 11, fontFamily: FONT.body,
+            color: route === "/explorer" ? C.brand : C.inkLight,
+            fontWeight: route === "/explorer" ? 600 : 400,
+            textDecoration: "none", padding: "4px 10px", borderRadius: 6, whiteSpace: "nowrap",
+            background: route === "/explorer" ? "rgba(46,107,74,0.06)" : "none",
+          }}>
+            Explorer
+          </a>
+          {NAV_GROUPS.filter(g => g.tools.length > 1).map(g => <NavDrop key={g.key} group={g} route={route} />)}
           <a href="#/about" style={{
             fontSize: 11, fontFamily: FONT.body,
             color: route === "/about" ? C.brand : C.inkLight,
@@ -159,9 +162,7 @@ function Landing() {
           Medicaid data that's actually usable.
         </h1>
         <p style={{ fontSize: 14, color: C.inkLight, lineHeight: 1.7, marginTop: 14, maxWidth: 540 }}>
-          Free, open tools that turn <Term>T-MSIS</Term> <Term>claims data</Term> into
-          cross-state rate comparisons, adequacy analysis, fiscal impact models, and
-          draft <Term>SPA</Term> language. For policy analysts, researchers, advocates,
+          For policy analysts, researchers, advocates,
           and anyone who needs to understand how Medicaid dollars move.
         </p>
         <div style={{ display: "flex", gap: 10, marginTop: 22, flexWrap: "wrap" }}>
@@ -419,11 +420,11 @@ function Landing() {
         <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit,minmax(240px,1fr))", gap: 14 }}>
           {([
             { num: "1", label: "Explore", q: "What are we spending?",
-              desc: "Browse 227M+ claims across 54 jurisdictions. Compare rates by code, category, or state. Export raw data or use guided dashboards.",
-              tools: "Spending Explorer · Data Explorer", color: C.brand },
+              desc: "Browse 227M+ claims across 54 jurisdictions. Compare rates by code, category, or state. Filter, visualize, and export.",
+              tools: "Spending Explorer", color: C.brand },
             { num: "2", label: "Analyze", q: "Are rates adequate?",
               desc: "Three lenses: compare against BLS market wages, map quality outcomes to payment levels, and track how far rates have eroded relative to Medicare.",
-              tools: "Wage Adequacy · Quality Linkage · Rate Decay", color: C.accent },
+              tools: "Rate & Wage Comparison · Quality Linkage · Rate Decay", color: C.accent },
             { num: "3", label: "Build", q: "What should we pay?",
               desc: "Calculate defensible rates using real RVUs and conversion factors. Estimate fiscal impact. Draft SPA methodology language. Model hospital global budgets.",
               tools: "Rate Builder · Policy Analyst · AHEAD Calculator", color: C.teal },

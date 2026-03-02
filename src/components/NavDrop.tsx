@@ -54,8 +54,9 @@ export default function NavDrop({ group, route }: NavDropProps) {
         <div style={{
           position: "absolute",
           top: "calc(100% + 4px)",
-          left: 0,
-          minWidth: 260,
+          right: 0,
+          minWidth: 240,
+          maxWidth: "calc(100vw - 24px)",
           background: C.white,
           border: `1px solid ${C.border}`,
           borderRadius: 10,

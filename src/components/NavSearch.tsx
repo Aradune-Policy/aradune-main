@@ -65,6 +65,7 @@ export default function NavSearch({ tools }: NavSearchProps) {
           top: "calc(100% + 6px)",
           right: 0,
           width: 260,
+          maxWidth: "calc(100vw - 24px)",
           background: C.white,
           border: `1px solid ${C.border}`,
           borderRadius: 10,

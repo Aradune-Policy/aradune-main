@@ -105,26 +105,28 @@ function PlatformNav({ route }: { route: string }) {
       backdropFilter: "blur(12px)",
       WebkitBackdropFilter: "blur(12px)",
       borderBottom: `1px solid ${C.border}`,
+      overflowX: "hidden",
     }}>
       <div style={{
-        maxWidth: 1080, margin: "0 auto", padding: "0 20px",
+        maxWidth: 1080, margin: "0 auto", padding: "0 12px",
         display: "flex", alignItems: "center", justifyContent: "space-between", height: 48,
+        gap: 4,
       }}>
-        <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
+        <div style={{ display: "flex", alignItems: "center", gap: 8, flexShrink: 0 }}>
           <a href="#/" style={{ textDecoration: "none", fontSize: 15, fontWeight: 700, color: C.ink, letterSpacing: -0.3, fontFamily: FONT.body }}>
             Aradune
           </a>
           {activeTool && (
             <>
               <span style={{ color: C.border, fontSize: 13 }}>/</span>
-              <span style={{ fontSize: 12, color: C.inkLight, fontWeight: 500, fontFamily: FONT.body }}>{activeTool.name}</span>
+              <span style={{ fontSize: 12, color: C.inkLight, fontWeight: 500, fontFamily: FONT.body, whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis", maxWidth: 120 }}>{activeTool.name}</span>
             </>
           )}
         </div>
-        <div style={{ display: "flex", gap: 2, alignItems: "center" }}>
+        <div style={{ display: "flex", gap: 2, alignItems: "center", flexShrink: 1, minWidth: 0 }}>
           <NavSearch tools={TOOLS} />
           {route !== "/" && (
-            <a href="#/" style={{ fontSize: 11, color: C.inkLight, textDecoration: "none", padding: "4px 10px", borderRadius: 6, fontFamily: FONT.body }}>
+            <a href="#/" style={{ fontSize: 11, color: C.inkLight, textDecoration: "none", padding: "4px 10px", borderRadius: 6, fontFamily: FONT.body, whiteSpace: "nowrap" }}>
               All Tools
             </a>
           )}
@@ -133,7 +135,7 @@ function PlatformNav({ route }: { route: string }) {
             fontSize: 11, fontFamily: FONT.body,
             color: route === "/about" ? C.brand : C.inkLight,
             fontWeight: route === "/about" ? 600 : 400,
-            textDecoration: "none", padding: "4px 10px",
+            textDecoration: "none", padding: "4px 10px", whiteSpace: "nowrap",
           }}>
             About
           </a>

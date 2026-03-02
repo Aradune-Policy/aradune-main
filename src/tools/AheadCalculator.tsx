@@ -417,13 +417,15 @@ function calcSynthesis(h:AheadHospital,mr:McrResult,dr:McdResult,mp:McrResult[],
   signals.sort((a,b)=>b.mat-a.mat);
   const contras:{a:string;b:string;res:string}[]=[];
   const pro=signals.filter(s=>s.dir==="FAVOR"||s.dir==="PROCEED"),con=signals.filter(s=>["AGAINST","CAUTION","DEFER","INVESTIGATE","INVEST"].includes(s.dir));
+  const neut=signals.filter(s=>s.dir==="NEUTRAL");
   const hardCon=signals.filter(s=>s.dir==="AGAINST");
   if(pro.length&&hardCon.length)contras.push({a:pro[0].engine,b:hardCon[0].engine,res:pro[0].mat>hardCon[0].mat?`${pro[0].engine} (${fmt(pro[0].mat)}) outweighs ${hardCon[0].engine} (${fmt(hardCon[0].mat)})`:`${hardCon[0].engine} concern more material — requires mitigation`});
   if(opts.exNow&&ptR<.85)contras.push({a:"Options",b:"Prospect Theory",res:"Present option value decomposition to reframe — show strategic/learning value beyond raw NPV"});
   if(delta>0&&!optStop.frontier.every(f=>f.shouldCont))contras.push({a:"HGB (PY1+)",b:"Opt Stopping",res:"Participate with built-in review triggers at exit thresholds"});
   const fav=pro.length,ag=con.length;
-  const pathway=fav>ag+3?"STRONG PARTICIPATE":fav>ag?"PARTICIPATE WITH CONDITIONS":fav===ag?"CONDITIONAL — INVESTIGATE":"DEFER";
-  const pathCl=pathway.includes("STRONG")?C.pos:pathway.includes("PARTICIPATE")?cG:pathway.includes("CONDITIONAL")?C.warn:C.neg;
+  const total=fav+ag+neut.length;const ratio=total>0?fav/total:0;
+  const pathway=ratio>=.7?"STRONG PARTICIPATE":ratio>=.55?"PARTICIPATE WITH CONDITIONS":ratio>=.4?"CONDITIONAL — INVESTIGATE":ratio>=.25?"CAUTIOUS — DEFER":"DECLINE";
+  const pathCl=pathway.includes("STRONG")?C.pos:pathway.includes("WITH")?cG:pathway.includes("CONDITIONAL")?C.warn:pathway.includes("CAUTIOUS")?cO:C.neg;
   return{signals,contras,pathway,pathCl,actions:signals.slice(0,6).map(s=>s.action),fav,ag,caut:signals.filter(s=>s.dir==="CAUTION"||s.dir==="NEUTRAL").length};
 }
 
@@ -877,7 +879,7 @@ export default function AheadCalculator(){
   const sp=spGet(hosp.st);const cF=mr.fin+dr.fin,cFF=mr.ffs+dr.ffs,cD=cF-cFF,cPct=cD/cFF;
   const peerBench=useMemo(()=>{const all=allH.map(x=>{const r=calcMcr(x,1),d=calcMcd(x,1);return{id:x.id,nm:x.nm,delta:r.delta+d.delta,pct:(r.fin+d.fin-r.ffs-d.ffs)/(r.ffs+d.ffs)};}).sort((a,b)=>b.delta-a.delta);const rank=all.findIndex(x=>x.id===modH.id)+1;const vals=all.map(x=>x.delta);const mu=vals.reduce((s,v)=>s+v,0)/vals.length;const sig=Math.sqrt(vals.reduce((s,v)=>s+(v-mu)**2,0)/vals.length);const z=sig>0?(cD-mu)/sig:0;return{rank,of:all.length,pctile:Math.round((1-rank/all.length)*100),z,mu,sig};},[modH,cD,allH]);
   const sensTS=useMemo(()=>runSensTS(modH,yrs,bD,mV),[modH,yrs,bD,mV]);
-  const sparks=useMemo(()=>{const m:Record<string,number[]>={};allH.forEach(x=>{const p=pjMcr(x,5),d=pjMcd(x,5);m[x.id]=p.map((r,i)=>r.fin+d[i].fin);});return m;},[allH]);
+  const sparks=useMemo(()=>{const m:Record<string,number[]>={};allH.forEach(x=>{const p=pjMcr(x,5),d=pjMcd(x,5);m[x.id]=p.map((r,i)=>r.delta+d[i].delta);});return m;},[allH]);
   void sp;
 
   // ─── Sidebar ───
@@ -1031,6 +1033,10 @@ export default function AheadCalculator(){
         </div>
 
         <Card><CH title="Integrated Analysis" badge="12 ENGINES" right={`${synth.signals.length} signals`}/><div style={{padding:"0 16px 12px"}}>
+          <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",padding:"0 0 6px",borderBottom:`1px solid ${C.border}`,marginBottom:2}}>
+            <span style={{fontSize:10,color:C.inkLight,fontFamily:FONT.mono}}>ENGINE / SIGNAL</span>
+            <span style={{fontSize:10,color:C.inkLight,fontFamily:FONT.mono,minWidth:40,textAlign:"right"}} title="Financial magnitude of this signal — how much money is at stake">MATERIALITY</span>
+          </div>
           {synth.signals.slice(0,8).map((s:{dir:string;engine:string;finding:string;mat:number;action:string},i:number)=>{const dCl=s.dir==="FAVOR"?C.pos:s.dir==="AGAINST"?C.neg:s.dir==="DEFER"?cT:C.warn;
             return <div key={i} style={{padding:"8px 0",borderBottom:i<7?`1px solid ${C.border}`:"none"}}>
               <div style={{display:"flex",justifyContent:"space-between",alignItems:"flex-start",gap:3}}>

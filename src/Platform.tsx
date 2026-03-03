@@ -194,7 +194,7 @@ function Landing() {
             fontSize: 13, fontWeight: 500, textDecoration: "none",
             border: `1px solid ${C.border}`,
           }}>
-            Ensuring Access Compliance →
+            About the project
           </a>
         </div>
       </div>
@@ -310,9 +310,9 @@ function Landing() {
                 textDecoration: "none", display: "inline-block",
               }}
             >
-              Check wages →
+              Check compliance →
             </a>
-            <span style={{ fontSize: 10, color: C.inkLight, marginLeft: 4 }}>Rates vs <Term>BLS</Term> wages and Medicare</span>
+            <span style={{ fontSize: 10, color: C.inkLight, marginLeft: 4 }}>Rate adequacy, wages, and Medicare comparison</span>
           </div>
         )}
       </div>
@@ -507,7 +507,7 @@ function Landing() {
         display: "flex", gap: 16, flexWrap: "wrap", padding: "16px 0 24px",
         borderTop: `1px solid ${C.border}`, borderBottom: `1px solid ${C.border}`, marginBottom: 32,
       }}>
-        <span style={{ fontSize: 10, fontFamily: FONT.mono, color: C.inkLight, letterSpacing: 0.5, fontWeight: 600 }}>DATA:</span>
+        <span style={{ fontSize: 10, fontFamily: FONT.mono, color: C.inkLight, letterSpacing: 0.5, fontWeight: 600 }}>SOURCES:</span>
         {["CMS T-MSIS", "Medicare PFS CY2025", "BLS OEWS May 2024", "CMS Core Set", "42 CFR 447.203", "NPPES NPI", "FMAP FY2025"].map(src => (
           <span key={src} style={{ fontSize: 10, fontFamily: FONT.mono, color: C.inkLight, letterSpacing: 0.3 }}>{src}</span>
         ))}
@@ -529,9 +529,12 @@ function Landing() {
             No login, no paywall. CSV exports included on every tool.
           </div>
           <div style={{ fontSize: 11, color: C.inkLight, lineHeight: 1.9 }}>
-            {TOOLS.filter(t => t.id !== "analyst").map(t => (
+            {TOOLS.filter(t => t.id !== "analyst" && t.status !== "coming").map(t => (
               <div key={t.id}><span style={{ color: C.brand, marginRight: 6 }}>&#10003;</span>{t.name}</div>
             ))}
+            <div style={{ marginTop: 6, fontSize: 10, color: C.inkLight, fontStyle: "italic" }}>
+              + {TOOLS.filter(t => t.status === "coming").length} more tools coming (Fee Schedule Directory, Rate Reduction Analyzer, HCBS Tracker)
+            </div>
           </div>
         </div>
         <div style={{

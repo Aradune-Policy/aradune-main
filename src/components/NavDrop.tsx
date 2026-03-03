@@ -59,7 +59,7 @@ export default function NavDrop({ group, route }: NavDropProps) {
           fontFamily: FONT.body,
           fontWeight: isActive ? 600 : 400,
           cursor: "pointer",
-          padding: "4px 10px",
+          padding: "4px 8px",
           display: "flex",
           alignItems: "center",
           gap: 4,

@@ -37,7 +37,7 @@ const TOOLS: ToolDef[] = [
     id: "decay", group: "transparency", name: "Medicare Comparison",
     navLabel: "Medicare Comparison",
     tagline: "Medicaid rates as a percentage of Medicare, by code and state",
-    desc: "Every HCPCS code as a percentage of the Medicare PFS. Identify which services have decayed most and which states are furthest behind. Directly supports 447.203(b)(2) comparative rate analysis.",
+    desc: "Every HCPCS code as a percentage of the Medicare PFS. Identify which services have decayed most and which states are furthest behind.",
     status: "live", icon: "◧", color: C.brand,
   },
   {
@@ -49,7 +49,7 @@ const TOOLS: ToolDef[] = [
   {
     id: "fees", group: "transparency", name: "Fee Schedule Directory",
     tagline: "Links to every state's published Medicaid fee schedule",
-    desc: "Central directory of state-published fee schedules as required under 447.203(b)(1). Updated as states publish ahead of the July 2026 deadline.",
+    desc: "Central directory of every state's published Medicaid fee schedule. Updated as states publish new schedules.",
     status: "coming", icon: "⊞", color: C.brand,
   },
   // ── ADEQUACY ──────────────────────────────────────────────────────────
@@ -67,14 +67,14 @@ const TOOLS: ToolDef[] = [
   },
   {
     id: "reduction", group: "adequacy", name: "Rate Reduction Analyzer",
-    tagline: "447.203(b)(4) Tier 1 / Tier 2 rate reduction analysis",
-    desc: "Analyze proposed rate reductions against CMS thresholds. Tier 1 reductions (4%+) require access analysis; Tier 2 (6%+) require independent analysis. States need exactly this tool.",
+    tagline: "Analyze the impact of proposed Medicaid rate reductions",
+    desc: "Model proposed rate reductions against access thresholds. Small cuts (4%+) need access review; large cuts (6%+) need independent analysis. See exactly what a reduction means.",
     status: "coming", icon: "▼", color: C.accent,
   },
   {
     id: "hcbs8020", group: "adequacy", name: "HCBS Compensation Tracker",
-    tagline: "447.203(b)(5) 80/20 direct care pass-through",
-    desc: "Track compliance with the HCBS 80% pass-through requirement. States must report the share of Medicaid payments going to direct care worker compensation by 2027.",
+    tagline: "How much of HCBS spending reaches direct care workers?",
+    desc: "Track the share of Medicaid HCBS payments going to direct care worker compensation. The 80/20 pass-through standard is the benchmark — see where each state stands.",
     status: "coming", icon: "⊕", color: C.accent,
   },
   // ── MODELING ──────────────────────────────────────────────────────────
@@ -331,7 +331,7 @@ function Landing() {
             </div>
             <div style={{
               display: "grid",
-              gridTemplateColumns: groupTools.length <= 2 ? "repeat(auto-fill,minmax(min(100%,460px),1fr))" : "repeat(auto-fill,minmax(min(100%,320px),1fr))",
+              gridTemplateColumns: groupTools.length <= 2 ? "repeat(auto-fill,minmax(min(100%,460px),1fr))" : groupTools.length === 4 ? "repeat(auto-fill,minmax(min(100%,460px),1fr))" : "repeat(auto-fill,minmax(min(100%,320px),1fr))",
               gap: 12,
             }}>
               {groupTools.map(tool => {

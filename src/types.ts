@@ -352,7 +352,7 @@ export interface ToolDef {
   status: "live" | "beta" | "coming";
   icon: string;
   color: string;
-  group: "explore" | "analyze" | "build";
+  group: "transparency" | "adequacy" | "modeling";
   navLabel?: string;
 }
 

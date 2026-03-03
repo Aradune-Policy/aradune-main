@@ -497,6 +497,17 @@ export default function TmsisExplorer() {
   const [simCat, setSimCat] = useState("All");
   const [simPct, setSimPct] = useState(10);
   const [simState, setSimSt] = useState("FL");
+
+  // Data Explorer state
+  const [deStates, setDEStates] = useState<string[]>([]);
+  const [deCat, setDECat] = useState("All");
+  const [deCodes, setDECodes] = useState<string[]>([]);
+  const [deGroupBy, setDEGroup] = useState("State");
+  const [deViz, setDEViz] = useState("table");
+  const [deMaxResults, setDEMax] = useState(100);
+  const [deScatterX, setDESX] = useState("avgRate");
+  const [deScatterY, setDESY] = useState("spending");
+
   const { isPro } = useProAccess();
   const [showGate, setShowGate] = useState(false);
   const [batchInput, setBatchInput] = useState("");
@@ -854,7 +865,7 @@ export default function TmsisExplorer() {
     </div>
   );
 
-  const TABS = [{k:"dash",l:"Dashboard"},{k:"rate",l:"Rate Engine"},{k:"code",l:"Code Profile"},{k:"sim",l:"Simulator"},{k:"provider",l:"Providers"},{k:"batch",l:"Batch",pro:true},{k:"about",l:"About"}];
+  const TABS = [{k:"dash",l:"Dashboard"},{k:"data",l:"Data Explorer"},{k:"rate",l:"Rate Engine"},{k:"code",l:"Code Profile"},{k:"sim",l:"Simulator"},{k:"provider",l:"Providers"},{k:"batch",l:"Batch",pro:true},{k:"about",l:"About"}];
 
   return (
     <div style={{ maxWidth:960,margin:"0 auto",padding:"10px 16px 40px",fontFamily:"Helvetica Neue,Arial,sans-serif",color:A }}>
@@ -1043,6 +1054,224 @@ export default function TmsisExplorer() {
           {insights.length > 4 && <button onClick={()=>setSAI(!showAllIns)} style={{ marginTop:4,fontSize:10,color:AL,background:"none",border:"none",cursor:"pointer",padding:"4px 0" }}>{showAllIns?`Show fewer ↑`:`${insights.length-4} more questions ↓`}</button>}
         </div>}
       </div>}
+
+      {/* DATA EXPLORER */}
+      {tab==="data" && (() => {
+        // ── Data Explorer computation ──
+        const filteredCodes = codes.filter(h => {
+          if (deCat !== "All" && h.cat !== deCat) return false;
+          if (deCodes.length > 0 && !deCodes.includes(h.c)) return false;
+          if (deStates.length > 0 && !deStates.some(st => h.r && h.r[st] > 0)) return false;
+          return true;
+        });
+
+        type DERow = { label: string; avgRate: number; natAvg: number; spending: number; claims: number; count: number; mcPct: number; stateCount?: number };
+
+        const deRows: DERow[] = (() => {
+          const selStates = deStates.length > 0 ? deStates : SL;
+          if (deGroupBy === "State") {
+            return selStates.map(st => {
+              const matched = filteredCodes.filter(h => h.r && h.r[st] > 0);
+              const rates = matched.map(h => h.r[st]);
+              const avg = rates.length > 0 ? rates.reduce((a, b) => a + b, 0) / rates.length : 0;
+              const na = matched.length > 0 ? matched.reduce((a, h) => a + (h.na || 0), 0) / matched.length : 0;
+              const spend = matched.reduce((a, h) => a + (h.r[st] || 0) * (h.nc || 0) * ((states[st]?.spend || 0) / (Object.values(states).reduce((t, s) => t + (s?.spend || 0), 0) || 1)), 0);
+              const cls = matched.reduce((a, h) => a + (h.nc || 0), 0);
+              const mcAvg = matched.length > 0 ? matched.reduce((a, h) => { const mc = getMcRate(h.c); return a + (mc > 0 ? (h.r[st] / mc) * 100 : 0); }, 0) / matched.filter(h => getMcRate(h.c) > 0).length : 0;
+              return { label: states[st]?.name || st, avgRate: avg, natAvg: na, spending: spend, claims: cls, count: matched.length, mcPct: isFinite(mcAvg) ? mcAvg : 0 };
+            }).filter(r => r.count > 0);
+          }
+          if (deGroupBy === "Code") {
+            return filteredCodes.map(h => {
+              const rates = selStates.filter(st => h.r && h.r[st] > 0).map(st => h.r[st]);
+              const avg = rates.length > 0 ? rates.reduce((a, b) => a + b, 0) / rates.length : 0;
+              const mc = getMcRate(h.c);
+              return { label: `${h.c} — ${h.d}`, avgRate: avg, natAvg: h.na || 0, spending: h.ns || 0, claims: h.nc || 0, count: rates.length, stateCount: rates.length, mcPct: mc > 0 ? (avg / mc) * 100 : 0 };
+            }).filter(r => r.count > 0);
+          }
+          if (deGroupBy === "Category") {
+            const cats = [...new Set(filteredCodes.map(h => h.cat))].sort();
+            return cats.map(cat => {
+              const inCat = filteredCodes.filter(h => h.cat === cat);
+              const allRates: number[] = [];
+              inCat.forEach(h => selStates.forEach(st => { if (h.r && h.r[st] > 0) allRates.push(h.r[st]); }));
+              const avg = allRates.length > 0 ? allRates.reduce((a, b) => a + b, 0) / allRates.length : 0;
+              const na = inCat.length > 0 ? inCat.reduce((a, h) => a + (h.na || 0), 0) / inCat.length : 0;
+              const spend = inCat.reduce((a, h) => a + (h.ns || 0), 0);
+              const cls = inCat.reduce((a, h) => a + (h.nc || 0), 0);
+              return { label: cat, avgRate: avg, natAvg: na, spending: spend, claims: cls, count: inCat.length, mcPct: 0 };
+            }).filter(r => r.count > 0);
+          }
+          // State × Code
+          const rows: DERow[] = [];
+          selStates.forEach(st => {
+            filteredCodes.forEach(h => {
+              if (h.r && h.r[st] > 0) {
+                const mc = getMcRate(h.c);
+                rows.push({ label: `${states[st]?.name || st} × ${h.c}`, avgRate: h.r[st], natAvg: h.na || 0, spending: (h.r[st]) * (h.nc || 0) * ((states[st]?.spend || 0) / (Object.values(states).reduce((t, s) => t + (s?.spend || 0), 0) || 1)), claims: h.nc || 0, count: 1, mcPct: mc > 0 ? (h.r[st] / mc) * 100 : 0 });
+              }
+            });
+          });
+          return rows;
+        })();
+
+        const deSorted = [...deRows].sort((a, b) => b.avgRate - a.avgRate).slice(0, deMaxResults);
+
+        const deColumns = (() => {
+          const cols: { k: keyof DERow; l: string; f: (v: number) => string }[] = [{ k: "avgRate", l: "Avg Rate", f: f$ }];
+          if (deGroupBy !== "State × Code") cols.push({ k: "natAvg", l: "Nat'l Avg", f: f$ });
+          cols.push({ k: "spending", l: "Spending", f: f$ });
+          cols.push({ k: "claims", l: "Claims", f: fN });
+          if (deGroupBy === "Code") cols.push({ k: "stateCount" as keyof DERow, l: "States", f: fN });
+          else cols.push({ k: "count", l: deGroupBy === "State" ? "Codes" : deGroupBy === "Category" ? "Codes" : "Count", f: fN });
+          if (mcRates) cols.push({ k: "mcPct", l: "% Medicare", f: (v: number) => v > 0 ? `${v.toFixed(0)}%` : "—" });
+          return cols;
+        })();
+
+        const scatterMetrics = [{ k: "avgRate", l: "Avg Rate" }, { k: "natAvg", l: "National Avg" }, { k: "spending", l: "Spending" }, { k: "claims", l: "Claims" }, { k: "count", l: "Count" }, { k: "mcPct", l: "% Medicare" }];
+
+        return <div style={{ display:"grid",gap:10 }}>
+        <TabGuide title="Data Explorer" desc="Self-service query tool. Pick states, a category, and optional HCPCS codes, choose how to group results, then view as table, bar chart, or scatter plot. Export any view to CSV." tips="Start by selecting a few states, then experiment with group-by and visualization options."/>
+
+        {/* Filter Panel */}
+        <Card>
+          <CH t="Filters"/>
+          <div style={{ padding:"6px 14px 12px",display:"grid",gap:10 }}>
+            {/* States */}
+            <div>
+              <div style={{ fontSize:10,fontWeight:600,color:A,marginBottom:4 }}>States</div>
+              <div style={{ display:"flex",gap:4,marginBottom:4 }}>
+                <button onClick={()=>setDEStates([...SL])} style={{ fontSize:9,color:cB,background:"none",border:`1px solid ${B}`,borderRadius:4,padding:"2px 8px",cursor:"pointer" }}>Select All</button>
+                <button onClick={()=>setDEStates([])} style={{ fontSize:9,color:AL,background:"none",border:`1px solid ${B}`,borderRadius:4,padding:"2px 8px",cursor:"pointer" }}>Clear</button>
+                <span style={{ fontSize:9,color:AL,marginLeft:4 }}>{deStates.length === 0 ? "All states" : `${deStates.length} selected`}</span>
+              </div>
+              <div style={{ maxHeight:120,overflowY:"auto",border:`1px solid ${B}`,borderRadius:6,padding:"4px 8px",display:"grid",gridTemplateColumns:"repeat(auto-fill,minmax(120px,1fr))",gap:"1px 8px" }}>
+                {SL.map(st => <label key={st} style={{ fontSize:10,color:A,display:"flex",alignItems:"center",gap:4,cursor:"pointer",whiteSpace:"nowrap" }}>
+                  <input type="checkbox" checked={deStates.includes(st)} onChange={()=>setDEStates(p=>p.includes(st)?p.filter(x=>x!==st):[...p,st])} style={{ margin:0 }}/>
+                  {states[st]?.name || st}
+                </label>)}
+              </div>
+            </div>
+
+            {/* Category */}
+            <div>
+              <div style={{ fontSize:10,fontWeight:600,color:A,marginBottom:4 }}>Category</div>
+              <select value={deCat} onChange={e=>setDECat(e.target.value)} style={{ fontSize:11,padding:"4px 8px",borderRadius:6,border:`1px solid ${B}`,color:A,background:WH }}>
+                <option value="All">All Categories</option>
+                {CATS.map(c => <option key={c} value={c}>{c}</option>)}
+              </select>
+            </div>
+
+            {/* Codes */}
+            <div>
+              <div style={{ fontSize:10,fontWeight:600,color:A,marginBottom:4 }}>HCPCS Codes (optional)</div>
+              <CodeSearch codes={codes} value={null} onChange={c => { if (!deCodes.includes(c)) setDECodes(p => [...p, c]); }}/>
+              {deCodes.length > 0 && <div style={{ display:"flex",flexWrap:"wrap",gap:4,marginTop:4 }}>
+                {deCodes.map(c => <span key={c} style={{ fontSize:10,padding:"2px 8px",background:`${cB}10`,border:`1px solid ${cB}30`,borderRadius:12,color:A,display:"inline-flex",alignItems:"center",gap:4 }}>
+                  {c} <button onClick={()=>setDECodes(p=>p.filter(x=>x!==c))} style={{ background:"none",border:"none",cursor:"pointer",color:AL,fontSize:11,padding:0,lineHeight:1 }}>×</button>
+                </span>)}
+                <button onClick={()=>setDECodes([])} style={{ fontSize:9,color:AL,background:"none",border:"none",cursor:"pointer" }}>Clear all</button>
+              </div>}
+            </div>
+
+            {/* Group By + Max Results */}
+            <div style={{ display:"flex",gap:16,flexWrap:"wrap",alignItems:"flex-end" }}>
+              <div>
+                <div style={{ fontSize:10,fontWeight:600,color:A,marginBottom:4 }}>Group By</div>
+                <div style={{ display:"flex",gap:4 }}>
+                  {["State","Code","Category","State × Code"].map(g2 => <Pill key={g2} on={deGroupBy===g2} onClick={()=>setDEGroup(g2)}>{g2}</Pill>)}
+                </div>
+              </div>
+              <div>
+                <div style={{ fontSize:10,fontWeight:600,color:A,marginBottom:4 }}>Max Results</div>
+                <input type="number" value={deMaxResults} onChange={e=>setDEMax(Math.max(1,Math.min(5000,Number(e.target.value)||100)))} style={{ width:60,fontSize:11,padding:"4px 6px",borderRadius:6,border:`1px solid ${B}`,color:A,fontFamily:FM }}/>
+              </div>
+            </div>
+
+            {/* Viz Mode */}
+            <div style={{ display:"flex",gap:16,flexWrap:"wrap",alignItems:"flex-end" }}>
+              <div>
+                <div style={{ fontSize:10,fontWeight:600,color:A,marginBottom:4 }}>Visualization</div>
+                <div style={{ display:"flex",gap:4 }}>
+                  {(["table","bar","scatter"] as const).map(v => <Pill key={v} on={deViz===v} onClick={()=>setDEViz(v)}>{v==="table"?"Table":v==="bar"?"Bar Chart":"Scatter"}</Pill>)}
+                </div>
+              </div>
+              {deViz==="scatter" && <div style={{ display:"flex",gap:8 }}>
+                <div>
+                  <div style={{ fontSize:9,color:AL,marginBottom:2 }}>X Axis</div>
+                  <select value={deScatterX} onChange={e=>setDESX(e.target.value)} style={{ fontSize:10,padding:"3px 6px",borderRadius:5,border:`1px solid ${B}`,color:A }}>
+                    {scatterMetrics.map(m => <option key={m.k} value={m.k}>{m.l}</option>)}
+                  </select>
+                </div>
+                <div>
+                  <div style={{ fontSize:9,color:AL,marginBottom:2 }}>Y Axis</div>
+                  <select value={deScatterY} onChange={e=>setDESY(e.target.value)} style={{ fontSize:10,padding:"3px 6px",borderRadius:5,border:`1px solid ${B}`,color:A }}>
+                    {scatterMetrics.map(m => <option key={m.k} value={m.k}>{m.l}</option>)}
+                  </select>
+                </div>
+              </div>}
+            </div>
+          </div>
+        </Card>
+
+        {/* Results */}
+        <Card>
+          <div style={{ display:"flex",justifyContent:"space-between",alignItems:"center",padding:"10px 14px 4px" }}>
+            <CH t={`Results — ${deSorted.length} rows`} b={`grouped by ${deGroupBy}`}/>
+            <ExportBtn onClick={()=>{
+              const hdr = ["Label", ...deColumns.map(c => c.l)];
+              const rows = deSorted.map(r => [r.label, ...deColumns.map(c => {
+                const v = r[c.k];
+                return typeof v === "number" ? v : 0;
+              })]);
+              downloadCSV(`data_explorer_${deGroupBy.replace(/ /g,"_").toLowerCase()}.csv`, hdr, rows);
+            }}/>
+          </div>
+          <div style={{ padding:"0 14px 14px" }}>
+            {deSorted.length === 0 && <div style={{ padding:20,textAlign:"center",fontSize:11,color:AL }}>No matching data. Adjust your filters above.</div>}
+
+            {/* Table View */}
+            {deViz==="table" && deSorted.length > 0 && <div style={{ overflowX:"auto" }}>
+              <table style={{ width:"100%",fontSize:10,borderCollapse:"collapse" }}>
+                <thead><tr style={{ borderBottom:`2px solid ${B}` }}>
+                  <th style={{ textAlign:"left",padding:"6px 8px",color:AL,fontWeight:600,fontSize:9,whiteSpace:"nowrap" }}>Label</th>
+                  {deColumns.map(c => <th key={c.k} style={{ textAlign:"right",padding:"6px 8px",color:AL,fontWeight:600,fontSize:9,whiteSpace:"nowrap" }}>{c.l}</th>)}
+                </tr></thead>
+                <tbody>{deSorted.map((r,i) => <tr key={i} style={{ borderBottom:`1px solid ${B}`,background:i%2===0?WH:S }}>
+                  <td style={{ padding:"5px 8px",color:A,fontWeight:500,maxWidth:260,overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap" }}>{r.label}</td>
+                  {deColumns.map(c => <td key={c.k} style={{ padding:"5px 8px",textAlign:"right",fontFamily:FM,color:A }}>{c.f(r[c.k] as number)}</td>)}
+                </tr>)}</tbody>
+              </table>
+            </div>}
+
+            {/* Bar Chart View */}
+            {deViz==="bar" && deSorted.length > 0 && <ResponsiveContainer width="100%" height={Math.max(250, deSorted.length * 22)}>
+              <BarChart data={deSorted} layout="vertical" margin={{ left: 10, right: 20, top: 5, bottom: 5 }}>
+                <CartesianGrid strokeDasharray="3 3" stroke={B}/>
+                <XAxis type="number" tick={{ fontSize:9,fill:AL }} tickFormatter={(v: number)=>f$(v)}/>
+                <YAxis type="category" dataKey="label" width={140} tick={{ fontSize:9,fill:A }} interval={0}/>
+                <Tooltip content={<SafeTip active={false} payload={[]} render={(d: Record<string,unknown>)=><div><div style={{ fontWeight:600 }}>{String(d.label)}</div><div>Avg Rate: {f$(d.avgRate as number)}</div><div>Spending: {f$(d.spending as number)}</div><div>Claims: {fN(d.claims as number)}</div></div>}/>}/>
+                <Bar dataKey="avgRate" radius={[0,4,4,0]}>
+                  {deSorted.map((_,i)=><Cell key={i} fill={i%2===0?cB:cT}/>)}
+                </Bar>
+              </BarChart>
+            </ResponsiveContainer>}
+
+            {/* Scatter Chart View */}
+            {deViz==="scatter" && deSorted.length > 0 && <ResponsiveContainer width="100%" height={350}>
+              <ScatterChart margin={{ left: 10, right: 20, top: 10, bottom: 10 }}>
+                <CartesianGrid strokeDasharray="3 3" stroke={B}/>
+                <XAxis type="number" dataKey={deScatterX} name={scatterMetrics.find(m=>m.k===deScatterX)?.l||deScatterX} tick={{ fontSize:9,fill:AL }} tickFormatter={(v: number)=>deScatterX.includes("pend")||deScatterX.includes("Rate")||deScatterX.includes("Avg")?f$(v):fN(v)}/>
+                <YAxis type="number" dataKey={deScatterY} name={scatterMetrics.find(m=>m.k===deScatterY)?.l||deScatterY} tick={{ fontSize:9,fill:AL }} tickFormatter={(v: number)=>deScatterY.includes("pend")||deScatterY.includes("Rate")||deScatterY.includes("Avg")?f$(v):fN(v)}/>
+                <ZAxis range={[40,40]}/>
+                <Tooltip content={<SafeTip active={false} payload={[]} render={(d: Record<string,unknown>)=><div><div style={{ fontWeight:600 }}>{String(d.label)}</div><div>{scatterMetrics.find(m=>m.k===deScatterX)?.l}: {f$(d[deScatterX] as number)}</div><div>{scatterMetrics.find(m=>m.k===deScatterY)?.l}: {f$(d[deScatterY] as number)}</div></div>}/>}/>
+                <Scatter data={deSorted} fill={cB}/>
+              </ScatterChart>
+            </ResponsiveContainer>}
+          </div>
+        </Card>
+        </div>;
+      })()}
 
       {/* RATE ENGINE */}
       {tab==="rate" && (() => {

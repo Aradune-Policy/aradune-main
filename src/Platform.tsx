@@ -522,11 +522,11 @@ function Landing() {
             designed for production analysis.
           </div>
           <div style={{ fontSize: 11, color: C.inkLight, lineHeight: 1.9, marginBottom: 14 }}>
+            <div><span style={{ color: C.accent, marginRight: 6 }}>&#10003;</span>AI Policy Analyst (Claude-powered)</div>
+            <div><span style={{ color: C.accent, marginRight: 6 }}>&#10003;</span>Batch HCPCS code lookup</div>
             <div><span style={{ color: C.accent, marginRight: 6 }}>&#10003;</span>Branded PDF reports</div>
             <div><span style={{ color: C.accent, marginRight: 6 }}>&#10003;</span>Formatted Excel workbooks</div>
             <div><span style={{ color: C.accent, marginRight: 6 }}>&#10003;</span>Persistent saved scenarios</div>
-            <div><span style={{ color: C.accent, marginRight: 6 }}>&#10003;</span>Batch HCPCS code lookup</div>
-            <div><span style={{ color: C.accent, marginRight: 6 }}>&#10003;</span>AI Policy Analyst</div>
           </div>
           <a href="#/pricing" style={{
             display: "inline-flex", alignItems: "center", padding: "9px 18px",
@@ -738,11 +738,11 @@ function Pricing() {
           <div style={{ fontSize: 18, fontWeight: 600, color: C.inkLight, marginBottom: 16 }}>Paid subscription</div>
           <div style={{ fontSize: 11, color: C.inkLight, lineHeight: 2 }}>
             <div><span style={{ color: C.brand, marginRight: 6 }}>&#10003;</span>Everything in Free</div>
+            <div><span style={{ color: C.accent, marginRight: 6 }}>&#10003;</span>AI Policy Analyst (Claude-powered)</div>
+            <div><span style={{ color: C.accent, marginRight: 6 }}>&#10003;</span>Batch HCPCS code lookup (up to 500 codes)</div>
             <div><span style={{ color: C.accent, marginRight: 6 }}>&#10003;</span>Branded PDF reports</div>
             <div><span style={{ color: C.accent, marginRight: 6 }}>&#10003;</span>Formatted Excel workbooks (XLSX)</div>
             <div><span style={{ color: C.accent, marginRight: 6 }}>&#10003;</span>Persistent saved scenarios</div>
-            <div><span style={{ color: C.accent, marginRight: 6 }}>&#10003;</span>Batch HCPCS code lookup (up to 500 codes)</div>
-            <div><span style={{ color: C.accent, marginRight: 6 }}>&#10003;</span>AI Policy Analyst (Claude-powered)</div>
           </div>
           <div style={{
             marginTop: 20, padding: "10px 16px", background: C.surface, borderRadius: 8,

@@ -343,6 +343,60 @@ export interface ChatUsage {
   remaining?: number;
 }
 
+// ── DuckDB Query API ─────────────────────────────────────────────────
+export interface MetricDef {
+  column: string;
+  agg: string;
+}
+
+export interface QueryRequest {
+  states?: string[];
+  hcpcs_codes?: string[];
+  categories?: string[];
+  npi?: string[];
+  taxonomy?: string[];
+  provider_name?: string;
+  date_from?: string;
+  date_to?: string;
+  zip3?: string[];
+  min_claims?: number;
+  min_beneficiaries?: number;
+  group_by?: string[];
+  metrics?: MetricDef[];
+  include_avg_rate?: boolean;
+  include_per_bene?: boolean;
+  order_by?: string;
+  order_dir?: string;
+  limit?: number;
+  offset?: number;
+  preset?: string;
+}
+
+export interface QueryResponse {
+  rows: Record<string, unknown>[];
+  total_rows: number;
+  query_ms: number;
+  sql_preview?: string;
+}
+
+export interface QueryMeta {
+  states: string[];
+  categories: string[];
+  date_min?: string;
+  date_max?: string;
+  columns: string[];
+  total_rows: number;
+  presets: string[];
+}
+
+export interface PresetInfo {
+  id: string;
+  name: string;
+  description: string;
+  codes: string[];
+  filter_type: string;
+}
+
 // ── Platform ────────────────────────────────────────────────────────────
 export interface ToolDef {
   id: string;

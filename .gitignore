@@ -8,3 +8,11 @@ data/*.csv
 data/*.duckdb
 data/*.zip
 data/*.xlsx
+
+# Large Parquet files hosted externally (Cloudflare R2)
+public/data/claims_monthly.parquet
+
+# Python
+server/__pycache__/
+server/.env
+*.pyc

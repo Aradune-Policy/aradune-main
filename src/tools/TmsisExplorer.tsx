@@ -1,7 +1,10 @@
 import React, { useState, useMemo, useEffect, useCallback, useRef, Fragment } from "react";
 import { BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer, Cell, CartesianGrid, Area, AreaChart, LineChart, Line, ScatterChart, Scatter, ZAxis, Legend, ReferenceLine } from "recharts";
-import type { StateData, HcpcsCode, NatlTrend, SafeTipProps, CatAccumulator, TooltipEntry, RawState, RawHcpcs, RawTrend, PipelineMeta, MedicareRates, RiskAdjData, FeeScheduleData, FeeScheduleState, FeeScheduleDirectory, ProviderRecord, SpecialtyRecord } from "../types";
+import type { StateData, HcpcsCode, NatlTrend, SafeTipProps, CatAccumulator, TooltipEntry, RawState, RawHcpcs, RawTrend, PipelineMeta, MedicareRates, RiskAdjData, FeeScheduleData, FeeScheduleState, FeeScheduleDirectory, ProviderRecord, SpecialtyRecord, QueryRequest, QueryResponse, QueryMeta, PresetInfo } from "../types";
 import { useProAccess, ProBadge, ProGateModal } from "../components/ProGate";
+import { executeQuery, fetchMeta, fetchPresets, initEngine } from "../lib/queryEngine";
+import { query as rawQuery } from "../lib/duckdb";
+import { listPresets } from "../lib/presets";
 
 // ── Design System (Aradune v13) ──────────────────────────────────────────
 const A = "#0A2540";
@@ -508,6 +511,30 @@ export default function TmsisExplorer() {
   const [deScatterX, setDESX] = useState("avgRate");
   const [deScatterY, setDESY] = useState("spending");
 
+  // DuckDB-WASM powered Data Explorer state
+  const [duckdbReady, setDuckdbReady] = useState(false);
+  const [duckdbInit, setDuckdbInit] = useState(false);
+  const [deLoading, setDeLoading] = useState(false);
+  const [deError, setDeError] = useState<string | null>(null);
+  const [deData, setDeData] = useState<QueryResponse | null>(null);
+  const [deMeta, setDeMeta] = useState<QueryMeta | null>(null);
+  const [dePresets] = useState<PresetInfo[]>(listPresets());
+  const [deExploreMode, setDeExploreMode] = useState<string | null>(null);
+  const [sqlText, setSqlText] = useState("SELECT state, SUM(total_paid) AS total_paid, SUM(total_claims) AS total_claims\nFROM 'claims.parquet'\nGROUP BY state\nORDER BY total_paid DESC\nLIMIT 20");
+  const [sqlResult, setSqlResult] = useState<{ rows: Record<string,unknown>[]; cols: string[]; ms: number } | null>(null);
+  const [sqlError, setSqlError] = useState<string | null>(null);
+  const [sqlRunning, setSqlRunning] = useState(false);
+  const [deNpi, setDENpi] = useState<string[]>([]);
+  const [deTaxonomy, setDETax] = useState<string[]>([]);
+  const [deProviderName, setDEProvName] = useState("");
+  const [deDateFrom, setDEDateFrom] = useState("");
+  const [deDateTo, setDEDateTo] = useState("");
+  const [deZip3, setDEZip3] = useState<string[]>([]);
+  const [deMinClaims, setDEMinClaims] = useState<number | undefined>(undefined);
+  const [deMinBene, setDEMinBene] = useState<number | undefined>(undefined);
+  const [dePreset, setDEPreset] = useState<string | null>(null);
+  const [deIncludePerBene, setDEPerBene] = useState(false);
+
   const { isPro } = useProAccess();
   const [showGate, setShowGate] = useState(false);
   const [batchInput, setBatchInput] = useState("");
@@ -594,6 +621,70 @@ export default function TmsisExplorer() {
     load();
     return () => { cancelled = true; };
   }, []);
+
+  // Initialize DuckDB-WASM on mount
+  useEffect(() => {
+    let cancelled = false;
+    async function initDuckDB() {
+      setDuckdbInit(true);
+      try {
+        await initEngine();
+        if (cancelled) return;
+        const m = await fetchMeta();
+        if (!cancelled) {
+          setDeMeta(m);
+          setDuckdbReady(true);
+        }
+      } catch (_e: unknown) {
+        if (!cancelled) setDeError("Failed to initialize DuckDB-WASM");
+      }
+      if (!cancelled) setDuckdbInit(false);
+    }
+    initDuckDB();
+    return () => { cancelled = true; };
+  }, []);
+
+  // Debounced DuckDB-WASM query execution
+  useEffect(() => {
+    if (!duckdbReady) return;
+    const timer = setTimeout(() => {
+      const groupByMap: Record<string, string> = {
+        "State": "state", "Code": "hcpcs_code", "Category": "category",
+        "State × Code": "state", "ZIP3": "zip3", "NPI": "billing_npi",
+        "Taxonomy": "taxonomy", "Year": "claim_year", "Month": "claim_month",
+      };
+      const groupBy = [groupByMap[deGroupBy] || "state"];
+      if (deGroupBy === "State × Code") groupBy.push("hcpcs_code");
+
+      const req: QueryRequest = {
+        states: deStates,
+        hcpcs_codes: deCodes,
+        categories: deCat !== "All" ? [deCat] : [],
+        npi: deNpi,
+        taxonomy: deTaxonomy,
+        provider_name: deProviderName || undefined,
+        date_from: deDateFrom || undefined,
+        date_to: deDateTo || undefined,
+        zip3: deZip3,
+        min_claims: deMinClaims,
+        min_beneficiaries: deMinBene,
+        group_by: groupBy,
+        include_avg_rate: true,
+        include_per_bene: deIncludePerBene,
+        order_by: "total_paid",
+        order_dir: "desc",
+        limit: deMaxResults,
+        preset: dePreset || undefined,
+      };
+
+      setDeLoading(true);
+      setDeError(null);
+      executeQuery(req)
+        .then(data => { setDeData(data); setDeLoading(false); })
+        .catch(e => { setDeError(e.message); setDeLoading(false); });
+    }, 300);
+    return () => clearTimeout(timer);
+  }, [duckdbReady, deStates, deCodes, deCat, deGroupBy, deMaxResults, deNpi, deTaxonomy, deProviderName, deDateFrom, deDateTo, deZip3, deMinClaims, deMinBene, dePreset, deIncludePerBene]);
 
   useEffect(() => {
     if (codes.length > 0 && !dc) setDC(codes[0].c);
@@ -865,6 +956,21 @@ export default function TmsisExplorer() {
     </div>
   );
 
+  const runSql = useCallback(async () => {
+    if (!sqlText.trim() || sqlRunning) return;
+    setSqlRunning(true);
+    setSqlError(null);
+    setSqlResult(null);
+    try {
+      const res = await rawQuery(sqlText);
+      const cols = res.rows.length > 0 ? Object.keys(res.rows[0]) : [];
+      setSqlResult({ rows: res.rows, cols, ms: res.durationMs });
+    } catch (e: unknown) {
+      setSqlError(e instanceof Error ? e.message : String(e));
+    }
+    setSqlRunning(false);
+  }, [sqlText, sqlRunning]);
+
   const TABS = [{k:"dash",l:"Dashboard"},{k:"data",l:"Data Explorer"},{k:"rate",l:"Rate Engine"},{k:"code",l:"Code Profile"},{k:"sim",l:"Simulator"},{k:"provider",l:"Providers"},{k:"batch",l:"Batch",pro:true},{k:"about",l:"About"}];
 
   return (
@@ -1057,96 +1163,257 @@ export default function TmsisExplorer() {
 
       {/* DATA EXPLORER */}
       {tab==="data" && (() => {
-        // ── Data Explorer computation ──
-        const filteredCodes = codes.filter(h => {
-          if (deCat !== "All" && h.cat !== deCat) return false;
-          if (deCodes.length > 0 && !deCodes.includes(h.c)) return false;
-          if (deStates.length > 0 && !deStates.some(st => h.r && h.r[st] > 0)) return false;
-          return true;
-        });
+        type DERow = { label: string; avgRate: number; natAvg: number; spending: number; claims: number; count: number; mcPct: number; stateCount?: number; beneficiaries?: number; perBene?: number };
 
-        type DERow = { label: string; avgRate: number; natAvg: number; spending: number; claims: number; count: number; mcPct: number; stateCount?: number };
+        // Convert DuckDB-WASM rows to DERow format
+        const wRows: DERow[] = deData ? deData.rows.map(r => {
+          const labelParts: string[] = [];
+          if (r.state) labelParts.push(states[r.state as string]?.name || (r.state as string));
+          if (r.hcpcs_code) labelParts.push(r.hcpcs_code as string);
+          if (r.category) labelParts.push(r.category as string);
+          if (r.claim_year) labelParts.push(String(r.claim_year));
+          if (r.claim_month) labelParts.push(r.claim_month as string);
+          if (r.zip3) labelParts.push(`ZIP ${r.zip3}`);
+          if (r.npi) labelParts.push(`NPI ${r.npi}`);
+          if (r.provider_name) labelParts.push(r.provider_name as string);
+          if (r.taxonomy) labelParts.push(r.taxonomy as string);
+          return {
+            label: labelParts.join(" / ") || "Total",
+            avgRate: Number(r.avg_rate || 0),
+            natAvg: 0,
+            spending: Number(r.total_paid || 0),
+            claims: Number(r.total_claims || 0),
+            count: Number(r.row_count || 0),
+            mcPct: 0,
+            beneficiaries: Number(r.total_beneficiaries || 0),
+            perBene: Number(r.per_bene || 0),
+          };
+        }) : [];
 
-        const deRows: DERow[] = (() => {
-          const selStates = deStates.length > 0 ? deStates : SL;
-          if (deGroupBy === "State") {
-            return selStates.map(st => {
-              const matched = filteredCodes.filter(h => h.r && h.r[st] > 0);
-              const rates = matched.map(h => h.r[st]);
-              const avg = rates.length > 0 ? rates.reduce((a, b) => a + b, 0) / rates.length : 0;
-              const na = matched.length > 0 ? matched.reduce((a, h) => a + (h.na || 0), 0) / matched.length : 0;
-              const spend = matched.reduce((a, h) => a + (h.r[st] || 0) * (h.nc || 0) * ((states[st]?.spend || 0) / (Object.values(states).reduce((t, s) => t + (s?.spend || 0), 0) || 1)), 0);
-              const cls = matched.reduce((a, h) => a + (h.nc || 0), 0);
-              const mcAvg = matched.length > 0 ? matched.reduce((a, h) => { const mc = getMcRate(h.c); return a + (mc > 0 ? (h.r[st] / mc) * 100 : 0); }, 0) / matched.filter(h => getMcRate(h.c) > 0).length : 0;
-              return { label: states[st]?.name || st, avgRate: avg, natAvg: na, spending: spend, claims: cls, count: matched.length, mcPct: isFinite(mcAvg) ? mcAvg : 0 };
-            }).filter(r => r.count > 0);
-          }
-          if (deGroupBy === "Code") {
-            return filteredCodes.map(h => {
-              const rates = selStates.filter(st => h.r && h.r[st] > 0).map(st => h.r[st]);
-              const avg = rates.length > 0 ? rates.reduce((a, b) => a + b, 0) / rates.length : 0;
-              const mc = getMcRate(h.c);
-              return { label: `${h.c} — ${h.d}`, avgRate: avg, natAvg: h.na || 0, spending: h.ns || 0, claims: h.nc || 0, count: rates.length, stateCount: rates.length, mcPct: mc > 0 ? (avg / mc) * 100 : 0 };
-            }).filter(r => r.count > 0);
-          }
-          if (deGroupBy === "Category") {
-            const cats = [...new Set(filteredCodes.map(h => h.cat))].sort();
-            return cats.map(cat => {
-              const inCat = filteredCodes.filter(h => h.cat === cat);
-              const allRates: number[] = [];
-              inCat.forEach(h => selStates.forEach(st => { if (h.r && h.r[st] > 0) allRates.push(h.r[st]); }));
-              const avg = allRates.length > 0 ? allRates.reduce((a, b) => a + b, 0) / allRates.length : 0;
-              const na = inCat.length > 0 ? inCat.reduce((a, h) => a + (h.na || 0), 0) / inCat.length : 0;
-              const spend = inCat.reduce((a, h) => a + (h.ns || 0), 0);
-              const cls = inCat.reduce((a, h) => a + (h.nc || 0), 0);
-              return { label: cat, avgRate: avg, natAvg: na, spending: spend, claims: cls, count: inCat.length, mcPct: 0 };
-            }).filter(r => r.count > 0);
-          }
-          // State × Code
-          const rows: DERow[] = [];
-          selStates.forEach(st => {
-            filteredCodes.forEach(h => {
-              if (h.r && h.r[st] > 0) {
-                const mc = getMcRate(h.c);
-                rows.push({ label: `${states[st]?.name || st} × ${h.c}`, avgRate: h.r[st], natAvg: h.na || 0, spending: (h.r[st]) * (h.nc || 0) * ((states[st]?.spend || 0) / (Object.values(states).reduce((t, s) => t + (s?.spend || 0), 0) || 1)), claims: h.nc || 0, count: 1, mcPct: mc > 0 ? (h.r[st] / mc) * 100 : 0 });
-              }
-            });
-          });
-          return rows;
-        })();
+        const deSorted = wRows;
 
-        const deSorted = [...deRows].sort((a, b) => b.avgRate - a.avgRate).slice(0, deMaxResults);
+        const deColumns: { k: keyof DERow; l: string; f: (v: number) => string }[] = [
+          { k: "spending", l: "Total Paid", f: f$ },
+          { k: "claims", l: "Claims", f: fN },
+          { k: "beneficiaries" as keyof DERow, l: "Beneficiaries", f: fN },
+          { k: "avgRate", l: "Avg Rate", f: f$ },
+          ...(deIncludePerBene ? [{ k: "perBene" as keyof DERow, l: "Per Bene", f: f$ }] : []),
+          { k: "count", l: "Rows", f: fN },
+        ];
 
-        const deColumns = (() => {
-          const cols: { k: keyof DERow; l: string; f: (v: number) => string }[] = [{ k: "avgRate", l: "Avg Rate", f: f$ }];
-          if (deGroupBy !== "State × Code") cols.push({ k: "natAvg", l: "Nat'l Avg", f: f$ });
-          cols.push({ k: "spending", l: "Spending", f: f$ });
-          cols.push({ k: "claims", l: "Claims", f: fN });
-          if (deGroupBy === "Code") cols.push({ k: "stateCount" as keyof DERow, l: "States", f: fN });
-          else cols.push({ k: "count", l: deGroupBy === "State" ? "Codes" : deGroupBy === "Category" ? "Codes" : "Count", f: fN });
-          if (mcRates) cols.push({ k: "mcPct", l: "% Medicare", f: (v: number) => v > 0 ? `${v.toFixed(0)}%` : "—" });
-          return cols;
-        })();
+        const scatterMetrics = [{ k: "spending", l: "Total Paid" }, { k: "claims", l: "Claims" }, { k: "beneficiaries", l: "Beneficiaries" }, { k: "avgRate", l: "Avg Rate" }, { k: "count", l: "Rows" }];
 
-        const scatterMetrics = [{ k: "avgRate", l: "Avg Rate" }, { k: "natAvg", l: "National Avg" }, { k: "spending", l: "Spending" }, { k: "claims", l: "Claims" }, { k: "count", l: "Count" }, { k: "mcPct", l: "% Medicare" }];
+        const allGroupOpts = ["State","Code","Category","State × Code","ZIP3","NPI","Taxonomy","Year","Month"];
+        const stateList = deMeta?.states || SL;
+        const catList = deMeta?.categories || CATS;
+
+        // Summary stats from current results
+        const summaryPaid = deSorted.reduce((a, r) => a + r.spending, 0);
+        const summaryClaims = deSorted.reduce((a, r) => a + r.claims, 0);
+        const summaryBene = deSorted.reduce((a, r) => a + (r.beneficiaries || 0), 0);
+        const summaryAvgRate = summaryClaims > 0 ? summaryPaid / summaryClaims : 0;
 
         return <div style={{ display:"grid",gap:10 }}>
-        <TabGuide title="Data Explorer" desc="Self-service query tool. Pick states, a category, and optional HCPCS codes, choose how to group results, then view as table, bar chart, or scatter plot. Export any view to CSV." tips="Start by selecting a few states, then experiment with group-by and visualization options."/>
+        <TabGuide title="Data Explorer" desc="Query 190M+ Medicaid claims directly in your browser with DuckDB-WASM. Filter by state, service type, provider, date range, and presets. No server needed." tips="Start with a preset like CCBHC or Behavioral Health, then narrow by state. Try grouping by Year or NPI for different perspectives."/>
+
+        {/* Mode Badge + Status */}
+        <div style={{ display:"flex",alignItems:"center",gap:8,flexWrap:"wrap" }}>
+          {duckdbReady ? (
+            <span style={{ fontSize:9,fontWeight:600,padding:"3px 10px",borderRadius:12,background:`${cB}15`,color:cB,border:`1px solid ${cB}40` }}>DuckDB-WASM</span>
+          ) : duckdbInit ? (
+            <span style={{ fontSize:9,fontWeight:500,padding:"3px 10px",borderRadius:12,background:`${WARN}15`,color:WARN,border:`1px solid ${WARN}40` }}>Initializing...</span>
+          ) : deError ? (
+            <span style={{ fontSize:9,fontWeight:500,padding:"3px 10px",borderRadius:12,background:`${NEG}15`,color:NEG,border:`1px solid ${NEG}40` }}>Error</span>
+          ) : null}
+          {deMeta && <span style={{ fontSize:9,color:AL }}>Parquet data loaded</span>}
+          {deLoading && <span style={{ fontSize:9,color:AL }}>Querying...</span>}
+          {deData && !deLoading && <span style={{ fontSize:9,color:AL,fontFamily:FM }}>{deData.query_ms.toFixed(0)}ms</span>}
+        </div>
+
+        {/* Loading State */}
+        {duckdbInit && <Card><div style={{ padding:40,textAlign:"center" }}>
+          <div style={{ fontSize:13,fontWeight:600,color:A,marginBottom:8 }}>Initializing DuckDB-WASM</div>
+          <div style={{ fontSize:10,color:AL }}>Loading query engine and Parquet data files...</div>
+          <div style={{ marginTop:12,width:120,height:3,background:B,borderRadius:2,margin:"12px auto 0",overflow:"hidden" }}><div style={{ width:"60%",height:"100%",background:cB,borderRadius:2,animation:"pulse 1.5s ease-in-out infinite" }}/></div>
+        </div></Card>}
+
+        {/* Error State */}
+        {deError && !duckdbInit && <Card><div style={{ padding:20,textAlign:"center" }}>
+          <div style={{ fontSize:11,color:NEG,marginBottom:4 }}>{deError}</div>
+          <div style={{ fontSize:10,color:AL }}>The Data Explorer requires Parquet files in /data/. Run <span style={{ fontFamily:FM }}>python3 server/export_parquet.py</span> to generate them.</div>
+        </div></Card>}
+
+        {/* Entry Point Cards — "What do you want to explore?" */}
+        {duckdbReady && !deExploreMode && <>
+        <Card>
+          <CH t="What do you want to explore?"/>
+          <div style={{ padding:"8px 14px 16px",display:"grid",gridTemplateColumns:"1fr 1fr 1fr 1fr",gap:10 }}>
+            {[
+              { id: "state", title: "State Analysis", desc: "Compare Medicaid spending across states", icon: "\u{1F5FA}" },
+              { id: "service", title: "Service Analysis", desc: "Explore spending by service type or HCPCS code", icon: "\u{1F3E5}" },
+              { id: "provider", title: "Provider Analysis", desc: "Find and compare providers", icon: "\u{1F468}\u200D\u2695\uFE0F" },
+              { id: "sql", title: "SQL Editor", desc: "Write raw SQL against the full dataset", icon: "\u{1F4BB}" },
+            ].map(card => (
+              <button key={card.id} onClick={() => {
+                setDeExploreMode(card.id);
+                if (card.id === "state") { setDEGroup("State"); }
+                else if (card.id === "service") { setDEGroup("Code"); }
+                else if (card.id === "provider") { setDEGroup("NPI"); }
+              }} style={{ padding:16,background:S,border:`1px solid ${B}`,borderRadius:10,cursor:"pointer",textAlign:"left",transition:"all 0.15s" }}>
+                <div style={{ fontSize:20,marginBottom:6 }}>{card.icon}</div>
+                <div style={{ fontSize:12,fontWeight:600,color:A,marginBottom:4 }}>{card.title}</div>
+                <div style={{ fontSize:10,color:AL,lineHeight:1.4 }}>{card.desc}</div>
+              </button>
+            ))}
+          </div>
+        </Card>
+        </>}
+
+        {/* SQL Editor Mode */}
+        {duckdbReady && deExploreMode === "sql" && <>
+        <div style={{ display:"flex",alignItems:"center",gap:8 }}>
+          <button onClick={() => setDeExploreMode(null)} style={{ fontSize:10,color:cB,background:"none",border:`1px solid ${B}`,borderRadius:5,padding:"3px 8px",cursor:"pointer" }}>&larr; Back</button>
+          <span style={{ fontSize:10,fontWeight:600,color:A }}>SQL Editor</span>
+          {sqlResult && !sqlRunning && <span style={{ fontSize:9,color:AL,fontFamily:FM }}>{sqlResult.rows.length} rows in {sqlResult.ms.toFixed(0)}ms</span>}
+        </div>
+
+        <Card>
+          <CH t="Available Tables" b="Click a table name to insert it into your query"/>
+          <div style={{ padding:"6px 14px 12px",display:"flex",gap:6,flexWrap:"wrap" }}>
+            {[
+              { t: "claims.parquet", d: "State x HCPCS x year (712K rows): state, hcpcs_code, category, year, total_paid, total_claims, total_beneficiaries, provider_count" },
+              { t: "claims_monthly.parquet", d: "State x HCPCS x month (6.3M rows): state, hcpcs_code, category, claim_month, year, total_paid, total_claims, total_beneficiaries, provider_count" },
+              { t: "categories.parquet", d: "State x category x year (8K rows): state, category, year, total_paid, total_claims, total_beneficiaries, code_count" },
+              { t: "providers.parquet", d: "Provider summary (584K rows): npi, provider_name, state, zip3, taxonomy, total_paid, total_claims, total_beneficiaries, code_count" },
+            ].map(tb => (
+              <button key={tb.t} onClick={() => setSqlText(prev => prev + ` '${tb.t}'`)} title={tb.d} style={{ fontSize:9,padding:"3px 10px",borderRadius:6,background:`${cB}08`,border:`1px solid ${cB}25`,color:cB,cursor:"pointer",fontFamily:FM }}>
+                {tb.t}
+              </button>
+            ))}
+          </div>
+          <div style={{ padding:"0 14px 10px",fontSize:9,color:AL,lineHeight:1.5 }}>
+            <strong>Columns:</strong> state, hcpcs_code, category, year, claim_month, total_paid, total_claims, total_beneficiaries, provider_count, npi, provider_name, zip3, taxonomy, code_count
+          </div>
+        </Card>
+
+        <Card>
+          <CH t="Query"/>
+          <div style={{ padding:"6px 14px 12px" }}>
+            <textarea
+              value={sqlText}
+              onChange={e => setSqlText(e.target.value)}
+              onKeyDown={e => {
+                if ((e.metaKey || e.ctrlKey) && e.key === "Enter") {
+                  e.preventDefault();
+                  runSql();
+                }
+              }}
+              spellCheck={false}
+              style={{ width:"100%",minHeight:120,fontFamily:FM,fontSize:11,padding:10,borderRadius:8,border:`1px solid ${B}`,color:A,background:S,resize:"vertical",outline:"none",boxSizing:"border-box",lineHeight:1.6 }}
+            />
+            <div style={{ display:"flex",gap:8,marginTop:8,alignItems:"center" }}>
+              <button
+                onClick={runSql}
+                disabled={sqlRunning || !sqlText.trim()}
+                style={{ fontSize:11,fontWeight:600,padding:"6px 20px",borderRadius:6,background:cB,color:WH,border:"none",cursor:sqlRunning?"wait":"pointer",opacity:sqlRunning?0.6:1 }}
+              >
+                {sqlRunning ? "Running..." : "Run Query"}
+              </button>
+              <span style={{ fontSize:9,color:AL }}>Ctrl+Enter to run</span>
+              {sqlError && <span style={{ fontSize:9,color:NEG,flex:1 }}>{sqlError}</span>}
+            </div>
+          </div>
+        </Card>
+
+        {/* Example Queries */}
+        <Card>
+          <CH t="Example Queries" b="Click to load"/>
+          <div style={{ padding:"6px 14px 12px",display:"grid",gap:6 }}>
+            {[
+              { l: "Top 10 states by total spending", q: "SELECT state, SUM(total_paid) AS total_paid, SUM(total_claims) AS total_claims,\n  SUM(total_beneficiaries) AS total_beneficiaries\nFROM 'claims.parquet'\nGROUP BY state\nORDER BY total_paid DESC\nLIMIT 10" },
+              { l: "CCBHC codes by state", q: "SELECT state, hcpcs_code, SUM(total_paid) AS total_paid, SUM(total_claims) AS claims\nFROM 'claims.parquet'\nWHERE hcpcs_code IN ('H2000','H0031','H0001','H0032','T1007','H0015','H0020','H2017','H0018','H0038','H2011')\nGROUP BY state, hcpcs_code\nORDER BY state, total_paid DESC" },
+              { l: "Top 20 providers in Florida", q: "SELECT npi, provider_name, taxonomy, total_paid, total_claims, code_count\nFROM 'providers.parquet'\nWHERE state = 'FL'\nORDER BY total_paid DESC\nLIMIT 20" },
+              { l: "Behavioral health spending trend by year", q: "SELECT year, SUM(total_paid) AS total_paid, SUM(total_claims) AS claims,\n  SUM(total_beneficiaries) AS beneficiaries\nFROM 'claims.parquet'\nWHERE category = 'Behavioral'\nGROUP BY year\nORDER BY year" },
+              { l: "Average rate per claim by category", q: "SELECT category,\n  SUM(total_paid) / NULLIF(SUM(total_claims), 0) AS avg_rate,\n  SUM(total_paid) AS total_paid,\n  SUM(total_claims) AS total_claims\nFROM 'claims.parquet'\nGROUP BY category\nORDER BY avg_rate DESC" },
+              { l: "Cross-state rate comparison for 99213", q: "SELECT state,\n  SUM(total_paid) / NULLIF(SUM(total_claims), 0) AS avg_rate,\n  SUM(total_claims) AS claims\nFROM 'claims.parquet'\nWHERE hcpcs_code = '99213'\nGROUP BY state\nORDER BY avg_rate DESC" },
+            ].map(ex => (
+              <button key={ex.l} onClick={() => setSqlText(ex.q)} style={{ fontSize:10,padding:"6px 10px",borderRadius:6,background:WH,border:`1px solid ${B}`,color:A,cursor:"pointer",textAlign:"left" }}>
+                {ex.l}
+              </button>
+            ))}
+          </div>
+        </Card>
+
+        {/* SQL Results */}
+        {sqlResult && sqlResult.rows.length > 0 && <Card>
+          <div style={{ display:"flex",justifyContent:"space-between",alignItems:"center",padding:"10px 14px 4px" }}>
+            <CH t={`Results — ${sqlResult.rows.length} rows`} b={`${sqlResult.ms.toFixed(0)}ms`}/>
+            <ExportBtn onClick={() => {
+              const hdr = sqlResult.cols;
+              const rows = sqlResult.rows.map(r => sqlResult.cols.map(c => {
+                const v = r[c];
+                return v == null ? "" : typeof v === "number" ? v : String(v);
+              }));
+              downloadCSV("sql_results.csv", hdr, rows);
+            }}/>
+          </div>
+          <div style={{ padding:"0 14px 14px",overflowX:"auto" }}>
+            <table style={{ width:"100%",fontSize:10,borderCollapse:"collapse" }}>
+              <thead><tr style={{ borderBottom:`2px solid ${B}` }}>
+                {sqlResult.cols.map(c => <th key={c} style={{ textAlign:"left",padding:"6px 8px",color:AL,fontWeight:600,fontSize:9,whiteSpace:"nowrap" }}>{c}</th>)}
+              </tr></thead>
+              <tbody>{sqlResult.rows.slice(0,500).map((r,i) => <tr key={i} style={{ borderBottom:`1px solid ${B}`,background:i%2===0?WH:S }}>
+                {sqlResult.cols.map(c => {
+                  const v = r[c];
+                  const isNum = typeof v === "number";
+                  return <td key={c} style={{ padding:"5px 8px",fontFamily:isNum?FM:"inherit",color:A,textAlign:isNum?"right":"left",whiteSpace:"nowrap" }}>
+                    {v == null ? <span style={{ color:AL }}>null</span> : isNum ? (Math.abs(v) >= 1000 ? f$(v) : v % 1 === 0 ? String(v) : v.toFixed(2)) : String(v)}
+                  </td>;
+                })}
+              </tr>)}</tbody>
+            </table>
+            {sqlResult.rows.length > 500 && <div style={{ padding:"8px 0",fontSize:9,color:AL,textAlign:"center" }}>Showing first 500 of {sqlResult.rows.length} rows</div>}
+          </div>
+        </Card>}
+
+        {sqlResult && sqlResult.rows.length === 0 && !sqlRunning && <Card>
+          <div style={{ padding:20,textAlign:"center",fontSize:11,color:AL }}>Query returned 0 rows.</div>
+        </Card>}
+        </>}
+
+        {/* Guided Query Interface — shown after selecting state/service/provider mode */}
+        {duckdbReady && deExploreMode && deExploreMode !== "sql" && <>
+
+        {/* Back + Mode Label */}
+        <div style={{ display:"flex",alignItems:"center",gap:8 }}>
+          <button onClick={() => setDeExploreMode(null)} style={{ fontSize:10,color:cB,background:"none",border:`1px solid ${B}`,borderRadius:5,padding:"3px 8px",cursor:"pointer" }}>&larr; Back</button>
+          <span style={{ fontSize:10,fontWeight:600,color:A }}>{deExploreMode === "state" ? "State Analysis" : deExploreMode === "service" ? "Service Analysis" : "Provider Analysis"}</span>
+        </div>
+
+        {/* Preset Buttons */}
+        <Card>
+          <CH t="Presets" b="Quick analysis — click to auto-fill filters"/>
+          <div style={{ padding:"6px 14px 12px",display:"flex",flexWrap:"wrap",gap:4 }}>
+            <Pill on={!dePreset} onClick={()=>setDEPreset(null)}>None</Pill>
+            {dePresets.map(p => <Pill key={p.id} on={dePreset===p.id} onClick={()=>setDEPreset(dePreset===p.id?null:p.id)}>{p.name}</Pill>)}
+          </div>
+          {dePreset && dePresets.find(p=>p.id===dePreset) && <div style={{ padding:"0 14px 8px",fontSize:9,color:AL }}>{dePresets.find(p=>p.id===dePreset)?.description}</div>}
+        </Card>
 
         {/* Filter Panel */}
         <Card>
           <CH t="Filters"/>
           <div style={{ padding:"6px 14px 12px",display:"grid",gap:10 }}>
-            {/* States */}
+            {/* States — always visible */}
             <div>
               <div style={{ fontSize:10,fontWeight:600,color:A,marginBottom:4 }}>States</div>
               <div style={{ display:"flex",gap:4,marginBottom:4 }}>
-                <button onClick={()=>setDEStates([...SL])} style={{ fontSize:9,color:cB,background:"none",border:`1px solid ${B}`,borderRadius:4,padding:"2px 8px",cursor:"pointer" }}>Select All</button>
+                <button onClick={()=>setDEStates([...stateList])} style={{ fontSize:9,color:cB,background:"none",border:`1px solid ${B}`,borderRadius:4,padding:"2px 8px",cursor:"pointer" }}>Select All</button>
                 <button onClick={()=>setDEStates([])} style={{ fontSize:9,color:AL,background:"none",border:`1px solid ${B}`,borderRadius:4,padding:"2px 8px",cursor:"pointer" }}>Clear</button>
                 <span style={{ fontSize:9,color:AL,marginLeft:4 }}>{deStates.length === 0 ? "All states" : `${deStates.length} selected`}</span>
               </div>
               <div style={{ maxHeight:120,overflowY:"auto",border:`1px solid ${B}`,borderRadius:6,padding:"4px 8px",display:"grid",gridTemplateColumns:"repeat(auto-fill,minmax(120px,1fr))",gap:"1px 8px" }}>
-                {SL.map(st => <label key={st} style={{ fontSize:10,color:A,display:"flex",alignItems:"center",gap:4,cursor:"pointer",whiteSpace:"nowrap" }}>
+                {stateList.map(st => <label key={st} style={{ fontSize:10,color:A,display:"flex",alignItems:"center",gap:4,cursor:"pointer",whiteSpace:"nowrap" }}>
                   <input type="checkbox" checked={deStates.includes(st)} onChange={()=>setDEStates(p=>p.includes(st)?p.filter(x=>x!==st):[...p,st])} style={{ margin:0 }}/>
                   {states[st]?.name || st}
                 </label>)}
@@ -1158,7 +1425,7 @@ export default function TmsisExplorer() {
               <div style={{ fontSize:10,fontWeight:600,color:A,marginBottom:4 }}>Category</div>
               <select value={deCat} onChange={e=>setDECat(e.target.value)} style={{ fontSize:11,padding:"4px 8px",borderRadius:6,border:`1px solid ${B}`,color:A,background:WH }}>
                 <option value="All">All Categories</option>
-                {CATS.map(c => <option key={c} value={c}>{c}</option>)}
+                {catList.map(c => <option key={c} value={c}>{c}</option>)}
               </select>
             </div>
 
@@ -1174,17 +1441,69 @@ export default function TmsisExplorer() {
               </div>}
             </div>
 
+            {/* Provider filters (shown in provider mode or always available) */}
+            {deExploreMode === "provider" && <>
+              <div style={{ display:"grid",gridTemplateColumns:"1fr 1fr 1fr",gap:8 }}>
+                <div>
+                  <div style={{ fontSize:10,fontWeight:600,color:A,marginBottom:4 }}>NPI</div>
+                  <input value={deNpi.join(",")} onChange={e => setDENpi(e.target.value ? e.target.value.split(",").map(s=>s.trim()).filter(Boolean) : [])} placeholder="Comma-separated NPIs" style={{ width:"100%",fontSize:10,padding:"4px 6px",borderRadius:6,border:`1px solid ${B}`,color:A,fontFamily:FM }}/>
+                </div>
+                <div>
+                  <div style={{ fontSize:10,fontWeight:600,color:A,marginBottom:4 }}>Provider Name</div>
+                  <input value={deProviderName} onChange={e => setDEProvName(e.target.value)} placeholder="Search name..." style={{ width:"100%",fontSize:10,padding:"4px 6px",borderRadius:6,border:`1px solid ${B}`,color:A }}/>
+                </div>
+                <div>
+                  <div style={{ fontSize:10,fontWeight:600,color:A,marginBottom:4 }}>Taxonomy</div>
+                  <input value={deTaxonomy.join(",")} onChange={e => setDETax(e.target.value ? e.target.value.split(",").map(s=>s.trim()).filter(Boolean) : [])} placeholder="Comma-separated" style={{ width:"100%",fontSize:10,padding:"4px 6px",borderRadius:6,border:`1px solid ${B}`,color:A,fontFamily:FM }}/>
+                </div>
+              </div>
+            </>}
+
+            {/* Date Range + ZIP3 */}
+            <div style={{ display:"grid",gridTemplateColumns:"1fr 1fr 1fr",gap:8 }}>
+              <div>
+                <div style={{ fontSize:10,fontWeight:600,color:A,marginBottom:4 }}>Year From</div>
+                <input type="number" value={deDateFrom} onChange={e=>setDEDateFrom(e.target.value)} placeholder="e.g. 2019" style={{ width:"100%",fontSize:10,padding:"4px 6px",borderRadius:6,border:`1px solid ${B}`,color:A,fontFamily:FM }}/>
+              </div>
+              <div>
+                <div style={{ fontSize:10,fontWeight:600,color:A,marginBottom:4 }}>Year To</div>
+                <input type="number" value={deDateTo} onChange={e=>setDEDateTo(e.target.value)} placeholder="e.g. 2023" style={{ width:"100%",fontSize:10,padding:"4px 6px",borderRadius:6,border:`1px solid ${B}`,color:A,fontFamily:FM }}/>
+              </div>
+              {deExploreMode === "provider" && <div>
+                <div style={{ fontSize:10,fontWeight:600,color:A,marginBottom:4 }}>ZIP3</div>
+                <input value={deZip3.join(",")} onChange={e => setDEZip3(e.target.value ? e.target.value.split(",").map(s=>s.trim()).filter(Boolean) : [])} placeholder="e.g. 331,332" style={{ width:"100%",fontSize:10,padding:"4px 6px",borderRadius:6,border:`1px solid ${B}`,color:A,fontFamily:FM }}/>
+              </div>}
+            </div>
+
+            {/* Volume Filters */}
+            <div style={{ display:"grid",gridTemplateColumns:"1fr 1fr 1fr",gap:8 }}>
+              <div>
+                <div style={{ fontSize:10,fontWeight:600,color:A,marginBottom:4 }}>Min Claims</div>
+                <input type="number" value={deMinClaims ?? ""} onChange={e=>setDEMinClaims(e.target.value ? Number(e.target.value) : undefined)} placeholder="No minimum" style={{ width:"100%",fontSize:10,padding:"4px 6px",borderRadius:6,border:`1px solid ${B}`,color:A,fontFamily:FM }}/>
+              </div>
+              <div>
+                <div style={{ fontSize:10,fontWeight:600,color:A,marginBottom:4 }}>Min Beneficiaries</div>
+                <input type="number" value={deMinBene ?? ""} onChange={e=>setDEMinBene(e.target.value ? Number(e.target.value) : undefined)} placeholder="No minimum" style={{ width:"100%",fontSize:10,padding:"4px 6px",borderRadius:6,border:`1px solid ${B}`,color:A,fontFamily:FM }}/>
+              </div>
+              <div style={{ display:"flex",alignItems:"flex-end",paddingBottom:2 }}>
+                <label style={{ fontSize:10,color:A,display:"flex",alignItems:"center",gap:4,cursor:"pointer" }}>
+                  <input type="checkbox" checked={deIncludePerBene} onChange={()=>setDEPerBene(!deIncludePerBene)} style={{ margin:0 }}/>
+                  Include per-bene metric
+                </label>
+              </div>
+            </div>
+
             {/* Group By + Max Results */}
             <div style={{ display:"flex",gap:16,flexWrap:"wrap",alignItems:"flex-end" }}>
               <div>
                 <div style={{ fontSize:10,fontWeight:600,color:A,marginBottom:4 }}>Group By</div>
-                <div style={{ display:"flex",gap:4 }}>
-                  {["State","Code","Category","State × Code"].map(g2 => <Pill key={g2} on={deGroupBy===g2} onClick={()=>setDEGroup(g2)}>{g2}</Pill>)}
+                <div style={{ display:"flex",gap:4,flexWrap:"wrap" }}>
+                  {allGroupOpts.map(g2 => <Pill key={g2} on={deGroupBy===g2} onClick={()=>setDEGroup(g2)}>{g2}</Pill>)}
                 </div>
               </div>
               <div>
                 <div style={{ fontSize:10,fontWeight:600,color:A,marginBottom:4 }}>Max Results</div>
-                <input type="number" value={deMaxResults} onChange={e=>setDEMax(Math.max(1,Math.min(5000,Number(e.target.value)||100)))} style={{ width:60,fontSize:11,padding:"4px 6px",borderRadius:6,border:`1px solid ${B}`,color:A,fontFamily:FM }}/>
+                <input type="number" value={deMaxResults} onChange={e=>setDEMax(Math.max(1,Math.min(10000,Number(e.target.value)||100)))} style={{ width:60,fontSize:11,padding:"4px 6px",borderRadius:6,border:`1px solid ${B}`,color:A,fontFamily:FM }}/>
               </div>
             </div>
 
@@ -1214,62 +1533,83 @@ export default function TmsisExplorer() {
           </div>
         </Card>
 
+        {/* Summary Cards */}
+        {deData && !deLoading && deSorted.length > 0 && <div style={{ display:"grid",gridTemplateColumns:"repeat(4,1fr)",gap:8 }}>
+          {[
+            { l: "Total Paid", v: f$(summaryPaid) },
+            { l: "Total Claims", v: fN(summaryClaims) },
+            { l: "Beneficiaries", v: fN(summaryBene) },
+            { l: "Avg Rate", v: f$(summaryAvgRate) },
+          ].map(m => <div key={m.l} style={{ background:WH,border:`1px solid ${B}`,borderRadius:8,padding:"10px 12px",boxShadow:SH }}>
+            <div style={{ fontSize:9,color:AL,fontWeight:500,marginBottom:2 }}>{m.l}</div>
+            <div style={{ fontSize:16,fontWeight:700,color:A,fontFamily:FM }}>{m.v}</div>
+          </div>)}
+        </div>}
+
         {/* Results */}
         <Card>
           <div style={{ display:"flex",justifyContent:"space-between",alignItems:"center",padding:"10px 14px 4px" }}>
             <CH t={`Results — ${deSorted.length} rows`} b={`grouped by ${deGroupBy}`}/>
-            <ExportBtn onClick={()=>{
-              const hdr = ["Label", ...deColumns.map(c => c.l)];
-              const rows = deSorted.map(r => [r.label, ...deColumns.map(c => {
-                const v = r[c.k];
-                return typeof v === "number" ? v : 0;
-              })]);
-              downloadCSV(`data_explorer_${deGroupBy.replace(/ /g,"_").toLowerCase()}.csv`, hdr, rows);
-            }}/>
+            <div style={{ display:"flex",gap:8,alignItems:"center" }}>
+              {deError && <span style={{ fontSize:9,color:NEG }}>{deError}</span>}
+              <ExportBtn onClick={()=>{
+                const hdr = ["Label", ...deColumns.map(c => c.l)];
+                const rows = deSorted.map(r => [r.label, ...deColumns.map(c => {
+                  const v = r[c.k];
+                  return typeof v === "number" ? v : 0;
+                })]);
+                downloadCSV(`data_explorer_${deGroupBy.replace(/ /g,"_").toLowerCase()}.csv`, hdr, rows);
+              }}/>
+            </div>
           </div>
           <div style={{ padding:"0 14px 14px" }}>
-            {deSorted.length === 0 && <div style={{ padding:20,textAlign:"center",fontSize:11,color:AL }}>No matching data. Adjust your filters above.</div>}
+            {deLoading && <div style={{ padding:20,textAlign:"center",fontSize:11,color:AL }}>Querying DuckDB-WASM...</div>}
+            {!deLoading && deSorted.length === 0 && <div style={{ padding:20,textAlign:"center",fontSize:11,color:AL }}>No matching data. Adjust your filters above.</div>}
 
             {/* Table View */}
-            {deViz==="table" && deSorted.length > 0 && <div style={{ overflowX:"auto" }}>
+            {deViz==="table" && !deLoading && deSorted.length > 0 && <div style={{ overflowX:"auto" }}>
               <table style={{ width:"100%",fontSize:10,borderCollapse:"collapse" }}>
                 <thead><tr style={{ borderBottom:`2px solid ${B}` }}>
                   <th style={{ textAlign:"left",padding:"6px 8px",color:AL,fontWeight:600,fontSize:9,whiteSpace:"nowrap" }}>Label</th>
                   {deColumns.map(c => <th key={c.k} style={{ textAlign:"right",padding:"6px 8px",color:AL,fontWeight:600,fontSize:9,whiteSpace:"nowrap" }}>{c.l}</th>)}
                 </tr></thead>
                 <tbody>{deSorted.map((r,i) => <tr key={i} style={{ borderBottom:`1px solid ${B}`,background:i%2===0?WH:S }}>
-                  <td style={{ padding:"5px 8px",color:A,fontWeight:500,maxWidth:260,overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap" }}>{r.label}</td>
+                  <td style={{ padding:"5px 8px",color:A,fontWeight:500,maxWidth:300,overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap" }}>{r.label}</td>
                   {deColumns.map(c => <td key={c.k} style={{ padding:"5px 8px",textAlign:"right",fontFamily:FM,color:A }}>{c.f(r[c.k] as number)}</td>)}
                 </tr>)}</tbody>
               </table>
             </div>}
 
             {/* Bar Chart View */}
-            {deViz==="bar" && deSorted.length > 0 && <ResponsiveContainer width="100%" height={Math.max(250, deSorted.length * 22)}>
+            {deViz==="bar" && !deLoading && deSorted.length > 0 && <ResponsiveContainer width="100%" height={Math.max(250, deSorted.length * 22)}>
               <BarChart data={deSorted} layout="vertical" margin={{ left: 10, right: 20, top: 5, bottom: 5 }}>
                 <CartesianGrid strokeDasharray="3 3" stroke={B}/>
                 <XAxis type="number" tick={{ fontSize:9,fill:AL }} tickFormatter={(v: number)=>f$(v)}/>
                 <YAxis type="category" dataKey="label" width={140} tick={{ fontSize:9,fill:A }} interval={0}/>
-                <Tooltip content={<SafeTip active={false} payload={[]} render={(d: Record<string,unknown>)=><div><div style={{ fontWeight:600 }}>{String(d.label)}</div><div>Avg Rate: {f$(d.avgRate as number)}</div><div>Spending: {f$(d.spending as number)}</div><div>Claims: {fN(d.claims as number)}</div></div>}/>}/>
-                <Bar dataKey="avgRate" radius={[0,4,4,0]}>
+                <Tooltip content={<SafeTip active={false} payload={[]} render={(d: Record<string,unknown>)=><div><div style={{ fontWeight:600 }}>{String(d.label)}</div><div>Total Paid: {f$(d.spending as number)}</div><div>Claims: {fN(d.claims as number)}</div><div>Avg Rate: {f$(d.avgRate as number)}</div></div>}/>}/>
+                <Bar dataKey="spending" radius={[0,4,4,0]}>
                   {deSorted.map((_,i)=><Cell key={i} fill={i%2===0?cB:cT}/>)}
                 </Bar>
               </BarChart>
             </ResponsiveContainer>}
 
             {/* Scatter Chart View */}
-            {deViz==="scatter" && deSorted.length > 0 && <ResponsiveContainer width="100%" height={350}>
+            {deViz==="scatter" && !deLoading && deSorted.length > 0 && <ResponsiveContainer width="100%" height={350}>
               <ScatterChart margin={{ left: 10, right: 20, top: 10, bottom: 10 }}>
                 <CartesianGrid strokeDasharray="3 3" stroke={B}/>
-                <XAxis type="number" dataKey={deScatterX} name={scatterMetrics.find(m=>m.k===deScatterX)?.l||deScatterX} tick={{ fontSize:9,fill:AL }} tickFormatter={(v: number)=>deScatterX.includes("pend")||deScatterX.includes("Rate")||deScatterX.includes("Avg")?f$(v):fN(v)}/>
-                <YAxis type="number" dataKey={deScatterY} name={scatterMetrics.find(m=>m.k===deScatterY)?.l||deScatterY} tick={{ fontSize:9,fill:AL }} tickFormatter={(v: number)=>deScatterY.includes("pend")||deScatterY.includes("Rate")||deScatterY.includes("Avg")?f$(v):fN(v)}/>
+                <XAxis type="number" dataKey={deScatterX} name={scatterMetrics.find(m=>m.k===deScatterX)?.l||deScatterX} tick={{ fontSize:9,fill:AL }} tickFormatter={(v: number)=>deScatterX.includes("pend")||deScatterX.includes("paid")||deScatterX.includes("Rate")||deScatterX.includes("Avg")?f$(v):fN(v)}/>
+                <YAxis type="number" dataKey={deScatterY} name={scatterMetrics.find(m=>m.k===deScatterY)?.l||deScatterY} tick={{ fontSize:9,fill:AL }} tickFormatter={(v: number)=>deScatterY.includes("pend")||deScatterY.includes("paid")||deScatterY.includes("Rate")||deScatterY.includes("Avg")?f$(v):fN(v)}/>
                 <ZAxis range={[40,40]}/>
                 <Tooltip content={<SafeTip active={false} payload={[]} render={(d: Record<string,unknown>)=><div><div style={{ fontWeight:600 }}>{String(d.label)}</div><div>{scatterMetrics.find(m=>m.k===deScatterX)?.l}: {f$(d[deScatterX] as number)}</div><div>{scatterMetrics.find(m=>m.k===deScatterY)?.l}: {f$(d[deScatterY] as number)}</div></div>}/>}/>
                 <Scatter data={deSorted} fill={cB}/>
               </ScatterChart>
             </ResponsiveContainer>}
           </div>
+
+          {/* Footer */}
+          <div style={{ padding:"4px 14px 10px",fontSize:8,color:AL,textAlign:"right" }}>Powered by DuckDB-WASM — querying Medicaid claims in your browser</div>
         </Card>
+        </>}
         </div>;
       })()}
 

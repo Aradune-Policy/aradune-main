@@ -106,8 +106,8 @@ const NAV_GROUPS: NavGroup[] = [
 
 const GROUP_COLORS: Record<string, string> = { transparency: C.brand, adequacy: C.accent, modeling: C.teal };
 const GROUP_DESCS: Record<string, string> = {
-  transparency: "What CMS requires states to publish — and what the data shows.",
-  adequacy: "Are rates sufficient? What the Ensuring Access rule requires states to prove.",
+  transparency: "Spending, rates, and comparative data across every state.",
+  adequacy: "Are rates sufficient? Workforce wages, quality outcomes, and access.",
   modeling: "Calculate rates, model scenarios, draft policy.",
 };
 
@@ -172,13 +172,13 @@ function Landing() {
       {/* 1. Hero */}
       <div style={{ padding: "56px 0 44px", maxWidth: 640 }}>
         <h1 style={{ fontSize: 30, fontWeight: 700, color: C.ink, lineHeight: 1.25, letterSpacing: -0.5, margin: 0 }}>
-          Medicaid rate transparency and adequacy — for every state.
+          Medicaid rate intelligence for every state — open and free.
         </h1>
         <p style={{ fontSize: 14, color: C.inkLight, lineHeight: 1.7, marginTop: 14, maxWidth: 540 }}>
-          The CMS Ensuring Access final rule (42 CFR 447.203) requires every
-          state to publish fee schedules, demonstrate rate adequacy, and report
-          on HCBS compensation — starting July 2026. Aradune is the open
-          compliance and analysis platform built for this moment.
+          Cross-state rate comparisons, spending analysis, workforce adequacy,
+          fiscal modeling, and policy drafting — open tools for state agencies,
+          health plans, hospitals, consultants, researchers, and anyone who works
+          with Medicaid data.
         </p>
         <div style={{ display: "flex", gap: 10, marginTop: 22, flexWrap: "wrap" }}>
           <a href="#/explorer" style={{
@@ -222,7 +222,7 @@ function Landing() {
           {([
             { key: "state", label: "Find a state", color: C.brand },
             { key: "service", label: "Search a service", color: C.accent },
-            { key: "adequacy", label: "Check compliance", color: C.teal },
+            { key: "adequacy", label: "Check adequacy", color: C.teal },
           ] as const).map(tab => (
             <button key={tab.key} onClick={() => setStartTab(tab.key)} style={{
               background: startTab === tab.key ? `${tab.color}0D` : "none",
@@ -310,7 +310,7 @@ function Landing() {
                 textDecoration: "none", display: "inline-block",
               }}
             >
-              Check compliance →
+              Check adequacy →
             </a>
             <span style={{ fontSize: 10, color: C.inkLight, marginLeft: 4 }}>Rate adequacy, wages, and Medicare comparison</span>
           </div>
@@ -378,7 +378,7 @@ function Landing() {
         );
       })}
 
-      {/* 5. CMS Compliance callout */}
+      {/* 5. Why now: CMS Ensuring Access */}
       <div style={{
         background: C.ink, borderRadius: 14, padding: "28px 32px",
         marginBottom: 32, position: "relative", overflow: "hidden",
@@ -388,15 +388,16 @@ function Landing() {
           <div style={{ display: "flex", alignItems: "center", gap: 12, marginBottom: 10 }}>
             <span style={{ fontSize: 18, width: 36, height: 36, display: "flex", alignItems: "center", justifyContent: "center", borderRadius: 8, background: "rgba(46,107,74,0.2)", color: "#7FD4A0" }}>§</span>
             <div>
-              <div style={{ fontSize: 15, fontWeight: 600, color: C.white }}>CMS Ensuring Access Final Rule</div>
+              <div style={{ fontSize: 15, fontWeight: 600, color: C.white }}>Why now: CMS Ensuring Access Final Rule</div>
               <div style={{ fontSize: 11, color: "rgba(255,255,255,0.5)" }}>42 CFR 447.203 · Compliance deadlines begin July 2026</div>
             </div>
           </div>
           <div style={{ fontSize: 12, color: "rgba(255,255,255,0.6)", lineHeight: 1.7, maxWidth: 600 }}>
-            Every state Medicaid agency must publish fee schedules, demonstrate rate
-            adequacy through comparative analysis, and report on HCBS compensation.
-            Aradune maps each requirement to a tool so you can track, analyze, and
-            build toward compliance.
+            The Ensuring Access rule creates the first national transparency and
+            adequacy requirements for Medicaid rate-setting — one of several reasons
+            this infrastructure is urgently needed. Every tool on Aradune supports
+            compliance, but the platform serves the broader analytical work that
+            states, plans, and researchers need whether or not a federal rule requires it.
           </div>
           <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit,minmax(160px,1fr))", gap: 10, marginTop: 18 }}>
             {([
@@ -418,7 +419,7 @@ function Landing() {
               fontSize: 12, fontWeight: 600, textDecoration: "none",
               border: "1px solid rgba(127,212,160,0.2)",
             }}>
-              Full compliance overview →
+              Learn about the rule →
             </a>
           </div>
         </div>
@@ -430,17 +431,17 @@ function Landing() {
           Transparency → Adequacy → Modeling
         </div>
         <div style={{ fontSize: 12, color: C.inkLight, lineHeight: 1.7, maxWidth: 560, marginBottom: 20 }}>
-          Start with what CMS requires states to disclose. Measure whether
-          rates are sufficient. Then calculate what rates should be, model the
-          scenarios, and build the case for change.
+          Start with what the data shows. Measure whether rates are sufficient.
+          Then calculate what rates should be, model the scenarios, and build
+          the case for change.
         </div>
         <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit,minmax(240px,1fr))", gap: 14 }}>
           {([
-            { num: "1", label: "Transparency", q: "What does CMS require? What does the data show?",
+            { num: "1", label: "Transparency", q: "What does the data show?",
               desc: "Browse 227M+ claims across 54 jurisdictions. Compare Medicaid rates to Medicare. Access state fee schedules and rate-setting methodologies.",
               tools: "Spending Explorer · Medicare Comparison · Fee Schedule Directory", color: C.brand },
-            { num: "2", label: "Adequacy", q: "Are rates sufficient? Can you prove it?",
-              desc: "Compare Medicaid reimbursement against BLS market wages, map quality outcomes to payment levels, and analyze rate reductions against CMS thresholds.",
+            { num: "2", label: "Adequacy", q: "Are rates sufficient?",
+              desc: "Compare Medicaid reimbursement against BLS market wages, map quality outcomes to payment levels, and analyze rate reductions against access thresholds.",
               tools: "Rate & Wage Comparison · Quality Linkage · Rate Reduction Analyzer", color: C.accent },
             { num: "3", label: "Modeling", q: "What should rates be? Build the case.",
               desc: "Calculate defensible rates using real RVUs and conversion factors. Model hospital global budgets. Draft methodology language. Get AI-powered policy analysis.",
@@ -480,13 +481,13 @@ function Landing() {
         <div>
           <div style={{ fontSize: 14, fontWeight: 600, color: C.ink, marginBottom: 8 }}>Why this exists</div>
           <div style={{ fontSize: 12, color: C.inkLight, lineHeight: 1.75 }}>
-            The CMS Ensuring Access final rule creates the first national compliance
-            obligation for Medicaid rate transparency and adequacy — and every state
-            is scrambling to meet it. Fee schedule publication, comparative rate
-            analysis, rate reduction impact studies, HCBS 80/20 reporting: states
-            need data infrastructure they don't have, on a timeline that doesn't
-            leave room for a procurement cycle. Aradune provides that infrastructure,
-            for free, right now.
+            Medicaid rate-setting is one of the most consequential policy processes
+            in American healthcare — a $1T+ program, 50 states operating in
+            isolation, and almost nobody has the data to do it well. Cross-state
+            comparisons barely exist; adequacy analysis is ad hoc; fiscal modeling
+            is locked inside consulting engagements. Aradune builds the shared
+            infrastructure. The CMS Ensuring Access rule adds urgency, but the
+            problem is bigger than any single regulation.
           </div>
         </div>
         <div>
@@ -507,8 +508,8 @@ function Landing() {
         display: "flex", gap: 16, flexWrap: "wrap", padding: "16px 0 24px",
         borderTop: `1px solid ${C.border}`, borderBottom: `1px solid ${C.border}`, marginBottom: 32,
       }}>
-        <span style={{ fontSize: 10, fontFamily: FONT.mono, color: C.inkLight, letterSpacing: 0.5, fontWeight: 600 }}>SOURCES:</span>
-        {["CMS T-MSIS", "Medicare PFS CY2025", "BLS OEWS May 2024", "CMS Core Set", "42 CFR 447.203", "NPPES NPI", "FMAP FY2025"].map(src => (
+        <span style={{ fontSize: 10, fontFamily: FONT.mono, color: C.inkLight, letterSpacing: 0.5, fontWeight: 600 }}>DATA:</span>
+        {["CMS T-MSIS", "Medicare PFS CY2025", "BLS OEWS May 2024", "CMS Core Set", "NPPES NPI", "FMAP FY2025"].map(src => (
           <span key={src} style={{ fontSize: 10, fontFamily: FONT.mono, color: C.inkLight, letterSpacing: 0.3 }}>{src}</span>
         ))}
       </div>
@@ -524,8 +525,8 @@ function Landing() {
         }}>
           <div style={{ fontSize: 16, fontWeight: 700, color: C.brand, marginBottom: 4 }}>Free, always</div>
           <div style={{ fontSize: 12, color: C.inkLight, lineHeight: 1.7, marginBottom: 14 }}>
-            Every tool on this platform is free — spending explorer, Medicare comparison,
-            rate adequacy, AHEAD modeling, rate builder, and all coming compliance tools.
+            Every tool on this platform is free — spending explorer, rate analysis,
+            adequacy measurement, fiscal modeling, rate builder, and all coming tools.
             No login, no paywall. CSV exports included on every tool.
           </div>
           <div style={{ fontSize: 11, color: C.inkLight, lineHeight: 1.9 }}>
@@ -546,9 +547,9 @@ function Landing() {
             <span style={{ fontSize: 10, fontWeight: 600, padding: "2px 8px", borderRadius: 8, background: `${C.accent}12`, color: C.accent }}>Coming Soon</span>
           </div>
           <div style={{ fontSize: 12, color: C.inkLight, lineHeight: 1.7, marginBottom: 10 }}>
-            An institutional compliance output layer for state agencies, policy teams,
-            and consultants. Same free tools — with branded reports, formatted exports,
-            and workflow features designed for production compliance work.
+            A professional output layer for policy teams, health plans, consultants,
+            and researchers. Same free tools — with branded reports, formatted exports,
+            and workflow features designed for production analytical work.
           </div>
           <div style={{ fontSize: 11, color: C.inkLight, lineHeight: 1.9, marginBottom: 14 }}>
             <div><span style={{ color: C.accent, marginRight: 6 }}>&#10003;</span>AI Policy Analyst (Claude-powered)</div>

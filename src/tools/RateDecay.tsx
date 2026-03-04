@@ -264,7 +264,7 @@ export default function RateDecay() {
 
       {/* Guide */}
       <Card><div style={{ padding:"10px 14px",fontSize:11,color:AL,lineHeight:1.6,background:"rgba(46,107,74,0.03)",borderLeft:`3px solid ${cB}` }}>
-        <span style={{ fontWeight:700,color:A }}>Rate Decay Tracker</span> — Measures how far Medicaid rates have drifted from the Medicare Physician Fee Schedule. Medicare updates rates annually using RBRVS methodology with practice cost adjustments. When Medicaid rates fall behind Medicare, it signals erosion in provider payment adequacy — the "decay" that accumulates when fee schedules aren't regularly updated.
+        <span style={{ fontWeight:700,color:A }}>Rate Decay Tracker.</span> Measures how far Medicaid rates have drifted from the Medicare Physician Fee Schedule. Medicare updates rates annually using RBRVS methodology with practice cost adjustments. When Medicaid rates fall behind Medicare, it signals erosion in provider payment adequacy: the "decay" that accumulates when fee schedules aren't regularly updated.
       </div></Card>
 
       {/* Controls */}
@@ -418,7 +418,7 @@ export default function RateDecay() {
         <div style={{ padding:24,textAlign:"center" }}>
           <div style={{ fontSize:14,fontWeight:500,marginBottom:8,color:A }}>Limited Rate Data Available</div>
           <div style={{ fontSize:11,color:AL,lineHeight:1.7 }}>
-            The Rate Decay Tracker compares state Medicaid rates against Medicare. Currently using T-MSIS actual-paid rates. As the all-state fee schedule database is built out, this tool will show fee schedule rates directly — providing a cleaner comparison than blended T-MSIS averages.
+            The Rate Decay Tracker compares state Medicaid rates against Medicare. Currently using T-MSIS actual-paid rates. As the all-state fee schedule database is built out, this tool will show fee schedule rates directly, providing a cleaner comparison than blended T-MSIS averages.
           </div>
         </div>
       </Card>}
@@ -428,7 +428,7 @@ export default function RateDecay() {
         <b>Medicare rates:</b> CY2026 Medicare Physician Fee Schedule, non-facility rates. These represent CMS's RBRVS-derived rates including work, practice expense, and malpractice RVUs adjusted by the conversion factor.<br/>
         <b>Medicaid rates:</b> State fee schedule rates where available, otherwise T-MSIS actual-paid averages. Fee schedule rates are preferred as they represent the state's intentional rate-setting; T-MSIS reflects what was actually paid including managed care encounters, which may differ.<br/>
         <b>% of Medicare:</b> (Medicaid rate ÷ Medicare rate) × 100. This is the standard benchmark used by MACPAC, KFF, and state rate-setting analyses. Values below 100% indicate Medicaid pays less than Medicare for the same service.<br/>
-        <b>Benchmark codes:</b> High-volume E&M, preventive, behavioral health, and therapy codes selected to represent the services most commonly delivered in Medicaid. Not exhaustive — the full fee schedule comparison will be available as state data is integrated.<br/>
+        <b>Benchmark codes:</b> High-volume E&M, preventive, behavioral health, and therapy codes selected to represent the services most commonly delivered in Medicaid. Not exhaustive. The full fee schedule comparison will be available as state data is integrated.<br/>
         <b>Rate decay:</b> When a state's rates fall behind Medicare over time, it creates compounding access problems. Medicare adjusts annually; if Medicaid doesn't match, the gap widens each year. A code at 60% of Medicare that stays frozen while Medicare increases 3% annually drops to ~52% in 5 years.
       </div></Card>
 

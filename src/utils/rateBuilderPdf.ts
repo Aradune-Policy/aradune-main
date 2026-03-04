@@ -19,7 +19,7 @@ interface RateBuilderPdfInput {
 export async function generateRateBuilderPdf(input: RateBuilderPdfInput): Promise<void> {
   const { code, desc, medicareRate, methodology, formula, components, rate, stateRates, nStates } = input;
 
-  const doc = await createAradunePDF(`Rate Calculation — ${code}`);
+  const doc = await createAradunePDF(`Rate Calculation: ${code}`);
 
   // Subtitle / description
   if (desc) {
@@ -105,7 +105,7 @@ export async function generateRateBuilderPdf(input: RateBuilderPdfInput): Promis
     doc.text(`${code} State Comparison`, 584, 28, { align: "right" });
 
     let y2 = 64;
-    y2 = addSection(doc, `State Rates — ${code}`, y2);
+    y2 = addSection(doc, `State Rates: ${code}`, y2);
 
     const stateRows = stateRates.map(s => {
       const diff = rate - s.rate;

@@ -73,14 +73,14 @@ function checkPage(doc: jsPDF, y: number, need: number): number {
 }
 
 export async function generateCompliancePdf(input: CompliancePdfInput): Promise<void> {
-  const doc = await createAradunePDF(`Rate Transparency Compliance — ${input.stateName}`);
+  const doc = await createAradunePDF(`Rate Transparency Compliance: ${input.stateName}`);
   let y = 90;
 
   // Subtitle
   doc.setFont("helvetica", "normal");
   doc.setFontSize(10);
   doc.setTextColor(...INK_LIGHT);
-  doc.text("42 CFR §447.203 — CMS Ensuring Access Final Rule — Deadline: July 1, 2026", 28, y);
+  doc.text("42 CFR §447.203 | CMS Ensuring Access Final Rule | Deadline: July 1, 2026", 28, y);
   y += 24;
 
   // ── Section 1: Compliance Checklist ────────────────────────────────────

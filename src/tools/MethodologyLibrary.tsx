@@ -1,6 +1,6 @@
 /**
  * Methodology Library
- * How each state sets Medicaid rates — methodology type,
+ * How each state sets Medicaid rates: methodology type,
  * conversion factors, fee schedule sources, and spending context.
  */
 import { useState, useEffect, useMemo } from "react";
@@ -205,7 +205,7 @@ export default function MethodologyLibrary() {
     <div style={{ maxWidth: 1100, margin: "0 auto", padding: "24px 16px", fontFamily: FB }}>
       <h2 style={{ fontSize: 22, fontWeight: 800, color: A, margin: "0 0 4px" }}>Methodology Library</h2>
       <p style={{ fontSize: 13, color: AL, margin: "0 0 20px" }}>
-        How each state sets Medicaid rates — methodology type, fee schedule sources, and spending context
+        How each state sets Medicaid rates: methodology type, fee schedule sources, and spending context
       </p>
 
       {loading ? (
@@ -341,7 +341,7 @@ export default function MethodologyLibrary() {
                 cost-based for facilities).
               </p>
               <p style={{ margin: "0 0 8px" }}>
-                <strong>RBRVS:</strong> Resource-Based Relative Value Scale — multiplies CMS RVUs by a state conversion factor.{" "}
+                <strong>RBRVS:</strong> Resource-Based Relative Value Scale. Multiplies CMS RVUs by a state conversion factor.{" "}
                 <strong>% Medicare:</strong> Sets rates as a percentage of the Medicare Physician Fee Schedule.{" "}
                 <strong>Custom CF:</strong> State-developed conversion factors applied to RVUs with state-specific adjustments.{" "}
                 <strong>Cost-Based:</strong> Rates derived from provider cost reports (common for facilities).

@@ -25,7 +25,7 @@ export async function generateAheadPdf(input: {
 }): Promise<void> {
   const { hospital, mr, dr, mp, dp, mc, sens } = input;
 
-  const doc = await createAradunePDF(`AHEAD Analysis — ${hospital.nm}`);
+  const doc = await createAradunePDF(`AHEAD Analysis: ${hospital.nm}`);
 
   // Subtitle
   doc.setFont("helvetica", "normal");

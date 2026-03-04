@@ -44,21 +44,21 @@ export const PRESETS: Record<string, PresetInfo> = {
   all_services: {
     id: "all_services",
     name: "All Services",
-    description: "Total Medicaid spending across all service categories — aggregate view by state, year, or month",
+    description: "Total Medicaid spending across all service categories. Aggregate view by state, year, or month",
     codes: [],
     filter_type: "ordering",
   },
   ccbhc_core: {
     id: "ccbhc_core",
     name: "CCBHC Core",
-    description: "Core CCBHC services per Milliman/AHCA Appendix I — the 9 required SAMHSA service categories",
+    description: "Core CCBHC services per Milliman/AHCA Appendix I: the 9 required SAMHSA service categories",
     codes: CCBHC_CORE,
     filter_type: "hcpcs_codes",
   },
   ccbhc_expanded: {
     id: "ccbhc_expanded",
     name: "CCBHC Expanded",
-    description: "Core + Expanded CCBHC services per Milliman/AHCA Appendix I — includes additional EBPs and service types",
+    description: "Core + Expanded CCBHC services per Milliman/AHCA Appendix I. Includes additional EBPs and service types",
     codes: CCBHC_ALL,
     filter_type: "hcpcs_codes",
   },
@@ -123,7 +123,7 @@ export const PRESETS: Record<string, PresetInfo> = {
   rehabilitation: {
     id: "rehabilitation",
     name: "Rehabilitation",
-    description: "PT/OT/Speech therapy access — physical, occupational, and speech-language pathology codes",
+    description: "PT/OT/Speech therapy access: physical, occupational, and speech-language pathology codes",
     codes: [
       "97110", "97112", "97116", "97140", "97530", "97535",
       "97161", "97162", "97163", "97164",
@@ -134,7 +134,7 @@ export const PRESETS: Record<string, PresetInfo> = {
   telehealth: {
     id: "telehealth",
     name: "Telehealth",
-    description: "Post-COVID telehealth expansion — audio/video visit codes, e-visits, and common telehealth-delivered services",
+    description: "Post-COVID telehealth expansion: audio/video visit codes, e-visits, and common telehealth-delivered services",
     codes: [
       "99441", "99442", "99443",
       "98966", "98967", "98968",
@@ -147,7 +147,7 @@ export const PRESETS: Record<string, PresetInfo> = {
   mat_opioid: {
     id: "mat_opioid",
     name: "MAT / Opioid",
-    description: "Opioid epidemic treatment — medication-assisted treatment, buprenorphine, naltrexone, and OTP codes",
+    description: "Opioid epidemic treatment: medication-assisted treatment, buprenorphine, naltrexone, and OTP codes",
     codes: [
       "H0020", "H0033",
       "J0571", "J0572", "J0573", "J0574", "J0575",
@@ -160,7 +160,7 @@ export const PRESETS: Record<string, PresetInfo> = {
   maternity: {
     id: "maternity",
     name: "Maternity / OB",
-    description: "Prenatal, delivery, and postpartum care — global OB packages, ultrasound, and cesarean codes",
+    description: "Prenatal, delivery, and postpartum care: global OB packages, ultrasound, and cesarean codes",
     codes: [
       "59400", "59410", "59425", "59426",
       "59510", "59515", "59025", "59430",
@@ -172,7 +172,7 @@ export const PRESETS: Record<string, PresetInfo> = {
   lab_imaging: {
     id: "lab_imaging",
     name: "Lab / Imaging",
-    description: "Diagnostic access disparities — common lab panels, urinalysis, radiology, and cardiac diagnostics",
+    description: "Diagnostic access disparities: common lab panels, urinalysis, radiology, and cardiac diagnostics",
     codes: [
       "80053", "80048", "85025", "83036", "80061",
       "81001", "81002",
@@ -184,7 +184,7 @@ export const PRESETS: Record<string, PresetInfo> = {
   transportation: {
     id: "transportation",
     name: "NEMT / Transport",
-    description: "Non-emergency medical transportation access — ambulance, stretcher van, and NEMT broker codes",
+    description: "Non-emergency medical transportation access: ambulance, stretcher van, and NEMT broker codes",
     codes: [
       "A0427", "A0429", "A0433", "A0425", "A0426", "A0428",
       "T2003", "T2005",
@@ -196,7 +196,7 @@ export const PRESETS: Record<string, PresetInfo> = {
   dme: {
     id: "dme",
     name: "DME",
-    description: "Durable medical equipment access — wheelchairs, CPAP, hospital beds, walkers, diabetic supplies, and orthotics",
+    description: "Durable medical equipment access: wheelchairs, CPAP, hospital beds, walkers, diabetic supplies, and orthotics",
     codes: [
       "K0001", "K0002", "K0003", "K0004",
       "E0601", "E0260", "E0100", "E0105", "E0143", "E0148",

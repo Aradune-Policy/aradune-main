@@ -236,7 +236,7 @@ export default function PolicyAnalyst() {
       <div style={{ maxWidth:480,margin:"60px auto",padding:"0 16px",fontFamily:"Helvetica Neue,Arial,sans-serif",color:A }}>
         <div style={{ background:WH,borderRadius:12,boxShadow:SH,border:`1px solid ${BD}`,overflow:"hidden" }}>
           <div style={{ padding:"24px 24px 0",textAlign:"center" }}>
-            <div style={{ fontSize:20,fontWeight:600,marginBottom:4 }}>AI Tier — Policy Analyst</div>
+            <div style={{ fontSize:20,fontWeight:600,marginBottom:4 }}>AI Tier: Policy Analyst</div>
             <div style={{ fontSize:11,color:AL,lineHeight:1.6,maxWidth:340,margin:"0 auto" }}>
               This tool uses Claude AI with Aradune's full dataset. Access is
               currently limited while we finalize the subscription model.

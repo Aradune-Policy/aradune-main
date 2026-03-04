@@ -418,7 +418,7 @@ export default function WageAdequacy() {
 
       {/* Guide */}
       <Card><div style={{ padding:"10px 14px",fontSize:11,color:AL,lineHeight:1.6,background:"rgba(46,107,74,0.03)",borderLeft:`3px solid ${cB}` }}>
-        <span style={{ fontWeight:700,color:A }}>Rate & Wage Comparison</span> — Compares Medicaid reimbursement rates to BLS market wages for the equivalent occupation. For each service category, the tool converts the Medicaid rate into an implied hourly wage (after agency overhead), then shows how it compares to what workers in that field actually earn.
+        <span style={{ fontWeight:700,color:A }}>Rate & Wage Comparison.</span> Compares Medicaid reimbursement rates to BLS market wages for the equivalent occupation. For each service category, the tool converts the Medicaid rate into an implied hourly wage (after agency overhead), then shows how it compares to what workers in that field actually earn.
       </div></Card>
 
       {/* Controls */}
@@ -577,7 +577,7 @@ export default function WageAdequacy() {
         <CH t="Quality Outcome Linkage" b={`${curCat?.name} quality measures for ${STATE_NAMES[s1]||s1}`}/>
         <div style={{ padding:"6px 14px 12px" }}>
           <div style={{ fontSize:10,color:AL,marginBottom:8,lineHeight:1.6 }}>
-            These Medicaid quality measures are linked to the services in this category. Low rates and poor quality outcomes together suggest a rate adequacy problem — providers can't afford to deliver the services that drive these measures.
+            These Medicaid quality measures are linked to the services in this category. Low rates and poor quality outcomes together suggest a rate adequacy problem: providers can't afford to deliver the services that drive these measures.
           </div>
           {qualityLink.map((m: QualityLinkEntry) => {
             const isGood = m.direction?.includes("Higher") ? (m.stateRate ?? 0) >= safe(m.median) : (m.stateRate ?? 0) <= safe(m.median);
@@ -611,11 +611,11 @@ export default function WageAdequacy() {
       {/* About */}
       <Card><CH t="Data Sources & Methodology"/><div style={{ padding:"4px 16px 12px",fontSize:11,color:A,lineHeight:1.8 }}>
         <b>Wages:</b> Bureau of Labor Statistics, Occupational Employment and Wage Statistics (OES), May 2024. State-level employment, median wages, and 10th-90th percentile wage distributions for SOC codes mapped to Medicaid service categories. OES data covers 145 healthcare occupations across 52 states.<br/>
-        <b>Medicaid rates:</b> T-MSIS actual-paid rates from HHS Medicaid Provider Spending data. These are blended rates across all modifiers, places of service, and managed care encounters — not fee schedule rates.<br/>
+        <b>Medicaid rates:</b> T-MSIS actual-paid rates from HHS Medicaid Provider Spending data. These are blended rates across all modifiers, places of service, and managed care encounters, not fee schedule rates.<br/>
         <b>Implied wage calculation:</b> (Medicaid rate × units per hour) × (1 − overhead %). For 15-minute codes, units per hour = 4. Overhead covers employer payroll taxes, workers' comp, admin, benefits, and agency margin.<br/>
         <b>Minimum wages:</b> State minimum wages as of 2024. Federal minimum ($7.25) used where state has no higher minimum.<br/>
         <b>Quality measures:</b> CMS Medicaid & CHIP Core Set, 2024 reporting cycle (services primarily CY2023). State-level performance rates for measures linked to specific service categories.<br/>
-        <b>Limitations:</b> T-MSIS rates are averages across all claim types and may not reflect rates for specific programs (e.g., waiver rates vs. state plan rates). The overhead model is a simplification — actual overhead varies by agency size, geography, and program requirements. BLS wage data covers all employers, not just Medicaid-funded positions. This tool provides directional analysis for rate adequacy discussions, not definitive cost modeling.
+        <b>Limitations:</b> T-MSIS rates are averages across all claim types and may not reflect rates for specific programs (e.g., waiver rates vs. state plan rates). The overhead model is a simplification. Actual overhead varies by agency size, geography, and program requirements. BLS wage data covers all employers, not just Medicaid-funded positions. This tool provides directional analysis for rate adequacy discussions, not definitive cost modeling.
       </div></Card>
 
       <div style={{ fontSize:10,color:AL,marginTop:8 }}>Aradune Rate & Wage Comparison v1.0 · BLS OEWS May 2024 + T-MSIS + CMS Core Set 2024</div>

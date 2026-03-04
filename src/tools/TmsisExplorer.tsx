@@ -835,7 +835,7 @@ export default function TmsisExplorer() {
       if (lo.length > 2) {
         ins.push({
           id:"homecare", q:"Where is home care paid the least?",
-          a:`${lo[0].n} averages ${f$(lo[0].avg)} across HCBS codes — the lowest in the dataset. ${lo[1].n} (${f$(lo[1].avg)}) and ${lo[2].n} (${f$(lo[2].avg)}) are close behind.`,
+          a:`${lo[0].n} averages ${f$(lo[0].avg)} across HCBS codes, the lowest in the dataset. ${lo[1].n} (${f$(lo[1].avg)}) and ${lo[2].n} (${f$(lo[2].avg)}) are close behind.`,
           data:lo.map(s=>({n:s.n.substring(0,12),v:s.avg})), color:NEG, unit:"$",
           action:()=>{setQ("home care");setBC("All");setTab("rate");}
         });
@@ -1597,7 +1597,7 @@ export default function TmsisExplorer() {
                 {r.utilization.length - zeroClaimCodes} codes with claims
               </div>
               <div style={{ fontSize:10,padding:"4px 10px",borderRadius:6,background:`${NEG}12`,color:NEG,border:`1px solid ${NEG}30` }}>
-                {zeroClaimCodes} codes with zero claims — genuinely new services
+                {zeroClaimCodes} codes with zero claims (genuinely new services)
               </div>
               <div style={{ fontSize:10,padding:"4px 10px",borderRadius:6,background:`${cB}12`,color:cB,border:`1px solid ${cB}30` }}>
                 Top 5 codes = {topSpendPct}% of total spending
@@ -1917,7 +1917,7 @@ export default function TmsisExplorer() {
             <CH t="Section 6: Illustrative Rate Estimates" b="Milliman numerators / T-MSIS denominators"/>
             <div style={{ padding:"0 14px 4px" }}>
               <div style={{ background:`${WARN}10`,border:`1px solid ${WARN}30`,borderRadius:8,padding:"8px 12px",marginBottom:10,fontSize:10,color:WARN,fontWeight:600,lineHeight:1.5 }}>
-                ILLUSTRATIVE ONLY — Uses aggregate T-MSIS claim counts as proxy. Actual PPS rate requires beneficiary x date daily visit deduplication from claim-level data and Milliman cost survey microdata.
+                ILLUSTRATIVE ONLY. Uses aggregate T-MSIS claim counts as proxy. Actual PPS rate requires beneficiary x date daily visit deduplication from claim-level data and Milliman cost survey microdata.
               </div>
             </div>
             {r.rate_estimates.length > 0 ? <div style={{ padding:"0 14px 12px",overflowX:"auto" }}>
@@ -2026,7 +2026,7 @@ export default function TmsisExplorer() {
                     </div>
                   </div>
                   {deserts.length > 0 && <div style={{ padding:"6px 10px",marginBottom:8,background:`${NEG}06`,borderRadius:6,borderLeft:`3px solid ${NEG}`,fontSize:10,color:A,lineHeight:1.5 }}>
-                    <strong>CCBHC deserts:</strong> {deserts.map(d => `${zipLabel(d.zip3)} (${fNu(d.total_providers)} total providers)`).join(", ")} — these areas have Medicaid providers but zero CCBHC-taxonomy clinics.
+                    <strong>CCBHC deserts:</strong> {deserts.map(d => `${zipLabel(d.zip3)} (${fNu(d.total_providers)} total providers)`).join(", ")}. These areas have Medicaid providers but zero CCBHC-taxonomy clinics.
                   </div>}
                 </>;
               })()}
@@ -2128,7 +2128,7 @@ export default function TmsisExplorer() {
                 ))}</tbody>
               </table>
               <div style={{ padding:"6px 0 0",fontSize:9,color:AL,lineHeight:1.5 }}>
-                <strong>High intensity</strong> (10+ claims/bene): ACT, IOP, partial hospitalization — intensive program-based models. <strong>Medium</strong> (3-10): case management, rehab, day programs. <strong>Low</strong> (1-2): assessments, screenings, episodic services.
+                <strong>High intensity</strong> (10+ claims/bene): ACT, IOP, partial hospitalization. These are intensive program-based models. <strong>Medium</strong> (3-10): case management, rehab, day programs. <strong>Low</strong> (1-2): assessments, screenings, episodic services.
               </div>
             </div>
           </Card>}
@@ -2138,7 +2138,7 @@ export default function TmsisExplorer() {
             <CH t="Section 9: FFS vs Managed Care Decomposition (Task 4 Proxy)" b={`${ccbhcState} FFS share: ${(r.enhanced.ffs_share * 100).toFixed(0)}%`}/>
             <div style={{ padding:"0 14px 12px" }}>
               <div style={{ background:`${WARN}08`,borderRadius:6,padding:"8px 10px",marginBottom:10,fontSize:10,color:WARN,lineHeight:1.5,borderLeft:`3px solid ${WARN}` }}>
-                T-MSIS data shows only FFS-adjudicated claims (all rows have positive payments). {ccbhcState} is {((1 - r.enhanced.ffs_share) * 100).toFixed(0)}% managed care. These totals represent a floor — the FFS slice only.
+                T-MSIS data shows only FFS-adjudicated claims (all rows have positive payments). {ccbhcState} is {((1 - r.enhanced.ffs_share) * 100).toFixed(0)}% managed care. These totals represent a floor, covering the FFS slice only.
               </div>
               <div style={{ display:"grid",gridTemplateColumns:"1fr 1fr 1fr",gap:8,marginBottom:10 }}>
                 <div style={{ background:S,borderRadius:6,padding:"10px 12px",textAlign:"center" }}>
@@ -2174,7 +2174,7 @@ export default function TmsisExplorer() {
             <CH t="Section 10: Quality Gap Analysis (Task 5 Proxy)" b={`CMS Core Set — ${ccbhcState} vs national median`}/>
             <div style={{ padding:"0 14px 6px" }}>
               <div style={{ background:`${cB}06`,borderRadius:6,padding:"6px 10px",marginBottom:8,fontSize:10,color:A,lineHeight:1.5,borderLeft:`3px solid ${cB}` }}>
-                CCBHC certification requires measurable quality improvement. These CMS Medicaid Core Set measures identify {ccbhcState}'s biggest behavioral health gaps — the clinical case for CCBHC investment.
+                CCBHC certification requires measurable quality improvement. These CMS Medicaid Core Set measures identify {ccbhcState}'s biggest behavioral health gaps, making the clinical case for CCBHC investment.
               </div>
             </div>
             <div style={{ padding:"0 14px 12px",overflowX:"auto" }}>
@@ -2262,7 +2262,7 @@ export default function TmsisExplorer() {
                 const recentAvg = recent.length > 0 ? Math.round(recent.reduce((a,t) => a + t.total_claims, 0) / recent.length) : 0;
                 return <div style={{ display:"grid",gap:6 }}>
                   <div style={{ fontSize:10,color:A,lineHeight:1.5,padding:"6px 10px",background:`${cB}06`,borderRadius:6,borderLeft:`3px solid ${cB}` }}>
-                    <strong>COVID peak:</strong> {peak.month} — {fNu(peak.total_claims)} telehealth claims ({f$$(peak.total_paid)}). <strong>2024 average:</strong> {fNu(recentAvg)}/month — an {((recentAvg / peak.total_claims) * 100).toFixed(0)}% retention rate from pandemic peak.
+                    <strong>COVID peak:</strong> {peak.month}: {fNu(peak.total_claims)} telehealth claims ({f$$(peak.total_paid)}). <strong>2024 average:</strong> {fNu(recentAvg)}/month, an {((recentAvg / peak.total_claims) * 100).toFixed(0)}% retention rate from pandemic peak.
                   </div>
                   <div style={{ fontSize:9,color:AL,fontStyle:"italic" }}>
                     These are telehealth-specific HCPCS codes only (99441-99443, G2010, G2012). Services delivered via telehealth using modifier 95/GT on base codes (e.g., 90834) are counted under the base code, significantly understating true telehealth volume.
@@ -2328,7 +2328,7 @@ export default function TmsisExplorer() {
                     { task: "Individual demographics/diagnoses", reason: "Age proxy from preventive codes is crude; no diagnosis-level population profile" },
                     { task: "Billing vs rendering NPI", reason: "Cannot validate DCO arrangements without claim-level NPI detail" },
                     { task: "Modifier-based telehealth", reason: "Only telehealth-specific codes captured; GT/95 modifier telehealth counted under base codes" },
-                    { task: "Managed care encounter detail", reason: "No $0-payment rows exist — MC encounters are not in this FFS-adjudicated dataset" },
+                    { task: "Managed care encounter detail", reason: "No $0-payment rows exist. MC encounters are not in this FFS-adjudicated dataset" },
                   ].map(lim => (
                     <div key={lim.task} style={{ padding:"4px 8px",background:S,borderRadius:6,borderLeft:`3px solid ${WARN}` }}>
                       <span style={{ fontWeight:600 }}>{lim.task}:</span> <span style={{ color:AL }}>{lim.reason}</span>
@@ -2912,7 +2912,7 @@ export default function TmsisExplorer() {
       {/* PROVIDERS */}
       {tab==="provider" && <div style={{ display:"grid",gap:10 }}>
         <div style={{ display:"flex",gap:8,alignItems:"flex-start",justifyContent:"space-between",flexWrap:"wrap" }}>
-          <TabGuide title="Providers" desc="Search top providers by state — see their total billing, codes used, and peer comparisons. Switch to 'By Specialty' to see which taxonomy groups drive spending." tips="Requires pipeline data with NPPES integration. Search by name, NPI, or specialty."/>
+          <TabGuide title="Providers" desc="Search top providers by state. See their total billing, codes used, and peer comparisons. Switch to 'By Specialty' to see which taxonomy groups drive spending." tips="Requires pipeline data with NPPES integration. Search by name, NPI, or specialty."/>
           <ExportBtn onClick={()=>{
             if(provMode==="providers"&&providerData){
               const pql=pq.toLowerCase();
@@ -3078,7 +3078,7 @@ export default function TmsisExplorer() {
       {/* SIMULATOR */}
       {tab==="sim" && <div style={{ display:"grid",gap:10 }}>
         <div style={{ display:"flex",gap:8,alignItems:"flex-start",justifyContent:"space-between",flexWrap:"wrap" }}>
-          <TabGuide title="Rate Impact Simulator" desc="Model what happens if you raise or lower Medicaid rates. Pick a state, category, and percentage change to see projected fiscal impact split by FFS and managed care." tips="The 'If You Used Their Rates' table shows what your state would spend at another state's rate levels — useful for rate-setting benchmarking."/>
+          <TabGuide title="Rate Impact Simulator" desc="Model what happens if you raise or lower Medicaid rates. Pick a state, category, and percentage change to see projected fiscal impact split by FFS and managed care." tips="The 'If You Used Their Rates' table shows what your state would spend at another state's rate levels, useful for rate-setting benchmarking."/>
           <ExportBtn onClick={()=>{
             const stCodes2=codes.filter(h=>h.r&&h.r[simState]!==undefined&&(simCat==="All"||h.cat===simCat));
             const totalNS=SL.reduce((a,k)=>a+safe(states[k]?.spend),0);
@@ -3154,7 +3154,7 @@ export default function TmsisExplorer() {
                 <div style={{ fontSize:10,color:AL,marginTop:6 }}>{simPct>=0?"increase":"decrease"} on {fN(affected.length)} codes in {states[simState]?.name||simState} · {simCat==="All"?"all categories":simCat}</div>
                 <div style={{ fontSize:10,color:AL }}>Estimated total spend: {f$(totalCur)} · {states[simState]?.name||simState} is ~{(ffsShare*100).toFixed(0)}% FFS / ~{((1-ffsShare)*100).toFixed(0)}% managed care</div>
                 <div style={{ background:"rgba(184,134,11,0.08)",border:`1px solid rgba(184,134,11,0.2)`,borderRadius:6,padding:"6px 8px",marginTop:8,fontSize:9,color:"#8B7000",lineHeight:1.6 }}>
-                  <b>Methodology note:</b> State claims are estimated proportionally from national totals. Real utilization mix varies by state — high-PCS states will see larger PCS impacts, etc. FFS rate changes do not directly affect managed care capitation rates, though they may influence future actuarial rate-setting. The "FFS Only" figure approximates the direct fiscal impact of a fee schedule change.
+                  <b>Methodology note:</b> State claims are estimated proportionally from national totals. Real utilization mix varies by state. High-PCS states will see larger PCS impacts, etc. FFS rate changes do not directly affect managed care capitation rates, though they may influence future actuarial rate-setting. The "FFS Only" figure approximates the direct fiscal impact of a fee schedule change.
                 </div>
               </div></Card>
               <Card x><CH t="Impact by Category" b={`${catSorted.length} categories`}/><div style={{ padding:"6px 14px 10px" }}>
@@ -3300,19 +3300,19 @@ export default function TmsisExplorer() {
         </div></Card>
         {/* Reference Data Status */}
         <Card><CH t="Reference Data" b="loaded alongside T-MSIS claims"/><div style={{ padding:"4px 16px 12px",fontSize:11,color:A,lineHeight:1.8 }}>
-          {mcRates ? <div style={{marginBottom:4}}><span style={{color:POS,fontWeight:600}}>✓ Medicare PFS</span> — CY{mcRates.year} Physician Fee Schedule ({Object.keys(mcRates.rates).length.toLocaleString()} codes, CF=${mcRates.cf}). Shows Medicare non-facility rates in Rate Engine and Code Profile for direct Medicaid-to-Medicare comparisons.</div>
-          : <div style={{color:AL,marginBottom:4}}>○ Medicare PFS — not loaded. Place medicare_rates.json in /data to enable.</div>}
-          {feeScheds ? <div style={{marginBottom:4}}><span style={{color:POS,fontWeight:600}}>✓ State Fee Schedules</span> — {Object.keys(feeScheds.states).map(k=>{ const st = feeScheds.states[k] as FeeScheduleState & {name?:string;n?:number;source?:string}; return `${st.name ?? k} (${st.n?.toLocaleString() ?? "?"} codes, ${st.source ?? "unknown"})`; }).join("; ")}. Shows official Medicaid fee schedule rates alongside T-MSIS actual-paid rates.</div>
-          : <div style={{color:AL,marginBottom:4}}>○ Fee Schedules — not loaded. Place fee_schedules.json in /data to enable.</div>}
-          {fsDir ? <div style={{marginBottom:4}}><span style={{color:POS,fontWeight:600}}>✓ Fee Schedule Directory</span> — Links to {fsDir.count} state Medicaid fee schedule pages (compiled {fsDir.compiled}).</div>
-          : <div style={{color:AL,marginBottom:4}}>○ Fee Schedule Directory — not loaded. Place fee_schedule_directory.json in /data to enable.</div>}
-          {riskAdj ? <div style={{marginBottom:4}}><span style={{color:POS,fontWeight:600}}>✓ Risk Adjustment</span> — Eligibility-mix adjustment for {Object.keys(riskAdj.states).length} states (source: {(riskAdj as RiskAdjData & {source?:string}).source ?? "unknown"}). Toggle "Raw/Mix-Adj" in Per Cap mode to see spending adjusted for state enrollment demographics.</div>
-          : <div style={{color:AL,marginBottom:4}}>○ Risk Adjustment — not loaded. Place risk_adj.json in /data to enable.</div>}
+          {mcRates ? <div style={{marginBottom:4}}><span style={{color:POS,fontWeight:600}}>✓ Medicare PFS</span>: CY{mcRates.year} Physician Fee Schedule ({Object.keys(mcRates.rates).length.toLocaleString()} codes, CF=${mcRates.cf}). Shows Medicare non-facility rates in Rate Engine and Code Profile for direct Medicaid-to-Medicare comparisons.</div>
+          : <div style={{color:AL,marginBottom:4}}>○ Medicare PFS: not loaded. Place medicare_rates.json in /data to enable.</div>}
+          {feeScheds ? <div style={{marginBottom:4}}><span style={{color:POS,fontWeight:600}}>✓ State Fee Schedules</span>: {Object.keys(feeScheds.states).map(k=>{ const st = feeScheds.states[k] as FeeScheduleState & {name?:string;n?:number;source?:string}; return `${st.name ?? k} (${st.n?.toLocaleString() ?? "?"} codes, ${st.source ?? "unknown"})`; }).join("; ")}. Shows official Medicaid fee schedule rates alongside T-MSIS actual-paid rates.</div>
+          : <div style={{color:AL,marginBottom:4}}>○ Fee Schedules: not loaded. Place fee_schedules.json in /data to enable.</div>}
+          {fsDir ? <div style={{marginBottom:4}}><span style={{color:POS,fontWeight:600}}>✓ Fee Schedule Directory</span>: Links to {fsDir.count} state Medicaid fee schedule pages (compiled {fsDir.compiled}).</div>
+          : <div style={{color:AL,marginBottom:4}}>○ Fee Schedule Directory: not loaded. Place fee_schedule_directory.json in /data to enable.</div>}
+          {riskAdj ? <div style={{marginBottom:4}}><span style={{color:POS,fontWeight:600}}>✓ Risk Adjustment</span>: Eligibility-mix adjustment for {Object.keys(riskAdj.states).length} states (source: {(riskAdj as RiskAdjData & {source?:string}).source ?? "unknown"}). Toggle "Raw/Mix-Adj" in Per Cap mode to see spending adjusted for state enrollment demographics.</div>
+          : <div style={{color:AL,marginBottom:4}}>○ Risk Adjustment: not loaded. Place risk_adj.json in /data to enable.</div>}
         </div></Card>
         <Card><CH t="Methodology"/><div style={{ padding:"4px 16px 12px",fontSize:11,color:A,lineHeight:1.8 }}>
-          <b>T-MSIS rates:</b> total paid ÷ total claims, per code per state. What Medicaid actually paid, divided by how many times. No modifier weighting — rates are blended across all modifiers and places of service. These will differ from published fee schedule rates because they reflect actual payments including partial claims, copay reductions, MC encounter reporting, and claims edits.<br/>
+          <b>T-MSIS rates:</b> total paid ÷ total claims, per code per state. What Medicaid actually paid, divided by how many times. No modifier weighting. Rates are blended across all modifiers and places of service. These will differ from published fee schedule rates because they reflect actual payments including partial claims, copay reductions, MC encounter reporting, and claims edits.<br/>
           <b>Fee schedule rates:</b> Official Medicaid fee schedule rates as published by state agencies. For FL: the AHCA Practitioner Fee Schedule (FSI = non-facility rate). The gap between fee schedule and T-MSIS actual-paid reflects modifier mix, place-of-service distribution, managed care encounter pricing, and claims processing rules.<br/>
-          <b>Medicare rates:</b> CMS Physician Fee Schedule non-facility rates (total RVU × conversion factor). Useful as a benchmark — most state Medicaid rates are set as a percentage of Medicare or derived from the same RBRVS methodology.<br/>
+          <b>Medicare rates:</b> CMS Physician Fee Schedule non-facility rates (total RVU × conversion factor). Useful as a benchmark. Most state Medicaid rates are set as a percentage of Medicare or derived from the same RBRVS methodology.<br/>
           <b>Risk adjustment:</b> Eligibility-mix adjustment using MACPAC data. For each state, expected per-enrollee spending is computed using national per-enrollee rates by eligibility group (child, new adult, other adult, disabled, aged) applied to the state's enrollment shares. The adjustment factor = expected ÷ national average. States with older/sicker populations (factor &gt; 1.0) will see lower adjusted per-enrollee spending, revealing the portion driven by demographics vs. price/utilization choices.<br/>
           <b>Fiscal impact:</b> (national avg − state rate) × estimated state claims. State claims estimated from national claims × state spending share.<br/>
           <b>Case mix:</b> Laspeyres decomposition. Price index holds utilization constant; mix index holds prices constant.<br/>

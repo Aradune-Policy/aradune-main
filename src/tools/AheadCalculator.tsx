@@ -402,30 +402,30 @@ function calcSynthesis(h:AheadHospital,mr:McrResult,dr:McdResult,mp:McrResult[],
   const ffs=mr.ffs+dr.ffs,fin=mr.fin+dr.fin,delta=fin-ffs,pct=delta/ffs;
   const signals:{engine:string;finding:string;dir:string;mat:number;conf:number;action:string}[]=[];
   const add=(engine:string,finding:string,dir:string,mat:number,conf:number,action:string)=>signals.push({engine,finding,dir,mat:Math.abs(mat),conf,action});
-  add("HGB",`Combined PY1: ${fmt(delta)} (${fP(pct)})`,delta>0?"FAVOR":"AGAINST",delta,.9,delta>0?"Positive baseline supports participation":"Negative baseline — requires contract modifications or operational investment");
+  add("HGB",`Combined PY1: ${fmt(delta)} (${fP(pct)})`,delta>0?"FAVOR":"AGAINST",delta,.9,delta>0?"Positive baseline supports participation":"Negative baseline. Requires contract modifications or operational investment");
   const pW=mc[0]?.pA||.5;add("Monte Carlo",`${(pW*100).toFixed(0)}% probability of outperforming FFS (200 sims)`,pW>.55?"FAVOR":"AGAINST",delta*pW,.85,pW>.65?"Strong stochastic support":"Significant downside tail risk");
-  add("Real Options",`${opts.rec}. NPV ${fmt(opts.npv)}, total option value ${fmt(opts.optVal)}`,opts.exNow?"FAVOR":"DEFER",opts.optVal,.8,opts.exNow?"Exercise now — intrinsic exceeds time value":"Defer — time and learning value exceed intrinsic");
-  const ptR=prospect.years?.[0]?.ratio||1;add("Prospect Theory",`PT/EV: ${ptR.toFixed(2)}× — decision ${ptR<.85?"feels significantly worse than math":"aligns with rational expectation"}`,ptR>.85?"NEUTRAL":"CAUTION",delta*(1-ptR),.75,ptR<.85?"Frame board presentation around upside, not EV":"Standard analytical presentation appropriate");
-  const bF=bayesian.years?.[bayesian.years.length-1];if(bF)add("Bayesian",`Post-data P(Δ>0) = ${(bF.pPos*100).toFixed(0)}%, σ reduced ${((bayesian.totalRed||0)*100).toFixed(0)}%`,bF.pPos>.6?"FAVOR":"AGAINST",delta*bF.pPos,.7,"Uncertainty resolves with participation — learning value embedded in option price");
-  add("Bühlmann",`Z=${cred.z.toFixed(2)} — ${cred.z>.8?"hospital data reliable":cred.z>.5?"moderate peer blend":"heavily peer-weighted"}`,cred.z>.6?"NEUTRAL":"CAUTION",0,.7,cred.z<.5?"Invest in data infrastructure before high-confidence commitment":"Projections well-supported by experience base");
-  const myN=nash.results.find(r=>r.nm===h.nm);if(myN)add("Nash",`Market: ${myN.eq}. ${myN.nash?"Stable regardless of competitors":"Depends on competitor decisions"}`,myN.nash?"FAVOR":"CAUTION",myN.withAll,.75,myN.eq==="Dominant"?"Join independently — competitors irrelevant":"Monitor competitor participation signals");
-  add("EVPI",`Perfect info worth ${fmt(evpi.evpi)}. Top: ${evpi.evsi[0]?.nm||"N/A"} (${fmt(evpi.evsi[0]?.val||0)})`,evpi.evpi>Math.abs(delta)*.2?"INVESTIGATE":"PROCEED",evpi.evsi[0]?.val||0,.65,evpi.evpi>1e6?`Invest in ${evpi.evsi[0]?.nm} before finalizing`:"Information gains marginal — proceed with current data");
+  add("Real Options",`${opts.rec}. NPV ${fmt(opts.npv)}, total option value ${fmt(opts.optVal)}`,opts.exNow?"FAVOR":"DEFER",opts.optVal,.8,opts.exNow?"Exercise now. Intrinsic exceeds time value":"Defer. Time and learning value exceed intrinsic");
+  const ptR=prospect.years?.[0]?.ratio||1;add("Prospect Theory",`PT/EV: ${ptR.toFixed(2)}×. Decision ${ptR<.85?"feels significantly worse than math":"aligns with rational expectation"}`,ptR>.85?"NEUTRAL":"CAUTION",delta*(1-ptR),.75,ptR<.85?"Frame board presentation around upside, not EV":"Standard analytical presentation appropriate");
+  const bF=bayesian.years?.[bayesian.years.length-1];if(bF)add("Bayesian",`Post-data P(Δ>0) = ${(bF.pPos*100).toFixed(0)}%, σ reduced ${((bayesian.totalRed||0)*100).toFixed(0)}%`,bF.pPos>.6?"FAVOR":"AGAINST",delta*bF.pPos,.7,"Uncertainty resolves with participation. Learning value embedded in option price");
+  add("Bühlmann",`Z=${cred.z.toFixed(2)}. ${cred.z>.8?"Hospital data reliable":cred.z>.5?"Moderate peer blend":"Heavily peer-weighted"}`,cred.z>.6?"NEUTRAL":"CAUTION",0,.7,cred.z<.5?"Invest in data infrastructure before high-confidence commitment":"Projections well-supported by experience base");
+  const myN=nash.results.find(r=>r.nm===h.nm);if(myN)add("Nash",`Market: ${myN.eq}. ${myN.nash?"Stable regardless of competitors":"Depends on competitor decisions"}`,myN.nash?"FAVOR":"CAUTION",myN.withAll,.75,myN.eq==="Dominant"?"Join independently. Competitors irrelevant":"Monitor competitor participation signals");
+  add("EVPI",`Perfect info worth ${fmt(evpi.evpi)}. Top: ${evpi.evsi[0]?.nm||"N/A"} (${fmt(evpi.evsi[0]?.val||0)})`,evpi.evpi>Math.abs(delta)*.2?"INVESTIGATE":"PROCEED",evpi.evsi[0]?.val||0,.65,evpi.evpi>1e6?`Invest in ${evpi.evsi[0]?.nm} before finalizing`:"Information gains marginal. Proceed with current data");
   add("Regimes",`Weighted EV: ${fmt(regimes.wEV)} across 6 political scenarios`,regimes.wEV>0?"FAVOR":"AGAINST",regimes.wEV,.6,"Monitor CMS rulemaking for regime-shifting signals");
   add("Contract",contract.gap<=0?"Terms favorable":"Gap of "+fmt(contract.gap)+" requires term modifications",contract.gap<=0?"FAVOR":"AGAINST",contract.gap,.8,contract.gap>0?`Negotiate ${contract.terms.filter(t=>t.ok).length} achievable modifications`:"Proceed under standard AHEAD terms");
   add("Opt Stopping",optStop.frontier.every(f=>f.shouldCont)?"Continue all years recommended":optStop.optPolicy,optStop.frontier.every(f=>f.shouldCont)?"FAVOR":"CAUTION",optStop.frontier[0]?.contV||0,.7,optStop.frontier.every(f=>f.shouldCont)?"Full commitment appropriate":"Build exit triggers at identified thresholds");
   const c0=copula.years?.[0];if(c0)add("Copula",`Diversification: ${c0.div}. Lower-tail λ=${c0.lL.toFixed(2)}`,c0.div==="HIGH"?"FAVOR":"CAUTION",0,.6,c0.div!=="HIGH"?"Dual-payer hedge unreliable in crises":"Strong diversification from dual-payer structure");
-  add("Markov",`Quality quartile jump worth ${fmt(markov.qImp)}. VBP at Q${markov.vbpQ+1}`,markov.vbpQ>=2?"FAVOR":"INVEST",markov.qImp,.5,markov.vbpQ<2?"Quality improvement has outsized ROI — invest before participation":"Quality position supports favorable trajectory");
+  add("Markov",`Quality quartile jump worth ${fmt(markov.qImp)}. VBP at Q${markov.vbpQ+1}`,markov.vbpQ>=2?"FAVOR":"INVEST",markov.qImp,.5,markov.vbpQ<2?"Quality improvement has outsized ROI. Invest before participation":"Quality position supports favorable trajectory");
   signals.sort((a,b)=>b.mat-a.mat);
   const contras:{a:string;b:string;res:string}[]=[];
   const pro=signals.filter(s=>s.dir==="FAVOR"||s.dir==="PROCEED"),con=signals.filter(s=>["AGAINST","CAUTION","DEFER","INVESTIGATE","INVEST"].includes(s.dir));
   const neut=signals.filter(s=>s.dir==="NEUTRAL");
   const hardCon=signals.filter(s=>s.dir==="AGAINST");
-  if(pro.length&&hardCon.length)contras.push({a:pro[0].engine,b:hardCon[0].engine,res:pro[0].mat>hardCon[0].mat?`${pro[0].engine} (${fmt(pro[0].mat)}) outweighs ${hardCon[0].engine} (${fmt(hardCon[0].mat)})`:`${hardCon[0].engine} concern more material — requires mitigation`});
-  if(opts.exNow&&ptR<.85)contras.push({a:"Options",b:"Prospect Theory",res:"Present option value decomposition to reframe — show strategic/learning value beyond raw NPV"});
+  if(pro.length&&hardCon.length)contras.push({a:pro[0].engine,b:hardCon[0].engine,res:pro[0].mat>hardCon[0].mat?`${pro[0].engine} (${fmt(pro[0].mat)}) outweighs ${hardCon[0].engine} (${fmt(hardCon[0].mat)})`:`${hardCon[0].engine} concern more material. Requires mitigation`});
+  if(opts.exNow&&ptR<.85)contras.push({a:"Options",b:"Prospect Theory",res:"Present option value decomposition to reframe. Show strategic/learning value beyond raw NPV"});
   if(delta>0&&!optStop.frontier.every(f=>f.shouldCont))contras.push({a:"HGB (PY1+)",b:"Opt Stopping",res:"Participate with built-in review triggers at exit thresholds"});
   const fav=pro.length,ag=con.length;
   const total=fav+ag+neut.length;const ratio=total>0?fav/total:0;
-  const pathway=ratio>=.7?"STRONG PARTICIPATE":ratio>=.55?"PARTICIPATE WITH CONDITIONS":ratio>=.4?"CONDITIONAL — INVESTIGATE":ratio>=.25?"CAUTIOUS — DEFER":"DECLINE";
+  const pathway=ratio>=.7?"STRONG PARTICIPATE":ratio>=.55?"PARTICIPATE WITH CONDITIONS":ratio>=.4?"CONDITIONAL: INVESTIGATE":ratio>=.25?"CAUTIOUS: DEFER":"DECLINE";
   const pathCl=pathway.includes("STRONG")?C.pos:pathway.includes("WITH")?cG:pathway.includes("CONDITIONAL")?C.warn:pathway.includes("CAUTIOUS")?cO:C.neg;
   return{signals,contras,pathway,pathCl,actions:signals.slice(0,6).map(s=>s.action),fav,ag,caut:signals.filter(s=>s.dir==="CAUTION"||s.dir==="NEUTRAL").length};
 }
@@ -505,7 +505,7 @@ function calcAPM(h:AheadHospital,mr:McrResult,dr:McdResult,mp:McrResult[],dp:Mcd
   const ranked=[...apms].sort((a,b)=>b.sharpe-a.sharpe);
   const dominated=apms.map(a=>apms.some(b=>b.nm!==a.nm&&b.delta>a.delta&&b.downP<a.downP));
   void dominated;
-  const stackable=[{a:"AHEAD",b:"BPCI-A",note:"BPCI-A episodes excluded from AHEAD global budget — complementary"},{a:"MSSP",b:`${h.st} APM`,note:"Federal + state tracks can run simultaneously"},{a:"ACO REACH",b:`${h.st} APM`,note:"Different payer, compatible participation"}];
+  const stackable=[{a:"AHEAD",b:"BPCI-A",note:"BPCI-A episodes excluded from AHEAD global budget. Complementary"},{a:"MSSP",b:`${h.st} APM`,note:"Federal + state tracks can run simultaneously"},{a:"ACO REACH",b:`${h.st} APM`,note:"Different payer, compatible participation"}];
   const best=ranked[0];const bestCombo=apms[0].delta+apms[3].delta>apms[0].delta+apms[2].delta?{a:apms[0],b:apms[3],v:apms[0].delta+apms[3].delta}:{a:apms[0],b:apms[2],v:apms[0].delta+apms[2].delta};
   return{apms,ranked,stackable,best,bestCombo};
 }
@@ -566,7 +566,7 @@ function buildAudit(key:string,mr:McrResult,dr:McdResult,hosp:AheadHospital,mp?:
   }
   if(key==="score"){
     const sc=calcSc(hosp,mr,dr,mp||[],dp||[],mc||[]);
-    add(0,"Composite Score",sc.comp,`${sc.rec} — weighted factor average`);
+    add(0,"Composite Score",sc.comp,`${sc.rec}. Weighted factor average`);
     sc.factors.forEach(f=>add(1,`${f.nm}: ${f.sc}/10 × ${f.wt}wt`,null,f.det));
   }
   if(key==="mc"){
@@ -1205,7 +1205,7 @@ export default function AheadCalculator(){
               <div style={{fontSize:11,color:C.inkLight,marginTop:1}}>
                 {a.nm==="AHEAD"?"Highest ceiling, highest complexity. Requires dual-payer infrastructure.":
                  a.nm==="ACO REACH"?"Proven TCOC model. Lower implementation burden. Good stepping stone.":
-                 a.nm==="BPCI-A"?"Surgical precision — episode-focused. Complementary to global budgets.":
+                 a.nm==="BPCI-A"?"Surgical precision. Episode-focused. Complementary to global budgets.":
                  a.nm==="MSSP"?"Conservative entry. Limited downside. Good for building VBP capability.":
                  `State-specific Medicaid track. Low risk, quality-focused.`}
               </div>

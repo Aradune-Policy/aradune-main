@@ -291,7 +291,7 @@ export default function HcbsTracker() {
               color: summary.workerPct >= 80 ? POS : WARN }}>
               {summary.workerPct >= 80
                 ? `✓ At ${overhead}% overhead, ${STATE_NAMES[st]}'s HCBS rates meet the 80/20 pass-through standard`
-                : `⚠ At ${overhead}% overhead, only ${summary.workerPct}% reaches workers — below the 80% pass-through target`}
+                : `⚠ At ${overhead}% overhead, only ${summary.workerPct}% reaches workers. Below the 80% pass-through target.`}
             </div>
           </Card>
 

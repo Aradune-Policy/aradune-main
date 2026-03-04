@@ -183,7 +183,7 @@ export default function FeeScheduleDir() {
     <div style={{ maxWidth: 1100, margin: "0 auto", padding: "24px 16px", fontFamily: FB }}>
       <h2 style={{ fontSize: 22, fontWeight: 800, color: A, margin: "0 0 4px" }}>Fee Schedule Directory</h2>
       <p style={{ fontSize: 13, color: AL, margin: "0 0 20px" }}>
-        Direct links to every state's published Medicaid fee schedule — format, access requirements, and compliance readiness
+        Direct links to every state's published Medicaid fee schedule: format, access requirements, and compliance readiness
       </p>
 
       {loading ? (
@@ -204,7 +204,7 @@ export default function FeeScheduleDir() {
 
           {/* CMS Compliance Banner */}
           <Card accent={WARN}>
-            <CH title="CMS Machine-Readable Deadline" sub="42 CFR 447.203 — July 1, 2026" />
+            <CH title="CMS Machine-Readable Deadline" sub="42 CFR 447.203: July 1, 2026" />
             <div style={{ display: "flex", gap: 24, alignItems: "center", flexWrap: "wrap" }}>
               <div style={{ flex: 1, minWidth: 240 }}>
                 <p style={{ margin: "0 0 8px", fontSize: 13, color: AL, lineHeight: 1.6 }}>
@@ -355,13 +355,13 @@ export default function FeeScheduleDir() {
                 <em>Portal</em> = requires navigating a state portal.
               </p>
               <p style={{ margin: "0 0 8px" }}>
-                URLs verified as of February 2026. State websites change frequently — if a link is broken, check the state
+                URLs verified as of February 2026. State websites change frequently. If a link is broken, check the state
                 Medicaid agency's main provider page.
               </p>
               <p style={{ margin: 0 }}>
                 This directory covers physician/professional fee schedules. Most states publish separate schedules for hospital
                 outpatient, DME, lab, dental, and pharmacy. In managed care states, FFS rates typically serve as a floor or
-                reference — MCO contracted rates may differ.
+                reference. MCO contracted rates may differ.
               </p>
             </div>
           </Card>

@@ -299,12 +299,12 @@ export default function RateReduction() {
                 )}
                 {stats.critical > 0 && (
                   <div style={{ color: NEG }}>
-                    ▸ {stats.critical} code{stats.critical > 1 ? "s" : ""} would fall below 50% of Medicare — high risk of provider withdrawal
+                    ▸ {stats.critical} code{stats.critical > 1 ? "s" : ""} would fall below 50% of Medicare, creating high risk of provider withdrawal
                   </div>
                 )}
                 {stats.warning > 0 && (
                   <div style={{ color: WARN }}>
-                    ▸ {stats.warning} code{stats.warning > 1 ? "s" : ""} would fall below 80% of Medicare — access review recommended
+                    ▸ {stats.warning} code{stats.warning > 1 ? "s" : ""} would fall below 80% of Medicare. Access review recommended
                   </div>
                 )}
               </div>

@@ -260,7 +260,7 @@ export default function QualityLinkage() {
 
       {/* Guide */}
       <Card><div style={{ padding:"10px 14px",fontSize:11,color:AL,lineHeight:1.6,background:"rgba(46,107,74,0.03)",borderLeft:`3px solid ${cB}` }}>
-        <span style={{ fontWeight:700,color:A }}>Quality ↔ Rate Linkage</span> — Connects CMS Medicaid Core Set quality outcomes to the actual reimbursement rates for the services that drive those outcomes. If a state pays poorly for well-child visits, does it show up in their well-child visit quality measure? This tool makes that question answerable with data.
+        <span style={{ fontWeight:700,color:A }}>Quality ↔ Rate Linkage.</span> Connects CMS Medicaid Core Set quality outcomes to the actual reimbursement rates for the services that drive those outcomes. If a state pays poorly for well-child visits, does it show up in their well-child visit quality measure? This tool makes that question answerable with data.
       </div></Card>
 
       {/* Controls */}
@@ -433,8 +433,8 @@ export default function QualityLinkage() {
         <b>Quality measures:</b> CMS Medicaid & CHIP Core Set, 2024 reporting cycle (services primarily CY2023). Includes both Adult and Child Core Sets. Only rates flagged as "used in calculating state mean and median" are included.<br/>
         <b>HCPCS linkage:</b> Each quality measure is mapped to the HCPCS/CDT codes that represent the clinical services driving performance on that measure. For example, the Well-Child Visit measure (WCV-CH) is linked to preventive E&M codes 99391-99395. These mappings are based on measure technical specifications and clinical logic.<br/>
         <b>Medicaid rates:</b> T-MSIS actual-paid rates (average paid per claim). When a measure links to multiple codes, the average rate across available codes is used. Not all linked codes may have T-MSIS data for all states.<br/>
-        <b>Correlation:</b> Pearson correlation coefficient between state-level average Medicaid rate and quality measure performance. This is an ecological association — it does not establish causation. Many factors beyond reimbursement affect quality outcomes, including eligibility policies, care management programs, provider networks, and social determinants.<br/>
-        <b>Limitations:</b> The HCPCS linkage is approximate — quality measures often depend on care delivery patterns that extend beyond the specific billed codes. T-MSIS rates are blended averages that may not reflect rates for specific populations or delivery systems.
+        <b>Correlation:</b> Pearson correlation coefficient between state-level average Medicaid rate and quality measure performance. This is an ecological association and does not establish causation. Many factors beyond reimbursement affect quality outcomes, including eligibility policies, care management programs, provider networks, and social determinants.<br/>
+        <b>Limitations:</b> The HCPCS linkage is approximate. Quality measures often depend on care delivery patterns that extend beyond the specific billed codes. T-MSIS rates are blended averages that may not reflect rates for specific populations or delivery systems.
       </div></Card>
 
       <div style={{ fontSize:10,color:AL,marginTop:8 }}>Aradune Quality-Rate Linkage v1.0 · CMS Core Set 2024 + T-MSIS</div>

@@ -386,7 +386,7 @@ export default function ComplianceReport() {
         <div>
           <h2 style={{ fontSize: 22, fontWeight: 800, color: A, margin: "0 0 4px" }}>Rate Transparency Compliance</h2>
           <p style={{ fontSize: 13, color: AL, margin: "0 0 20px" }}>
-            42 CFR §447.203 — CMS Ensuring Access Final Rule — Deadline: July 1, 2026
+            42 CFR §447.203 | CMS Ensuring Access Final Rule | Deadline: July 1, 2026
           </p>
         </div>
         <div style={{ display: "flex", gap: 8, alignItems: "center" }}>
@@ -545,7 +545,7 @@ export default function ComplianceReport() {
             {/* Parity bar chart — top 20 codes by spend, sorted by % Medicare */}
             {codeAnalysis.length > 0 && (
               <div style={{ marginBottom: 16 }}>
-                <div style={{ fontSize: 11, color: AL, marginBottom: 8 }}>Top codes by spending — sorted by Medicare parity</div>
+                <div style={{ fontSize: 11, color: AL, marginBottom: 8 }}>Top codes by spending, sorted by Medicare parity</div>
                 {[...codeAnalysis].sort((a, b) => a.pctMedicare - b.pctMedicare).slice(0, 20).map(c => (
                   <div key={c.hcpcs} style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 4 }}>
                     <div style={{ width: 55, fontSize: 10, fontFamily: FM, color: A, textAlign: "right" }}>{c.hcpcs}</div>
@@ -726,7 +726,7 @@ export default function ComplianceReport() {
 
           {/* Regulatory Reference */}
           <Card>
-            <CH title="Regulatory Reference" sub="42 CFR §447.203 — Ensuring Access Final Rule" />
+            <CH title="Regulatory Reference" sub="42 CFR §447.203: Ensuring Access Final Rule" />
             <div style={{ fontSize: 12, color: AL, lineHeight: 1.7 }}>
               <p style={{ margin: "0 0 8px" }}>
                 <strong>§447.203(b)(1):</strong> States must publish FFS Medicaid payment rates in a machine-readable format

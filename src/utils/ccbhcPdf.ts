@@ -44,7 +44,7 @@ function checkPage(doc: any, y: number, need: number): number {
 }
 
 export async function generateCcbhcPdf(r: CcbhcAnalysisResult): Promise<void> {
-  const doc = await createAradunePDF(`CCBHC Rate Development — ${r.state}`);
+  const doc = await createAradunePDF(`CCBHC Rate Development: ${r.state}`);
 
   // Subtitle
   doc.setFont("helvetica", "normal");
@@ -306,7 +306,7 @@ export async function generateCcbhcPdf(r: CcbhcAnalysisResult): Promise<void> {
   doc.setTextColor(...INK);
 
   const limitations = [
-    "ILLUSTRATIVE ONLY — rate estimates use aggregate T-MSIS claim counts as proxy.",
+    "ILLUSTRATIVE ONLY. Rate estimates use aggregate T-MSIS claim counts as proxy.",
     "Actual PPS rate requires beneficiary x date daily visit deduplication from claim-level data.",
     "T-MSIS data is FFS-adjudicated only (FL is 77% managed care).",
     "No beneficiary demographics, diagnoses, or eligibility-level data.",

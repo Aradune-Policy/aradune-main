@@ -24,6 +24,43 @@ const cT = "#3A7D5C";
 const FM = "'SF Mono',Menlo,monospace";
 const SH = "0 1px 3px rgba(0,0,0,.04),0 4px 12px rgba(0,0,0,.03)";
 
+// ── T-MSIS Data Quality Ratings (CMS DQ Atlas / KFF 2024) ───────────────
+// States with known T-MSIS spending data quality concerns.
+// "unusable" = significantly incomplete or unreliable spending data
+// "high_concern" = notable data quality issues that may affect analyses
+type DQRating = "unusable" | "high_concern";
+const DQ_FLAGS: Record<string, { rating: DQRating; note: string }> = {
+  KS: { rating: "unusable", note: "Incomplete encounter data; often excluded from analyses" },
+  ME: { rating: "unusable", note: "Late T-MSIS migration; significant data gaps" },
+  ID: { rating: "unusable", note: "Spending data completeness issues" },
+  AR: { rating: "unusable", note: "Managed care encounter data gaps" },
+  CO: { rating: "unusable", note: "MCO encounter data submission issues" },
+  ND: { rating: "unusable", note: "Small state; data completeness issues" },
+  MT: { rating: "high_concern", note: "Small state; sparse provider data" },
+  NE: { rating: "high_concern", note: "Encounter data completeness varies" },
+  SD: { rating: "high_concern", note: "Small state; limited encounter data" },
+  VT: { rating: "high_concern", note: "Small state; limited provider coverage" },
+  AL: { rating: "high_concern", note: "Managed care encounter data gaps" },
+  MS: { rating: "high_concern", note: "Encounter data submission lag" },
+  LA: { rating: "high_concern", note: "Historical MCO encounter issues" },
+  IN: { rating: "high_concern", note: "Managed care encounter completeness" },
+  CT: { rating: "high_concern", note: "Data submission timing issues" },
+  HI: { rating: "high_concern", note: "Late reporting; data gaps" },
+  OK: { rating: "high_concern", note: "FFS/MCO encounter completeness varies" },
+  SC: { rating: "high_concern", note: "Encounter data quality concerns" },
+  NM: { rating: "high_concern", note: "Data completeness varies by year" },
+  WV: { rating: "high_concern", note: "Small state; encounter data gaps" },
+  DC: { rating: "high_concern", note: "Unique jurisdiction; data anomalies" },
+  WY: { rating: "high_concern", note: "Smallest Medicaid program; sparse data" },
+};
+const DQ_BADGE = (st: string) => {
+  const dq = DQ_FLAGS[st];
+  if (!dq) return null;
+  return dq.rating === "unusable"
+    ? { label: "DQ", color: NEG, bg: "#FEE2E2", title: `⚠ ${dq.note}` }
+    : { label: "DQ", color: WARN, bg: "#FEF3CD", title: `⚠ ${dq.note}` };
+};
+
 // ── Plain-Language Synonym Map ──────────────────────────────────────────
 // Maps everyday terms → HCPCS codes, categories, or description fragments
 const SYNONYMS = {
@@ -666,6 +703,11 @@ export default function TmsisExplorer() {
   // Debounced DuckDB-WASM query execution
   useEffect(() => {
     if (!duckdbReady) return;
+    // Don't auto-query when no meaningful filter is set
+    if (!dePreset && !deCodes.length && deCat === "All" && !deNpi.length && !deTaxonomy.length && !deProviderName) {
+      setDeData(null);
+      return;
+    }
     const timer = setTimeout(() => {
       const groupByMap: Record<string, string> = {
         "State": "state", "Code": "hcpcs_code", "Category": "category",
@@ -2301,7 +2343,6 @@ export default function TmsisExplorer() {
         <Card>
           <CH t="Presets" b="Quick analysis — click to auto-fill filters"/>
           <div style={{ padding:"6px 14px 12px",display:"flex",flexWrap:"wrap",gap:4 }}>
-            <Pill on={!dePreset} onClick={()=>setDEPreset(null)}>None</Pill>
             {dePresets.map(p => <Pill key={p.id} on={dePreset===p.id} onClick={()=>setDEPreset(dePreset===p.id?null:p.id)}>{p.name}</Pill>)}
           </div>
           {dePreset && dePresets.find(p=>p.id===dePreset) && <div style={{ padding:"0 14px 8px",fontSize:9,color:AL }}>{dePresets.find(p=>p.id===dePreset)?.description}</div>}
@@ -2370,11 +2411,11 @@ export default function TmsisExplorer() {
             <div className="de-filter-3col" style={{ display:"grid",gridTemplateColumns:"1fr 1fr 1fr",gap:8 }}>
               <div>
                 <div style={{ fontSize:10,fontWeight:600,color:A,marginBottom:4 }}>Year From</div>
-                <input type="number" value={deDateFrom} onChange={e=>setDEDateFrom(e.target.value)} placeholder="e.g. 2019" style={{ width:"100%",fontSize:10,padding:"4px 6px",borderRadius:6,border:`1px solid ${B}`,color:A,fontFamily:FM }}/>
+                <input type="text" inputMode="numeric" pattern="[0-9]*" value={deDateFrom} onChange={e=>setDEDateFrom(e.target.value.replace(/[^0-9]/g,""))} placeholder="e.g. 2019" style={{ width:"100%",fontSize:10,padding:"4px 6px",borderRadius:6,border:`1px solid ${B}`,color:A,fontFamily:FM }}/>
               </div>
               <div>
                 <div style={{ fontSize:10,fontWeight:600,color:A,marginBottom:4 }}>Year To</div>
-                <input type="number" value={deDateTo} onChange={e=>setDEDateTo(e.target.value)} placeholder="e.g. 2023" style={{ width:"100%",fontSize:10,padding:"4px 6px",borderRadius:6,border:`1px solid ${B}`,color:A,fontFamily:FM }}/>
+                <input type="text" inputMode="numeric" pattern="[0-9]*" value={deDateTo} onChange={e=>setDEDateTo(e.target.value.replace(/[^0-9]/g,""))} placeholder="e.g. 2023" style={{ width:"100%",fontSize:10,padding:"4px 6px",borderRadius:6,border:`1px solid ${B}`,color:A,fontFamily:FM }}/>
               </div>
               {deExploreMode === "provider" && <div>
                 <div style={{ fontSize:10,fontWeight:600,color:A,marginBottom:4 }}>ZIP3</div>
@@ -2439,6 +2480,18 @@ export default function TmsisExplorer() {
             </div>
           </div>
         </Card>
+
+        {/* Prompt when no query */}
+        {!deData && !deLoading && !dePreset && !deCodes.length && deCat === "All" && (
+          <Card>
+            <div style={{ padding:"32px 20px",textAlign:"center" }}>
+              <div style={{ fontSize:13,fontWeight:600,color:A,marginBottom:6 }}>Select a preset to begin</div>
+              <div style={{ fontSize:11,color:AL,lineHeight:1.7,maxWidth:400,margin:"0 auto" }}>
+                Choose <b>All Services</b> to see total spending by year, or pick a category like Behavioral Health, Dental, or E&amp;M to drill into specific codes.
+              </div>
+            </div>
+          </Card>
+        )}
 
         {/* Summary Cards */}
         {deData && !deLoading && deSorted.length > 0 && <div className="de-kpi-grid" style={{ display:"grid",gridTemplateColumns:"repeat(4,1fr)",gap:8 }}>

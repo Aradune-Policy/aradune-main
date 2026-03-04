@@ -41,6 +41,13 @@ const CCBHC_EXPANDED_ONLY = [
 const CCBHC_ALL = [...new Set([...CCBHC_CORE, ...CCBHC_EXPANDED_ONLY])];
 
 export const PRESETS: Record<string, PresetInfo> = {
+  all_services: {
+    id: "all_services",
+    name: "All Services",
+    description: "Total Medicaid spending across all service categories — aggregate view by state, year, or month",
+    codes: [],
+    filter_type: "ordering",
+  },
   ccbhc_core: {
     id: "ccbhc_core",
     name: "CCBHC Core",

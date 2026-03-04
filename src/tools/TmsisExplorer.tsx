@@ -1311,25 +1311,37 @@ export default function TmsisExplorer() {
         {duckdbReady && !deExploreMode && <>
         <Card>
           <CH t="What do you want to explore?"/>
-          <div className="de-entry-grid" style={{ padding:"8px 14px 16px",display:"grid",gridTemplateColumns:"1fr 1fr 1fr 1fr 1fr",gap:10 }}>
+          <div className="de-entry-grid" style={{ padding:"8px 14px 16px",display:"grid",gridTemplateColumns:"repeat(auto-fill,minmax(160px,1fr))",gap:10 }}>
             {[
-              { id: "state", title: "State Analysis", desc: "Compare Medicaid spending across states", icon: "\u2B21" },
-              { id: "service", title: "Service Analysis", desc: "Explore spending by service type or HCPCS code", icon: "\u25C8" },
-              { id: "provider", title: "Provider Analysis", desc: "Find and compare providers", icon: "\u25B3" },
-              { id: "sql", title: "SQL Editor", desc: "Write raw SQL against the full dataset", icon: "\u2318" },
-              { id: "ccbhc", title: "CCBHC Analysis", desc: "Rate development analysis for FL SPA FL-25-0007", icon: "\u25C6" },
+              { id: "state", title: "State Analysis", desc: "Compare Medicaid spending across states", icon: "\u2B21", group: "explore" },
+              { id: "service", title: "Service Analysis", desc: "Explore spending by service type or HCPCS code", icon: "\u25C8", group: "explore" },
+              { id: "provider", title: "Provider Analysis", desc: "Find and compare providers", icon: "\u25B3", group: "explore" },
+              { id: "sql", title: "SQL Editor", desc: "Write raw SQL against the full dataset", icon: "\u2318", group: "explore" },
+              { id: "ccbhc", title: "CCBHC Analysis", desc: "Rate development analysis for FL SPA FL-25-0007", icon: "\u25C6", group: "analysis" },
+              { id: "hcbs_analysis", title: "HCBS Analysis", desc: "Home care & waiver spending, provider landscape, pass-through", icon: "\u2295", group: "analysis", preset: "hcbs_waiver" },
+              { id: "bh_analysis", title: "Behavioral Health", desc: "MH & SUD spending, provider distribution, service utilization", icon: "\u25C8", group: "analysis", preset: "behavioral_health" },
+              { id: "em_analysis", title: "Primary Care Access", desc: "E&M visit spending, provider distribution, access metrics", icon: "\u25BF", group: "analysis", preset: "em" },
             ].map(card => (
               <button key={card.id} onClick={() => {
-                setDeExploreMode(card.id);
-                if (card.id === "state") { setDEGroup("State"); }
-                else if (card.id === "service") { setDEGroup("Code"); }
-                else if (card.id === "provider") { setDEGroup("NPI"); }
+                if ((card as { preset?: string }).preset) {
+                  // Analysis template: auto-configure Data Explorer with preset
+                  setDeExploreMode("service");
+                  setDEGroup("Code");
+                  setDEPreset((card as { preset: string }).preset);
+                  setDEStates(["FL"]);
+                } else {
+                  setDeExploreMode(card.id);
+                  if (card.id === "state") { setDEGroup("State"); }
+                  else if (card.id === "service") { setDEGroup("Code"); }
+                  else if (card.id === "provider") { setDEGroup("NPI"); }
+                }
               }} onMouseEnter={e => { e.currentTarget.style.boxShadow = `0 4px 16px rgba(0,0,0,0.08)`; e.currentTarget.style.borderColor = cB; }}
                  onMouseLeave={e => { e.currentTarget.style.boxShadow = "none"; e.currentTarget.style.borderColor = B; }}
-                 style={{ padding:16,background:S,border:`1px solid ${B}`,borderRadius:10,cursor:"pointer",textAlign:"left",transition:"all 0.15s" }}>
-                <div style={{ fontSize:18,marginBottom:6,color:card.id === "ccbhc" ? cB : cB,opacity:0.7 }}>{card.icon}</div>
+                 style={{ padding:16,background:card.group === "analysis" ? `${cB}08` : S,border:`1px solid ${card.group === "analysis" ? `${cB}30` : B}`,borderRadius:10,cursor:"pointer",textAlign:"left",transition:"all 0.15s" }}>
+                <div style={{ fontSize:18,marginBottom:6,color:cB,opacity:0.7 }}>{card.icon}</div>
                 <div style={{ fontSize:12,fontWeight:600,color:A,marginBottom:4 }}>{card.title}</div>
                 <div style={{ fontSize:10,color:AL,lineHeight:1.4 }}>{card.desc}</div>
+                {card.group === "analysis" && card.id !== "ccbhc" && <div style={{ fontSize:8,marginTop:6,color:cB,fontWeight:600,fontFamily:FM }}>AUTO-CONFIGURED</div>}
               </button>
             ))}
           </div>
@@ -2361,10 +2373,14 @@ export default function TmsisExplorer() {
                 <span style={{ fontSize:9,color:AL,marginLeft:4 }}>{deStates.length === 0 ? "All states" : `${deStates.length} selected`}</span>
               </div>
               <div style={{ maxHeight:160,overflowY:"auto",border:`1px solid ${B}`,borderRadius:6,padding:"4px 8px",display:"grid",gridTemplateColumns:"repeat(auto-fill,minmax(120px,1fr))",gap:"1px 8px" }}>
-                {stateList.map(st => <label key={st} style={{ fontSize:10,color:A,display:"flex",alignItems:"center",gap:4,cursor:"pointer",whiteSpace:"nowrap" }}>
-                  <input type="checkbox" checked={deStates.includes(st)} onChange={()=>setDEStates(p=>p.includes(st)?p.filter(x=>x!==st):[...p,st])} style={{ margin:0 }}/>
-                  {states[st]?.name || st}
-                </label>)}
+                {stateList.map(st => {
+                  const dqb = DQ_BADGE(st);
+                  return <label key={st} style={{ fontSize:10,color:A,display:"flex",alignItems:"center",gap:4,cursor:"pointer",whiteSpace:"nowrap" }} title={dqb?.title}>
+                    <input type="checkbox" checked={deStates.includes(st)} onChange={()=>setDEStates(p=>p.includes(st)?p.filter(x=>x!==st):[...p,st])} style={{ margin:0 }}/>
+                    {states[st]?.name || st}
+                    {dqb && <span style={{ fontSize:7,padding:"1px 3px",borderRadius:3,background:dqb.bg,color:dqb.color,fontWeight:700,fontFamily:FM }}>{dqb.label}</span>}
+                  </label>;
+                })}
               </div>
             </div>
 
@@ -2505,6 +2521,25 @@ export default function TmsisExplorer() {
             <div style={{ fontSize:16,fontWeight:700,color:A,fontFamily:FM }}>{m.v}</div>
           </div>)}
         </div>}
+
+        {/* DQ Warning for selected states */}
+        {(() => {
+          const flagged = (deStates.length > 0 ? deStates : stateList).filter(s => DQ_FLAGS[s]);
+          const unusable = flagged.filter(s => DQ_FLAGS[s]?.rating === "unusable");
+          const concern = flagged.filter(s => DQ_FLAGS[s]?.rating === "high_concern");
+          if (flagged.length === 0) return null;
+          return <div style={{ padding:"8px 14px",margin:"0 0 8px",background:unusable.length > 0 ? "#FEE2E2" : "#FEF3CD",
+            borderRadius:8,fontSize:11,lineHeight:1.6,border:`1px solid ${unusable.length > 0 ? "#FECACA" : "#FDE68A"}` }}>
+            <span style={{ fontWeight:700,color:unusable.length > 0 ? NEG : WARN }}>Data Quality Notice: </span>
+            {unusable.length > 0 && <span style={{ color:NEG }}>
+              {unusable.join(", ")} {unusable.length === 1 ? "has" : "have"} unusable spending data per CMS DQ Atlas.{" "}
+            </span>}
+            {concern.length > 0 && <span style={{ color:WARN }}>
+              {concern.join(", ")} {concern.length === 1 ? "has" : "have"} known data quality concerns.{" "}
+            </span>}
+            <span style={{ color:AL }}>Results for these states should be interpreted with caution.</span>
+          </div>;
+        })()}
 
         {/* Results */}
         <Card>

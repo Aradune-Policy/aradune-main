@@ -12,6 +12,9 @@ import RateDecay from "./tools/RateDecay";
 import RateBuilder from "./tools/RateBuilder";
 import PolicyAnalyst from "./tools/PolicyAnalyst";
 import AheadCalculator from "./tools/AheadCalculator";
+import RateReduction from "./tools/RateReduction";
+import HcbsTracker from "./tools/HcbsTracker";
+import MethodologyLibrary from "./tools/MethodologyLibrary";
 
 // ── Hash Router ──────────────────────────────────────────────────────────
 function useRoute() {
@@ -43,8 +46,8 @@ const TOOLS: ToolDef[] = [
   {
     id: "methods", group: "transparency", name: "Methodology Library",
     tagline: "How each state sets Medicaid rates, in one place",
-    desc: "State-by-state reference: methodology type, conversion factors, base year, last update, SPA numbers.",
-    status: "coming", icon: "≡", color: C.brand,
+    desc: "State-by-state reference: methodology type, conversion factors, fee schedule sources, spending context. Search, filter, and compare how every state builds its Medicaid rates.",
+    status: "live", icon: "≡", color: C.brand,
   },
   {
     id: "fees", group: "transparency", name: "Fee Schedule Directory",
@@ -68,14 +71,14 @@ const TOOLS: ToolDef[] = [
   {
     id: "reduction", group: "adequacy", name: "Rate Reduction Analyzer",
     tagline: "Analyze the impact of proposed Medicaid rate reductions",
-    desc: "Model proposed rate reductions against access thresholds. Small cuts (4%+) need access review; large cuts (6%+) need independent analysis. See exactly what a reduction means.",
-    status: "coming", icon: "▼", color: C.accent,
+    desc: "Model proposed rate reductions against access thresholds and Medicare ratios. Small cuts (4%+) need access review; large cuts (6%+) need independent analysis. See exactly what a reduction means for every code.",
+    status: "live", icon: "▼", color: C.accent,
   },
   {
     id: "hcbs8020", group: "adequacy", name: "HCBS Compensation Tracker",
     tagline: "How much of HCBS spending reaches direct care workers?",
-    desc: "Track the share of Medicaid HCBS payments going to direct care worker compensation. The 80/20 pass-through standard is the benchmark — see where each state stands.",
-    status: "coming", icon: "⊕", color: C.accent,
+    desc: "Track the share of Medicaid HCBS payments going to direct care worker compensation. The 80/20 pass-through standard is the benchmark — see where each state stands, code by code.",
+    status: "live", icon: "⊕", color: C.accent,
   },
   // ── MODELING ──────────────────────────────────────────────────────────
   {
@@ -923,8 +926,9 @@ export default function Platform() {
     if (route === "/analyst") return <PolicyAnalyst />;
     if (route === "/ahead" || route.startsWith("/ahead?")) return <AheadCalculator />;
     if (route === "/fees") { const t = TOOLS.find(x => x.id === "fees")!; return <ComingSoon tool={t} />; }
-    if (route === "/reduction") { const t = TOOLS.find(x => x.id === "reduction")!; return <ComingSoon tool={t} />; }
-    if (route === "/hcbs8020") { const t = TOOLS.find(x => x.id === "hcbs8020")!; return <ComingSoon tool={t} />; }
+    if (route === "/reduction") return <RateReduction />;
+    if (route === "/hcbs8020") return <HcbsTracker />;
+    if (route === "/methods") return <MethodologyLibrary />;
     const tool = TOOLS.find(t => route === `/${t.id}`);
     if (tool && (tool.status === "coming")) return <ComingSoon tool={tool} />;
     return (

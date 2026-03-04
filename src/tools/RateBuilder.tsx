@@ -1,6 +1,7 @@
 import React, { useState, useMemo, useEffect, useCallback } from "react";
 import type { Methodology, ComputeContext, RateResult, RateBuilderHcpcs, RateBuilderMedicare } from "../types";
 import { useProAccess, ProBadge, ProGateModal } from "../components/ProGate";
+import { query as duckQuery } from "../lib/duckdb";
 
 // ── Design System ───────────────────────────────────────────────────────
 const A = "#0A2540";
@@ -169,6 +170,8 @@ export default function RateBuilder() {
   const { isPro } = useProAccess();
   const [showGate, setShowGate] = useState(false);
   const [gateFeature, setGateFeature] = useState("");
+  const [fiscalState, setFiscalState] = useState("FL");
+  const [codeSpending, setCodeSpending] = useState<{ paid: number; claims: number; bene: number } | null>(null);
 
   useEffect(() => {
     let cancelled = false;
@@ -270,6 +273,27 @@ export default function RateBuilder() {
       changePct: ((newRate / s.rate) - 1) * 100,
     }));
   }, [result, selectedCode]);
+
+  // Fiscal impact: query DuckDB for code spending in selected state
+  useEffect(() => {
+    if (!selectedCode) { setCodeSpending(null); return; }
+    const code = selectedCode.code.replace(/'/g, "''");
+    const st = fiscalState.replace(/'/g, "''");
+    const sql = `SELECT SUM(total_paid) AS paid, SUM(total_claims) AS claims, SUM(total_beneficiaries) AS bene FROM 'claims.parquet' WHERE state='${st}' AND hcpcs_code='${code}' AND year=2023`;
+    duckQuery(sql).then(r => {
+      const row = r.rows[0];
+      if (row) setCodeSpending({ paid: Number(row.paid ?? 0), claims: Number(row.claims ?? 0), bene: Number(row.bene ?? 0) });
+      else setCodeSpending(null);
+    }).catch(() => setCodeSpending(null));
+  }, [selectedCode, fiscalState]);
+
+  const fiscalSim = useMemo(() => {
+    if (!result || !codeSpending || codeSpending.claims <= 0) return null;
+    const curRate = codeSpending.paid / codeSpending.claims;
+    const newSpending = result.rate * codeSpending.claims;
+    const impact = newSpending - codeSpending.paid;
+    return { curRate, newSpending, impact, pctChange: (impact / codeSpending.paid) * 100 };
+  }, [result, codeSpending]);
 
   if (loading) return (
     <div style={{ display:"flex",justifyContent:"center",alignItems:"center",minHeight:400,fontFamily:"Helvetica Neue,Arial,sans-serif" }}>
@@ -509,6 +533,42 @@ export default function RateBuilder() {
               })}
             </tbody>
           </table>
+        </div>
+      </Card>}
+
+      {/* Fiscal Impact Simulator */}
+      {result && selectedCode && <Card accent={cO}>
+        <CH t="Fiscal Impact Simulator" b="What if this rate applied?" r="T-MSIS CY2023"/>
+        <div style={{ padding:"6px 14px 14px" }}>
+          <div style={{ display:"flex",alignItems:"center",gap:8,marginBottom:10 }}>
+            <span style={{ fontSize:10,fontWeight:600,color:AL }}>State:</span>
+            <select value={fiscalState} onChange={e => setFiscalState(e.target.value)}
+              style={{ padding:"4px 8px",border:`1px solid ${BD}`,borderRadius:6,fontSize:11,fontFamily:FM }}>
+              {Object.entries(STATE_NAMES).map(([s,n]) => <option key={s} value={s}>{s} — {n}</option>)}
+            </select>
+          </div>
+          {!codeSpending || codeSpending.claims <= 0 ? (
+            <div style={{ fontSize:11,color:AL,padding:"8px 0" }}>No T-MSIS spending data for {selectedCode.code} in {STATE_NAMES[fiscalState] ?? fiscalState}</div>
+          ) : fiscalSim ? (
+            <div>
+              <div style={{ display:"grid",gridTemplateColumns:"repeat(auto-fit,minmax(120px,1fr))",gap:4,marginBottom:10 }}>
+                <Met l="Current Annual" v={`$${(codeSpending.paid/1e6).toFixed(1)}M`} sub={`${(codeSpending.claims/1e3).toFixed(0)}K claims`}/>
+                <Met l="Current Rate" v={`$${fiscalSim.curRate.toFixed(2)}`} sub="effective rate"/>
+                <Met l="Your Rate" v={`$${result.rate.toFixed(2)}`} cl={cB} sub={curMethod?.name}/>
+                <Met l="New Spending" v={`$${(fiscalSim.newSpending/1e6).toFixed(1)}M`} cl={fiscalSim.impact>=0?NEG:POS}/>
+              </div>
+              <div style={{ padding:"10px 12px",background:fiscalSim.impact>=0?"#FEE2E2":"#E8F5E9",borderRadius:8,fontSize:12 }}>
+                <span style={{ fontWeight:700,color:fiscalSim.impact>=0?NEG:POS }}>
+                  {fiscalSim.impact>=0?"+":" "}{(fiscalSim.impact/1e6).toFixed(2)}M
+                </span>
+                <span style={{ color:AL }}> annual impact </span>
+                <span style={{ fontFamily:FM,color:fiscalSim.impact>=0?NEG:POS }}>
+                  ({fiscalSim.pctChange>=0?"+":""}{fiscalSim.pctChange.toFixed(1)}%)
+                </span>
+                <span style={{ color:AL }}> — {STATE_NAMES[fiscalState]} {selectedCode.code}</span>
+              </div>
+            </div>
+          ) : null}
         </div>
       </Card>}
 

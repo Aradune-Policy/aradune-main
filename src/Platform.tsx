@@ -30,7 +30,7 @@ const TOOLS: ToolDef[] = [
   {
     id: "explorer", group: "transparency", name: "Spending Explorer",
     tagline: "Search and compare Medicaid spending across every state",
-    desc: "Free, open tools that turn T-MSIS claims data into cross-state rate comparisons, provider concentration analysis, spending trends, and fiscal impact estimates for every HCPCS code. Filter by state, category, or service — with full CSV export.",
+    desc: "Query 190M+ Medicaid claims directly in your browser with DuckDB-WASM. Cross-state rate comparisons, provider analysis, spending trends, and a full SQL editor — filter by state, category, or service with CSV export.",
     status: "live", icon: "⌕", color: C.brand,
   },
   {
@@ -111,9 +111,26 @@ const GROUP_DESCS: Record<string, string> = {
   modeling: "Calculate rates, model scenarios, draft policy.",
 };
 
+// ── Responsive hook ──────────────────────────────────────────────────────
+function useIsMobile(breakpoint = 768) {
+  const [isMobile, setIsMobile] = useState(typeof window !== "undefined" ? window.innerWidth < breakpoint : false);
+  useEffect(() => {
+    const handler = () => setIsMobile(window.innerWidth < breakpoint);
+    window.addEventListener("resize", handler);
+    return () => window.removeEventListener("resize", handler);
+  }, [breakpoint]);
+  return isMobile;
+}
+
 // ── Platform Nav ─────────────────────────────────────────────────────────
 function PlatformNav({ route }: { route: string }) {
   const activeTool = TOOLS.find(t => route === `/${t.id}`);
+  const isMobile = useIsMobile();
+  const [mobileOpen, setMobileOpen] = useState(false);
+
+  // Close mobile menu on route change
+  useEffect(() => { setMobileOpen(false); }, [route]);
+
   return (
     <nav style={{
       position: "sticky", top: 0, zIndex: 100,
@@ -138,24 +155,84 @@ function PlatformNav({ route }: { route: string }) {
             </>
           )}
         </div>
-        <div style={{ display: "flex", gap: 2, alignItems: "center", flexShrink: 1, minWidth: 0 }}>
-          <NavSearch tools={TOOLS} />
+
+        {/* Desktop nav */}
+        {!isMobile && (
+          <div style={{ display: "flex", gap: 2, alignItems: "center", flexShrink: 1, minWidth: 0 }}>
+            <NavSearch tools={TOOLS} />
+            {route !== "/" && (
+              <a href="#/" style={{ fontSize: 11, color: C.inkLight, textDecoration: "none", padding: "4px 10px", borderRadius: 6, fontFamily: FONT.body, whiteSpace: "nowrap" }}>
+                All Tools
+              </a>
+            )}
+            {NAV_GROUPS.map(g => <NavDrop key={g.key} group={g} route={route} />)}
+            <a href="#/about" style={{
+              fontSize: 11, fontFamily: FONT.body,
+              color: route === "/about" ? C.brand : C.inkLight,
+              fontWeight: route === "/about" ? 600 : 400,
+              textDecoration: "none", padding: "4px 10px", whiteSpace: "nowrap",
+            }}>
+              About
+            </a>
+          </div>
+        )}
+
+        {/* Mobile hamburger */}
+        {isMobile && (
+          <button onClick={() => setMobileOpen(!mobileOpen)} style={{
+            background: "none", border: "none", cursor: "pointer", padding: "6px",
+            display: "flex", flexDirection: "column", gap: 4, justifyContent: "center",
+          }}>
+            <span style={{ display: "block", width: 18, height: 2, background: C.ink, borderRadius: 1, transition: "all .2s", transform: mobileOpen ? "rotate(45deg) translate(3px,3px)" : "none" }}/>
+            <span style={{ display: "block", width: 18, height: 2, background: C.ink, borderRadius: 1, transition: "all .2s", opacity: mobileOpen ? 0 : 1 }}/>
+            <span style={{ display: "block", width: 18, height: 2, background: C.ink, borderRadius: 1, transition: "all .2s", transform: mobileOpen ? "rotate(-45deg) translate(3px,-3px)" : "none" }}/>
+          </button>
+        )}
+      </div>
+
+      {/* Mobile dropdown menu */}
+      {isMobile && mobileOpen && (
+        <div style={{
+          background: C.white, borderTop: `1px solid ${C.border}`,
+          padding: "8px 0", boxShadow: SHADOW_LG,
+        }}>
           {route !== "/" && (
-            <a href="#/" style={{ fontSize: 11, color: C.inkLight, textDecoration: "none", padding: "4px 10px", borderRadius: 6, fontFamily: FONT.body, whiteSpace: "nowrap" }}>
+            <a href="#/" onClick={() => setMobileOpen(false)} style={{
+              display: "block", padding: "10px 20px", textDecoration: "none",
+              fontSize: 13, fontWeight: 500, color: C.ink, fontFamily: FONT.body,
+            }}>
               All Tools
             </a>
           )}
-          {NAV_GROUPS.map(g => <NavDrop key={g.key} group={g} route={route} />)}
-          <a href="#/about" style={{
-            fontSize: 11, fontFamily: FONT.body,
-            color: route === "/about" ? C.brand : C.inkLight,
-            fontWeight: route === "/about" ? 600 : 400,
-            textDecoration: "none", padding: "4px 10px", whiteSpace: "nowrap",
+          {NAV_GROUPS.map(g => (
+            <div key={g.key}>
+              <div style={{ padding: "8px 20px 4px", fontSize: 9, fontWeight: 700, color: g.key === "transparency" ? C.brand : g.key === "adequacy" ? C.accent : C.teal, textTransform: "uppercase", letterSpacing: 1, fontFamily: FONT.mono }}>
+                {g.label}
+              </div>
+              {g.tools.map(t => {
+                const isLive = t.status === "live" || t.status === "beta";
+                return (
+                  <a key={t.id} href={`#/${t.id}`} onClick={() => setMobileOpen(false)} style={{
+                    display: "flex", alignItems: "center", gap: 10, padding: "8px 20px 8px 28px",
+                    textDecoration: "none", background: route === `/${t.id}` ? `${C.brand}08` : "transparent",
+                  }}>
+                    <span style={{ fontSize: 12, color: t.color, flexShrink: 0 }}>{t.icon}</span>
+                    <span style={{ fontSize: 12, color: C.ink, fontWeight: route === `/${t.id}` ? 600 : 400, fontFamily: FONT.body }}>{t.name}</span>
+                    {!isLive && <span style={{ fontSize: 8, color: C.inkLight, fontFamily: FONT.mono, marginLeft: "auto" }}>SOON</span>}
+                  </a>
+                );
+              })}
+            </div>
+          ))}
+          <a href="#/about" onClick={() => setMobileOpen(false)} style={{
+            display: "block", padding: "10px 20px", textDecoration: "none",
+            fontSize: 13, fontWeight: route === "/about" ? 600 : 400, color: route === "/about" ? C.brand : C.ink, fontFamily: FONT.body,
+            borderTop: `1px solid ${C.border}`, marginTop: 4,
           }}>
             About
           </a>
         </div>
-      </div>
+      )}
     </nav>
   );
 }
@@ -204,7 +281,7 @@ function Landing() {
         display: "grid", gridTemplateColumns: "repeat(auto-fit,minmax(130px,1fr))",
         gap: 16, padding: "20px 0 36px", borderTop: `1px solid ${C.border}`,
       }}>
-        {([["227M+", "claims rows"], ["54", "jurisdictions"], ["9,500+", "HCPCS codes"], ["$1.1T", "total spending"]] as const).map(([val, label]) => (
+        {([["190M+", "claims rows"], ["54", "jurisdictions"], ["9,500+", "HCPCS codes"], ["$1.1T", "total spending"]] as const).map(([val, label]) => (
           <div key={label}>
             <div style={{ fontSize: 20, fontWeight: 700, fontFamily: FONT.mono, color: C.brand, letterSpacing: -0.5 }}>{val}</div>
             <div style={{ fontSize: 11, color: C.inkLight, marginTop: 2 }}>{label}</div>
@@ -495,10 +572,12 @@ function Landing() {
           <div style={{ fontSize: 12, color: C.inkLight, lineHeight: 1.75 }}>
             Data pipelines process the full <Term>T-MSIS</Term> spending dataset, Medicare
             Physician Fee Schedule, <Term>BLS</Term> wage surveys, and CMS <Term>Core Set</Term> quality
-            measures. The output is static JSON served from a CDN — no cloud compute,
-            no database, no ongoing costs. The code and methodology are open. An
-            AI-powered policy analyst can answer complex questions by grounding
-            responses in this data.
+            measures. The output is Parquet columnar files queried by DuckDB-WASM
+            directly in your browser — 190M+ claims queryable via SQL, no server
+            round-trips, no cloud compute, no ongoing costs. Monthly granularity
+            from Cloudflare R2. The code and methodology are open. An AI-powered
+            policy analyst can answer complex questions by grounding responses in
+            this data.
           </div>
         </div>
       </div>
@@ -507,11 +586,13 @@ function Landing() {
       <div style={{
         display: "flex", gap: 16, flexWrap: "wrap", padding: "16px 0 24px",
         borderTop: `1px solid ${C.border}`, borderBottom: `1px solid ${C.border}`, marginBottom: 32,
+        alignItems: "center",
       }}>
         <span style={{ fontSize: 10, fontFamily: FONT.mono, color: C.inkLight, letterSpacing: 0.5, fontWeight: 600 }}>DATA:</span>
         {["CMS T-MSIS", "Medicare PFS CY2025", "BLS OEWS May 2024", "CMS Core Set", "NPPES NPI", "FMAP FY2025"].map(src => (
           <span key={src} style={{ fontSize: 10, fontFamily: FONT.mono, color: C.inkLight, letterSpacing: 0.3 }}>{src}</span>
         ))}
+        <span style={{ marginLeft: "auto", fontSize: 9, fontFamily: FONT.mono, color: C.brand, letterSpacing: 0.3, fontWeight: 600 }}>Queryable via DuckDB-WASM</span>
       </div>
 
       {/* 9. Free vs Professional */}
@@ -525,9 +606,10 @@ function Landing() {
         }}>
           <div style={{ fontSize: 16, fontWeight: 700, color: C.brand, marginBottom: 4 }}>Free, always</div>
           <div style={{ fontSize: 12, color: C.inkLight, lineHeight: 1.7, marginBottom: 14 }}>
-            Every tool on this platform is free — spending explorer, rate analysis,
-            adequacy measurement, fiscal modeling, rate builder, and all coming tools.
-            No login, no paywall. CSV exports included on every tool.
+            Every tool on this platform is free — spending explorer with SQL access
+            to 190M+ claims, rate analysis, adequacy measurement, fiscal modeling,
+            rate builder, and all coming tools. No login, no paywall. CSV exports
+            included on every tool.
           </div>
           <div style={{ fontSize: 11, color: C.inkLight, lineHeight: 1.9 }}>
             {TOOLS.filter(t => t.id !== "analyst" && t.status !== "coming").map(t => (
@@ -854,7 +936,7 @@ export default function Platform() {
   };
 
   return (
-    <div style={{ fontFamily: FONT.body, background: C.bg, minHeight: "100vh", color: C.ink }}>
+    <div style={{ fontFamily: FONT.body, background: C.bg, minHeight: "100vh", color: C.ink, overflowX: "hidden" }}>
       <PlatformNav route={route} />
       {renderRoute()}
       <footer style={{

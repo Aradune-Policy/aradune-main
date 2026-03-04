@@ -18,7 +18,7 @@ const SH = "0 1px 3px rgba(0,0,0,.04),0 4px 12px rgba(0,0,0,.03)";
 
 const STATE_NAMES: Record<string, string> = {AL:"Alabama",AK:"Alaska",AZ:"Arizona",AR:"Arkansas",CA:"California",CO:"Colorado",CT:"Connecticut",DE:"Delaware",DC:"D.C.",FL:"Florida",GA:"Georgia",HI:"Hawaii",ID:"Idaho",IL:"Illinois",IN:"Indiana",IA:"Iowa",KS:"Kansas",KY:"Kentucky",LA:"Louisiana",ME:"Maine",MD:"Maryland",MA:"Massachusetts",MI:"Michigan",MN:"Minnesota",MS:"Mississippi",MO:"Missouri",MT:"Montana",NE:"Nebraska",NV:"Nevada",NH:"New Hampshire",NJ:"New Jersey",NM:"New Mexico",NY:"New York",NC:"N. Carolina",ND:"N. Dakota",OH:"Ohio",OK:"Oklahoma",OR:"Oregon",PA:"Pennsylvania",RI:"Rhode Island",SC:"S. Carolina",SD:"S. Dakota",TN:"Tennessee",TX:"Texas",UT:"Utah",VT:"Vermont",VA:"Virginia",WA:"Washington",WV:"W. Virginia",WI:"Wisconsin",WY:"Wyoming",PR:"Puerto Rico",GU:"Guam",VI:"Virgin Islands"};
 
-// State minimum wages (2024)
+// State minimum wages (approximate as of 2024; may need periodic updates)
 const MIN_WAGE: Record<string, number> = {AL:7.25,AK:11.73,AZ:14.35,AR:11.00,CA:16.00,CO:14.42,CT:15.69,DE:13.25,DC:17.50,FL:13.00,GA:7.25,HI:14.00,ID:7.25,IL:14.00,IN:7.25,IA:7.25,KS:7.25,KY:7.25,LA:7.25,ME:14.15,MD:15.00,MA:15.00,MI:10.33,MN:10.85,MS:7.25,MO:12.30,MT:10.30,NE:12.00,NV:12.00,NH:7.25,NJ:15.13,NM:12.00,NY:15.00,NC:7.25,ND:7.25,OH:10.45,OK:7.25,OR:14.70,PA:7.25,RI:14.00,SC:7.25,SD:11.20,TN:7.25,TX:7.25,UT:7.25,VT:13.67,VA:12.00,WA:16.28,WV:8.75,WI:7.25,WY:7.25,PR:10.50};
 const FED_MIN = 7.25;
 

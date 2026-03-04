@@ -1,4 +1,4 @@
-import { useState, useCallback } from "react";
+import { useState, useCallback, useEffect } from "react";
 import { C, FONT, SHADOW_LG } from "../design";
 
 // ── Pro Access Hook ──────────────────────────────────────────────────
@@ -46,6 +46,15 @@ export function ProGateModal({
     onClose();
     window.location.reload();
   }, [tokenInput, onClose]);
+
+  useEffect(() => {
+    if (!open) return;
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (e.key === "Escape") onClose();
+    };
+    window.addEventListener("keydown", handleKeyDown);
+    return () => window.removeEventListener("keydown", handleKeyDown);
+  }, [open, onClose]);
 
   if (!open) return null;
 
@@ -100,7 +109,7 @@ export function ProGateModal({
               style={{
                 flex: 1, padding: "7px 10px", borderRadius: 6,
                 border: `1px solid ${C.border}`, fontSize: 11,
-                fontFamily: FONT.mono, outline: "none",
+                fontFamily: FONT.mono,
               }}
               onKeyDown={e => { if (e.key === "Enter") handleSaveToken(); }}
             />

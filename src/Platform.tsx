@@ -192,7 +192,7 @@ function PlatformNav({ route }: { route: string }) {
 
         {/* Mobile hamburger */}
         {isMobile && (
-          <button onClick={() => setMobileOpen(!mobileOpen)} style={{
+          <button aria-label={mobileOpen ? "Close navigation menu" : "Open navigation menu"} onClick={() => setMobileOpen(!mobileOpen)} style={{
             background: "none", border: "none", cursor: "pointer", padding: "6px",
             display: "flex", flexDirection: "column", gap: 4, justifyContent: "center",
           }}>
@@ -333,7 +333,7 @@ function Landing() {
             <select value={st} onChange={e => setSt(e.target.value)} style={{
               flex: 1, maxWidth: isMobile ? "100%" : 280, padding: "8px 10px", borderRadius: 6, fontSize: 12,
               border: `1px solid ${C.border}`, fontFamily: FONT.body, color: st ? C.ink : C.inkLight,
-              background: C.white, outline: "none",
+              background: C.white,
             }}>
               <option value="">Select a state...</option>
               {STATES_LIST.map(s => <option key={s} value={s}>{s} — {STATE_NAMES[s]}</option>)}
@@ -361,7 +361,7 @@ function Landing() {
               placeholder="dental, office visits, 99213, therapy..."
               style={{
                 flex: 1, maxWidth: isMobile ? "100%" : 320, padding: "8px 10px", borderRadius: 6, fontSize: 12,
-                border: `1px solid ${C.border}`, fontFamily: FONT.body, color: C.ink, outline: "none",
+                border: `1px solid ${C.border}`, fontFamily: FONT.body, color: C.ink,
               }}
             />
             <a
@@ -386,7 +386,7 @@ function Landing() {
             <select value={st} onChange={e => setSt(e.target.value)} style={{
               flex: 1, maxWidth: isMobile ? "100%" : 280, padding: "8px 10px", borderRadius: 6, fontSize: 12,
               border: `1px solid ${C.border}`, fontFamily: FONT.body, color: st ? C.ink : C.inkLight,
-              background: C.white, outline: "none",
+              background: C.white,
             }}>
               <option value="">Select a state...</option>
               {STATES_LIST.map(s => <option key={s} value={s}>{s} — {STATE_NAMES[s]}</option>)}
@@ -603,7 +603,7 @@ function Landing() {
         alignItems: "center",
       }}>
         <span style={{ fontSize: 10, fontFamily: FONT.mono, color: C.inkLight, letterSpacing: 0.5, fontWeight: 600 }}>DATA:</span>
-        {["CMS T-MSIS", "Medicare PFS CY2025", "BLS OEWS May 2024", "CMS Core Set", "NPPES NPI", "FMAP FY2025"].map(src => (
+        {["CMS T-MSIS", "Medicare PFS CY2026", "BLS OEWS May 2024", "CMS Core Set", "NPPES NPI", "FMAP FY2025"].map(src => (
           <span key={src} style={{ fontSize: 10, fontFamily: FONT.mono, color: C.inkLight, letterSpacing: 0.3 }}>{src}</span>
         ))}
         <span style={{ marginLeft: "auto", fontSize: 9, fontFamily: FONT.mono, color: C.brand, letterSpacing: 0.3, fontWeight: 600 }}>Queryable via DuckDB-WASM</span>
@@ -741,7 +741,7 @@ function About() {
             <br />
             <b>Code descriptions:</b> CMS Physician Fee Schedule RVU files + HCPCS Level II Alpha-Numeric file
             <br />
-            <b>Enrollment:</b> CMS Medicaid enrollment data (November 2024, Medicaid only; CHIP excluded)
+            <b>Enrollment:</b> CMS Medicaid enrollment data (November 2024, Medicaid only; CHIP excluded; enriched with state exhibit data)
             <br />
             <b>FMAP:</b> FY2025 Federal Medical Assistance Percentages
           </div>
@@ -966,8 +966,16 @@ export default function Platform() {
 
   return (
     <div style={{ fontFamily: FONT.body, background: C.bg, minHeight: "100vh", color: C.ink, overflowX: "hidden" }}>
+      <a href="#main-content" style={{
+        position: "absolute", left: -9999, top: "auto", width: 1, height: 1, overflow: "hidden",
+        zIndex: 1000, padding: "8px 16px", background: C.brand, color: C.white,
+        fontSize: 13, fontWeight: 600, textDecoration: "none", borderRadius: 4,
+      }} onFocus={e => { e.currentTarget.style.position = "fixed"; e.currentTarget.style.left = "8px"; e.currentTarget.style.top = "8px"; e.currentTarget.style.width = "auto"; e.currentTarget.style.height = "auto"; }}
+         onBlur={e => { e.currentTarget.style.position = "absolute"; e.currentTarget.style.left = "-9999px"; e.currentTarget.style.width = "1px"; e.currentTarget.style.height = "1px"; }}>
+        Skip to main content
+      </a>
       <PlatformNav route={route} />
-      {renderRoute()}
+      <main id="main-content">{renderRoute()}</main>
       <footer style={{
         maxWidth: 1080, margin: "0 auto", padding: "24px 20px 32px",
         borderTop: `1px solid ${C.border}`,

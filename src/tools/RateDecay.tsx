@@ -237,7 +237,7 @@ export default function RateDecay() {
       <div style={{ paddingBottom:8,borderBottom:`1px solid ${BD}`,marginBottom:10 }}>
         <div style={{ display:"flex",justifyContent:"space-between",alignItems:"center",flexWrap:"wrap",gap:6 }}>
           <div style={{ display:"flex",alignItems:"center",gap:8 }}>
-            <span style={{ fontSize:8,padding:"1px 6px",borderRadius:8,background:"rgba(14,98,69,0.1)",color:POS,fontWeight:600 }}>CY2025 Medicare PFS</span>
+            <span style={{ fontSize:8,padding:"1px 6px",borderRadius:8,background:"rgba(14,98,69,0.1)",color:POS,fontWeight:600 }}>CY2026 Medicare PFS</span>
             <span style={{ fontSize:9,color:AL,fontFamily:FM }}>{analysis.length} benchmark codes</span>
           </div>
           <ExportBtn label="Export Analysis" onClick={() => {
@@ -291,7 +291,7 @@ export default function RateDecay() {
 
       {/* Decay Chart */}
       {withBoth.length > 0 && <Card>
-        <CH t={`${STATE_NAMES[s1]} Rates as % of Medicare`} b={`${withBoth.length} codes · CY2025 Medicare PFS`} r="100% = Medicare parity"/>
+        <CH t={`${STATE_NAMES[s1]} Rates as % of Medicare`} b={`${withBoth.length} codes · CY2026 Medicare PFS`} r="100% = Medicare parity"/>
         <div style={{ padding:"0 14px 8px" }}>
           <ResponsiveContainer width="100%" height={Math.max(200, withBoth.length * 18)}>
             <BarChart data={[...withBoth].sort((a,b)=>(a.pctMedicare??0)-(b.pctMedicare??0))} layout="vertical" margin={{ left:90,right:16 }}>
@@ -405,14 +405,14 @@ export default function RateDecay() {
 
       {/* About */}
       <Card><CH t="Data Sources & Methodology"/><div style={{ padding:"4px 16px 12px",fontSize:11,color:A,lineHeight:1.8 }}>
-        <b>Medicare rates:</b> CY2025 Medicare Physician Fee Schedule, non-facility rates. These represent CMS's RBRVS-derived rates including work, practice expense, and malpractice RVUs adjusted by the conversion factor.<br/>
+        <b>Medicare rates:</b> CY2026 Medicare Physician Fee Schedule, non-facility rates. These represent CMS's RBRVS-derived rates including work, practice expense, and malpractice RVUs adjusted by the conversion factor.<br/>
         <b>Medicaid rates:</b> State fee schedule rates where available, otherwise T-MSIS actual-paid averages. Fee schedule rates are preferred as they represent the state's intentional rate-setting; T-MSIS reflects what was actually paid including managed care encounters, which may differ.<br/>
         <b>% of Medicare:</b> (Medicaid rate ÷ Medicare rate) × 100. This is the standard benchmark used by MACPAC, KFF, and state rate-setting analyses. Values below 100% indicate Medicaid pays less than Medicare for the same service.<br/>
         <b>Benchmark codes:</b> High-volume E&M, preventive, behavioral health, and therapy codes selected to represent the services most commonly delivered in Medicaid. Not exhaustive — the full fee schedule comparison will be available as state data is integrated.<br/>
         <b>Rate decay:</b> When a state's rates fall behind Medicare over time, it creates compounding access problems. Medicare adjusts annually; if Medicaid doesn't match, the gap widens each year. A code at 60% of Medicare that stays frozen while Medicare increases 3% annually drops to ~52% in 5 years.
       </div></Card>
 
-      <div style={{ fontSize:10,color:AL,marginTop:8 }}>Aradune Rate Decay Tracker v1.0 · CY2025 Medicare PFS + T-MSIS</div>
+      <div style={{ fontSize:10,color:AL,marginTop:8 }}>Aradune Rate Decay Tracker v1.0 · CY2026 Medicare PFS + T-MSIS</div>
     </div>
   );
 }

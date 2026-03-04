@@ -13,7 +13,7 @@ import { STATES_LIST, STATE_NAMES } from "../data/states";
 
 // ── Constants ───────────────────────────────────────────────────────────
 const DATA_YEAR = 2023; // T-MSIS data year in claims.parquet
-const MCR_CF = 32.3465; // CY2025 Medicare conversion factor ($/RVU)
+const MCR_CF = 33.4009; // CY2026 Medicare conversion factor ($/RVU)
 
 // ── Design tokens ───────────────────────────────────────────────────────
 const A = "#0A2540", AL = "#425A70", POS = "#2E6B4A", NEG = "#A4262C", WARN = "#B8860B";

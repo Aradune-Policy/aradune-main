@@ -35,7 +35,7 @@ const METHODOLOGIES: Methodology[] = [
         rate,
         formula: `Medicare $${ctx.medicareRate.toFixed(2)} × ${inputs.pctMedicare}% = $${rate.toFixed(2)}`,
         components: [
-          { label: "Medicare PFS Rate", value: `$${ctx.medicareRate.toFixed(2)}`, note: "CY2025 non-facility" },
+          { label: "Medicare PFS Rate", value: `$${ctx.medicareRate.toFixed(2)}`, note: "CY2026 non-facility" },
           { label: "Scaling Factor", value: `${inputs.pctMedicare}%`, note: "Percentage of Medicare" },
           { label: "Calculated Rate", value: `$${rate.toFixed(2)}`, note: "Your Medicaid rate", bold: true },
         ],
@@ -341,7 +341,7 @@ export default function RateBuilder() {
           </div>
         </div>
         <div style={{ display:"grid",gridTemplateColumns:"repeat(auto-fit,minmax(110px,1fr))",padding:"0 6px 12px" }}>
-          <Met l="Medicare Rate" v={selectedCode.medicareRate?`$${selectedCode.medicareRate.toFixed(2)}`:"Not found"} sub="CY2025 non-facility"/>
+          <Met l="Medicare Rate" v={selectedCode.medicareRate?`$${selectedCode.medicareRate.toFixed(2)}`:"Not found"} sub="CY2026 non-facility"/>
           <Met l="Total RVU" v={selectedCode.rvu?selectedCode.rvu.toFixed(4):"—"} sub={selectedCode.workRvu?`W:${selectedCode.workRvu} PE:${selectedCode.peRvu} MP:${selectedCode.mpRvu}`:""}/>
           <Met l="States with Data" v={`${selectedCode.nStates}`} sub="T-MSIS actual-paid"/>
           {selectedCode.stateRates.length > 0 && <>
@@ -460,7 +460,7 @@ export default function RateBuilder() {
               ``,
               ...result.components.map(c => `${c.label}: ${c.value}${c.note ? ` (${c.note})` : ""}`),
               ``,
-              `Medicare CY2025: $${selectedCode.medicareRate?.toFixed(2) || "N/A"}`,
+              `Medicare CY2026: $${selectedCode.medicareRate?.toFixed(2) || "N/A"}`,
               `% of Medicare: ${selectedCode.medicareRate ? (result.rate/selectedCode.medicareRate*100).toFixed(1) + "%" : "N/A"}`,
               `States with T-MSIS data: ${selectedCode.nStates}`,
               selectedCode.stateRates.length > 0 ? `T-MSIS median: $${selectedCode.stateRates[Math.floor(selectedCode.stateRates.length/2)].rate.toFixed(2)}` : "",
@@ -590,13 +590,13 @@ export default function RateBuilder() {
       {/* About */}
       <Card><CH t="About Rate Builder"/><div style={{ padding:"4px 16px 12px",fontSize:11,color:A,lineHeight:1.8 }}>
         <b>Purpose:</b> A free, transparent rate calculation tool for Medicaid analysts, advocates, and researchers. Enter any HCPCS code, select a standard rate-setting methodology, and get a calculated rate with full documentation.<br/>
-        <b>Data sources:</b> CY2025 Medicare Physician Fee Schedule (RVUs and rates), T-MSIS actual-paid rates by state. Fee schedule rates from individual states will be added as the database is built.<br/>
+        <b>Data sources:</b> CY2026 Medicare Physician Fee Schedule (RVUs and rates), T-MSIS actual-paid rates by state. Fee schedule rates from individual states will be added as the database is built.<br/>
         <b>Methodologies:</b> RBRVS % of Medicare (most common), custom conversion factor (used by FL, TX, etc.), peer state median, or manual flat rate. Each methodology documents the formula and components for audit trail purposes.<br/>
         <b>Exports:</b> Every calculation can be exported as a text file documenting the code, methodology, formula, inputs, and result. State comparisons export as CSV.<br/>
         <b>Limitations:</b> This tool calculates rates based on your selected methodology and inputs. It does not account for state-specific modifiers, place-of-service adjustments, specialty-specific rates, or managed care negotiations. T-MSIS rates are blended averages and may not reflect fee schedule rates.
       </div></Card>
 
-      <div style={{ fontSize:10,color:AL,marginTop:8 }}>Aradune Rate Builder v1.0 · Free Tool · CY2025 Medicare PFS + T-MSIS</div>
+      <div style={{ fontSize:10,color:AL,marginTop:8 }}>Aradune Rate Builder v1.0 · Free Tool · CY2026 Medicare PFS + T-MSIS</div>
       <ProGateModal feature={gateFeature} open={showGate} onClose={() => setShowGate(false)} />
     </div>
   );

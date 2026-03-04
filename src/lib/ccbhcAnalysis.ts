@@ -308,7 +308,8 @@ export const MILLIMAN_ESTIMATES = {
 } as const;
 
 export const CCBHC_TAXONOMY_CODES = ["261QM0801X", "324500000X", "261QR0405X"];
-export const PEER_STATES = ["FL", "GA", "TX", "NY", "CA", "OH"];
+export const PEER_STATES_BASE = ["FL", "GA", "TX", "NY", "CA", "OH"];
+export const PEER_STATES = PEER_STATES_BASE; // kept for backwards compat
 
 // ── SQL helpers ──────────────────────────────────────────────────────
 
@@ -471,14 +472,17 @@ export async function analyzeTrends(state = "FL"): Promise<TrendRow[]> {
   return rows;
 }
 
-export async function analyzeCrossState(): Promise<BenchmarkRow[]> {
+export async function analyzeCrossState(selectedState = "FL"): Promise<BenchmarkRow[]> {
+  // Ensure the selected state is included in peer comparison
+  const peerSet = new Set([...PEER_STATES_BASE, selectedState]);
+  const peers = [...peerSet];
   const sql = `
     SELECT state,
            SUM(total_paid) AS total_paid,
            SUM(total_claims) AS total_claims,
            SUM(total_beneficiaries) AS total_beneficiaries
     FROM 'claims.parquet'
-    WHERE state IN (${inList(PEER_STATES)})
+    WHERE state IN (${inList(peers)})
       AND hcpcs_code IN (${inList(ALL_HCPCS)})
     GROUP BY state
     ORDER BY total_paid DESC
@@ -631,58 +635,162 @@ export async function analyzeTelehealth(state = "FL"): Promise<TelehealthTrend[]
   }
 }
 
-// FFS share constants (from KFF/CMS 2023)
-const FFS_SHARE: Record<string, number> = {
-  FL:0.23,NY:0.24,TX:0.27,CA:0.18,OH:0.16,GA:0.28,PA:0.22,IL:0.35,MN:0.28,AZ:0.15
+// FFS share — loaded dynamically from states.json at runtime
+let _statesCache: Array<{ state: string; ffs_share?: number }> | null = null;
+async function loadFfsShare(): Promise<Record<string, number>> {
+  if (!_statesCache) {
+    try {
+      const resp = await fetch("/data/states.json");
+      _statesCache = await resp.json();
+    } catch { _statesCache = []; }
+  }
+  const map: Record<string, number> = {};
+  for (const s of _statesCache!) {
+    if (s.ffs_share && s.ffs_share > 0) map[s.state] = s.ffs_share;
+  }
+  return map;
+}
+// Fallback static values for states without ffs_share in states.json
+const FFS_SHARE_FALLBACK: Record<string, number> = {
+  FL:0.13,NY:0.20,TX:0.15,CA:0.14,OH:0.16,GA:0.15,PA:0.15,IL:0.15,MN:0.15,AZ:0.15
 };
 
-// Quality measures — statically defined from data file
-const QUALITY_GAPS_DATA: Omit<QualityGap, "direction">[] = [
-  { id:"IET-AD", name:"SUD Treatment Initiation (18+)", domain:"Behavioral Health", fl_rate:6.8, median:41.8, gap:-35.0, linked_codes:["H0004","H0015","90834","90837"] },
-  { id:"AMM-AD", name:"Antidepressant Medication Mgmt (18+)", domain:"Behavioral Health", fl_rate:39.9, median:61.1, gap:-21.2, linked_codes:[] },
-  { id:"MSC-AD", name:"Smoking/Tobacco Cessation (18+)", domain:"Behavioral Health", fl_rate:46.9, median:74.5, gap:-27.6, linked_codes:[] },
-  { id:"DEV-CH", name:"Developmental Screening (0-3)", domain:"Preventive", fl_rate:24.7, median:37.4, gap:-12.7, linked_codes:["96110"] },
-  { id:"APM-CH", name:"Metabolic Monitoring, Antipsychotics (1-17)", domain:"Behavioral Health", fl_rate:37.9, median:43.6, gap:-5.7, linked_codes:[] },
-  { id:"FUM-AD", name:"Post-ED Follow-Up, Mental Illness (18+)", domain:"Behavioral Health", fl_rate:33.6, median:35.3, gap:-1.7, linked_codes:["90834","90837","99213","99214"] },
-  { id:"FUA-AD", name:"Post-ED Follow-Up, Substance Use (18+)", domain:"Behavioral Health", fl_rate:24.3, median:25.8, gap:-1.5, linked_codes:["99213","99214","H0004","H0015"] },
-  { id:"FUH-CH", name:"Post-Hospitalization Follow-Up (6-17)", domain:"Behavioral Health", fl_rate:64.5, median:44.8, gap:19.7, linked_codes:["90834","90837","90832"] },
-  { id:"FUH-AD", name:"Post-Hospitalization Follow-Up (18+)", domain:"Behavioral Health", fl_rate:40.7, median:32.3, gap:8.4, linked_codes:["90834","90837","90832","90847"] },
-  { id:"OUD-AD", name:"Pharmacotherapy for Opioid Use Disorder", domain:"Behavioral Health", fl_rate:50.4, median:40.0, gap:10.4, linked_codes:["H0020","J0571","J0572","J0573","J0574","J0575"] },
-  { id:"ADD-CH", name:"ADHD Medication Follow-Up (6-12)", domain:"Behavioral Health", fl_rate:57.9, median:47.4, gap:10.5, linked_codes:["99213","99214","99215"] },
-  { id:"SAA-AD", name:"Antipsychotic Adherence, Schizophrenia", domain:"Behavioral Health", fl_rate:60.8, median:61.2, gap:-0.4, linked_codes:["J2426","J1631","H0033"] },
+// Quality measures — loaded dynamically from quality_measures.json
+let _qualityCache: Array<{ state: string; measure: string; measure_name: string; domain: string; rate: number | null; national_median: number | null }> | null = null;
+async function loadQualityGaps(state: string): Promise<QualityGap[]> {
+  if (!_qualityCache) {
+    try {
+      const resp = await fetch("/data/quality_measures.json");
+      _qualityCache = await resp.json();
+    } catch { _qualityCache = []; }
+  }
+  // BH-related measures for the selected state
+  const bhDomains = ["Behavioral Health Care", "Behavioral Health"];
+  const stateData = _qualityCache!.filter(q =>
+    q.state === (STATE_NAME_MAP[state] || state) &&
+    q.rate != null && q.national_median != null
+  );
+  // CCBHC-relevant code linkage
+  const LINKED: Record<string, string[]> = {
+    "IET-AD":["H0004","H0015","90834","90837"],"IET-CH":["H0004","H0015"],
+    "FUM-AD":["90834","90837","99213","99214"],"FUM-CH":["90834","90837","99213"],
+    "FUA-AD":["99213","99214","H0004","H0015"],"FUA-CH":["99213","H0004"],
+    "FUH-AD":["90834","90837","90832","90847"],"FUH-CH":["90834","90837","90832"],
+    "DEV-CH":["96110"],"ADD-CH":["99213","99214","99215"],
+    "OUD-AD":["H0020","J0571","J0572","J0573","J0574","J0575"],
+    "AMM-AD":[],"MSC-AD":[],"APM-CH":[],"SAA-AD":["J2426","J1631","H0033"],
+  };
+  return stateData
+    .filter(q => bhDomains.some(d => q.domain.includes(d)) || LINKED[q.measure])
+    .map(q => ({
+      id: q.measure,
+      name: q.measure_name,
+      domain: q.domain,
+      fl_rate: q.rate!,
+      median: q.national_median!,
+      gap: q.rate! - q.national_median!,
+      linked_codes: LINKED[q.measure] || [],
+      direction: "higher_better" as const,
+    }))
+    .sort((a, b) => a.gap - b.gap)
+    .slice(0, 15); // Top 15 gaps
+}
+// State abbreviation → full name (for quality measures lookup)
+const STATE_NAME_MAP: Record<string, string> = {
+  AL:"Alabama",AK:"Alaska",AZ:"Arizona",AR:"Arkansas",CA:"California",CO:"Colorado",
+  CT:"Connecticut",DE:"Delaware",DC:"District of Columbia",FL:"Florida",GA:"Georgia",
+  HI:"Hawaii",ID:"Idaho",IL:"Illinois",IN:"Indiana",IA:"Iowa",KS:"Kansas",KY:"Kentucky",
+  LA:"Louisiana",ME:"Maine",MD:"Maryland",MA:"Massachusetts",MI:"Michigan",MN:"Minnesota",
+  MS:"Mississippi",MO:"Missouri",MT:"Montana",NE:"Nebraska",NV:"Nevada",NH:"New Hampshire",
+  NJ:"New Jersey",NM:"New Mexico",NY:"New York",NC:"North Carolina",ND:"North Dakota",
+  OH:"Ohio",OK:"Oklahoma",OR:"Oregon",PA:"Pennsylvania",RI:"Rhode Island",SC:"South Carolina",
+  SD:"South Dakota",TN:"Tennessee",TX:"Texas",UT:"Utah",VT:"Vermont",VA:"Virginia",
+  WA:"Washington",WV:"West Virginia",WI:"Wisconsin",WY:"Wyoming",
+};
+
+// Workforce data — loaded dynamically from oes_wages.json
+const CCBHC_SOCS: { soc: string; linked_codes: string[]; overhead_pct: number }[] = [
+  { soc:"21-1023", linked_codes:["H0031","H0032","H0038"], overhead_pct:30 },
+  { soc:"21-1022", linked_codes:["H2019","T1017","H0032"], overhead_pct:30 },
+  { soc:"21-1018", linked_codes:["H0015","H0020","H0004","H0001"], overhead_pct:30 },
+  { soc:"21-1013", linked_codes:["90834","90837","90847"], overhead_pct:30 },
+  { soc:"29-1141", linked_codes:["T1015","99385","99395"], overhead_pct:30 },
+  { soc:"21-1021", linked_codes:["H2019","T1017"], overhead_pct:30 },
+  { soc:"29-1223", linked_codes:["90834","90837","90832","90846"], overhead_pct:30 },
 ];
+let _oesCache: Array<{ state: string; soc: string; title: string; h_mean: number | null; a_mean: number | null }> | null = null;
+async function loadWorkforceData(state: string): Promise<Omit<WorkforceEntry, "implied_rate_per_15min">[]> {
+  if (!_oesCache) {
+    try {
+      const resp = await fetch("/data/oes_wages.json");
+      _oesCache = await resp.json();
+    } catch { _oesCache = []; }
+  }
+  const stateData = new Map(_oesCache!.filter(o => o.state === state).map(o => [o.soc, o]));
+  const natData = new Map(_oesCache!.filter(o => o.state === "US").map(o => [o.soc, o]));
+  const results: Omit<WorkforceEntry, "implied_rate_per_15min">[] = [];
+  for (const cs of CCBHC_SOCS) {
+    const sd = stateData.get(cs.soc);
+    const nd = natData.get(cs.soc);
+    if (!sd || !sd.h_mean || !nd || !nd.h_mean) continue;
+    results.push({
+      soc: cs.soc,
+      title: sd.title || nd.title || cs.soc,
+      fl_hourly: sd.h_mean,
+      national_hourly: nd.h_mean,
+      fl_vs_national_pct: ((sd.h_mean - nd.h_mean) / nd.h_mean) * 100,
+      linked_codes: cs.linked_codes,
+      overhead_pct: cs.overhead_pct,
+    });
+  }
+  return results;
+}
 
-// Workforce data — statically defined from BLS data file
-const WORKFORCE_DATA: Omit<WorkforceEntry, "implied_rate_per_15min">[] = [
-  { soc:"21-1023", title:"MH & SUD Social Workers", fl_hourly:26.98, national_hourly:32.83, fl_vs_national_pct:-17.8, linked_codes:["H0031","H0032","H0038"], overhead_pct:30 },
-  { soc:"21-1021", title:"Child/Family Social Workers", fl_hourly:27.28, national_hourly:30.25, fl_vs_national_pct:-9.8, linked_codes:["H2019","T1017"], overhead_pct:30 },
-  { soc:"29-1141", title:"Registered Nurses", fl_hourly:42.40, national_hourly:47.32, fl_vs_national_pct:-10.4, linked_codes:["T1015","99385","99395"], overhead_pct:30 },
-];
+// Enrollment mix — loaded from states.json
+async function loadEnrollmentMix(state: string): Promise<Record<string, number>> {
+  if (!_statesCache) {
+    try {
+      const resp = await fetch("/data/states.json");
+      _statesCache = await resp.json();
+    } catch { _statesCache = []; }
+  }
+  const s = (_statesCache as Array<Record<string, number | string>>)?.find(
+    (x: Record<string, unknown>) => x.state === state
+  );
+  if (!s) return {};
+  const total = (s.enrollment_fy2023 as number) || 1;
+  const mix: Record<string, number> = {};
+  if (s.enrollment_child) mix.child = +((s.enrollment_child as number) / total * 100).toFixed(1);
+  if (s.enrollment_new_adult) mix.new_adult = +((s.enrollment_new_adult as number) / total * 100).toFixed(1);
+  if (s.enrollment_other_adult) mix.other_adult = +((s.enrollment_other_adult as number) / total * 100).toFixed(1);
+  if (s.enrollment_disabled) mix.disabled = +((s.enrollment_disabled as number) / total * 100).toFixed(1);
+  if (s.enrollment_aged) mix.aged = +((s.enrollment_aged as number) / total * 100).toFixed(1);
+  return mix;
+}
 
-// Enrollment mix — statically from risk_adj.json
-const FL_ENROLLMENT_MIX: Record<string, number> = { child:47.6, new_adult:0.0, other_adult:28.2, disabled:10.8, aged:13.4 };
-
-export function buildEnhancedAnalysis(
+export async function buildEnhancedAnalysis(
   dailyVisits: DailyVisitRow[],
   visitFreq: VisitFrequencyRow[],
   teleTrends: TelehealthTrend[],
   providers: ProviderRow[],
   grandTotalPaid: number,
   state: string,
-): EnhancedAnalysisResult {
-  const ffsShare = FFS_SHARE[state] ?? 0.23;
+): Promise<EnhancedAnalysisResult> {
+  const [ffsShareMap, qualityGaps, workforceRaw, enrollmentMix] = await Promise.all([
+    loadFfsShare(),
+    loadQualityGaps(state),
+    loadWorkforceData(state),
+    loadEnrollmentMix(state),
+  ]);
+
+  const ffsShare = ffsShareMap[state] ?? FFS_SHARE_FALLBACK[state] ?? 0.15;
   const broadService = providers.filter(p => (p as ProviderRow & { code_count?: number }).total_claims > 1000).length;
   const narrowService = providers.length - broadService;
   const avgCodes = providers.length > 0
     ? providers.reduce((a, p) => a + ((p as unknown as Record<string, number>).code_count ?? 1), 0) / providers.length
     : 0;
 
-  const qualityGaps: QualityGap[] = QUALITY_GAPS_DATA.map(q => ({
-    ...q,
-    direction: ["COB-AD","OHD-AD"].includes(q.id) ? "lower_better" as const : "higher_better" as const,
-  }));
-
-  const workforce: WorkforceEntry[] = WORKFORCE_DATA.map(w => ({
+  const workforce: WorkforceEntry[] = workforceRaw.map(w => ({
     ...w,
     implied_rate_per_15min: (w.fl_hourly / 4) * (1 + w.overhead_pct / 100),
   }));
@@ -695,7 +803,7 @@ export function buildEnhancedAnalysis(
     telehealth_trends: teleTrends,
     ffs_share: ffsShare,
     implied_total_with_mc: ffsShare > 0 ? grandTotalPaid / ffsShare : grandTotalPaid,
-    enrollment_mix: FL_ENROLLMENT_MIX,
+    enrollment_mix: enrollmentMix,
     provider_readiness: { total: providers.length, broad_service: broadService, narrow_service: narrowService, avg_codes: avgCodes },
   };
 }
@@ -783,8 +891,8 @@ export async function analyzeGeography(state = "FL"): Promise<GeographyRow[]> {
 
   for (const ar of allResult.rows) {
     const z = String(ar.zip3);
-    // Skip non-state ZIP3s (data anomalies from out-of-state providers)
-    if (state === "FL" && !z.startsWith("3")) continue;
+    // Skip blank/invalid ZIP3s
+    if (!z || z.length < 3 || z === "undefined" || z === "null") continue;
     const cr = ccbhcMap.get(z);
     rows.push({
       zip3: z,
@@ -875,7 +983,7 @@ export async function runFullCcbhcAnalysis(state = "FL"): Promise<CcbhcAnalysisR
     analyzeProviders(state),
     analyzeTrends(state),
     analyzeMonthlyTrends(state),
-    analyzeCrossState(),
+    analyzeCrossState(state),
     analyzeProviderBenchmarks(),
     analyzeDailyVisits(state),
     analyzeVisitFrequency(state),
@@ -884,14 +992,13 @@ export async function runFullCcbhcAnalysis(state = "FL"): Promise<CcbhcAnalysisR
     analyzeProviderScopedTotals(state),
   ]);
 
-  const rate_estimates = calculateRateEstimates(
-    status_quo.grand_total_claims,
-    status_quo.grand_total_beneficiaries,
-  );
+  const rate_estimates = state === "FL"
+    ? calculateRateEstimates(status_quo.grand_total_claims, status_quo.grand_total_beneficiaries)
+    : [];
 
-  const refined_rates = calculateRefinedRates(providerTotals);
+  const refined_rates = state === "FL" ? calculateRefinedRates(providerTotals) : [];
 
-  const enhanced = buildEnhancedAnalysis(
+  const enhanced = await buildEnhancedAnalysis(
     dailyVisits, visitFreq, teleTrends, providers,
     status_quo.grand_total_paid, state,
   );

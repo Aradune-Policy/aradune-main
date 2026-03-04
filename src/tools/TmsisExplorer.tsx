@@ -1326,7 +1326,7 @@ export default function TmsisExplorer() {
               { id: "service", title: "Service Analysis", desc: "Explore spending by service type or HCPCS code", icon: "\u25C8", group: "explore" },
               { id: "provider", title: "Provider Analysis", desc: "Find and compare providers", icon: "\u25B3", group: "explore" },
               { id: "sql", title: "SQL Editor", desc: "Write raw SQL against the full dataset", icon: "\u2318", group: "explore" },
-              { id: "ccbhc", title: "CCBHC Analysis", desc: "Rate development analysis for FL SPA FL-25-0007", icon: "\u25C6", group: "analysis" },
+              { id: "ccbhc", title: "CCBHC Analysis", desc: "CCBHC service utilization, spending, providers & benchmarks by state", icon: "\u25C6", group: "analysis" },
               { id: "hcbs_analysis", title: "HCBS Analysis", desc: "Home care & waiver spending, provider landscape, pass-through", icon: "\u2295", group: "analysis", preset: "hcbs_waiver" },
               { id: "bh_analysis", title: "Behavioral Health", desc: "MH & SUD spending, provider distribution, service utilization", icon: "\u25C8", group: "analysis", preset: "behavioral_health" },
               { id: "em_analysis", title: "Primary Care Access", desc: "E&M visit spending, provider distribution, access metrics", icon: "\u25BF", group: "analysis", preset: "em" },
@@ -1539,7 +1539,7 @@ export default function TmsisExplorer() {
             <div style={{ display:"flex",alignItems:"center",gap:8 }}>
               <button onClick={() => { setDeExploreMode(null); setCcbhcResult(null); }} style={{ fontSize:10,color:cB,background:"none",border:`1px solid ${B}`,borderRadius:5,padding:"3px 8px",cursor:"pointer" }}>&larr; Back</button>
               <span style={{ fontSize:10,fontWeight:600,color:A }}>CCBHC Rate Development Analysis</span>
-              <span style={{ fontSize:8,padding:"1px 6px",borderRadius:8,background:"rgba(46,107,74,0.06)",color:cB,fontWeight:600 }}>SPA FL-25-0007</span>
+              {ccbhcState === "FL" && <span style={{ fontSize:8,padding:"1px 6px",borderRadius:8,background:"rgba(46,107,74,0.06)",color:cB,fontWeight:600 }}>SPA FL-25-0007</span>}
             </div>
             {r && <>
               <ExportBtn label="Export CSV" onClick={() => {
@@ -1655,7 +1655,7 @@ export default function TmsisExplorer() {
 
           {/* Section 2: Status Quo Spending */}
           <Card>
-            <CH t="Section 2: Status Quo Spending (Task 3)" b="Compared to Milliman actuarial estimates"/>
+            <CH t="Section 2: Status Quo Spending" b={ccbhcState === "FL" ? "Compared to Milliman actuarial estimates" : `CCBHC-code spending in ${ccbhcState}`}/>
             <div style={{ padding:"4px 14px 10px" }}>
               {/* KPI cards */}
               <div style={{ display:"grid",gridTemplateColumns:"repeat(auto-fit,minmax(130px,1fr))",gap:8,marginBottom:10 }}>
@@ -1671,21 +1671,20 @@ export default function TmsisExplorer() {
                   <div style={{ fontSize:8,color:AL,textTransform:"uppercase",letterSpacing:0.5,marginBottom:2 }}>Expanded Subtotal</div>
                   <div style={{ fontFamily:FM,fontSize:16,fontWeight:700,color:cO }}>{f$$(r.status_quo.expanded_total_paid)}</div>
                 </div>
-                <div style={{ background:S,borderRadius:8,padding:"10px 12px",textAlign:"center" }}>
+                {ccbhcState === "FL" && <div style={{ background:S,borderRadius:8,padding:"10px 12px",textAlign:"center" }}>
                   <div style={{ fontSize:8,color:AL,textTransform:"uppercase",letterSpacing:0.5,marginBottom:2 }}>LBR Appropriation</div>
                   <div style={{ fontFamily:FM,fontSize:16,fontWeight:700,color:A }}>{f$$(MILLIMAN_ESTIMATES.lbr_appropriation)}</div>
-                </div>
+                </div>}
               </div>
 
-              {/* Milliman comparison bar */}
+              {/* Milliman comparison bar — FL only */}
+              {ccbhcState === "FL" && <>
               <div style={{ background:S,borderRadius:8,padding:"12px 14px",marginBottom:10 }}>
                 <div style={{ fontSize:10,fontWeight:600,color:A,marginBottom:8 }}>T-MSIS Actual vs Milliman Range</div>
                 <div style={{ position:"relative",height:28,background:`${B}`,borderRadius:4,overflow:"hidden" }}>
-                  {/* Milliman range band */}
                   <div style={{ position:"absolute",left:`${(MILLIMAN_ESTIMATES.status_quo_low / MILLIMAN_ESTIMATES.lbr_appropriation) * 100}%`,
                     width:`${((MILLIMAN_ESTIMATES.status_quo_high - MILLIMAN_ESTIMATES.status_quo_low) / MILLIMAN_ESTIMATES.lbr_appropriation) * 100}%`,
                     height:"100%",background:`${WARN}30`,borderLeft:`2px solid ${WARN}`,borderRight:`2px solid ${WARN}` }}/>
-                  {/* T-MSIS actual */}
                   <div style={{ position:"absolute",left:`${Math.min((r.status_quo.grand_total_paid / MILLIMAN_ESTIMATES.lbr_appropriation) * 100, 100)}%`,
                     top:0,bottom:0,width:3,background:cB,borderRadius:2 }}/>
                 </div>
@@ -1696,8 +1695,6 @@ export default function TmsisExplorer() {
                   <span>{f$$(MILLIMAN_ESTIMATES.lbr_appropriation)}</span>
                 </div>
               </div>
-
-              {/* Findings */}
               <div style={{ display:"grid",gap:6,marginBottom:10 }}>
                 <div style={{ fontSize:10,color:A,lineHeight:1.5,padding:"6px 10px",background:`${cB}06`,borderRadius:6,borderLeft:`3px solid ${cB}` }}>
                   <strong>Finding:</strong> T-MSIS actual is {f$$(r.status_quo.grand_total_paid)}, which is {
@@ -1709,6 +1706,7 @@ export default function TmsisExplorer() {
                   <strong>Net new spending:</strong> ${MILLIMAN_ESTIMATES.lbr_appropriation.toLocaleString()} appropriation minus {f$$(r.status_quo.grand_total_paid)} status quo = <strong>{f$$(r.status_quo.net_new_spending)}</strong> net new Medicaid spending.
                 </div>
               </div>
+              </>}
 
               {/* Spending by SAMHSA category */}
               <div style={{ fontSize:10,fontWeight:600,color:A,marginBottom:4 }}>Spending by SAMHSA Category</div>
@@ -1914,8 +1912,8 @@ export default function TmsisExplorer() {
             </div>
           </Card>}
 
-          {/* Section 6: Illustrative Rate Estimates */}
-          <Card>
+          {/* Section 6: Illustrative Rate Estimates — FL only (Milliman-dependent) */}
+          {ccbhcState === "FL" && <Card>
             <CH t="Section 6: Illustrative Rate Estimates" b="Milliman numerators / T-MSIS denominators"/>
             <div style={{ padding:"0 14px 4px" }}>
               <div style={{ background:`${WARN}10`,border:`1px solid ${WARN}30`,borderRadius:8,padding:"8px 12px",marginBottom:10,fontSize:10,color:WARN,fontWeight:600,lineHeight:1.5 }}>
@@ -1945,10 +1943,10 @@ export default function TmsisExplorer() {
                 ))}</tbody>
               </table>
             </div> : <div style={{ padding:"14px",fontSize:10,color:AL }}>No claims data available to calculate rate estimates.</div>}
-          </Card>
+          </Card>}
 
-          {/* Section 6B: Refined Rate Estimates (provider-scoped) */}
-          {r.refined_rates && r.refined_rates.length > 0 && r.provider_totals && <Card>
+          {/* Section 6B: Refined Rate Estimates (provider-scoped) — FL only */}
+          {ccbhcState === "FL" && r.refined_rates && r.refined_rates.length > 0 && r.provider_totals && <Card>
             <CH t="Section 6B: Refined Rate Estimates (Provider-Scoped)" b={`${r.provider_totals.provider_count} taxonomy-matched providers — annualized denominators`}/>
             <div style={{ padding:"0 14px 4px" }}>
               <div style={{ background:`${cB}08`,border:`1px solid ${cB}30`,borderRadius:8,padding:"8px 12px",marginBottom:10,fontSize:10,color:A,lineHeight:1.5 }}>
@@ -2173,17 +2171,17 @@ export default function TmsisExplorer() {
 
           {/* Section 10: Quality Gaps (Task 5 Proxy) */}
           {r.enhanced && r.enhanced.quality_gaps.length > 0 && <Card>
-            <CH t="Section 10: Quality Gap Analysis (Task 5 Proxy)" b="CMS Core Set — FL vs national median"/>
+            <CH t="Section 10: Quality Gap Analysis (Task 5 Proxy)" b={`CMS Core Set — ${ccbhcState} vs national median`}/>
             <div style={{ padding:"0 14px 6px" }}>
               <div style={{ background:`${cB}06`,borderRadius:6,padding:"6px 10px",marginBottom:8,fontSize:10,color:A,lineHeight:1.5,borderLeft:`3px solid ${cB}` }}>
-                CCBHC certification requires measurable quality improvement. These CMS Medicaid Core Set measures identify FL's biggest behavioral health gaps — the clinical case for CCBHC investment.
+                CCBHC certification requires measurable quality improvement. These CMS Medicaid Core Set measures identify {ccbhcState}'s biggest behavioral health gaps — the clinical case for CCBHC investment.
               </div>
             </div>
             <div style={{ padding:"0 14px 12px",overflowX:"auto" }}>
               <table style={{ width:"100%",fontSize:10,borderCollapse:"collapse" }}>
                 <thead><tr style={{ borderBottom:`2px solid ${B}` }}>
-                  {["Measure","FL Rate","Median","Gap","CCBHC Codes"].map(h =>
-                    <th key={h} style={{ textAlign:["FL Rate","Median","Gap"].includes(h)?"right":"left",padding:"5px 6px",color:AL,fontWeight:600,fontSize:9 }}>{h}</th>
+                  {["Measure",`${ccbhcState} Rate`,"Median","Gap","CCBHC Codes"].map(h =>
+                    <th key={h} style={{ textAlign:[`${ccbhcState} Rate`,"Median","Gap"].includes(h)?"right":"left",padding:"5px 6px",color:AL,fontWeight:600,fontSize:9 }}>{h}</th>
                   )}
                 </tr></thead>
                 <tbody>{r.enhanced.quality_gaps.sort((a,b) => a.gap - b.gap).map((q, i) => (
@@ -2203,7 +2201,7 @@ export default function TmsisExplorer() {
               {(() => {
                 const worst = r.enhanced!.quality_gaps.filter(q => q.gap < -10);
                 return worst.length > 0 ? <div style={{ fontSize:10,color:A,lineHeight:1.5,padding:"6px 10px",background:`${NEG}06`,borderRadius:6,borderLeft:`3px solid ${NEG}` }}>
-                  <strong>Critical gaps ({worst.length}):</strong> {worst.map(q => `${q.id} (${q.gap.toFixed(0)}pp)`).join(", ")}. These measures represent FL's largest underperformance vs national medians and are primary targets for CCBHC quality improvement.
+                  <strong>Critical gaps ({worst.length}):</strong> {worst.map(q => `${q.id} (${q.gap.toFixed(0)}pp)`).join(", ")}. These measures represent {ccbhcState}'s largest underperformance vs national medians and are primary targets for CCBHC quality improvement.
                 </div> : null;
               })()}
             </div>
@@ -2215,8 +2213,8 @@ export default function TmsisExplorer() {
             <div style={{ padding:"0 14px 12px",overflowX:"auto" }}>
               <table style={{ width:"100%",fontSize:10,borderCollapse:"collapse" }}>
                 <thead><tr style={{ borderBottom:`2px solid ${B}` }}>
-                  {["Role (SOC)","FL Hourly","National","FL vs Nat","Overhead","Implied /15min","CCBHC Codes"].map(h =>
-                    <th key={h} style={{ textAlign:["FL Hourly","National","FL vs Nat","Overhead","Implied /15min"].includes(h)?"right":"left",padding:"5px 6px",color:AL,fontWeight:600,fontSize:9 }}>{h}</th>
+                  {["Role (SOC)",`${ccbhcState} Hourly`,"National",`${ccbhcState} vs Nat`,"Overhead","Implied /15min","CCBHC Codes"].map(h =>
+                    <th key={h} style={{ textAlign:["Role (SOC)","CCBHC Codes"].includes(h)?"left":"right",padding:"5px 6px",color:AL,fontWeight:600,fontSize:9 }}>{h}</th>
                   )}
                 </tr></thead>
                 <tbody>{r.enhanced.workforce.map((w, i) => (
@@ -2232,7 +2230,7 @@ export default function TmsisExplorer() {
                 ))}</tbody>
               </table>
               <div style={{ padding:"6px 0 0",fontSize:9,color:AL,lineHeight:1.5 }}>
-                <strong>Implied rate per 15 min</strong> = (FL hourly wage / 4) x (1 + overhead%). FL behavioral health wages are 10-18% below national averages, which constrains workforce recruitment for CCBHC expansion.
+                <strong>Implied rate per 15 min</strong> = (state hourly wage / 4) x (1 + overhead%). {ccbhcState} behavioral health wages {r.enhanced!.workforce.length > 0 && r.enhanced!.workforce[0].fl_vs_national_pct < 0 ? "are below" : "are near"} national averages, which {r.enhanced!.workforce.length > 0 && r.enhanced!.workforce[0].fl_vs_national_pct < 0 ? "constrains" : "supports"} workforce recruitment for CCBHC expansion.
               </div>
             </div>
           </Card>}

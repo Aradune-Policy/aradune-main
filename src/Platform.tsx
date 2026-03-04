@@ -37,76 +37,76 @@ const TOOLS: ToolDef[] = [
   {
     id: "explorer", group: "transparency", name: "Spending Explorer",
     tagline: "Search and compare Medicaid spending across every state",
-    desc: "Query 190M+ Medicaid claims directly in your browser with DuckDB-WASM. Cross-state rate comparisons, provider analysis, spending trends, and a full SQL editor — filter by state, category, or service with CSV export.",
+    desc: "Query 190M+ FFS claims across 54 jurisdictions with cross-state rate comparisons, provider analysis, and a full SQL editor.",
     status: "live", icon: "⌕", color: C.brand,
   },
   {
     id: "decay", group: "transparency", name: "Medicare Comparison",
     navLabel: "Medicare Comparison",
     tagline: "Medicaid rates as a percentage of Medicare, by code and state",
-    desc: "Every HCPCS code as a percentage of the Medicare PFS. Identify which services have decayed most and which states are furthest behind.",
+    desc: "Every HCPCS code as a percentage of the Medicare PFS, by state. Identify where Medicaid has fallen furthest behind.",
     status: "live", icon: "◧", color: C.brand,
   },
   {
     id: "methods", group: "transparency", name: "Methodology Library",
     tagline: "How each state sets Medicaid rates, in one place",
-    desc: "State-by-state reference: methodology type, conversion factors, fee schedule sources, spending context. Search, filter, and compare how every state builds its Medicaid rates.",
+    desc: "How each state sets its rates: methodology type, conversion factors, fee schedule sources, and spending context.",
     status: "live", icon: "≡", color: C.brand,
   },
   {
     id: "fees", group: "transparency", name: "Fee Schedule Directory",
     tagline: "Links to every state's published Medicaid fee schedule",
-    desc: "Central directory of every state's published Medicaid fee schedule. Updated as states publish new schedules.",
+    desc: "Direct links to every state's published Medicaid fee schedule, updated as states publish new schedules.",
     status: "live", icon: "⊞", color: C.brand,
   },
   {
     id: "compliance", group: "transparency", name: "Compliance Report",
     tagline: "Access Rule compliance checklist and rate transparency package",
-    desc: "Unified compliance report for 42 CFR §447.203. Medicare parity analysis, rate reduction impact modeling, methodology documentation, and machine-readable format status — all in one exportable package.",
+    desc: "Unified compliance package for 42 CFR §447.203: Medicare parity, rate reduction modeling, methodology documentation, and export-ready formats.",
     status: "live", icon: "◇", color: C.brand,
   },
   // ── ADEQUACY ──────────────────────────────────────────────────────────
   {
     id: "wages", group: "adequacy", name: "Rate & Wage Comparison",
     tagline: "BLS market wages vs Medicaid reimbursement rates",
-    desc: "Compare Medicaid reimbursement rates against BLS wage data for healthcare occupations across every state. See how rates translate to provider compensation.",
+    desc: "Medicaid reimbursement vs. BLS market wages for healthcare occupations across every state.",
     status: "live", icon: "⊿", color: C.accent,
   },
   {
     id: "quality", group: "adequacy", name: "Quality Linkage",
     tagline: "CMS Core Set outcomes mapped to payment rates",
-    desc: "55 quality measures across 52 jurisdictions. See whether states that pay more get better outcomes.",
+    desc: "55 CMS Core Set measures across 52 jurisdictions. See whether higher rates correlate with better outcomes.",
     status: "live", icon: "◈", color: C.accent,
   },
   {
     id: "reduction", group: "adequacy", name: "Rate Reduction Analyzer",
     tagline: "Analyze the impact of proposed Medicaid rate reductions",
-    desc: "Model proposed rate reductions against access thresholds and Medicare ratios. Small cuts (4%+) need access review; large cuts (6%+) need independent analysis. See exactly what a reduction means for every code.",
+    desc: "Model proposed rate cuts against access thresholds and Medicare ratios, code by code.",
     status: "live", icon: "▼", color: C.accent,
   },
   {
     id: "hcbs8020", group: "adequacy", name: "HCBS Compensation Tracker",
     tagline: "How much of HCBS spending reaches direct care workers?",
-    desc: "Track the share of Medicaid HCBS payments going to direct care worker compensation. The 80/20 pass-through standard is the benchmark — see where each state stands, code by code.",
+    desc: "Track HCBS payment share reaching direct care workers against the 80/20 pass-through benchmark, by state and code.",
     status: "live", icon: "⊕", color: C.accent,
   },
   // ── MODELING ──────────────────────────────────────────────────────────
   {
     id: "builder", group: "modeling", name: "Rate Builder",
     tagline: "Calculate Medicaid rates with full audit trails",
-    desc: "RBRVS rate calculations using real conversion factors, RVU components, and state-specific rules. Compare methodologies side by side.",
+    desc: "RBRVS rate calculations with real conversion factors, RVU components, and state-specific rules.",
     status: "live", icon: "⬡", color: C.teal,
   },
   {
     id: "ahead", group: "modeling", name: "AHEAD Calculator",
     tagline: "Model hospital global budgets under CMS's AHEAD demonstration",
-    desc: "Project what global budgets would look like under AHEAD parameters. Compare participation scenarios and estimate savings targets for CMS demonstration states.",
+    desc: "Model hospital global budgets under AHEAD parameters. Compare participation scenarios and savings targets.",
     status: "live", icon: "△", color: C.teal,
   },
   {
     id: "analyst", group: "modeling", name: "Policy Analyst",
     tagline: "AI-powered rate analysis and SPA language drafting",
-    desc: "Ask questions in plain English. Get answers grounded in real data — rates, comparisons, fiscal impact estimates, and draft SPA methodology language.",
+    desc: "Ask questions in plain English. Get answers grounded in real data: rates, comparisons, fiscal impact, and draft SPA language.",
     status: "beta", icon: "◎", color: C.teal,
   },
 ];
@@ -263,13 +263,12 @@ function Landing() {
       {/* 1. Hero */}
       <div style={{ padding: "56px 0 44px", maxWidth: 640 }}>
         <h1 style={{ fontSize: isMobile ? 22 : 30, fontWeight: 700, color: C.ink, lineHeight: 1.25, letterSpacing: -0.5, margin: 0 }}>
-          Medicaid rate intelligence for every state — open and free.
+          Medicaid rate intelligence for every state. Open and free.
         </h1>
         <p style={{ fontSize: 14, color: C.inkLight, lineHeight: 1.7, marginTop: 14, maxWidth: 540 }}>
-          Cross-state rate comparisons, spending analysis, workforce adequacy,
-          fiscal modeling, and policy drafting — open tools for state agencies,
-          health plans, hospitals, consultants, researchers, and anyone who works
-          with Medicaid data.
+          Rate transparency, adequacy measurement, and fiscal modeling across
+          all 54 jurisdictions. Built for state agencies, health plans, hospitals,
+          consultants, and researchers.
         </p>
         <div style={{ display: "flex", gap: 10, marginTop: 22, flexWrap: "wrap" }}>
           <a href="#/explorer" style={{
@@ -295,7 +294,7 @@ function Landing() {
         display: "grid", gridTemplateColumns: `repeat(auto-fit,minmax(${isMobile ? "70px" : "130px"},1fr))`,
         gap: isMobile ? 10 : 16, padding: "20px 0 36px", borderTop: `1px solid ${C.border}`,
       }}>
-        {([["190M+", "claims rows"], ["54", "jurisdictions"], ["9,500+", "HCPCS codes"], ["$1.1T", "total spending"]] as const).map(([val, label]) => (
+        {([["12", "analytical tools"], ["54", "states & territories"], ["8", "federal datasets"], ["36", "state fee schedules"]] as const).map(([val, label]) => (
           <div key={label}>
             <div style={{ fontSize: 20, fontWeight: 700, fontFamily: FONT.mono, color: C.brand, letterSpacing: -0.5 }}>{val}</div>
             <div style={{ fontSize: 11, color: C.inkLight, marginTop: 2 }}>{label}</div>
@@ -469,54 +468,7 @@ function Landing() {
         );
       })}
 
-      {/* 5. Why now: CMS Ensuring Access */}
-      <div style={{
-        background: C.ink, borderRadius: 14, padding: isMobile ? "20px 16px" : "28px 32px",
-        marginBottom: 32, position: "relative", overflow: "hidden",
-      }}>
-        <div style={{ position: "absolute", top: -40, right: -40, width: 140, height: 140, borderRadius: "50%", background: "rgba(46,107,74,0.12)", pointerEvents: "none" }} />
-        <div style={{ position: "relative" }}>
-          <div style={{ display: "flex", alignItems: "center", gap: 12, marginBottom: 10 }}>
-            <span style={{ fontSize: 18, width: 36, height: 36, display: "flex", alignItems: "center", justifyContent: "center", borderRadius: 8, background: "rgba(46,107,74,0.2)", color: "#7FD4A0" }}>§</span>
-            <div>
-              <div style={{ fontSize: 15, fontWeight: 600, color: C.white }}>Why now: CMS Ensuring Access Final Rule</div>
-              <div style={{ fontSize: 11, color: "rgba(255,255,255,0.5)" }}>42 CFR 447.203 · Compliance deadlines begin July 2026</div>
-            </div>
-          </div>
-          <div style={{ fontSize: 12, color: "rgba(255,255,255,0.6)", lineHeight: 1.7, maxWidth: 600 }}>
-            The Ensuring Access rule creates the first national transparency and
-            adequacy requirements for Medicaid rate-setting — one of several reasons
-            this infrastructure is urgently needed. Every tool on Aradune serves the
-            analytical work that states, plans, and researchers need — and fully
-            supports Ensuring Access compliance in the process.
-          </div>
-          <div style={{ display: "grid", gridTemplateColumns: `repeat(auto-fit,minmax(${isMobile ? "100%" : "160px"},1fr))`, gap: 10, marginTop: 18 }}>
-            {([
-              ["Rate Transparency", "447.203(b)(1)-(3): Fee schedule publication and Medicare comparison", "Spending Explorer · Medicare Comparison"],
-              ["Rate Adequacy", "447.203(b)(4): Tier 1/Tier 2 rate reduction analysis", "Rate & Wage Comparison · Rate Reduction Analyzer"],
-              ["HCBS 80/20", "447.203(b)(5): 80% direct care worker compensation pass-through", "HCBS Compensation Tracker"],
-            ] as const).map(([title, desc, tools]) => (
-              <div key={title} style={{ padding: "12px 14px", borderRadius: 8, background: "rgba(255,255,255,0.06)", border: "1px solid rgba(255,255,255,0.08)" }}>
-                <div style={{ fontSize: 11, fontWeight: 600, color: C.white }}>{title}</div>
-                <div style={{ fontSize: 10, color: "rgba(255,255,255,0.4)", marginTop: 3 }}>{desc}</div>
-                <div style={{ fontSize: 9, color: "rgba(255,255,255,0.3)", marginTop: 6, fontFamily: FONT.mono }}>{tools}</div>
-              </div>
-            ))}
-          </div>
-          <div style={{ marginTop: 18 }}>
-            <a href="#/about" style={{
-              display: "inline-flex", alignItems: "center", padding: "8px 18px",
-              background: "rgba(46,107,74,0.25)", color: "#7FD4A0", borderRadius: 8,
-              fontSize: 12, fontWeight: 600, textDecoration: "none",
-              border: "1px solid rgba(127,212,160,0.2)",
-            }}>
-              Learn about the rule →
-            </a>
-          </div>
-        </div>
-      </div>
-
-      {/* 6. Transparency → Adequacy → Modeling workflow */}
+      {/* 5. Transparency → Adequacy → Modeling workflow */}
       <div style={{ padding: "36px 0 40px", borderTop: `1px solid ${C.border}` }}>
         <div style={{ fontSize: 14, fontWeight: 600, color: C.ink, marginBottom: 6 }}>
           Transparency → Adequacy → Modeling
@@ -567,31 +519,50 @@ function Landing() {
         </div>
       </div>
 
+      {/* 6. Why now: CMS Ensuring Access */}
+      <div style={{
+        padding: "16px 20px", background: C.surface, borderRadius: 10,
+        borderLeft: `3px solid ${C.accent}`, marginBottom: 32,
+      }}>
+        <div style={{ display: "flex", alignItems: "center", gap: 10, marginBottom: 6 }}>
+          <span style={{ fontSize: 14 }}>§</span>
+          <div style={{ fontSize: 13, fontWeight: 600, color: C.ink }}>CMS Ensuring Access Final Rule</div>
+          <span style={{ fontSize: 10, color: C.inkLight, fontFamily: FONT.mono }}>42 CFR 447.203 · July 2026</span>
+        </div>
+        <div style={{ fontSize: 12, color: C.inkLight, lineHeight: 1.7, maxWidth: 600 }}>
+          The Ensuring Access rule creates the first national transparency and
+          adequacy requirements for Medicaid rate-setting. Every tool on this
+          platform supports compliance, but the analytical need is broader than
+          any single regulation.{" "}
+          <a href="#/about" style={{ color: C.brand, textDecoration: "none", fontWeight: 600 }}>
+            Learn more →
+          </a>
+        </div>
+      </div>
+
       {/* 7. Why / How columns */}
       <div style={{ padding: "0 0 40px", display: "grid", gridTemplateColumns: "repeat(auto-fit,minmax(300px,1fr))", gap: 24 }}>
         <div>
           <div style={{ fontSize: 14, fontWeight: 600, color: C.ink, marginBottom: 8 }}>Why this exists</div>
           <div style={{ fontSize: 12, color: C.inkLight, lineHeight: 1.75 }}>
             Medicaid rate-setting is one of the most consequential policy processes
-            in American healthcare — a $1T+ program, 50 states operating in
+            in American healthcare: a $1T+ program, 50 states operating in
             isolation, and almost nobody has the data to do it well. Cross-state
-            comparisons barely exist; adequacy analysis is ad hoc; fiscal modeling
+            comparisons barely exist. Adequacy analysis is ad hoc. Fiscal modeling
             is locked inside consulting engagements. Aradune builds the shared
-            infrastructure. The CMS Ensuring Access rule adds urgency, but the
-            problem is bigger than any single regulation.
+            infrastructure.
           </div>
         </div>
         <div>
           <div style={{ fontSize: 14, fontWeight: 600, color: C.ink, marginBottom: 8 }}>How it works</div>
           <div style={{ fontSize: 12, color: C.inkLight, lineHeight: 1.75 }}>
-            Data pipelines process the full <Term>T-MSIS</Term> spending dataset, Medicare
-            Physician Fee Schedule, <Term>BLS</Term> wage surveys, and CMS <Term>Core Set</Term> quality
-            measures. The output is Parquet columnar files queried by DuckDB-WASM
-            directly in your browser — 190M+ claims queryable via SQL, no server
-            round-trips, no cloud compute, no ongoing costs. Monthly granularity
-            from Cloudflare R2. The code and methodology are open. An AI-powered
-            policy analyst can answer complex questions by grounding responses in
-            this data.
+            Eight federal datasets: <Term>T-MSIS</Term> spending, Medicare PFS, <Term>BLS</Term> wage
+            surveys, CMS <Term>Core Set</Term> quality measures, FMAP, GPCI, NPPES, and 36
+            state fee schedules. All queryable in your browser, no server needed.
+            <span style={{ display: "block", marginTop: 8, fontSize: 11, color: C.inkLight }}>
+              Technical: DuckDB-WASM queries Parquet files client-side. Monthly
+              granularity via Cloudflare R2. Code and methodology are open.
+            </span>
           </div>
         </div>
       </div>
@@ -603,7 +574,7 @@ function Landing() {
         alignItems: "center",
       }}>
         <span style={{ fontSize: 10, fontFamily: FONT.mono, color: C.inkLight, letterSpacing: 0.5, fontWeight: 600 }}>DATA:</span>
-        {["CMS T-MSIS", "Medicare PFS CY2026", "BLS OEWS May 2024", "CMS Core Set", "NPPES NPI", "FMAP FY2025"].map(src => (
+        {["CMS T-MSIS", "Medicare PFS", "BLS OES", "CMS Core Set", "NPPES NPI", "FMAP", "State Fee Schedules", "GPCI"].map(src => (
           <span key={src} style={{ fontSize: 10, fontFamily: FONT.mono, color: C.inkLight, letterSpacing: 0.3 }}>{src}</span>
         ))}
         <span style={{ marginLeft: "auto", fontSize: 9, fontFamily: FONT.mono, color: C.brand, letterSpacing: 0.3, fontWeight: 600 }}>Queryable via DuckDB-WASM</span>
@@ -620,17 +591,15 @@ function Landing() {
         }}>
           <div style={{ fontSize: 16, fontWeight: 700, color: C.brand, marginBottom: 4 }}>Free, always</div>
           <div style={{ fontSize: 12, color: C.inkLight, lineHeight: 1.7, marginBottom: 14 }}>
-            Every tool on this platform is free — spending explorer with SQL access
-            to 190M+ claims, rate analysis, adequacy measurement, fiscal modeling,
-            rate builder, and all coming tools. No login, no paywall. CSV exports
-            included on every tool.
+            Every analytical tool on the platform, free. No login, no paywall.
+            CSV exports included on every tool.
           </div>
           <div style={{ fontSize: 11, color: C.inkLight, lineHeight: 1.9 }}>
             {TOOLS.filter(t => t.id !== "analyst" && t.status !== "coming").map(t => (
               <div key={t.id}><span style={{ color: C.brand, marginRight: 6 }}>&#10003;</span>{t.name}</div>
             ))}
             <div style={{ marginTop: 6, fontSize: 10, color: C.brand, fontStyle: "italic" }}>
-              All {TOOLS.filter(t => t.status !== "coming" && t.id !== "analyst").length} tools included — no login, no paywall
+              All {TOOLS.filter(t => t.status !== "coming" && t.id !== "analyst").length} tools included, no login required
             </div>
           </div>
         </div>
@@ -643,9 +612,8 @@ function Landing() {
             <span style={{ fontSize: 10, fontWeight: 600, padding: "2px 8px", borderRadius: 8, background: `${C.accent}12`, color: C.accent }}>Coming Soon</span>
           </div>
           <div style={{ fontSize: 12, color: C.inkLight, lineHeight: 1.7, marginBottom: 10 }}>
-            A professional output layer for policy teams, health plans, consultants,
-            and researchers. Same free tools — with branded reports, formatted exports,
-            and workflow features designed for production analytical work.
+            Same tools, with branded reports, formatted exports, and workflow
+            features for production analytical work.
           </div>
           <div style={{ fontSize: 11, color: C.inkLight, lineHeight: 1.9, marginBottom: 14 }}>
             <div><span style={{ color: C.accent, marginRight: 6 }}>&#10003;</span>AI Policy Analyst (Claude-powered)</div>
@@ -721,7 +689,7 @@ function About() {
             July 2026. Aradune's tools map directly to these requirements:
             fee schedule publication (b)(1)-(3), rate reduction analysis (b)(4),
             and HCBS compensation reporting (b)(5). The platform is structured
-            around this framework — Transparency, Adequacy, and Modeling — so
+            around this framework (Transparency, Adequacy, and Modeling) so
             states can track compliance and build the analytical case for their
             rate-setting decisions.
           </div>
@@ -906,7 +874,7 @@ function Pricing() {
         <div style={{ fontSize: 13, fontWeight: 600, color: C.ink, marginBottom: 6 }}>Why the Professional tier will be paid</div>
         <div style={{ fontSize: 12, color: C.inkLight, lineHeight: 1.7 }}>
           The AI Policy Analyst runs a Claude model with multiple Aradune data lookups
-          on every query — that costs real money. PDF generation and Excel formatting
+          on every query, which costs real money. PDF generation and Excel formatting
           libraries add to the bundle. A subscription covers these costs so we can keep
           every tool and CSV export free for everyone. We're finalizing pricing and will
           share details soon.

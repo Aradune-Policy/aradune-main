@@ -16,6 +16,7 @@ import RateReduction from "./tools/RateReduction";
 import HcbsTracker from "./tools/HcbsTracker";
 import MethodologyLibrary from "./tools/MethodologyLibrary";
 import FeeScheduleDir from "./tools/FeeScheduleDir";
+import ComplianceReport from "./tools/ComplianceReport";
 
 // ── Hash Router ──────────────────────────────────────────────────────────
 function useRoute() {
@@ -55,6 +56,12 @@ const TOOLS: ToolDef[] = [
     tagline: "Links to every state's published Medicaid fee schedule",
     desc: "Central directory of every state's published Medicaid fee schedule. Updated as states publish new schedules.",
     status: "live", icon: "⊞", color: C.brand,
+  },
+  {
+    id: "compliance", group: "transparency", name: "Compliance Report",
+    tagline: "Access Rule compliance checklist and rate transparency package",
+    desc: "Unified compliance report for 42 CFR §447.203. Medicare parity analysis, rate reduction impact modeling, methodology documentation, and machine-readable format status — all in one exportable package.",
+    status: "live", icon: "◇", color: C.brand,
   },
   // ── ADEQUACY ──────────────────────────────────────────────────────────
   {
@@ -928,6 +935,7 @@ export default function Platform() {
     if (route === "/analyst") return <PolicyAnalyst />;
     if (route === "/ahead" || route.startsWith("/ahead?")) return <AheadCalculator />;
     if (route === "/fees") return <FeeScheduleDir />;
+    if (route === "/compliance") return <ComplianceReport />;
     if (route === "/reduction") return <RateReduction />;
     if (route === "/hcbs8020") return <HcbsTracker />;
     if (route === "/methods") return <MethodologyLibrary />;

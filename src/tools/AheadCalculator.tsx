@@ -606,7 +606,7 @@ const MCHist=({mc,pyIdx=0}:{mc:McYearResult[];pyIdx?:number})=>{if(!mc||!mc[pyId
   const w=480,h=120,bW=w/bins-1;
   const xOf=(v:number)=>(v-mn)/rng*w;
   const pLine=(val:number,label:string,cl:string)=>{const x=xOf(val);return <g key={label}><line x1={x} y1={0} x2={x} y2={h} stroke={cl} strokeWidth={1.2} strokeDasharray="2 1"/><text x={x} y={-2} fill={cl} fontSize={10} textAnchor="middle" fontFamily="JetBrains Mono,monospace">{label} {fmt(val)}</text></g>;};
-  return <svg width={w} height={h+22} style={{overflow:"visible"}}>
+  return <svg viewBox={`0 0 ${w} ${h+22}`} width="100%" style={{overflow:"visible",maxWidth:w}}>
     <g transform="translate(0,12)">{hist.map((c,i)=>{const x=i*(bw/rng*w),bH=maxH>0?c/maxH*h:0;const bMid=mn+i*bw+bw/2;
       return <rect key={i} x={x} y={h-bH} width={Math.max(1,bW)} height={bH} fill={bMid>0?`${C.pos}55`:`${C.neg}55`} rx={1}/>;})
     }{pLine(p5,"p5",C.neg)}{pLine(p25,"p25",cO)}{pLine(p50,"p50",cB)}{pLine(p75,"p75",cG)}{pLine(p95,"p95",C.pos)}

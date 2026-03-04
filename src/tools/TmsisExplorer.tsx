@@ -2597,7 +2597,7 @@ export default function TmsisExplorer() {
                     <CartesianGrid strokeDasharray="3 3" stroke={B}/>
                     <XAxis type="number" tick={{ fontSize:9,fill:AL }} tickFormatter={(v: number)=>f$(v)}/>
                     <YAxis type="category" dataKey="label" width={140} tick={{ fontSize:9,fill:A }} interval={0}/>
-                    <Tooltip content={<SafeTip active={false} payload={[]} render={(d: Record<string,unknown>)=><div><div style={{ fontWeight:600 }}>{String(d.label)}</div><div>Total Paid: {f$(d.spending as number)}</div><div>Claims: {fN(d.claims as number)}</div><div>Avg Rate: {f$(d.avgRate as number)}</div></div>}/>}/>
+                    <Tooltip content={<SafeTip active={false} payload={[]} render={(d: Record<string,unknown>)=><div><div style={{ fontWeight:600 }}>{String(d.label)}</div><div>Total Paid: {f$(d.spending as number)}</div><div>Claims: {fN(d.claims as number)}</div>{!isAllServices && <div>Avg Rate: {f$(d.avgRate as number)}</div>}</div>}/>}/>
                     <Bar dataKey="spending" radius={[0,4,4,0]}>
                       {barData.map((_,i)=><Cell key={i} fill={i%2===0?cB:cT}/>)}
                     </Bar>

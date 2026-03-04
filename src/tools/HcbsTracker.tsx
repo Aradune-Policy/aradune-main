@@ -51,9 +51,11 @@ function downloadCSV(headers: string[], rows: (string | number)[][], filename: s
     return s.includes(",") || s.includes('"') ? `"${s.replace(/"/g, '""')}"` : s;
   }).join(","))].join("\n");
   const a = document.createElement("a");
-  a.href = URL.createObjectURL(new Blob([csv], { type: "text/csv" }));
+  const url = URL.createObjectURL(new Blob([csv], { type: "text/csv" }));
+  a.href = url;
   a.download = filename;
   a.click();
+  setTimeout(() => URL.revokeObjectURL(url), 1000);
 }
 
 const ExportBtn = ({ label, onClick }: { label: string; onClick: () => void }) => (
@@ -105,16 +107,16 @@ export default function HcbsTracker() {
   useEffect(() => {
     let cancelled = false;
     Promise.all([
-      fetch("/data/soc_hcpcs_crosswalk.json").then(r => r.json()),
-      fetch("/data/bls_wages.json").then(r => r.json()),
-      fetch("/data/hcpcs.json").then(r => r.json()),
+      fetch("/data/soc_hcpcs_crosswalk.json").then(r => { if (!r.ok) throw new Error("Failed"); return r.json(); }),
+      fetch("/data/bls_wages.json").then(r => { if (!r.ok) throw new Error("Failed"); return r.json(); }),
+      fetch("/data/hcpcs.json").then(r => { if (!r.ok) throw new Error("Failed"); return r.json(); }),
     ]).then(([xw, bls, hcpcs]) => {
       if (cancelled) return;
       setCrosswalk((xw as { categories: CrosswalkCat[] }).categories);
       setBlsData(bls as BlsData);
       setHcpcsData(Array.isArray(hcpcs) ? hcpcs : []);
       setLoading(false);
-    });
+    }).catch(() => { if (!cancelled) setLoading(false); });
     return () => { cancelled = true; };
   }, []);
 
@@ -307,6 +309,7 @@ export default function HcbsTracker() {
                   );
                 }} />
               } />
+              <div style={{ overflowX: "auto" }}>
               <table style={{ width: "100%", borderCollapse: "collapse", fontSize: 12, fontFamily: FM }}>
                 <thead>
                   <tr style={{ borderBottom: `2px solid ${BD}` }}>
@@ -340,6 +343,7 @@ export default function HcbsTracker() {
                   ))}
                 </tbody>
               </table>
+              </div>
             </Card>
           )}
 
@@ -379,7 +383,7 @@ export default function HcbsTracker() {
                 States must report compliance with monthly updates starting July 2026.
               </p>
               <p style={{ margin: 0 }}>
-                Medicaid rates from T-MSIS (effective rates). BLS wages from OES May 2023.
+                Medicaid rates from T-MSIS (effective rates). BLS wages from OES May 2024.
                 SOC-to-HCPCS crosswalk maps service categories to billing codes.
               </p>
             </div>

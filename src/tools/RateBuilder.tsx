@@ -449,7 +449,7 @@ export default function RateBuilder() {
         </div>
 
         {/* Export */}
-        <div style={{ padding:"0 14px 10px",display:"flex",gap:8 }}>
+        <div style={{ padding:"0 14px 10px",display:"flex",gap:8,flexWrap:"wrap" }}>
           <button onClick={() => {
             const lines = [
               `RATE CALCULATION — ${selectedCode.code}`,
@@ -470,9 +470,11 @@ export default function RateBuilder() {
             ];
             const blob = new Blob([lines.join("\n")], {type:"text/plain"});
             const a = document.createElement("a");
-            a.href = URL.createObjectURL(blob);
+            const url = URL.createObjectURL(blob);
+            a.href = url;
             a.download = `rate_calc_${selectedCode.code}_${new Date().toISOString().split("T")[0]}.txt`;
             a.click();
+            setTimeout(() => URL.revokeObjectURL(url), 1000);
           }} style={{ padding:"6px 16px",background:cB,color:WH,border:"none",borderRadius:6,fontSize:11,fontWeight:600,cursor:"pointer" }}>
             Export Calculation
           </button>

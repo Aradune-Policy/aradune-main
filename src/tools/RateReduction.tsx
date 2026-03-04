@@ -53,9 +53,11 @@ function downloadCSV(headers: string[], rows: (string | number)[][], filename: s
     return s.includes(",") || s.includes('"') ? `"${s.replace(/"/g, '""')}"` : s;
   }).join(","))].join("\n");
   const a = document.createElement("a");
-  a.href = URL.createObjectURL(new Blob([csv], { type: "text/csv" }));
+  const url = URL.createObjectURL(new Blob([csv], { type: "text/csv" }));
+  a.href = url;
   a.download = filename;
   a.click();
+  setTimeout(() => URL.revokeObjectURL(url), 1000);
 }
 
 const ExportBtn = ({ label, onClick }: { label: string; onClick: () => void }) => (
@@ -122,8 +124,8 @@ export default function RateReduction() {
   useEffect(() => {
     let cancelled = false;
     Promise.all([
-      fetch("/data/hcpcs_descriptions.json").then(r => r.json()),
-      fetch("/data/medicare_rates.json").then(r => r.json()),
+      fetch("/data/hcpcs_descriptions.json").then(r => { if (!r.ok) throw new Error("Failed to load descriptions"); return r.json(); }),
+      fetch("/data/medicare_rates.json").then(r => { if (!r.ok) throw new Error("Failed to load Medicare rates"); return r.json(); }),
     ]).then(([descs, med]) => {
       if (cancelled) return;
       setDescMap(descs as Record<string, string>);
@@ -136,7 +138,7 @@ export default function RateReduction() {
       }
       setMedMap(mRates);
       setMedDescs(mDescs);
-    });
+    }).catch(() => { /* Static data failed — tool still works with DuckDB data */ });
     return () => { cancelled = true; };
   }, []);
 
@@ -270,7 +272,7 @@ export default function RateReduction() {
             <div style={{ display: "flex", justifyContent: "space-around", flexWrap: "wrap", gap: 16 }}>
               <Met label="Annual Impact" value={f$(stats.totalImpact)} color={NEG} />
               <Met label="Codes Analyzed" value={fN(stats.count)} />
-              <Met label="Below 80% Medicare" value={String(stats.warning + stats.critical)} color={stats.warning > 0 ? WARN : POS} />
+              <Met label="Below 80% Medicare" value={String(stats.warning + stats.critical)} color={stats.critical > 0 ? NEG : stats.warning > 0 ? WARN : POS} />
               <Met label="Below 50% Medicare" value={String(stats.critical)} color={stats.critical > 0 ? NEG : POS} />
               <Met label="Avg % Medicare" value={`${stats.avgPctBefore.toFixed(0)}% → ${stats.avgPctAfter.toFixed(0)}%`} color={AL} />
             </div>

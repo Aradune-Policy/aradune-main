@@ -48,9 +48,11 @@ function downloadCSV(headers: string[], rows: (string | number)[][], filename: s
     return s.includes(",") || s.includes('"') ? `"${s.replace(/"/g, '""')}"` : s;
   }).join(","))].join("\n");
   const a = document.createElement("a");
-  a.href = URL.createObjectURL(new Blob([csv], { type: "text/csv" }));
+  const url = URL.createObjectURL(new Blob([csv], { type: "text/csv" }));
+  a.href = url;
   a.download = filename;
   a.click();
+  setTimeout(() => URL.revokeObjectURL(url), 1000);
 }
 
 const ExportBtn = ({ label, onClick }: { label: string; onClick: () => void }) => (
@@ -114,13 +116,13 @@ export default function FeeScheduleDir() {
 
   useEffect(() => {
     let cancelled = false;
-    fetch("/data/fee_schedule_directory.json").then(r => r.json()).then(data => {
+    fetch("/data/fee_schedule_directory.json").then(r => { if (!r.ok) throw new Error("Failed"); return r.json(); }).then(data => {
       if (cancelled) return;
       // Filter out reference notes (no agency = not a real state entry)
       const real = (data as { directory: DirEntry[] }).directory.filter(d => d.agency);
       setDirectory(real);
       setLoading(false);
-    });
+    }).catch(() => { if (!cancelled) setLoading(false); });
     return () => { cancelled = true; };
   }, []);
 
@@ -214,14 +216,14 @@ export default function FeeScheduleDir() {
               {/* Compliance gauge */}
               <div style={{ minWidth: 140, textAlign: "center" }}>
                 <div style={{ fontSize: 28, fontWeight: 800, fontFamily: FM, color: POS }}>
-                  {Math.round((summary.machineReadable / summary.total) * 100)}%
+                  {summary.total > 0 ? Math.round((summary.machineReadable / summary.total) * 100) : 0}%
                 </div>
                 <div style={{ fontSize: 11, color: AL }}>Already compliant</div>
                 <div style={{
                   width: 120, height: 8, background: BD, borderRadius: 4, marginTop: 6, overflow: "hidden",
                 }}>
                   <div style={{
-                    width: `${(summary.machineReadable / summary.total) * 100}%`,
+                    width: `${summary.total > 0 ? (summary.machineReadable / summary.total) * 100 : 0}%`,
                     height: "100%", background: POS, borderRadius: 4,
                   }} />
                 </div>

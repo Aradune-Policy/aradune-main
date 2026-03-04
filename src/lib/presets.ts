@@ -27,7 +27,7 @@ const CCBHC_CORE = [
 
 const CCBHC_EXPANDED_ONLY = [
   // Screening, Assessment, and Diagnosis (expanded)
-  "H2010", "96160",
+  "H2010", "96160", "96130", "96131", "96132", "96133",
   // Outpatient MH and SU Services (expanded)
   "H0046", "H0047", "H0048", "H2012", "T1015", "T1023", "S9480",
   // Psychiatric Rehabilitation (expanded)
@@ -112,6 +112,91 @@ export const PRESETS: Record<string, PresetInfo> = {
     description: "Query sorted by total spending (no code filter, just ordering)",
     codes: [],
     filter_type: "ordering",
+  },
+  rehabilitation: {
+    id: "rehabilitation",
+    name: "Rehabilitation",
+    description: "PT/OT/Speech therapy access — physical, occupational, and speech-language pathology codes",
+    codes: [
+      "97110", "97112", "97116", "97140", "97530", "97535",
+      "97161", "97162", "97163", "97164",
+      "92507", "92508", "92521", "92522", "92523", "92524", "92525", "92526",
+    ],
+    filter_type: "hcpcs_codes",
+  },
+  telehealth: {
+    id: "telehealth",
+    name: "Telehealth",
+    description: "Post-COVID telehealth expansion — audio/video visit codes, e-visits, and common telehealth-delivered services",
+    codes: [
+      "99441", "99442", "99443",
+      "98966", "98967", "98968",
+      "99421", "99422", "99423",
+      "G2012", "G2010",
+      "90834", "90837", "99213", "99214",
+    ],
+    filter_type: "hcpcs_codes",
+  },
+  mat_opioid: {
+    id: "mat_opioid",
+    name: "MAT / Opioid",
+    description: "Opioid epidemic treatment — medication-assisted treatment, buprenorphine, naltrexone, and OTP codes",
+    codes: [
+      "H0020", "H0033",
+      "J0571", "J0572", "J0573", "J0574", "J0575",
+      "J2315",
+      "G2067", "G2068", "G2069", "G2070", "G2071", "G2072", "G2073", "G2074", "G2075", "G2076", "G2077", "G2078", "G2079", "G2080",
+      "99205", "99215",
+    ],
+    filter_type: "hcpcs_codes",
+  },
+  maternity: {
+    id: "maternity",
+    name: "Maternity / OB",
+    description: "Prenatal, delivery, and postpartum care — global OB packages, ultrasound, and cesarean codes",
+    codes: [
+      "59400", "59410", "59425", "59426",
+      "59510", "59515", "59025", "59430",
+      "59610", "59612", "59614", "59618", "59620", "59622",
+      "76801", "76802", "76805", "76810", "76811", "76812", "76813", "76814",
+    ],
+    filter_type: "hcpcs_codes",
+  },
+  lab_imaging: {
+    id: "lab_imaging",
+    name: "Lab / Imaging",
+    description: "Diagnostic access disparities — common lab panels, urinalysis, radiology, and cardiac diagnostics",
+    codes: [
+      "80053", "80048", "85025", "83036", "80061",
+      "81001", "81002",
+      "71046", "70553", "72148", "74177", "76700",
+      "93000",
+    ],
+    filter_type: "hcpcs_codes",
+  },
+  transportation: {
+    id: "transportation",
+    name: "NEMT / Transport",
+    description: "Non-emergency medical transportation access — ambulance, stretcher van, and NEMT broker codes",
+    codes: [
+      "A0427", "A0429", "A0433", "A0425", "A0426", "A0428",
+      "T2003", "T2005",
+      "A0080", "A0090", "A0100", "A0110", "A0120", "A0130",
+      "S0209",
+    ],
+    filter_type: "hcpcs_codes",
+  },
+  dme: {
+    id: "dme",
+    name: "DME",
+    description: "Durable medical equipment access — wheelchairs, CPAP, hospital beds, walkers, diabetic supplies, and orthotics",
+    codes: [
+      "K0001", "K0002", "K0003", "K0004",
+      "E0601", "E0260", "E0100", "E0105", "E0143", "E0148",
+      "A4253", "A4259",
+      "L3000", "L3010", "L3020",
+    ],
+    filter_type: "hcpcs_codes",
   },
 };
 

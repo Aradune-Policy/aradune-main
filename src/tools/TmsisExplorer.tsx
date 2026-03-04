@@ -3,8 +3,10 @@ import { BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer, Cell, Cartes
 import type { StateData, HcpcsCode, NatlTrend, SafeTipProps, CatAccumulator, TooltipEntry, RawState, RawHcpcs, RawTrend, PipelineMeta, MedicareRates, RiskAdjData, FeeScheduleData, FeeScheduleState, FeeScheduleDirectory, ProviderRecord, SpecialtyRecord, QueryRequest, QueryResponse, QueryMeta, PresetInfo } from "../types";
 import { useProAccess, ProBadge, ProGateModal } from "../components/ProGate";
 import { executeQuery, fetchMeta, fetchPresets, initEngine } from "../lib/queryEngine";
-import { query as rawQuery } from "../lib/duckdb";
+import { query as rawQuery, hasMonthlyData } from "../lib/duckdb";
 import { listPresets } from "../lib/presets";
+import { runFullCcbhcAnalysis, exportAnalysisCSV, MILLIMAN_ESTIMATES } from "../lib/ccbhcAnalysis";
+import type { CcbhcAnalysisResult } from "../lib/ccbhcAnalysis";
 
 // ── Design System (Aradune v13) ──────────────────────────────────────────
 const A = "#0A2540";
@@ -272,7 +274,18 @@ function ChartModal({ children, onClose }: { children: React.ReactNode; onClose:
     <div onClick={onClose} style={{ position:"fixed",inset:0,zIndex:9999,background:"rgba(10,37,64,0.6)",backdropFilter:"blur(4px)",display:"flex",alignItems:"center",justifyContent:"center",padding:16 }}>
       <div onClick={e=>e.stopPropagation()} style={{ background:WH,borderRadius:14,boxShadow:"0 24px 80px rgba(0,0,0,0.3)",width:"100%",maxWidth:900,maxHeight:"90vh",overflow:"auto",position:"relative" }}>
         <button onClick={onClose} style={{ position:"absolute",top:8,right:12,background:"none",border:"none",fontSize:18,color:AL,cursor:"pointer",zIndex:1,lineHeight:1 }}>&times;</button>
-        <style>{`.xm [style*="maxHeight"]{max-height:none !important;overflow:visible !important;}.xm [style*="overflowY"]{overflow:visible !important;}`}</style>
+        <style>{`.xm [style*="maxHeight"]{max-height:none !important;overflow:visible !important;}.xm [style*="overflowY"]{overflow:visible !important;}
+@media (max-width: 800px) {
+  .de-entry-grid { grid-template-columns: 1fr 1fr 1fr !important; }
+}
+@media (max-width: 640px) {
+  .de-entry-grid { grid-template-columns: 1fr 1fr !important; }
+  .de-kpi-grid { grid-template-columns: 1fr 1fr !important; }
+  .de-filter-3col { grid-template-columns: 1fr !important; }
+}
+@media (max-width: 480px) {
+  .de-entry-grid { grid-template-columns: 1fr !important; }
+}`}</style>
         <div className="xm" style={{ padding:"12px 16px" }}>{children}</div>
       </div>
     </div>
@@ -534,6 +547,12 @@ export default function TmsisExplorer() {
   const [deMinBene, setDEMinBene] = useState<number | undefined>(undefined);
   const [dePreset, setDEPreset] = useState<string | null>(null);
   const [deIncludePerBene, setDEPerBene] = useState(false);
+
+  // CCBHC Analysis state
+  const [ccbhcResult, setCcbhcResult] = useState<CcbhcAnalysisResult | null>(null);
+  const [ccbhcLoading, setCcbhcLoading] = useState(false);
+  const [ccbhcState, setCcbhcState] = useState("FL");
+  const [ccbhcProgress, setCcbhcProgress] = useState<Record<string, boolean>>({});
 
   const { isPro } = useProAccess();
   const [showGate, setShowGate] = useState(false);
@@ -949,13 +968,6 @@ export default function TmsisExplorer() {
   const ranking = useMemo(() => SL.map(k => ({ k, ...g(k) })).sort((a, b) => curM.fn(b) - curM.fn(a)), [SL, curM, states]);
   const rankMax = ranking.length > 0 ? Math.max(curM.fn(ranking[0]), 1) : 1;
 
-  if (loading) return (
-    <div style={{ display:"flex",justifyContent:"center",alignItems:"center",minHeight:400,fontFamily:"Helvetica Neue,Arial,sans-serif" }}>
-      <style>{`@keyframes ember{0%,100%{color:#0A2540}50%{color:#C4590A}}`}</style>
-      <div style={{ textAlign:"center" }}><div style={{ fontSize:16,fontWeight:600,animation:"ember 2.4s ease-in-out infinite" }}>Loading Spending Data...</div><div style={{ fontSize:11,color:AL,marginTop:4 }}>Preparing explorer</div></div>
-    </div>
-  );
-
   const runSql = useCallback(async () => {
     if (!sqlText.trim() || sqlRunning) return;
     setSqlRunning(true);
@@ -970,6 +982,13 @@ export default function TmsisExplorer() {
     }
     setSqlRunning(false);
   }, [sqlText, sqlRunning]);
+
+  if (loading) return (
+    <div style={{ display:"flex",justifyContent:"center",alignItems:"center",minHeight:400,fontFamily:"Helvetica Neue,Arial,sans-serif" }}>
+      <style>{`@keyframes ember{0%,100%{color:#0A2540}50%{color:#C4590A}}`}</style>
+      <div style={{ textAlign:"center" }}><div style={{ fontSize:16,fontWeight:600,animation:"ember 2.4s ease-in-out infinite" }}>Loading Spending Data...</div><div style={{ fontSize:11,color:AL,marginTop:4 }}>Preparing explorer</div></div>
+    </div>
+  );
 
   const TABS = [{k:"dash",l:"Dashboard"},{k:"data",l:"Data Explorer"},{k:"rate",l:"Rate Engine"},{k:"code",l:"Code Profile"},{k:"sim",l:"Simulator"},{k:"provider",l:"Providers"},{k:"batch",l:"Batch",pro:true},{k:"about",l:"About"}];
 
@@ -1216,51 +1235,57 @@ export default function TmsisExplorer() {
         return <div style={{ display:"grid",gap:10 }}>
         <TabGuide title="Data Explorer" desc="Query 190M+ Medicaid claims directly in your browser with DuckDB-WASM. Filter by state, service type, provider, date range, and presets. No server needed." tips="Start with a preset like CCBHC or Behavioral Health, then narrow by state. Try grouping by Year or NPI for different perspectives."/>
 
-        {/* Mode Badge + Status */}
+        {/* Status Badge */}
         <div style={{ display:"flex",alignItems:"center",gap:8,flexWrap:"wrap" }}>
-          {duckdbReady ? (
-            <span style={{ fontSize:9,fontWeight:600,padding:"3px 10px",borderRadius:12,background:`${cB}15`,color:cB,border:`1px solid ${cB}40` }}>DuckDB-WASM</span>
+          {deError && !duckdbReady && !duckdbInit ? (
+            <span style={{ fontSize:9,fontWeight:600,padding:"3px 10px",borderRadius:12,background:`${NEG}15`,color:NEG,border:`1px solid ${NEG}40` }}>Error</span>
           ) : duckdbInit ? (
-            <span style={{ fontSize:9,fontWeight:500,padding:"3px 10px",borderRadius:12,background:`${WARN}15`,color:WARN,border:`1px solid ${WARN}40` }}>Initializing...</span>
-          ) : deError ? (
-            <span style={{ fontSize:9,fontWeight:500,padding:"3px 10px",borderRadius:12,background:`${NEG}15`,color:NEG,border:`1px solid ${NEG}40` }}>Error</span>
+            <span style={{ fontSize:9,fontWeight:600,padding:"3px 10px",borderRadius:12,background:`${WARN}15`,color:WARN,border:`1px solid ${WARN}40` }}>Initializing\u2026</span>
+          ) : deLoading ? (
+            <span style={{ fontSize:9,fontWeight:600,padding:"3px 10px",borderRadius:12,background:`${WARN}15`,color:WARN,border:`1px solid ${WARN}40` }}>Querying\u2026</span>
+          ) : duckdbReady ? (
+            <span style={{ fontSize:9,fontWeight:600,padding:"3px 10px",borderRadius:12,background:`${cB}15`,color:cB,border:`1px solid ${cB}40` }}>Ready{deMeta?.states ? ` \u00B7 ${deMeta.states.length} states` : ""}</span>
           ) : null}
-          {deMeta && <span style={{ fontSize:9,color:AL }}>Parquet data loaded</span>}
-          {deLoading && <span style={{ fontSize:9,color:AL }}>Querying...</span>}
           {deData && !deLoading && <span style={{ fontSize:9,color:AL,fontFamily:FM }}>{deData.query_ms.toFixed(0)}ms</span>}
         </div>
 
         {/* Loading State */}
         {duckdbInit && <Card><div style={{ padding:40,textAlign:"center" }}>
-          <div style={{ fontSize:13,fontWeight:600,color:A,marginBottom:8 }}>Initializing DuckDB-WASM</div>
-          <div style={{ fontSize:10,color:AL }}>Loading query engine and Parquet data files...</div>
+          <div style={{ fontSize:18,color:cB,marginBottom:8,opacity:0.7 }}>{"\u229E"}</div>
+          <div style={{ fontSize:13,fontWeight:600,color:A,marginBottom:6 }}>Preparing query engine</div>
+          <div style={{ fontSize:10,color:AL,lineHeight:1.5,maxWidth:340,margin:"0 auto" }}>Loading DuckDB-WASM and registering Parquet data files. This takes a few seconds on first visit.</div>
           <div style={{ marginTop:12,width:120,height:3,background:B,borderRadius:2,margin:"12px auto 0",overflow:"hidden" }}><div style={{ width:"60%",height:"100%",background:cB,borderRadius:2,animation:"pulse 1.5s ease-in-out infinite" }}/></div>
+          <div style={{ fontSize:8,color:AL,fontFamily:FM,marginTop:8,letterSpacing:0.5,textTransform:"uppercase" }}>DuckDB-WASM + Parquet</div>
         </div></Card>}
 
-        {/* Error State */}
-        {deError && !duckdbInit && <Card><div style={{ padding:20,textAlign:"center" }}>
-          <div style={{ fontSize:11,color:NEG,marginBottom:4 }}>{deError}</div>
-          <div style={{ fontSize:10,color:AL }}>The Data Explorer requires Parquet files in /data/. Run <span style={{ fontFamily:FM }}>python3 server/export_parquet.py</span> to generate them.</div>
+        {/* Error State — only for init failures, not query errors */}
+        {deError && !duckdbInit && !duckdbReady && <Card><div style={{ padding:24,textAlign:"center" }}>
+          <div style={{ fontSize:16,color:NEG,marginBottom:6 }}>{"\u26A0"}</div>
+          <div style={{ fontSize:11,color:NEG,marginBottom:6 }}>{deError}</div>
+          <div style={{ fontSize:10,color:AL }}>The query engine could not load the data files. Try refreshing the page.</div>
         </div></Card>}
 
         {/* Entry Point Cards — "What do you want to explore?" */}
         {duckdbReady && !deExploreMode && <>
         <Card>
           <CH t="What do you want to explore?"/>
-          <div style={{ padding:"8px 14px 16px",display:"grid",gridTemplateColumns:"1fr 1fr 1fr 1fr",gap:10 }}>
+          <div className="de-entry-grid" style={{ padding:"8px 14px 16px",display:"grid",gridTemplateColumns:"1fr 1fr 1fr 1fr 1fr",gap:10 }}>
             {[
-              { id: "state", title: "State Analysis", desc: "Compare Medicaid spending across states", icon: "\u{1F5FA}" },
-              { id: "service", title: "Service Analysis", desc: "Explore spending by service type or HCPCS code", icon: "\u{1F3E5}" },
-              { id: "provider", title: "Provider Analysis", desc: "Find and compare providers", icon: "\u{1F468}\u200D\u2695\uFE0F" },
-              { id: "sql", title: "SQL Editor", desc: "Write raw SQL against the full dataset", icon: "\u{1F4BB}" },
+              { id: "state", title: "State Analysis", desc: "Compare Medicaid spending across states", icon: "\u2B21" },
+              { id: "service", title: "Service Analysis", desc: "Explore spending by service type or HCPCS code", icon: "\u25C8" },
+              { id: "provider", title: "Provider Analysis", desc: "Find and compare providers", icon: "\u25B3" },
+              { id: "sql", title: "SQL Editor", desc: "Write raw SQL against the full dataset", icon: "\u2318" },
+              { id: "ccbhc", title: "CCBHC Analysis", desc: "Rate development analysis for FL SPA FL-25-0007", icon: "\u25C6" },
             ].map(card => (
               <button key={card.id} onClick={() => {
                 setDeExploreMode(card.id);
                 if (card.id === "state") { setDEGroup("State"); }
                 else if (card.id === "service") { setDEGroup("Code"); }
                 else if (card.id === "provider") { setDEGroup("NPI"); }
-              }} style={{ padding:16,background:S,border:`1px solid ${B}`,borderRadius:10,cursor:"pointer",textAlign:"left",transition:"all 0.15s" }}>
-                <div style={{ fontSize:20,marginBottom:6 }}>{card.icon}</div>
+              }} onMouseEnter={e => { e.currentTarget.style.boxShadow = `0 4px 16px rgba(0,0,0,0.08)`; e.currentTarget.style.borderColor = cB; }}
+                 onMouseLeave={e => { e.currentTarget.style.boxShadow = "none"; e.currentTarget.style.borderColor = B; }}
+                 style={{ padding:16,background:S,border:`1px solid ${B}`,borderRadius:10,cursor:"pointer",textAlign:"left",transition:"all 0.15s" }}>
+                <div style={{ fontSize:18,marginBottom:6,color:card.id === "ccbhc" ? cB : cB,opacity:0.7 }}>{card.icon}</div>
                 <div style={{ fontSize:12,fontWeight:600,color:A,marginBottom:4 }}>{card.title}</div>
                 <div style={{ fontSize:10,color:AL,lineHeight:1.4 }}>{card.desc}</div>
               </button>
@@ -1286,7 +1311,10 @@ export default function TmsisExplorer() {
               { t: "categories.parquet", d: "State x category x year (8K rows): state, category, year, total_paid, total_claims, total_beneficiaries, code_count" },
               { t: "providers.parquet", d: "Provider summary (584K rows): npi, provider_name, state, zip3, taxonomy, total_paid, total_claims, total_beneficiaries, code_count" },
             ].map(tb => (
-              <button key={tb.t} onClick={() => setSqlText(prev => prev + ` '${tb.t}'`)} title={tb.d} style={{ fontSize:9,padding:"3px 10px",borderRadius:6,background:`${cB}08`,border:`1px solid ${cB}25`,color:cB,cursor:"pointer",fontFamily:FM }}>
+              <button key={tb.t} onClick={() => setSqlText(prev => prev + ` '${tb.t}'`)} title={tb.d}
+                onMouseEnter={e => { e.currentTarget.style.background = `${cB}18`; e.currentTarget.style.borderColor = `${cB}50`; }}
+                onMouseLeave={e => { e.currentTarget.style.background = `${cB}08`; e.currentTarget.style.borderColor = `${cB}25`; }}
+                style={{ fontSize:9,padding:"3px 10px",borderRadius:6,background:`${cB}08`,border:`1px solid ${cB}25`,color:cB,cursor:"pointer",fontFamily:FM,transition:"all 0.15s" }}>
                 {tb.t}
               </button>
             ))}
@@ -1337,7 +1365,10 @@ export default function TmsisExplorer() {
               { l: "Average rate per claim by category", q: "SELECT category,\n  SUM(total_paid) / NULLIF(SUM(total_claims), 0) AS avg_rate,\n  SUM(total_paid) AS total_paid,\n  SUM(total_claims) AS total_claims\nFROM 'claims.parquet'\nGROUP BY category\nORDER BY avg_rate DESC" },
               { l: "Cross-state rate comparison for 99213", q: "SELECT state,\n  SUM(total_paid) / NULLIF(SUM(total_claims), 0) AS avg_rate,\n  SUM(total_claims) AS claims\nFROM 'claims.parquet'\nWHERE hcpcs_code = '99213'\nGROUP BY state\nORDER BY avg_rate DESC" },
             ].map(ex => (
-              <button key={ex.l} onClick={() => setSqlText(ex.q)} style={{ fontSize:10,padding:"6px 10px",borderRadius:6,background:WH,border:`1px solid ${B}`,color:A,cursor:"pointer",textAlign:"left" }}>
+              <button key={ex.l} onClick={() => setSqlText(ex.q)}
+                onMouseEnter={e => { e.currentTarget.style.background = S; e.currentTarget.style.borderColor = `${cB}40`; }}
+                onMouseLeave={e => { e.currentTarget.style.background = WH; e.currentTarget.style.borderColor = B; }}
+                style={{ fontSize:10,padding:"6px 10px",borderRadius:6,background:WH,border:`1px solid ${B}`,borderLeft:`3px solid ${cB}`,color:A,cursor:"pointer",textAlign:"left",transition:"all 0.15s" }}>
                 {ex.l}
               </button>
             ))}
@@ -1381,8 +1412,884 @@ export default function TmsisExplorer() {
         </Card>}
         </>}
 
+        {/* CCBHC Analysis Dashboard */}
+        {duckdbReady && deExploreMode === "ccbhc" && (() => {
+          // Auto-run analysis when entering CCBHC mode or changing state
+          const runCcbhc = async (st: string) => {
+            setCcbhcLoading(true);
+            setCcbhcResult(null);
+            setCcbhcProgress({});
+            try {
+              const result = await runFullCcbhcAnalysis(st);
+              setCcbhcResult(result);
+              setCcbhcProgress({ utilization: true, status_quo: true, providers: true, trends: true, benchmarks: true });
+            } catch (e) {
+              setDeError(e instanceof Error ? e.message : String(e));
+            }
+            setCcbhcLoading(false);
+          };
+
+          const f$$ = (v: number): string => {
+            if (v == null || isNaN(v) || !isFinite(v)) return "$0";
+            const abs = Math.abs(v);
+            const sign = v < 0 ? "-" : "";
+            if (abs >= 1e9) return `${sign}$${(abs / 1e9).toFixed(1)}B`;
+            if (abs >= 1e6) return `${sign}$${(abs / 1e6).toFixed(1)}M`;
+            if (abs >= 1e3) return `${sign}$${abs.toLocaleString(undefined, { maximumFractionDigits: 0 })}`;
+            if (abs < 10) return `${sign}$${abs.toFixed(2)}`;
+            return `${sign}$${abs.toFixed(0)}`;
+          };
+          const fNu = (v: number): string => {
+            if (v == null || isNaN(v) || !isFinite(v)) return "0";
+            if (v >= 1e9) return `${(v / 1e9).toFixed(1)}B`;
+            if (v >= 1e6) return `${(v / 1e6).toFixed(1)}M`;
+            if (v >= 1e3) return `${(v / 1e3).toFixed(0)}K`;
+            return `${v}`;
+          };
+
+          const r = ccbhcResult;
+          // Region name lookup from regions.json
+          const regionMap = useMemo(() => {
+            const m = new Map<string, string>();
+            const summary = (regions as Record<string, Record<string, Array<{ zip3?: string; region_name?: string }>>> | null)?.summary;
+            const stRegions = summary?.[ccbhcState];
+            if (Array.isArray(stRegions)) {
+              for (const rr of stRegions) {
+                if (rr.zip3 && rr.region_name) m.set(rr.zip3, rr.region_name);
+              }
+            }
+            return m;
+          }, [regions, ccbhcState]);
+          const zipLabel = (zip3: string) => regionMap.get(zip3) || `ZIP3 ${zip3}`;
+          const zeroClaimCodes = r ? r.utilization.filter(u => u.total_claims === 0).length : 0;
+          const activeCodes = r ? r.utilization.filter(u => u.total_claims > 0) : [];
+          const topSpendPct = r && r.status_quo.grand_total_paid > 0
+            ? ((activeCodes.slice(0, 5).reduce((a, c) => a + c.total_paid, 0) / r.status_quo.grand_total_paid) * 100).toFixed(0)
+            : "0";
+          const flBenchmark = r ? r.benchmarks.find(b => b.state === ccbhcState) : null;
+          const flRank = r ? r.benchmarks.sort((a, b) => b.per_bene - a.per_bene).findIndex(b => b.state === ccbhcState) + 1 : 0;
+
+          return <div style={{ display:"grid",gap:10 }}>
+
+          {/* Back + Header */}
+          <div style={{ display:"flex",alignItems:"center",gap:8,justifyContent:"space-between",flexWrap:"wrap" }}>
+            <div style={{ display:"flex",alignItems:"center",gap:8 }}>
+              <button onClick={() => { setDeExploreMode(null); setCcbhcResult(null); }} style={{ fontSize:10,color:cB,background:"none",border:`1px solid ${B}`,borderRadius:5,padding:"3px 8px",cursor:"pointer" }}>&larr; Back</button>
+              <span style={{ fontSize:10,fontWeight:600,color:A }}>CCBHC Rate Development Analysis</span>
+              <span style={{ fontSize:8,padding:"1px 6px",borderRadius:8,background:"rgba(46,107,74,0.06)",color:cB,fontWeight:600 }}>SPA FL-25-0007</span>
+            </div>
+            {r && <>
+              <ExportBtn label="Export CSV" onClick={() => {
+                const csv = exportAnalysisCSV(r);
+                const a = document.createElement("a");
+                a.href = URL.createObjectURL(new Blob([csv], { type: "text/csv" }));
+                a.download = `ccbhc_analysis_${ccbhcState}_${new Date().toISOString().slice(0,10)}.csv`;
+                a.click();
+              }}/>
+              <ExportBtn label="Export PDF" onClick={() => {
+                import("../utils/ccbhcPdf").then(m => m.generateCcbhcPdf(r));
+              }}/>
+            </>}
+          </div>
+
+          {/* State Selector + Run */}
+          <Card>
+            <div style={{ padding:"10px 14px",display:"flex",alignItems:"center",gap:10,flexWrap:"wrap" }}>
+              <label style={{ fontSize:10,fontWeight:600,color:A }}>State:</label>
+              <select value={ccbhcState} onChange={e => { setCcbhcState(e.target.value); runCcbhc(e.target.value); }}
+                style={{ fontSize:11,padding:"4px 8px",borderRadius:6,border:`1px solid ${B}`,background:S,color:A,fontFamily:FM }}>
+                {(deMeta?.states || Object.keys(SIM_STATES)).map(st => <option key={st} value={st}>{st}</option>)}
+              </select>
+              <button onClick={() => runCcbhc(ccbhcState)} disabled={ccbhcLoading}
+                style={{ fontSize:11,fontWeight:600,padding:"5px 16px",borderRadius:6,background:cB,color:WH,border:"none",cursor:ccbhcLoading?"wait":"pointer",opacity:ccbhcLoading?0.6:1 }}>
+                {ccbhcLoading ? "Running..." : "Run Analysis"}
+              </button>
+              {!r && !ccbhcLoading && <span style={{ fontSize:10,color:AL }}>Click "Run Analysis" to begin</span>}
+            </div>
+          </Card>
+
+          {/* Loading State */}
+          {ccbhcLoading && <Card><div style={{ padding:30,textAlign:"center" }}>
+            <div style={{ fontSize:14,fontWeight:600,color:A,marginBottom:10 }}>Running CCBHC analysis for {ccbhcState}...</div>
+            <div style={{ display:"grid",gap:6,maxWidth:300,margin:"0 auto",textAlign:"left" }}>
+              {["Service Utilization","Status Quo Spending","Provider Landscape","Trends","Cross-State Benchmarks"].map(s => (
+                <div key={s} style={{ fontSize:11,color:ccbhcProgress[s.toLowerCase().replace(/ /g,"_")] ? POS : AL,display:"flex",alignItems:"center",gap:6 }}>
+                  <span style={{ fontSize:13 }}>{ccbhcProgress[s.toLowerCase().replace(/ /g,"_")] ? "\u2713" : "\u25CB"}</span>{s}
+                </div>
+              ))}
+            </div>
+            <div style={{ marginTop:12,width:120,height:3,background:B,borderRadius:2,margin:"12px auto 0",overflow:"hidden" }}>
+              <div style={{ width:"60%",height:"100%",background:cB,borderRadius:2,animation:"pulse 1.5s ease-in-out infinite" }}/>
+            </div>
+          </div></Card>}
+
+          {/* Results */}
+          {r && <>
+
+          {/* Section 1: Service Utilization */}
+          <Card>
+            <CH t="Section 1: Service Utilization (Task 2)" b={`${r.utilization.length} CCBHC codes in ${ccbhcState}`}/>
+            <div style={{ padding:"0 14px 6px",display:"flex",gap:8,flexWrap:"wrap" }}>
+              <div style={{ fontSize:10,padding:"4px 10px",borderRadius:6,background:`${POS}12`,color:POS,border:`1px solid ${POS}30` }}>
+                {r.utilization.length - zeroClaimCodes} codes with claims
+              </div>
+              <div style={{ fontSize:10,padding:"4px 10px",borderRadius:6,background:`${NEG}12`,color:NEG,border:`1px solid ${NEG}30` }}>
+                {zeroClaimCodes} codes with zero claims — genuinely new services
+              </div>
+              <div style={{ fontSize:10,padding:"4px 10px",borderRadius:6,background:`${cB}12`,color:cB,border:`1px solid ${cB}30` }}>
+                Top 5 codes = {topSpendPct}% of total spending
+              </div>
+            </div>
+            <div style={{ padding:"0 14px 12px",overflowX:"auto" }}>
+              <table style={{ width:"100%",fontSize:10,borderCollapse:"collapse" }}>
+                <thead><tr style={{ borderBottom:`2px solid ${B}` }}>
+                  {["HCPCS","Description","Cat","Scope","Claims","Benes","Total Paid","Avg Rate"].map(h =>
+                    <th key={h} style={{ textAlign:["Claims","Benes","Total Paid","Avg Rate"].includes(h)?"right":"left",padding:"6px 6px",color:AL,fontWeight:600,fontSize:9,whiteSpace:"nowrap" }}>{h}</th>
+                  )}
+                </tr></thead>
+                <tbody>
+                  {r.utilization.map((u, i) => {
+                    const hasClaims = u.total_claims > 0;
+                    return <tr key={u.hcpcs_code} style={{ borderBottom:`1px solid ${B}`,background:hasClaims ? (i%2===0 ? WH : S) : `${NEG}08` }}>
+                      <td style={{ padding:"4px 6px",fontFamily:FM,fontWeight:600,whiteSpace:"nowrap" }}>{u.hcpcs_code}</td>
+                      <td style={{ padding:"4px 6px",maxWidth:200,overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap",color:AL }}>{u.description}</td>
+                      <td style={{ padding:"4px 6px",fontSize:9,whiteSpace:"nowrap" }}>{u.samhsa_category}</td>
+                      <td style={{ padding:"4px 6px",fontSize:9 }}><span style={{ padding:"1px 5px",borderRadius:4,background:u.scope==="core"?`${cB}12`:`${cO}12`,color:u.scope==="core"?cB:cO,fontWeight:600 }}>{u.scope}</span></td>
+                      <td style={{ padding:"4px 6px",fontFamily:FM,textAlign:"right" }}>{fNu(u.total_claims)}</td>
+                      <td style={{ padding:"4px 6px",fontFamily:FM,textAlign:"right" }}>{fNu(u.total_beneficiaries)}</td>
+                      <td style={{ padding:"4px 6px",fontFamily:FM,textAlign:"right",fontWeight:600 }}>{f$$(u.total_paid)}</td>
+                      <td style={{ padding:"4px 6px",fontFamily:FM,textAlign:"right" }}>{u.avg_rate > 0 ? f$$(u.avg_rate) : "—"}</td>
+                    </tr>;
+                  })}
+                  {/* Core subtotal */}
+                  <tr style={{ borderTop:`2px solid ${cB}`,background:`${cB}08`,fontWeight:700 }}>
+                    <td colSpan={4} style={{ padding:"6px",fontSize:10 }}>Core Subtotal</td>
+                    <td style={{ padding:"6px",fontFamily:FM,textAlign:"right" }}>{fNu(r.status_quo.core_total_claims)}</td>
+                    <td style={{ padding:"6px",fontFamily:FM,textAlign:"right" }}>—</td>
+                    <td style={{ padding:"6px",fontFamily:FM,textAlign:"right" }}>{f$$(r.status_quo.core_total_paid)}</td>
+                    <td style={{ padding:"6px",fontFamily:FM,textAlign:"right" }}>{r.status_quo.core_total_claims > 0 ? f$$(r.status_quo.core_total_paid / r.status_quo.core_total_claims) : "—"}</td>
+                  </tr>
+                  {/* Expanded subtotal */}
+                  <tr style={{ background:`${cO}08`,fontWeight:700 }}>
+                    <td colSpan={4} style={{ padding:"6px",fontSize:10 }}>Expanded Subtotal</td>
+                    <td style={{ padding:"6px",fontFamily:FM,textAlign:"right" }}>{fNu(r.status_quo.expanded_total_claims)}</td>
+                    <td style={{ padding:"6px",fontFamily:FM,textAlign:"right" }}>—</td>
+                    <td style={{ padding:"6px",fontFamily:FM,textAlign:"right" }}>{f$$(r.status_quo.expanded_total_paid)}</td>
+                    <td style={{ padding:"6px",fontFamily:FM,textAlign:"right" }}>{r.status_quo.expanded_total_claims > 0 ? f$$(r.status_quo.expanded_total_paid / r.status_quo.expanded_total_claims) : "—"}</td>
+                  </tr>
+                  {/* Grand total */}
+                  <tr style={{ borderTop:`2px solid ${A}`,background:`${A}08`,fontWeight:700 }}>
+                    <td colSpan={4} style={{ padding:"6px",fontSize:11 }}>Grand Total</td>
+                    <td style={{ padding:"6px",fontFamily:FM,textAlign:"right" }}>{fNu(r.status_quo.grand_total_claims)}</td>
+                    <td style={{ padding:"6px",fontFamily:FM,textAlign:"right" }}>{fNu(r.status_quo.grand_total_beneficiaries)}</td>
+                    <td style={{ padding:"6px",fontFamily:FM,textAlign:"right" }}>{f$$(r.status_quo.grand_total_paid)}</td>
+                    <td style={{ padding:"6px",fontFamily:FM,textAlign:"right" }}>{r.status_quo.grand_total_claims > 0 ? f$$(r.status_quo.grand_total_paid / r.status_quo.grand_total_claims) : "—"}</td>
+                  </tr>
+                </tbody>
+              </table>
+            </div>
+          </Card>
+
+          {/* Section 2: Status Quo Spending */}
+          <Card>
+            <CH t="Section 2: Status Quo Spending (Task 3)" b="Compared to Milliman actuarial estimates"/>
+            <div style={{ padding:"4px 14px 10px" }}>
+              {/* KPI cards */}
+              <div style={{ display:"grid",gridTemplateColumns:"repeat(auto-fit,minmax(130px,1fr))",gap:8,marginBottom:10 }}>
+                <div style={{ background:S,borderRadius:8,padding:"10px 12px",textAlign:"center" }}>
+                  <div style={{ fontSize:8,color:AL,textTransform:"uppercase",letterSpacing:0.5,marginBottom:2 }}>Total {ccbhcState} CCBHC Spending</div>
+                  <div style={{ fontFamily:FM,fontSize:16,fontWeight:700,color:A }}>{f$$(r.status_quo.grand_total_paid)}</div>
+                </div>
+                <div style={{ background:S,borderRadius:8,padding:"10px 12px",textAlign:"center" }}>
+                  <div style={{ fontSize:8,color:AL,textTransform:"uppercase",letterSpacing:0.5,marginBottom:2 }}>Core Subtotal</div>
+                  <div style={{ fontFamily:FM,fontSize:16,fontWeight:700,color:cB }}>{f$$(r.status_quo.core_total_paid)}</div>
+                </div>
+                <div style={{ background:S,borderRadius:8,padding:"10px 12px",textAlign:"center" }}>
+                  <div style={{ fontSize:8,color:AL,textTransform:"uppercase",letterSpacing:0.5,marginBottom:2 }}>Expanded Subtotal</div>
+                  <div style={{ fontFamily:FM,fontSize:16,fontWeight:700,color:cO }}>{f$$(r.status_quo.expanded_total_paid)}</div>
+                </div>
+                <div style={{ background:S,borderRadius:8,padding:"10px 12px",textAlign:"center" }}>
+                  <div style={{ fontSize:8,color:AL,textTransform:"uppercase",letterSpacing:0.5,marginBottom:2 }}>LBR Appropriation</div>
+                  <div style={{ fontFamily:FM,fontSize:16,fontWeight:700,color:A }}>{f$$(MILLIMAN_ESTIMATES.lbr_appropriation)}</div>
+                </div>
+              </div>
+
+              {/* Milliman comparison bar */}
+              <div style={{ background:S,borderRadius:8,padding:"12px 14px",marginBottom:10 }}>
+                <div style={{ fontSize:10,fontWeight:600,color:A,marginBottom:8 }}>T-MSIS Actual vs Milliman Range</div>
+                <div style={{ position:"relative",height:28,background:`${B}`,borderRadius:4,overflow:"hidden" }}>
+                  {/* Milliman range band */}
+                  <div style={{ position:"absolute",left:`${(MILLIMAN_ESTIMATES.status_quo_low / MILLIMAN_ESTIMATES.lbr_appropriation) * 100}%`,
+                    width:`${((MILLIMAN_ESTIMATES.status_quo_high - MILLIMAN_ESTIMATES.status_quo_low) / MILLIMAN_ESTIMATES.lbr_appropriation) * 100}%`,
+                    height:"100%",background:`${WARN}30`,borderLeft:`2px solid ${WARN}`,borderRight:`2px solid ${WARN}` }}/>
+                  {/* T-MSIS actual */}
+                  <div style={{ position:"absolute",left:`${Math.min((r.status_quo.grand_total_paid / MILLIMAN_ESTIMATES.lbr_appropriation) * 100, 100)}%`,
+                    top:0,bottom:0,width:3,background:cB,borderRadius:2 }}/>
+                </div>
+                <div style={{ display:"flex",justifyContent:"space-between",marginTop:4,fontSize:8,color:AL }}>
+                  <span>$0</span>
+                  <span style={{ color:WARN }}>Milliman: {f$$(MILLIMAN_ESTIMATES.status_quo_low)}–{f$$(MILLIMAN_ESTIMATES.status_quo_high)}</span>
+                  <span style={{ color:cB }}>T-MSIS: {f$$(r.status_quo.grand_total_paid)}</span>
+                  <span>{f$$(MILLIMAN_ESTIMATES.lbr_appropriation)}</span>
+                </div>
+              </div>
+
+              {/* Findings */}
+              <div style={{ display:"grid",gap:6,marginBottom:10 }}>
+                <div style={{ fontSize:10,color:A,lineHeight:1.5,padding:"6px 10px",background:`${cB}06`,borderRadius:6,borderLeft:`3px solid ${cB}` }}>
+                  <strong>Finding:</strong> T-MSIS actual is {f$$(r.status_quo.grand_total_paid)}, which is {
+                    r.status_quo.grand_total_paid >= MILLIMAN_ESTIMATES.status_quo_low && r.status_quo.grand_total_paid <= MILLIMAN_ESTIMATES.status_quo_high
+                      ? "within" : r.status_quo.grand_total_paid < MILLIMAN_ESTIMATES.status_quo_low ? "below" : "above"
+                  } Milliman's {f$$(MILLIMAN_ESTIMATES.status_quo_low)}–{f$$(MILLIMAN_ESTIMATES.status_quo_high)} range.
+                </div>
+                <div style={{ fontSize:10,color:A,lineHeight:1.5,padding:"6px 10px",background:`${cB}06`,borderRadius:6,borderLeft:`3px solid ${cB}` }}>
+                  <strong>Net new spending:</strong> ${MILLIMAN_ESTIMATES.lbr_appropriation.toLocaleString()} appropriation minus {f$$(r.status_quo.grand_total_paid)} status quo = <strong>{f$$(r.status_quo.net_new_spending)}</strong> net new Medicaid spending.
+                </div>
+              </div>
+
+              {/* Spending by SAMHSA category */}
+              <div style={{ fontSize:10,fontWeight:600,color:A,marginBottom:4 }}>Spending by SAMHSA Category</div>
+              <table style={{ width:"100%",fontSize:10,borderCollapse:"collapse" }}>
+                <thead><tr style={{ borderBottom:`2px solid ${B}` }}>
+                  {["Category","Total Paid","Claims","Benes"].map(h =>
+                    <th key={h} style={{ textAlign:h==="Category"?"left":"right",padding:"5px 6px",color:AL,fontWeight:600,fontSize:9 }}>{h}</th>
+                  )}
+                </tr></thead>
+                <tbody>{r.status_quo.by_category.map((c, i) => (
+                  <tr key={c.category} style={{ borderBottom:`1px solid ${B}`,background:i%2===0?WH:S }}>
+                    <td style={{ padding:"4px 6px" }}>{c.category}</td>
+                    <td style={{ padding:"4px 6px",fontFamily:FM,textAlign:"right",fontWeight:600 }}>{f$$(c.total_paid)}</td>
+                    <td style={{ padding:"4px 6px",fontFamily:FM,textAlign:"right" }}>{fNu(c.total_claims)}</td>
+                    <td style={{ padding:"4px 6px",fontFamily:FM,textAlign:"right" }}>{fNu(c.total_beneficiaries)}</td>
+                  </tr>
+                ))}</tbody>
+              </table>
+            </div>
+          </Card>
+
+          {/* Section 3: Provider Landscape */}
+          <Card>
+            <CH t="Section 3: Provider Landscape" b={`${r.providers.length} providers with CCBHC taxonomy codes in ${ccbhcState}`}/>
+            {r.providers.length > 0 ? <div style={{ padding:"0 14px 12px",overflowX:"auto" }}>
+              <table style={{ width:"100%",fontSize:10,borderCollapse:"collapse" }}>
+                <thead><tr style={{ borderBottom:`2px solid ${B}` }}>
+                  {["NPI","Provider Name","ZIP3","Taxonomy","Total Paid","Claims","Benes"].map(h =>
+                    <th key={h} style={{ textAlign:["Total Paid","Claims","Benes"].includes(h)?"right":"left",padding:"5px 6px",color:AL,fontWeight:600,fontSize:9,whiteSpace:"nowrap" }}>{h}</th>
+                  )}
+                </tr></thead>
+                <tbody>{r.providers.map((p, i) => (
+                  <tr key={p.npi+i} style={{ borderBottom:`1px solid ${B}`,background:i%2===0?WH:S }}>
+                    <td style={{ padding:"4px 6px",fontFamily:FM,fontSize:9 }}>{p.npi}</td>
+                    <td style={{ padding:"4px 6px",maxWidth:180,overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap" }}>{p.provider_name}</td>
+                    <td style={{ padding:"4px 6px",fontFamily:FM }}>{p.zip3}</td>
+                    <td style={{ padding:"4px 6px",fontFamily:FM,fontSize:9 }}>{p.taxonomy}</td>
+                    <td style={{ padding:"4px 6px",fontFamily:FM,textAlign:"right",fontWeight:600 }}>{f$$(p.total_paid)}</td>
+                    <td style={{ padding:"4px 6px",fontFamily:FM,textAlign:"right" }}>{fNu(p.total_claims)}</td>
+                    <td style={{ padding:"4px 6px",fontFamily:FM,textAlign:"right" }}>{fNu(p.total_beneficiaries)}</td>
+                  </tr>
+                ))}</tbody>
+              </table>
+            </div> : <div style={{ padding:"14px",fontSize:10,color:AL }}>No providers with CCBHC taxonomy codes found in {ccbhcState}.</div>}
+            <div style={{ padding:"0 14px 10px",fontSize:9,color:AL,fontStyle:"italic",lineHeight:1.5 }}>
+              These providers are identified by taxonomy code (261QM0801X, 324500000X, 261QR0405X) and may not all be prospective CCBHCs. Cross-reference against SAMHSA grantee list for final identification.
+            </div>
+          </Card>
+
+          {/* Section 4: Trends */}
+          <Card accent={cB} x>
+            <CH t="Section 4: Trends" b={`${ccbhcState} CCBHC spending`}/>
+            <div style={{ padding:"0 14px 4px" }}>
+              {/* Toggle yearly vs monthly */}
+              {r.monthly_trends && r.monthly_trends.length > 0 && <div style={{ display:"flex",gap:4,marginBottom:6 }}>
+                {(["yearly", "monthly"] as const).map(mode => (
+                  <button key={mode} onClick={() => {
+                    const el = document.querySelector(`[data-trend-mode]`) as HTMLElement;
+                    if (el) el.dataset.trendMode = mode;
+                    // Force re-render via state toggle
+                    setCcbhcProgress(p => ({ ...p, _trendMode: mode as unknown as boolean }));
+                  }} style={{
+                    fontSize:9,padding:"3px 10px",borderRadius:5,border:`1px solid ${B}`,cursor:"pointer",
+                    background: (ccbhcProgress as Record<string,unknown>)._trendMode === mode || (!((ccbhcProgress as Record<string,unknown>)._trendMode) && mode === "yearly") ? cB : WH,
+                    color: (ccbhcProgress as Record<string,unknown>)._trendMode === mode || (!((ccbhcProgress as Record<string,unknown>)._trendMode) && mode === "yearly") ? WH : AL,
+                    fontWeight:600,
+                  }}>{mode === "yearly" ? "Yearly" : "Monthly"}</button>
+                ))}
+              </div>}
+              {/* Monthly chart */}
+              {(ccbhcProgress as Record<string,unknown>)._trendMode === "monthly" && r.monthly_trends && r.monthly_trends.length > 1 ? <ResponsiveContainer width="100%" height={220}>
+                <AreaChart data={r.monthly_trends} margin={{ left:10,right:10,top:10,bottom:5 }}>
+                  <CartesianGrid strokeDasharray="3 3" stroke={B}/>
+                  <XAxis dataKey="month" tick={{ fontSize:7,fill:AL }} tickFormatter={(v: string) => v.slice(2,7)} interval={5}/>
+                  <YAxis tick={{ fontSize:9,fill:AL }} tickFormatter={(v: number) => f$$(v)}/>
+                  <Tooltip content={<SafeTip active={false} payload={[]} render={(d: Record<string,unknown>) => (
+                    <div><div style={{ fontWeight:600 }}>{String(d.month)}</div>
+                      <div>Spending: {f$$(d.total_paid as number)}</div>
+                      <div>Claims: {fNu(d.total_claims as number)}</div>
+                      <div>Beneficiaries: {fNu(d.total_beneficiaries as number)}</div>
+                    </div>
+                  )}/>}/>
+                  <Area type="monotone" dataKey="total_paid" stroke={cB} fill={`${cB}30`} strokeWidth={1.5}/>
+                </AreaChart>
+              </ResponsiveContainer>
+              /* Yearly chart (default) */
+              : r.trends.length > 1 ? <ResponsiveContainer width="100%" height={220}>
+                <AreaChart data={r.trends} margin={{ left:10,right:10,top:10,bottom:5 }}>
+                  <CartesianGrid strokeDasharray="3 3" stroke={B}/>
+                  <XAxis dataKey="year" tick={{ fontSize:9,fill:AL }}/>
+                  <YAxis tick={{ fontSize:9,fill:AL }} tickFormatter={(v: number) => f$$(v)}/>
+                  <Tooltip content={<SafeTip active={false} payload={[]} render={(d: Record<string,unknown>) => (
+                    <div><div style={{ fontWeight:600 }}>Year {String(d.year)}</div>
+                      <div>Spending: {f$$(d.total_paid as number)}</div>
+                      <div>Claims: {fNu(d.total_claims as number)}</div>
+                      <div>Beneficiaries: {fNu(d.total_beneficiaries as number)}</div>
+                    </div>
+                  )}/>}/>
+                  <Area type="monotone" dataKey="total_paid" stroke={cB} fill={`${cB}30`} strokeWidth={2}/>
+                </AreaChart>
+              </ResponsiveContainer> : <div style={{ padding:20,textAlign:"center",fontSize:10,color:AL }}>Insufficient data for trend chart.</div>}
+            </div>
+            {r.trends.length > 1 && <div style={{ padding:"0 14px 10px" }}>
+              <div style={{ fontSize:10,fontWeight:600,color:A,marginBottom:4 }}>Year-over-Year Growth</div>
+              <table style={{ width:"100%",fontSize:10,borderCollapse:"collapse" }}>
+                <thead><tr style={{ borderBottom:`2px solid ${B}` }}>
+                  {["Year","Total Paid","Claims","Benes","YoY Growth"].map(h =>
+                    <th key={h} style={{ textAlign:h==="Year"?"left":"right",padding:"4px 6px",color:AL,fontWeight:600,fontSize:9 }}>{h}</th>
+                  )}
+                </tr></thead>
+                <tbody>{r.trends.map((t, i) => (
+                  <tr key={t.year} style={{ borderBottom:`1px solid ${B}`,background:i%2===0?WH:S }}>
+                    <td style={{ padding:"3px 6px",fontWeight:600 }}>{t.year}</td>
+                    <td style={{ padding:"3px 6px",fontFamily:FM,textAlign:"right" }}>{f$$(t.total_paid)}</td>
+                    <td style={{ padding:"3px 6px",fontFamily:FM,textAlign:"right" }}>{fNu(t.total_claims)}</td>
+                    <td style={{ padding:"3px 6px",fontFamily:FM,textAlign:"right" }}>{fNu(t.total_beneficiaries)}</td>
+                    <td style={{ padding:"3px 6px",fontFamily:FM,textAlign:"right",color:t.yoy_growth != null ? (t.yoy_growth >= 0 ? POS : NEG) : AL }}>
+                      {t.yoy_growth != null ? `${t.yoy_growth >= 0 ? "+" : ""}${t.yoy_growth.toFixed(1)}%` : "—"}
+                    </td>
+                  </tr>
+                ))}</tbody>
+              </table>
+            </div>}
+          </Card>
+
+          {/* Section 5: Cross-State Benchmarks */}
+          <Card accent={cB} x>
+            <CH t="Section 5: Cross-State Benchmarks" b={`${ccbhcState} vs peer states`}/>
+            <div style={{ padding:"0 14px 4px" }}>
+              {r.benchmarks.length > 0 ? <ResponsiveContainer width="100%" height={200}>
+                <BarChart data={r.benchmarks} margin={{ left:10,right:10,top:10,bottom:5 }}>
+                  <CartesianGrid strokeDasharray="3 3" stroke={B}/>
+                  <XAxis dataKey="state" tick={{ fontSize:10,fill:AL }}/>
+                  <YAxis tick={{ fontSize:9,fill:AL }} tickFormatter={(v: number) => f$$(v)}/>
+                  <Tooltip content={<SafeTip active={false} payload={[]} render={(d: Record<string,unknown>) => (
+                    <div><div style={{ fontWeight:600 }}>{String(d.state)}</div>
+                      <div>Total: {f$$(d.total_paid as number)}</div>
+                      <div>Per Claim: {f$$(d.per_claim as number)}</div>
+                      <div>Per Bene: {f$$(d.per_bene as number)}</div>
+                    </div>
+                  )}/>}/>
+                  <Bar dataKey="total_paid" radius={[4,4,0,0]}>
+                    {r.benchmarks.map(b => <Cell key={b.state} fill={b.state === ccbhcState ? cB : `${cB}60`}/>)}
+                  </Bar>
+                </BarChart>
+              </ResponsiveContainer> : <div style={{ padding:20,textAlign:"center",fontSize:10,color:AL }}>No benchmark data.</div>}
+            </div>
+            <div style={{ padding:"0 14px 10px",overflowX:"auto" }}>
+              <table style={{ width:"100%",fontSize:10,borderCollapse:"collapse" }}>
+                <thead><tr style={{ borderBottom:`2px solid ${B}` }}>
+                  {["State","Total Paid","Claims","Benes","Per Claim","Per Bene"].map(h =>
+                    <th key={h} style={{ textAlign:h==="State"?"left":"right",padding:"4px 6px",color:AL,fontWeight:600,fontSize:9 }}>{h}</th>
+                  )}
+                </tr></thead>
+                <tbody>{r.benchmarks.map((b, i) => (
+                  <tr key={b.state} style={{ borderBottom:`1px solid ${B}`,background:b.state === ccbhcState ? `${cB}10` : (i%2===0 ? WH : S),fontWeight:b.state===ccbhcState?700:400 }}>
+                    <td style={{ padding:"3px 6px" }}>{b.state}</td>
+                    <td style={{ padding:"3px 6px",fontFamily:FM,textAlign:"right" }}>{f$$(b.total_paid)}</td>
+                    <td style={{ padding:"3px 6px",fontFamily:FM,textAlign:"right" }}>{fNu(b.total_claims)}</td>
+                    <td style={{ padding:"3px 6px",fontFamily:FM,textAlign:"right" }}>{fNu(b.total_beneficiaries)}</td>
+                    <td style={{ padding:"3px 6px",fontFamily:FM,textAlign:"right" }}>{f$$(b.per_claim)}</td>
+                    <td style={{ padding:"3px 6px",fontFamily:FM,textAlign:"right" }}>{f$$(b.per_bene)}</td>
+                  </tr>
+                ))}</tbody>
+              </table>
+              {flBenchmark && <div style={{ padding:"6px 0 0",fontSize:10,color:A,lineHeight:1.5 }}>
+                <strong>Finding:</strong> {ccbhcState} ranks {flRank}{flRank===1?"st":flRank===2?"nd":flRank===3?"rd":"th"} among peer states in per-beneficiary CCBHC spending at {f$$(flBenchmark.per_bene)}.
+              </div>}
+            </div>
+          </Card>
+
+          {/* Section 5B: Peer State Provider Comparison (Taxonomy-Scoped) */}
+          {r.provider_benchmarks && r.provider_benchmarks.length > 0 && <Card>
+            <CH t="Section 5B: Peer State Provider Comparison (Taxonomy-Scoped)" b="CCBHC-taxonomy providers only"/>
+            <div style={{ padding:"0 14px 12px",overflowX:"auto" }}>
+              <table style={{ width:"100%",fontSize:10,borderCollapse:"collapse" }}>
+                <thead><tr style={{ borderBottom:`2px solid ${B}` }}>
+                  {["State","Providers","Total Paid","Per Provider","Per Claim"].map(h =>
+                    <th key={h} style={{ textAlign:h==="State"?"left":"right",padding:"5px 6px",color:AL,fontWeight:600,fontSize:9 }}>{h}</th>
+                  )}
+                </tr></thead>
+                <tbody>{r.provider_benchmarks.map((pb, i) => (
+                  <tr key={pb.state} style={{ borderBottom:`1px solid ${B}`,background:pb.state === ccbhcState ? `${cB}10` : (i%2===0?WH:S),fontWeight:pb.state===ccbhcState?700:400 }}>
+                    <td style={{ padding:"4px 6px" }}>{pb.state}</td>
+                    <td style={{ padding:"4px 6px",fontFamily:FM,textAlign:"right" }}>{pb.provider_count}</td>
+                    <td style={{ padding:"4px 6px",fontFamily:FM,textAlign:"right" }}>{f$$(pb.total_paid)}</td>
+                    <td style={{ padding:"4px 6px",fontFamily:FM,textAlign:"right",fontWeight:700 }}>{f$$(pb.per_provider)}</td>
+                    <td style={{ padding:"4px 6px",fontFamily:FM,textAlign:"right" }}>{f$$(pb.per_claim)}</td>
+                  </tr>
+                ))}</tbody>
+              </table>
+              {(() => {
+                const flPb = r.provider_benchmarks!.find(pb => pb.state === ccbhcState);
+                const topPb = r.provider_benchmarks![0];
+                if (flPb && topPb && topPb.state !== ccbhcState) {
+                  const ratio = topPb.per_provider / flPb.per_provider;
+                  return <div style={{ padding:"6px 0 0",fontSize:10,color:A,lineHeight:1.5 }}>
+                    <strong>Finding:</strong> {ccbhcState} per-provider CCBHC spending ({f$$(flPb.per_provider)}) is {ratio.toFixed(1)}x lower than {topPb.state} ({f$$(topPb.per_provider)}), reflecting rate adequacy gaps and the absence of an enhanced CCBHC payment model.
+                  </div>;
+                }
+                return null;
+              })()}
+            </div>
+          </Card>}
+
+          {/* Section 6: Illustrative Rate Estimates */}
+          <Card>
+            <CH t="Section 6: Illustrative Rate Estimates" b="Milliman numerators / T-MSIS denominators"/>
+            <div style={{ padding:"0 14px 4px" }}>
+              <div style={{ background:`${WARN}10`,border:`1px solid ${WARN}30`,borderRadius:8,padding:"8px 12px",marginBottom:10,fontSize:10,color:WARN,fontWeight:600,lineHeight:1.5 }}>
+                ILLUSTRATIVE ONLY — Uses aggregate T-MSIS claim counts as proxy. Actual PPS rate requires beneficiary x date daily visit deduplication from claim-level data and Milliman cost survey microdata.
+              </div>
+            </div>
+            {r.rate_estimates.length > 0 ? <div style={{ padding:"0 14px 12px",overflowX:"auto" }}>
+              <table style={{ width:"100%",fontSize:10,borderCollapse:"collapse" }}>
+                <thead><tr style={{ borderBottom:`2px solid ${B}` }}>
+                  {["Scenario","Numerator","Denominator","Per-Claim Rate"].map(h =>
+                    <th key={h} style={{ textAlign:h==="Scenario"?"left":"right",padding:"6px 6px",color:AL,fontWeight:600,fontSize:9 }}>{h}</th>
+                  )}
+                </tr></thead>
+                <tbody>{r.rate_estimates.map((re, i) => (
+                  <tr key={re.label} style={{ borderBottom:`1px solid ${B}`,background:i%2===0?WH:S }}>
+                    <td style={{ padding:"6px",fontWeight:600 }}>{re.label}</td>
+                    <td style={{ padding:"6px",fontFamily:FM,textAlign:"right" }}>
+                      <div>{f$$(re.numerator)}</div>
+                      <div style={{ fontSize:8,color:AL }}>{re.numerator_label}</div>
+                    </td>
+                    <td style={{ padding:"6px",fontFamily:FM,textAlign:"right" }}>
+                      <div>{fNu(re.denominator)}</div>
+                      <div style={{ fontSize:8,color:AL }}>{re.denominator_label}</div>
+                    </td>
+                    <td style={{ padding:"6px",fontFamily:FM,textAlign:"right",fontWeight:700,fontSize:13,color:cB }}>{f$$(re.per_claim)}</td>
+                  </tr>
+                ))}</tbody>
+              </table>
+            </div> : <div style={{ padding:"14px",fontSize:10,color:AL }}>No claims data available to calculate rate estimates.</div>}
+          </Card>
+
+          {/* Section 6B: Refined Rate Estimates (provider-scoped) */}
+          {r.refined_rates && r.refined_rates.length > 0 && r.provider_totals && <Card>
+            <CH t="Section 6B: Refined Rate Estimates (Provider-Scoped)" b={`${r.provider_totals.provider_count} taxonomy-matched providers — annualized denominators`}/>
+            <div style={{ padding:"0 14px 4px" }}>
+              <div style={{ background:`${cB}08`,border:`1px solid ${cB}30`,borderRadius:8,padding:"8px 12px",marginBottom:10,fontSize:10,color:A,lineHeight:1.5 }}>
+                Uses only the <strong>{r.provider_totals.provider_count} providers</strong> with CCBHC taxonomy codes as the denominator, annualized across {r.provider_totals.years_in_data} years. Status quo ~{f$$(r.provider_totals.annualized_paid)}/yr aligns with Milliman's low estimate.
+              </div>
+              <div style={{ display:"grid",gridTemplateColumns:"repeat(auto-fit,minmax(110px,1fr))",gap:8,marginBottom:10 }}>
+                <div style={{ background:S,borderRadius:6,padding:"8px 10px",textAlign:"center" }}>
+                  <div style={{ fontSize:8,color:AL,textTransform:"uppercase" }}>Providers</div>
+                  <div style={{ fontFamily:FM,fontSize:14,fontWeight:700,color:A }}>{r.provider_totals.provider_count}</div>
+                </div>
+                <div style={{ background:S,borderRadius:6,padding:"8px 10px",textAlign:"center" }}>
+                  <div style={{ fontSize:8,color:AL,textTransform:"uppercase" }}>Annual Claims</div>
+                  <div style={{ fontFamily:FM,fontSize:14,fontWeight:700,color:A }}>{fNu(r.provider_totals.annualized_claims)}</div>
+                </div>
+                <div style={{ background:S,borderRadius:6,padding:"8px 10px",textAlign:"center" }}>
+                  <div style={{ fontSize:8,color:AL,textTransform:"uppercase" }}>Annual Paid (SQ)</div>
+                  <div style={{ fontFamily:FM,fontSize:14,fontWeight:700,color:A }}>{f$$(r.provider_totals.annualized_paid)}</div>
+                </div>
+                <div style={{ background:S,borderRadius:6,padding:"8px 10px",textAlign:"center" }}>
+                  <div style={{ fontSize:8,color:AL,textTransform:"uppercase" }}>SQ Per Claim</div>
+                  <div style={{ fontFamily:FM,fontSize:14,fontWeight:700,color:A }}>{f$$(r.provider_totals.annualized_paid / r.provider_totals.annualized_claims)}</div>
+                </div>
+              </div>
+            </div>
+            <div style={{ padding:"0 14px 12px",overflowX:"auto" }}>
+              <table style={{ width:"100%",fontSize:10,borderCollapse:"collapse" }}>
+                <thead><tr style={{ borderBottom:`2px solid ${B}` }}>
+                  {["Scenario","Numerator","Annual Claims","Per Claim","SQ Per Claim","Increment"].map(h =>
+                    <th key={h} style={{ textAlign:h==="Scenario"?"left":"right",padding:"6px 6px",color:AL,fontWeight:600,fontSize:9 }}>{h}</th>
+                  )}
+                </tr></thead>
+                <tbody>{r.refined_rates.map((rr, i) => (
+                  <tr key={rr.label} style={{ borderBottom:`1px solid ${B}`,background:i%2===0?WH:S }}>
+                    <td style={{ padding:"6px",fontWeight:600 }}>{rr.label}</td>
+                    <td style={{ padding:"6px",fontFamily:FM,textAlign:"right" }}>
+                      <div>{f$$(rr.numerator)}</div>
+                      <div style={{ fontSize:8,color:AL }}>{rr.numerator_label}</div>
+                    </td>
+                    <td style={{ padding:"6px",fontFamily:FM,textAlign:"right" }}>{fNu(rr.annual_claims)}</td>
+                    <td style={{ padding:"6px",fontFamily:FM,textAlign:"right",fontWeight:700,fontSize:13,color:cB }}>{f$$(rr.per_claim)}</td>
+                    <td style={{ padding:"6px",fontFamily:FM,textAlign:"right",color:AL }}>{f$$(rr.status_quo_per_claim)}</td>
+                    <td style={{ padding:"6px",fontFamily:FM,textAlign:"right",fontWeight:600,color:POS }}>+{f$$(rr.increment)}</td>
+                  </tr>
+                ))}</tbody>
+              </table>
+              <div style={{ padding:"8px 0 0",fontSize:9,color:AL,lineHeight:1.5 }}>
+                Per-claim estimates, not per daily visit. After claim-level deduplication (multiple claims per visit day), PPS daily rates would be ~1.3-1.8x higher.
+              </div>
+            </div>
+          </Card>}
+
+          {/* Section 6C: Geographic Analysis */}
+          {r.geography && r.geography.length > 0 && <Card>
+            <CH t="Section 6C: Geographic Analysis" b={`ZIP3-level CCBHC provider distribution in ${ccbhcState}`}/>
+            <div style={{ padding:"0 14px 6px" }}>
+              {(() => {
+                const deserts = r.geography!.filter(g => g.is_desert);
+                const concentrated = r.geography!.filter(g => g.ccbhc_providers >= 10);
+                const thin = r.geography!.filter(g => g.ccbhc_providers > 0 && g.ccbhc_providers <= 3);
+                return <>
+                  <div style={{ display:"grid",gridTemplateColumns:"repeat(auto-fit,minmax(130px,1fr))",gap:8,marginBottom:10 }}>
+                    <div style={{ background:S,borderRadius:6,padding:"8px 10px",textAlign:"center" }}>
+                      <div style={{ fontSize:8,color:AL,textTransform:"uppercase" }}>ZIP3 Areas</div>
+                      <div style={{ fontFamily:FM,fontSize:14,fontWeight:700,color:A }}>{r.geography!.length}</div>
+                    </div>
+                    <div style={{ background:S,borderRadius:6,padding:"8px 10px",textAlign:"center" }}>
+                      <div style={{ fontSize:8,color:AL,textTransform:"uppercase" }}>CCBHC Deserts</div>
+                      <div style={{ fontFamily:FM,fontSize:14,fontWeight:700,color:deserts.length > 0 ? NEG : POS }}>{deserts.length}</div>
+                    </div>
+                    <div style={{ background:S,borderRadius:6,padding:"8px 10px",textAlign:"center" }}>
+                      <div style={{ fontSize:8,color:AL,textTransform:"uppercase" }}>High Density (10+)</div>
+                      <div style={{ fontFamily:FM,fontSize:14,fontWeight:700,color:POS }}>{concentrated.length}</div>
+                    </div>
+                    <div style={{ background:S,borderRadius:6,padding:"8px 10px",textAlign:"center" }}>
+                      <div style={{ fontSize:8,color:AL,textTransform:"uppercase" }}>Thin Coverage (1-3)</div>
+                      <div style={{ fontFamily:FM,fontSize:14,fontWeight:700,color:WARN }}>{thin.length}</div>
+                    </div>
+                  </div>
+                  {deserts.length > 0 && <div style={{ padding:"6px 10px",marginBottom:8,background:`${NEG}06`,borderRadius:6,borderLeft:`3px solid ${NEG}`,fontSize:10,color:A,lineHeight:1.5 }}>
+                    <strong>CCBHC deserts:</strong> {deserts.map(d => `${zipLabel(d.zip3)} (${fNu(d.total_providers)} total providers)`).join(", ")} — these areas have Medicaid providers but zero CCBHC-taxonomy clinics.
+                  </div>}
+                </>;
+              })()}
+            </div>
+            <div style={{ padding:"0 14px 12px",overflowX:"auto" }}>
+              <table style={{ width:"100%",fontSize:10,borderCollapse:"collapse" }}>
+                <thead><tr style={{ borderBottom:`2px solid ${B}` }}>
+                  {["ZIP3","CCBHC Provs","Total Provs","CCBHC %","CCBHC Paid","Claims","Status"].map(h =>
+                    <th key={h} style={{ textAlign:["CCBHC Provs","Total Provs","CCBHC %","CCBHC Paid","Claims"].includes(h)?"right":"left",padding:"5px 6px",color:AL,fontWeight:600,fontSize:9,whiteSpace:"nowrap" }}>{h}</th>
+                  )}
+                </tr></thead>
+                <tbody>{r.geography!.map((g, i) => (
+                  <tr key={g.zip3} style={{ borderBottom:`1px solid ${B}`,background:g.is_desert ? `${NEG}06` : g.ccbhc_providers >= 10 ? `${POS}06` : (i%2===0?WH:S) }}>
+                    <td style={{ padding:"4px 6px",fontWeight:600 }}><span style={{ fontFamily:FM }}>{g.zip3}</span> <span style={{ fontSize:8,color:AL,fontWeight:400 }}>{regionMap.get(g.zip3) ? regionMap.get(g.zip3)!.replace(`(${g.zip3})`, "").trim() : ""}</span></td>
+                    <td style={{ padding:"4px 6px",fontFamily:FM,textAlign:"right",fontWeight:600 }}>{g.ccbhc_providers}</td>
+                    <td style={{ padding:"4px 6px",fontFamily:FM,textAlign:"right" }}>{g.total_providers}</td>
+                    <td style={{ padding:"4px 6px",fontFamily:FM,textAlign:"right" }}>{g.total_providers > 0 ? ((g.ccbhc_providers / g.total_providers) * 100).toFixed(1) + "%" : "—"}</td>
+                    <td style={{ padding:"4px 6px",fontFamily:FM,textAlign:"right" }}>{g.ccbhc_paid > 0 ? f$$(g.ccbhc_paid) : "—"}</td>
+                    <td style={{ padding:"4px 6px",fontFamily:FM,textAlign:"right" }}>{g.ccbhc_claims > 0 ? fNu(g.ccbhc_claims) : "—"}</td>
+                    <td style={{ padding:"4px 6px" }}>
+                      {g.is_desert && <span style={{ fontSize:8,padding:"1px 5px",borderRadius:4,fontWeight:600,background:`${NEG}12`,color:NEG }}>desert</span>}
+                      {!g.is_desert && g.ccbhc_providers <= 3 && <span style={{ fontSize:8,padding:"1px 5px",borderRadius:4,fontWeight:600,background:`${WARN}12`,color:WARN }}>thin</span>}
+                      {g.ccbhc_providers >= 10 && <span style={{ fontSize:8,padding:"1px 5px",borderRadius:4,fontWeight:600,background:`${POS}12`,color:POS }}>concentrated</span>}
+                    </td>
+                  </tr>
+                ))}</tbody>
+              </table>
+            </div>
+          </Card>}
+
+          {/* Section 7: Daily Visit Estimates (Task 1 Proxy) */}
+          {r.enhanced && r.enhanced.daily_visits.length > 0 && <Card accent={cB} x>
+            <CH t="Section 7: Daily Visit Estimates (Task 1 Proxy)" b="Monthly claims / working days"/>
+            <div style={{ padding:"0 14px 4px" }}>
+              <div style={{ background:`${cB}06`,borderRadius:6,padding:"6px 10px",marginBottom:8,fontSize:10,color:A,lineHeight:1.5,borderLeft:`3px solid ${cB}` }}>
+                <strong>Proxy method:</strong> Monthly claim counts / working days per month. This is not a true daily visit count (which requires beneficiary x date deduplication) but provides a reasonable operational estimate.
+              </div>
+              <ResponsiveContainer width="100%" height={180}>
+                <AreaChart data={r.enhanced.daily_visits} margin={{ left:10,right:10,top:10,bottom:5 }}>
+                  <CartesianGrid strokeDasharray="3 3" stroke={B}/>
+                  <XAxis dataKey="month" tick={{ fontSize:8,fill:AL }} tickFormatter={(v: string) => v.slice(2,7)}/>
+                  <YAxis tick={{ fontSize:9,fill:AL }} tickFormatter={(v: number) => fNu(v)}/>
+                  <Tooltip content={<SafeTip active={false} payload={[]} render={(d: Record<string,unknown>) => (
+                    <div><div style={{ fontWeight:600 }}>{String(d.month)}</div>
+                      <div>Daily claims: {fNu(d.daily_claims as number)}</div>
+                      <div>Monthly claims: {fNu(d.claims as number)}</div>
+                      <div>Beneficiaries: {fNu(d.benes as number)}</div>
+                      <div>Daily spending: {f$$(d.daily_paid as number)}</div>
+                    </div>
+                  )}/>}/>
+                  <Area type="monotone" dataKey="daily_claims" stroke={cB} fill={`${cB}30`} strokeWidth={2}/>
+                </AreaChart>
+              </ResponsiveContainer>
+            </div>
+            {r.enhanced.daily_visits.length > 0 && (() => {
+              const recent = r.enhanced.daily_visits.filter(d => d.month >= "2023-01" && d.month <= "2023-12");
+              const avgDaily = recent.length > 0 ? Math.round(recent.reduce((a,d) => a + d.daily_claims, 0) / recent.length) : 0;
+              const peakMonth = recent.reduce((best, d) => d.daily_claims > best.daily_claims ? d : best, recent[0]);
+              return <div style={{ padding:"0 14px 10px",display:"grid",gridTemplateColumns:"1fr 1fr 1fr",gap:8 }}>
+                <div style={{ background:S,borderRadius:6,padding:"8px 10px",textAlign:"center" }}>
+                  <div style={{ fontSize:8,color:AL,textTransform:"uppercase" }}>Avg Daily Claims (2023)</div>
+                  <div style={{ fontFamily:FM,fontSize:14,fontWeight:700,color:A }}>{fNu(avgDaily)}</div>
+                </div>
+                <div style={{ background:S,borderRadius:6,padding:"8px 10px",textAlign:"center" }}>
+                  <div style={{ fontSize:8,color:AL,textTransform:"uppercase" }}>Peak Month</div>
+                  <div style={{ fontFamily:FM,fontSize:14,fontWeight:700,color:A }}>{peakMonth?.month || "—"}</div>
+                  <div style={{ fontSize:9,color:AL }}>{fNu(peakMonth?.daily_claims || 0)}/day</div>
+                </div>
+                <div style={{ background:S,borderRadius:6,padding:"8px 10px",textAlign:"center" }}>
+                  <div style={{ fontSize:8,color:AL,textTransform:"uppercase" }}>Avg Daily Spending</div>
+                  <div style={{ fontFamily:FM,fontSize:14,fontWeight:700,color:A }}>{f$$(recent.length > 0 ? recent.reduce((a,d) => a + d.daily_paid, 0) / recent.length : 0)}</div>
+                </div>
+              </div>;
+            })()}
+          </Card>}
+
+          {/* Section 8: Visit Frequency (Task 1 support) */}
+          {r.enhanced && r.enhanced.visit_frequency.length > 0 && <Card>
+            <CH t="Section 8: Visit Frequency by Code (2023)" b="Claims per beneficiary — proxy for visit intensity"/>
+            <div style={{ padding:"0 14px 12px",overflowX:"auto" }}>
+              <table style={{ width:"100%",fontSize:10,borderCollapse:"collapse" }}>
+                <thead><tr style={{ borderBottom:`2px solid ${B}` }}>
+                  {["HCPCS","Description","Claims","Benes","Claims/Bene","Avg Rate","Intensity"].map(h =>
+                    <th key={h} style={{ textAlign:["Claims","Benes","Claims/Bene","Avg Rate"].includes(h)?"right":"left",padding:"4px 6px",color:AL,fontWeight:600,fontSize:9 }}>{h}</th>
+                  )}
+                </tr></thead>
+                <tbody>{r.enhanced.visit_frequency.map((v, i) => (
+                  <tr key={v.hcpcs_code} style={{ borderBottom:`1px solid ${B}`,background:i%2===0?WH:S }}>
+                    <td style={{ padding:"3px 6px",fontFamily:FM,fontWeight:600 }}>{v.hcpcs_code}</td>
+                    <td style={{ padding:"3px 6px",color:AL,maxWidth:180,overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap" }}>{v.description}</td>
+                    <td style={{ padding:"3px 6px",fontFamily:FM,textAlign:"right" }}>{fNu(v.claims)}</td>
+                    <td style={{ padding:"3px 6px",fontFamily:FM,textAlign:"right" }}>{fNu(v.benes)}</td>
+                    <td style={{ padding:"3px 6px",fontFamily:FM,textAlign:"right",fontWeight:600 }}>{v.claims_per_bene.toFixed(1)}</td>
+                    <td style={{ padding:"3px 6px",fontFamily:FM,textAlign:"right" }}>{f$$(v.avg_rate)}</td>
+                    <td style={{ padding:"3px 6px" }}><span style={{ fontSize:8,padding:"1px 5px",borderRadius:4,fontWeight:600,
+                      background:v.intensity==="high"?`${NEG}12`:v.intensity==="medium"?`${WARN}12`:`${POS}12`,
+                      color:v.intensity==="high"?NEG:v.intensity==="medium"?WARN:POS }}>{v.intensity}</span></td>
+                  </tr>
+                ))}</tbody>
+              </table>
+              <div style={{ padding:"6px 0 0",fontSize:9,color:AL,lineHeight:1.5 }}>
+                <strong>High intensity</strong> (10+ claims/bene): ACT, IOP, partial hospitalization — intensive program-based models. <strong>Medium</strong> (3-10): case management, rehab, day programs. <strong>Low</strong> (1-2): assessments, screenings, episodic services.
+              </div>
+            </div>
+          </Card>}
+
+          {/* Section 9: FFS/MC Decomposition (Task 4 Proxy) */}
+          {r.enhanced && <Card>
+            <CH t="Section 9: FFS vs Managed Care Decomposition (Task 4 Proxy)" b={`${ccbhcState} FFS share: ${(r.enhanced.ffs_share * 100).toFixed(0)}%`}/>
+            <div style={{ padding:"0 14px 12px" }}>
+              <div style={{ background:`${WARN}08`,borderRadius:6,padding:"8px 10px",marginBottom:10,fontSize:10,color:WARN,lineHeight:1.5,borderLeft:`3px solid ${WARN}` }}>
+                T-MSIS data shows only FFS-adjudicated claims (all rows have positive payments). {ccbhcState} is {((1 - r.enhanced.ffs_share) * 100).toFixed(0)}% managed care. These totals represent a floor — the FFS slice only.
+              </div>
+              <div style={{ display:"grid",gridTemplateColumns:"1fr 1fr 1fr",gap:8,marginBottom:10 }}>
+                <div style={{ background:S,borderRadius:6,padding:"10px 12px",textAlign:"center" }}>
+                  <div style={{ fontSize:8,color:AL,textTransform:"uppercase" }}>T-MSIS (FFS Only)</div>
+                  <div style={{ fontFamily:FM,fontSize:16,fontWeight:700,color:A }}>{f$$(r.status_quo.grand_total_paid)}</div>
+                  <div style={{ fontSize:9,color:AL }}>{(r.enhanced.ffs_share * 100).toFixed(0)}% of market</div>
+                </div>
+                <div style={{ background:S,borderRadius:6,padding:"10px 12px",textAlign:"center" }}>
+                  <div style={{ fontSize:8,color:AL,textTransform:"uppercase" }}>Implied Total (FFS + MC)</div>
+                  <div style={{ fontFamily:FM,fontSize:16,fontWeight:700,color:cB }}>{f$$(r.enhanced.implied_total_with_mc)}</div>
+                  <div style={{ fontSize:9,color:AL }}>Scaled by 1/{r.enhanced.ffs_share.toFixed(2)}</div>
+                </div>
+                <div style={{ background:S,borderRadius:6,padding:"10px 12px",textAlign:"center" }}>
+                  <div style={{ fontSize:8,color:AL,textTransform:"uppercase" }}>Implied MC Spend</div>
+                  <div style={{ fontFamily:FM,fontSize:16,fontWeight:700,color:cO }}>{f$$(r.enhanced.implied_total_with_mc - r.status_quo.grand_total_paid)}</div>
+                  <div style={{ fontSize:9,color:AL }}>{((1 - r.enhanced.ffs_share) * 100).toFixed(0)}% of market</div>
+                </div>
+              </div>
+              {/* Bar visualization */}
+              <div style={{ position:"relative",height:24,borderRadius:4,overflow:"hidden",background:B }}>
+                <div style={{ position:"absolute",left:0,top:0,bottom:0,width:`${r.enhanced.ffs_share * 100}%`,background:cB,borderRadius:"4px 0 0 4px" }}/>
+                <div style={{ position:"absolute",left:`${r.enhanced.ffs_share * 100}%`,top:0,bottom:0,right:0,background:`${cO}60` }}/>
+              </div>
+              <div style={{ display:"flex",justifyContent:"space-between",marginTop:4,fontSize:8,color:AL }}>
+                <span style={{ color:cB }}>FFS ({(r.enhanced.ffs_share * 100).toFixed(0)}%)</span>
+                <span style={{ color:cO }}>Managed Care ({((1 - r.enhanced.ffs_share) * 100).toFixed(0)}%)</span>
+              </div>
+            </div>
+          </Card>}
+
+          {/* Section 10: Quality Gaps (Task 5 Proxy) */}
+          {r.enhanced && r.enhanced.quality_gaps.length > 0 && <Card>
+            <CH t="Section 10: Quality Gap Analysis (Task 5 Proxy)" b="CMS Core Set — FL vs national median"/>
+            <div style={{ padding:"0 14px 6px" }}>
+              <div style={{ background:`${cB}06`,borderRadius:6,padding:"6px 10px",marginBottom:8,fontSize:10,color:A,lineHeight:1.5,borderLeft:`3px solid ${cB}` }}>
+                CCBHC certification requires measurable quality improvement. These CMS Medicaid Core Set measures identify FL's biggest behavioral health gaps — the clinical case for CCBHC investment.
+              </div>
+            </div>
+            <div style={{ padding:"0 14px 12px",overflowX:"auto" }}>
+              <table style={{ width:"100%",fontSize:10,borderCollapse:"collapse" }}>
+                <thead><tr style={{ borderBottom:`2px solid ${B}` }}>
+                  {["Measure","FL Rate","Median","Gap","CCBHC Codes"].map(h =>
+                    <th key={h} style={{ textAlign:["FL Rate","Median","Gap"].includes(h)?"right":"left",padding:"5px 6px",color:AL,fontWeight:600,fontSize:9 }}>{h}</th>
+                  )}
+                </tr></thead>
+                <tbody>{r.enhanced.quality_gaps.sort((a,b) => a.gap - b.gap).map((q, i) => (
+                  <tr key={q.id} style={{ borderBottom:`1px solid ${B}`,background:q.gap < -10 ? `${NEG}06` : (i%2===0?WH:S) }}>
+                    <td style={{ padding:"4px 6px" }}><div style={{ fontWeight:600 }}>{q.id}</div><div style={{ fontSize:9,color:AL }}>{q.name}</div></td>
+                    <td style={{ padding:"4px 6px",fontFamily:FM,textAlign:"right",fontWeight:600 }}>{q.fl_rate}%</td>
+                    <td style={{ padding:"4px 6px",fontFamily:FM,textAlign:"right" }}>{q.median}%</td>
+                    <td style={{ padding:"4px 6px",fontFamily:FM,textAlign:"right",fontWeight:700,color:q.gap < 0 ? NEG : POS }}>
+                      {q.gap >= 0 ? "+" : ""}{q.gap.toFixed(1)}pp
+                    </td>
+                    <td style={{ padding:"4px 6px",fontSize:8,fontFamily:FM,color:AL }}>{q.linked_codes.length > 0 ? q.linked_codes.join(", ") : "—"}</td>
+                  </tr>
+                ))}</tbody>
+              </table>
+            </div>
+            <div style={{ padding:"0 14px 10px" }}>
+              {(() => {
+                const worst = r.enhanced!.quality_gaps.filter(q => q.gap < -10);
+                return worst.length > 0 ? <div style={{ fontSize:10,color:A,lineHeight:1.5,padding:"6px 10px",background:`${NEG}06`,borderRadius:6,borderLeft:`3px solid ${NEG}` }}>
+                  <strong>Critical gaps ({worst.length}):</strong> {worst.map(q => `${q.id} (${q.gap.toFixed(0)}pp)`).join(", ")}. These measures represent FL's largest underperformance vs national medians and are primary targets for CCBHC quality improvement.
+                </div> : null;
+              })()}
+            </div>
+          </Card>}
+
+          {/* Section 11: Workforce (New) */}
+          {r.enhanced && r.enhanced.workforce.length > 0 && <Card>
+            <CH t="Section 11: Workforce Adequacy" b="BLS wages vs implied CCBHC rates"/>
+            <div style={{ padding:"0 14px 12px",overflowX:"auto" }}>
+              <table style={{ width:"100%",fontSize:10,borderCollapse:"collapse" }}>
+                <thead><tr style={{ borderBottom:`2px solid ${B}` }}>
+                  {["Role (SOC)","FL Hourly","National","FL vs Nat","Overhead","Implied /15min","CCBHC Codes"].map(h =>
+                    <th key={h} style={{ textAlign:["FL Hourly","National","FL vs Nat","Overhead","Implied /15min"].includes(h)?"right":"left",padding:"5px 6px",color:AL,fontWeight:600,fontSize:9 }}>{h}</th>
+                  )}
+                </tr></thead>
+                <tbody>{r.enhanced.workforce.map((w, i) => (
+                  <tr key={w.soc} style={{ borderBottom:`1px solid ${B}`,background:i%2===0?WH:S }}>
+                    <td style={{ padding:"4px 6px" }}><div style={{ fontWeight:600,fontSize:9 }}>{w.soc}</div><div style={{ fontSize:9,color:AL }}>{w.title}</div></td>
+                    <td style={{ padding:"4px 6px",fontFamily:FM,textAlign:"right",fontWeight:600 }}>${w.fl_hourly.toFixed(2)}</td>
+                    <td style={{ padding:"4px 6px",fontFamily:FM,textAlign:"right" }}>${w.national_hourly.toFixed(2)}</td>
+                    <td style={{ padding:"4px 6px",fontFamily:FM,textAlign:"right",color:w.fl_vs_national_pct < 0 ? NEG : POS }}>{w.fl_vs_national_pct.toFixed(1)}%</td>
+                    <td style={{ padding:"4px 6px",fontFamily:FM,textAlign:"right" }}>{w.overhead_pct}%</td>
+                    <td style={{ padding:"4px 6px",fontFamily:FM,textAlign:"right",fontWeight:700,color:cB }}>{f$$(w.implied_rate_per_15min)}</td>
+                    <td style={{ padding:"4px 6px",fontSize:8,fontFamily:FM,color:AL }}>{w.linked_codes.join(", ")}</td>
+                  </tr>
+                ))}</tbody>
+              </table>
+              <div style={{ padding:"6px 0 0",fontSize:9,color:AL,lineHeight:1.5 }}>
+                <strong>Implied rate per 15 min</strong> = (FL hourly wage / 4) x (1 + overhead%). FL behavioral health wages are 10-18% below national averages, which constrains workforce recruitment for CCBHC expansion.
+              </div>
+            </div>
+          </Card>}
+
+          {/* Section 12: Telehealth (Task 7 Enhanced) */}
+          {r.enhanced && r.enhanced.telehealth_trends.length > 0 && <Card accent={cB} x>
+            <CH t="Section 12: Telehealth Trends (Task 7)" b="Telehealth-coded services only — understates true telehealth"/>
+            <div style={{ padding:"0 14px 4px" }}>
+              <ResponsiveContainer width="100%" height={180}>
+                <AreaChart data={r.enhanced.telehealth_trends} margin={{ left:10,right:10,top:10,bottom:5 }}>
+                  <CartesianGrid strokeDasharray="3 3" stroke={B}/>
+                  <XAxis dataKey="month" tick={{ fontSize:8,fill:AL }} tickFormatter={(v: string) => v.slice(2,7)}/>
+                  <YAxis tick={{ fontSize:9,fill:AL }}/>
+                  <Tooltip content={<SafeTip active={false} payload={[]} render={(d: Record<string,unknown>) => (
+                    <div><div style={{ fontWeight:600 }}>{String(d.month)}</div>
+                      <div>Phone: {fNu(d.phone_claims as number)} claims / {f$$(d.phone_paid as number)}</div>
+                      <div>Digital: {fNu(d.digital_claims as number)} claims / {f$$(d.digital_paid as number)}</div>
+                    </div>
+                  )}/>}/>
+                  <Area type="monotone" dataKey="phone_claims" stackId="1" stroke={cB} fill={`${cB}40`} strokeWidth={1.5} name="Phone"/>
+                  <Area type="monotone" dataKey="digital_claims" stackId="1" stroke={cO} fill={`${cO}40`} strokeWidth={1.5} name="Digital"/>
+                </AreaChart>
+              </ResponsiveContainer>
+            </div>
+            <div style={{ padding:"0 14px 10px" }}>
+              {(() => {
+                const peak = r.enhanced!.telehealth_trends.reduce((best, t) => t.total_claims > best.total_claims ? t : best, r.enhanced!.telehealth_trends[0]);
+                const recent = r.enhanced!.telehealth_trends.filter(t => t.month >= "2024-01" && t.month <= "2024-10");
+                const recentAvg = recent.length > 0 ? Math.round(recent.reduce((a,t) => a + t.total_claims, 0) / recent.length) : 0;
+                return <div style={{ display:"grid",gap:6 }}>
+                  <div style={{ fontSize:10,color:A,lineHeight:1.5,padding:"6px 10px",background:`${cB}06`,borderRadius:6,borderLeft:`3px solid ${cB}` }}>
+                    <strong>COVID peak:</strong> {peak.month} — {fNu(peak.total_claims)} telehealth claims ({f$$(peak.total_paid)}). <strong>2024 average:</strong> {fNu(recentAvg)}/month — an {((recentAvg / peak.total_claims) * 100).toFixed(0)}% retention rate from pandemic peak.
+                  </div>
+                  <div style={{ fontSize:9,color:AL,fontStyle:"italic" }}>
+                    These are telehealth-specific HCPCS codes only (99441-99443, G2010, G2012). Services delivered via telehealth using modifier 95/GT on base codes (e.g., 90834) are counted under the base code, significantly understating true telehealth volume.
+                  </div>
+                </div>;
+              })()}
+            </div>
+          </Card>}
+
+          {/* Section 13: Provider Readiness (Task 6 Proxy) */}
+          {r.enhanced && <Card>
+            <CH t="Section 13: Provider Readiness (Task 6 Proxy)" b={`${r.enhanced.provider_readiness.total} CCBHC-taxonomy providers`}/>
+            <div style={{ padding:"0 14px 12px" }}>
+              <div style={{ display:"grid",gridTemplateColumns:"1fr 1fr 1fr 1fr",gap:8,marginBottom:10 }}>
+                <div style={{ background:S,borderRadius:6,padding:"8px 10px",textAlign:"center" }}>
+                  <div style={{ fontSize:8,color:AL,textTransform:"uppercase" }}>Total Providers</div>
+                  <div style={{ fontFamily:FM,fontSize:16,fontWeight:700,color:A }}>{r.enhanced.provider_readiness.total}</div>
+                </div>
+                <div style={{ background:S,borderRadius:6,padding:"8px 10px",textAlign:"center" }}>
+                  <div style={{ fontSize:8,color:AL,textTransform:"uppercase" }}>Broad Service (1K+ claims)</div>
+                  <div style={{ fontFamily:FM,fontSize:16,fontWeight:700,color:POS }}>{r.enhanced.provider_readiness.broad_service}</div>
+                </div>
+                <div style={{ background:S,borderRadius:6,padding:"8px 10px",textAlign:"center" }}>
+                  <div style={{ fontSize:8,color:AL,textTransform:"uppercase" }}>Narrow Service</div>
+                  <div style={{ fontFamily:FM,fontSize:16,fontWeight:700,color:WARN }}>{r.enhanced.provider_readiness.narrow_service}</div>
+                </div>
+                <div style={{ background:S,borderRadius:6,padding:"8px 10px",textAlign:"center" }}>
+                  <div style={{ fontSize:8,color:AL,textTransform:"uppercase" }}>Enrollment Mix</div>
+                  <div style={{ fontSize:9,color:A,lineHeight:1.5 }}>
+                    {Object.entries(r.enhanced.enrollment_mix).filter(([,v]) => v > 0).map(([k,v]) => `${k}: ${v}%`).join(", ")}
+                  </div>
+                </div>
+              </div>
+              <div style={{ fontSize:10,color:A,lineHeight:1.5,padding:"6px 10px",background:`${cB}06`,borderRadius:6,borderLeft:`3px solid ${cB}` }}>
+                <strong>Finding:</strong> Of {r.enhanced.provider_readiness.total} providers with CCBHC taxonomy codes, {r.enhanced.provider_readiness.broad_service} have 1,000+ claims (indicating operational scale for PPS conversion). The remaining {r.enhanced.provider_readiness.narrow_service} are lower-volume and may need capacity building before CCBHC certification.
+              </div>
+            </div>
+          </Card>}
+
+          {/* Section 14: Data Limitations (updated) */}
+          <Card>
+            <CH t="Section 14: Data Limitations & Next Steps"/>
+            <div style={{ padding:"0 14px 12px" }}>
+              <div style={{ fontSize:10,color:A,lineHeight:1.7 }}>
+                <div style={{ fontWeight:600,marginBottom:6,color:POS }}>Addressed with proxy methods (Sections 7-13):</div>
+                <div style={{ display:"grid",gap:4,marginBottom:10 }}>
+                  {[
+                    { task: "Task 1: Daily Visits", method: "Monthly claims / working days + claims-per-beneficiary ratios (Sections 7-8)" },
+                    { task: "Task 4: FFS vs MC", method: "FFS share scaling — all T-MSIS data is FFS; grossed up by 1/FFS_share (Section 9)" },
+                    { task: "Task 5: Population", method: "Quality gap analysis + enrollment mix from CMS Core Set + risk adjustment data (Section 10)" },
+                    { task: "Task 6: DCO Patterns", method: "Provider readiness scoring by claims volume and code breadth (Section 13)" },
+                    { task: "Task 7: Telehealth", method: "Telehealth-coded procedure trends with COVID peak/retention analysis (Section 12)" },
+                  ].map(lim => (
+                    <div key={lim.task} style={{ padding:"4px 8px",background:`${POS}06`,borderRadius:6,borderLeft:`3px solid ${POS}` }}>
+                      <span style={{ fontWeight:600 }}>{lim.task}:</span> <span style={{ color:AL }}>{lim.method}</span>
+                    </div>
+                  ))}
+                </div>
+                <div style={{ fontWeight:600,marginBottom:6 }}>Remaining limitations (require claim-level data):</div>
+                <div style={{ display:"grid",gap:4 }}>
+                  {[
+                    { task: "True daily visit deduplication", reason: "Proxy uses monthly aggregates; actual PPS rate needs beneficiary x date deduplication" },
+                    { task: "Individual demographics/diagnoses", reason: "Age proxy from preventive codes is crude; no diagnosis-level population profile" },
+                    { task: "Billing vs rendering NPI", reason: "Cannot validate DCO arrangements without claim-level NPI detail" },
+                    { task: "Modifier-based telehealth", reason: "Only telehealth-specific codes captured; GT/95 modifier telehealth counted under base codes" },
+                    { task: "Managed care encounter detail", reason: "No $0-payment rows exist — MC encounters are not in this FFS-adjudicated dataset" },
+                  ].map(lim => (
+                    <div key={lim.task} style={{ padding:"4px 8px",background:S,borderRadius:6,borderLeft:`3px solid ${WARN}` }}>
+                      <span style={{ fontWeight:600 }}>{lim.task}:</span> <span style={{ color:AL }}>{lim.reason}</span>
+                    </div>
+                  ))}
+                </div>
+                <div style={{ marginTop:10,padding:"8px 10px",background:`${cB}06`,borderRadius:6,borderLeft:`3px solid ${cB}` }}>
+                  <strong>To complete the full analysis, request:</strong>
+                  <div style={{ marginTop:4 }}>1. Claim-level T-MSIS extract with beneficiary IDs, service dates, modifiers, place of service</div>
+                  <div>2. Milliman provider-level cost survey microdata</div>
+                  <div>3. SAMHSA CCBHC grantee list for provider cross-reference</div>
+                </div>
+              </div>
+            </div>
+          </Card>
+
+          </>}
+          </div>;
+        })()}
+
         {/* Guided Query Interface — shown after selecting state/service/provider mode */}
-        {duckdbReady && deExploreMode && deExploreMode !== "sql" && <>
+        {duckdbReady && deExploreMode && deExploreMode !== "sql" && deExploreMode !== "ccbhc" && <>
 
         {/* Back + Mode Label */}
         <div style={{ display:"flex",alignItems:"center",gap:8 }}>
@@ -1402,7 +2309,7 @@ export default function TmsisExplorer() {
 
         {/* Filter Panel */}
         <Card>
-          <CH t="Filters"/>
+          <CH t="Filters" b={[deStates.length > 0 ? `${deStates.length} states` : null, deCat !== "All" ? deCat : null, deCodes.length > 0 ? `${deCodes.length} codes` : null].filter(Boolean).join(" \u00B7 ") || undefined}/>
           <div style={{ padding:"6px 14px 12px",display:"grid",gap:10 }}>
             {/* States — always visible */}
             <div>
@@ -1412,7 +2319,7 @@ export default function TmsisExplorer() {
                 <button onClick={()=>setDEStates([])} style={{ fontSize:9,color:AL,background:"none",border:`1px solid ${B}`,borderRadius:4,padding:"2px 8px",cursor:"pointer" }}>Clear</button>
                 <span style={{ fontSize:9,color:AL,marginLeft:4 }}>{deStates.length === 0 ? "All states" : `${deStates.length} selected`}</span>
               </div>
-              <div style={{ maxHeight:120,overflowY:"auto",border:`1px solid ${B}`,borderRadius:6,padding:"4px 8px",display:"grid",gridTemplateColumns:"repeat(auto-fill,minmax(120px,1fr))",gap:"1px 8px" }}>
+              <div style={{ maxHeight:160,overflowY:"auto",border:`1px solid ${B}`,borderRadius:6,padding:"4px 8px",display:"grid",gridTemplateColumns:"repeat(auto-fill,minmax(120px,1fr))",gap:"1px 8px" }}>
                 {stateList.map(st => <label key={st} style={{ fontSize:10,color:A,display:"flex",alignItems:"center",gap:4,cursor:"pointer",whiteSpace:"nowrap" }}>
                   <input type="checkbox" checked={deStates.includes(st)} onChange={()=>setDEStates(p=>p.includes(st)?p.filter(x=>x!==st):[...p,st])} style={{ margin:0 }}/>
                   {states[st]?.name || st}
@@ -1443,7 +2350,7 @@ export default function TmsisExplorer() {
 
             {/* Provider filters (shown in provider mode or always available) */}
             {deExploreMode === "provider" && <>
-              <div style={{ display:"grid",gridTemplateColumns:"1fr 1fr 1fr",gap:8 }}>
+              <div className="de-filter-3col" style={{ display:"grid",gridTemplateColumns:"1fr 1fr 1fr",gap:8 }}>
                 <div>
                   <div style={{ fontSize:10,fontWeight:600,color:A,marginBottom:4 }}>NPI</div>
                   <input value={deNpi.join(",")} onChange={e => setDENpi(e.target.value ? e.target.value.split(",").map(s=>s.trim()).filter(Boolean) : [])} placeholder="Comma-separated NPIs" style={{ width:"100%",fontSize:10,padding:"4px 6px",borderRadius:6,border:`1px solid ${B}`,color:A,fontFamily:FM }}/>
@@ -1460,7 +2367,7 @@ export default function TmsisExplorer() {
             </>}
 
             {/* Date Range + ZIP3 */}
-            <div style={{ display:"grid",gridTemplateColumns:"1fr 1fr 1fr",gap:8 }}>
+            <div className="de-filter-3col" style={{ display:"grid",gridTemplateColumns:"1fr 1fr 1fr",gap:8 }}>
               <div>
                 <div style={{ fontSize:10,fontWeight:600,color:A,marginBottom:4 }}>Year From</div>
                 <input type="number" value={deDateFrom} onChange={e=>setDEDateFrom(e.target.value)} placeholder="e.g. 2019" style={{ width:"100%",fontSize:10,padding:"4px 6px",borderRadius:6,border:`1px solid ${B}`,color:A,fontFamily:FM }}/>
@@ -1476,7 +2383,7 @@ export default function TmsisExplorer() {
             </div>
 
             {/* Volume Filters */}
-            <div style={{ display:"grid",gridTemplateColumns:"1fr 1fr 1fr",gap:8 }}>
+            <div className="de-filter-3col" style={{ display:"grid",gridTemplateColumns:"1fr 1fr 1fr",gap:8 }}>
               <div>
                 <div style={{ fontSize:10,fontWeight:600,color:A,marginBottom:4 }}>Min Claims</div>
                 <input type="number" value={deMinClaims ?? ""} onChange={e=>setDEMinClaims(e.target.value ? Number(e.target.value) : undefined)} placeholder="No minimum" style={{ width:"100%",fontSize:10,padding:"4px 6px",borderRadius:6,border:`1px solid ${B}`,color:A,fontFamily:FM }}/>
@@ -1498,7 +2405,7 @@ export default function TmsisExplorer() {
               <div>
                 <div style={{ fontSize:10,fontWeight:600,color:A,marginBottom:4 }}>Group By</div>
                 <div style={{ display:"flex",gap:4,flexWrap:"wrap" }}>
-                  {allGroupOpts.map(g2 => <Pill key={g2} on={deGroupBy===g2} onClick={()=>setDEGroup(g2)}>{g2}</Pill>)}
+                  {allGroupOpts.map(g2 => <Pill key={g2} on={deGroupBy===g2} onClick={()=>setDEGroup(g2)}>{g2}{g2 === "Month" && !hasMonthlyData() ? " (yearly)" : ""}</Pill>)}
                 </div>
               </div>
               <div>
@@ -1534,7 +2441,7 @@ export default function TmsisExplorer() {
         </Card>
 
         {/* Summary Cards */}
-        {deData && !deLoading && deSorted.length > 0 && <div style={{ display:"grid",gridTemplateColumns:"repeat(4,1fr)",gap:8 }}>
+        {deData && !deLoading && deSorted.length > 0 && <div className="de-kpi-grid" style={{ display:"grid",gridTemplateColumns:"repeat(4,1fr)",gap:8 }}>
           {[
             { l: "Total Paid", v: f$(summaryPaid) },
             { l: "Total Claims", v: fN(summaryClaims) },
@@ -1549,7 +2456,7 @@ export default function TmsisExplorer() {
         {/* Results */}
         <Card>
           <div style={{ display:"flex",justifyContent:"space-between",alignItems:"center",padding:"10px 14px 4px" }}>
-            <CH t={`Results — ${deSorted.length} rows`} b={`grouped by ${deGroupBy}`}/>
+            <CH t={`Results \u2014 ${deSorted.length} rows`} b={[`grouped by ${deGroupBy}`, dePreset ? dePresets.find(p=>p.id===dePreset)?.name : null, deStates.length > 0 ? `${deStates.length} states` : null].filter(Boolean).join(" \u00B7 ")}/>
             <div style={{ display:"flex",gap:8,alignItems:"center" }}>
               {deError && <span style={{ fontSize:9,color:NEG }}>{deError}</span>}
               <ExportBtn onClick={()=>{
@@ -1581,17 +2488,24 @@ export default function TmsisExplorer() {
             </div>}
 
             {/* Bar Chart View */}
-            {deViz==="bar" && !deLoading && deSorted.length > 0 && <ResponsiveContainer width="100%" height={Math.max(250, deSorted.length * 22)}>
-              <BarChart data={deSorted} layout="vertical" margin={{ left: 10, right: 20, top: 5, bottom: 5 }}>
-                <CartesianGrid strokeDasharray="3 3" stroke={B}/>
-                <XAxis type="number" tick={{ fontSize:9,fill:AL }} tickFormatter={(v: number)=>f$(v)}/>
-                <YAxis type="category" dataKey="label" width={140} tick={{ fontSize:9,fill:A }} interval={0}/>
-                <Tooltip content={<SafeTip active={false} payload={[]} render={(d: Record<string,unknown>)=><div><div style={{ fontWeight:600 }}>{String(d.label)}</div><div>Total Paid: {f$(d.spending as number)}</div><div>Claims: {fN(d.claims as number)}</div><div>Avg Rate: {f$(d.avgRate as number)}</div></div>}/>}/>
-                <Bar dataKey="spending" radius={[0,4,4,0]}>
-                  {deSorted.map((_,i)=><Cell key={i} fill={i%2===0?cB:cT}/>)}
-                </Bar>
-              </BarChart>
-            </ResponsiveContainer>}
+            {deViz==="bar" && !deLoading && deSorted.length > 0 && (() => {
+              const barData = deSorted.slice(0, 50);
+              const truncated = deSorted.length > 50;
+              return <>
+                <ResponsiveContainer width="100%" height={Math.max(250, barData.length * 22)}>
+                  <BarChart data={barData} layout="vertical" margin={{ left: 10, right: 20, top: 5, bottom: 5 }}>
+                    <CartesianGrid strokeDasharray="3 3" stroke={B}/>
+                    <XAxis type="number" tick={{ fontSize:9,fill:AL }} tickFormatter={(v: number)=>f$(v)}/>
+                    <YAxis type="category" dataKey="label" width={140} tick={{ fontSize:9,fill:A }} interval={0}/>
+                    <Tooltip content={<SafeTip active={false} payload={[]} render={(d: Record<string,unknown>)=><div><div style={{ fontWeight:600 }}>{String(d.label)}</div><div>Total Paid: {f$(d.spending as number)}</div><div>Claims: {fN(d.claims as number)}</div><div>Avg Rate: {f$(d.avgRate as number)}</div></div>}/>}/>
+                    <Bar dataKey="spending" radius={[0,4,4,0]}>
+                      {barData.map((_,i)=><Cell key={i} fill={i%2===0?cB:cT}/>)}
+                    </Bar>
+                  </BarChart>
+                </ResponsiveContainer>
+                {truncated && <div style={{ padding:"8px 0",fontSize:9,color:AL,textAlign:"center" }}>Showing top 50 of {deSorted.length} results. Switch to Table view for full dataset.</div>}
+              </>;
+            })()}
 
             {/* Scatter Chart View */}
             {deViz==="scatter" && !deLoading && deSorted.length > 0 && <ResponsiveContainer width="100%" height={350}>

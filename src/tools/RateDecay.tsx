@@ -116,19 +116,22 @@ export default function RateDecay() {
   const [catFilter, setCat] = useState("All");
   const [hcpcsData, setHCPCS] = useState<DecayHcpcs[] | null>(null);
   const [medicareData, setMedicare] = useState<{ rates: Record<string, { r?: number; fr?: number; rvu?: number; w?: number; d?: string }> } | null>(null);
+  const [medicaidRates, setMedicaidRates] = useState<Record<string, Record<string, [number, string, string]>> | null>(null);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
     let cancelled = false;
     async function load() {
       try {
-        const [hcpcs, medicare] = await Promise.all([
+        const [hcpcs, medicare, mcdRates] = await Promise.all([
           fetch("/data/hcpcs.json").then(r=>r.ok?r.json():null).catch(()=>null),
           fetch("/data/medicare_rates.json").then(r=>r.ok?r.json():null).catch(()=>null),
+          fetch("/data/medicaid_rates.json").then(r=>r.ok?r.json():null).catch(()=>null),
         ]);
         if (cancelled) return;
         if (hcpcs) setHCPCS(hcpcs);
         if (medicare) setMedicare(medicare);
+        if (mcdRates) setMedicaidRates(mcdRates);
       } catch(e) { console.error(e); }
       if (!cancelled) setLoading(false);
     }
@@ -159,6 +162,13 @@ export default function RateDecay() {
     return null;
   }, [hcpcsData]);
 
+  // Get fee schedule rate for a code + state
+  const getFeeScheduleRate = useCallback((state: string, code: string): number | null => {
+    if (!medicaidRates) return null;
+    const entry = medicaidRates[state]?.[code];
+    return entry ? entry[0] : null;
+  }, [medicaidRates]);
+
   // Build analysis data
   const analysis = useMemo(() => {
     const codes = catFilter === "All" ? BENCHMARK_CODES : BENCHMARK_CODES.filter(c => c.category === catFilter);
@@ -169,24 +179,27 @@ export default function RateDecay() {
     return unique.map(bc => {
       const mcr = getMedicareRate(bc.code);
       const tmsis = getTmsisRate(s1, bc.code);
-      const effectiveRate = tmsis;
+      const fs = getFeeScheduleRate(s1, bc.code);
+      // Prefer fee schedule rate, fall back to T-MSIS
+      const effectiveRate = (fs && fs > 0) ? fs : tmsis;
 
       const pctMedicare = (effectiveRate && mcr && mcr > 0) ? (effectiveRate / mcr * 100) : null;
+      const tmsisPct = (tmsis && mcr && mcr > 0) ? (tmsis / mcr * 100) : null;
       const gap = (effectiveRate && mcr) ? effectiveRate - mcr : null;
 
       return {
         ...bc,
         medicare: mcr,
-        feeSchedule: null,
+        feeSchedule: fs,
         tmsis,
         effectiveRate,
         pctMedicare,
-        tmsisPctMedicare: pctMedicare,
+        tmsisPctMedicare: tmsisPct,
         gap,
-        rateSource: tmsis ? "T-MSIS Actual" : null,
+        rateSource: (fs && fs > 0) ? "Fee Schedule" : tmsis ? "T-MSIS Actual" : null,
       };
     }).filter(d => d.effectiveRate != null || d.medicare != null);
-  }, [catFilter, s1, getMedicareRate, getTmsisRate]);
+  }, [catFilter, s1, getMedicareRate, getTmsisRate, getFeeScheduleRate]);
 
   // Only rows with both rates
   const withBoth = useMemo(() => analysis.filter(d => d.pctMedicare != null), [analysis]);
@@ -311,6 +324,7 @@ export default function RateDecay() {
                   <div style={{ fontWeight:600 }}>{d.code} — {d.desc}</div>
                   <div>Medicare: <b>${d.medicare?.toFixed(2)}</b></div>
                   <div>{d.rateSource}: <b>${d.effectiveRate?.toFixed(2)}</b></div>
+                  {d.feeSchedule && d.tmsis && d.feeSchedule !== d.tmsis && <div style={{ fontSize:9,opacity:0.8 }}>T-MSIS avg: ${d.tmsis?.toFixed(2)}</div>}
                   <div style={{ color:(d.pctMedicare??0)<75?"#ff9999":(d.pctMedicare??0)<100?"#ffcc99":"#99ff99" }}>
                     <b>{d.pctMedicare?.toFixed(1)}%</b> of Medicare ({(d.gap??0)>=0?"+":""}${d.gap?.toFixed(2)})
                   </div>
@@ -351,7 +365,13 @@ export default function RateDecay() {
                   <td style={{ fontSize:9,color:AL }}>{d.category}</td>
                   <td style={{ fontFamily:FM }}>{d.medicare?`$${d.medicare.toFixed(2)}`:"—"}</td>
                   <td style={{ fontFamily:FM,fontWeight:600 }}>{d.effectiveRate?`$${d.effectiveRate.toFixed(2)}`:"—"}</td>
-                  <td style={{ fontSize:8,color:AL }}>{d.rateSource||"—"}</td>
+                  <td style={{ fontSize:8 }}>
+                    {d.rateSource === "Fee Schedule"
+                      ? <span style={{ padding:"1px 5px",borderRadius:8,background:"rgba(46,107,74,0.1)",color:POS,fontWeight:600 }}>FS</span>
+                      : d.rateSource
+                      ? <span style={{ padding:"1px 5px",borderRadius:8,background:SF,color:AL,fontWeight:600 }}>T-MSIS</span>
+                      : "—"}
+                  </td>
                   <td style={{ fontFamily:FM,fontWeight:700,color:d.pctMedicare==null?AL:d.pctMedicare<50?NEG:d.pctMedicare<75?WARN:d.pctMedicare<100?cO:POS }}>{d.pctMedicare!=null?`${d.pctMedicare.toFixed(1)}%`:"—"}</td>
                   <td style={{ fontFamily:FM,color:d.gap!=null?(d.gap<0?NEG:POS):AL }}>{d.gap!=null?`${d.gap>=0?"+":""}$${d.gap.toFixed(2)}`:"—"}</td>
                 </tr>

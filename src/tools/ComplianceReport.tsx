@@ -79,7 +79,12 @@ interface CodeAnalysis {
   medicaidRate: number; medicareRate: number; pctMedicare: number;
   totalPaid: number; totalClaims: number;
   flag: "ok" | "warning" | "critical";
+  feeScheduleRate: number | null;
+  rateSource: "fee_schedule" | "tmsis";
 }
+
+type MedicaidRatesData = Record<string, Record<string, [number, string, string]>>;
+interface GpciEntry { state: string; locality: string; locality_name: string; pw_gpci: number; pw_gpci_floor: number; pe_gpci: number; mp_gpci: number }
 
 type CheckStatus = "pass" | "warn" | "fail" | "na";
 
@@ -99,6 +104,8 @@ export default function ComplianceReport() {
   const [duckLoading, setDuckLoading] = useState(false);
   const [reductionPct, setReductionPct] = useState(0);
   const [catFilter, setCatFilter] = useState("all");
+  const [medicaidRates, setMedicaidRates] = useState<MedicaidRatesData | null>(null);
+  const [gpciData, setGpciData] = useState<GpciEntry[]>([]);
 
   // Load static data
   useEffect(() => {
@@ -106,10 +113,14 @@ export default function ComplianceReport() {
       fetch("/data/medicare_rates.json").then(r => r.json()),
       fetch("/data/fee_schedule_directory.json").then(r => r.json()),
       fetch("/data/states.json").then(r => r.json()),
-    ]).then(([med, dir, states]) => {
+      fetch("/data/medicaid_rates.json").then(r => r.ok ? r.json() : null).catch(() => null),
+      fetch("/data/gpci.json").then(r => r.ok ? r.json() : []).catch(() => []),
+    ]).then(([med, dir, states, mcdRates, gpci]) => {
       setMedicare(med as MedicareData);
       setDirectory((dir as { directory: DirEntry[] }).directory.filter((d: DirEntry) => d.agency));
       setStatesData(states as StateSpending[]);
+      if (mcdRates) setMedicaidRates(mcdRates as MedicaidRatesData);
+      if (gpci) setGpciData(gpci as GpciEntry[]);
       setLoading(false);
     });
   }, []);
@@ -160,6 +171,20 @@ export default function ComplianceReport() {
     return fmt.includes("excel") || fmt.includes("csv") || fmt.includes("xls");
   }, [stateDir]);
 
+  // State-level GPCI averages
+  const stateGpci = useMemo(() => {
+    if (!gpciData.length) return null;
+    const byState = gpciData.filter(g => g.state === st);
+    if (!byState.length) return null;
+    const avg = (arr: number[]) => arr.reduce((a, b) => a + b, 0) / arr.length;
+    return {
+      pe: avg(byState.map(g => g.pe_gpci)),
+      pw: avg(byState.map(g => g.pw_gpci)),
+      mp: avg(byState.map(g => g.mp_gpci)),
+      localities: byState.length,
+    };
+  }, [gpciData, st]);
+
   // Code-level Medicare parity analysis
   const codeAnalysis = useMemo((): CodeAnalysis[] => {
     if (!medicare || !spendData.length) return [];
@@ -173,10 +198,17 @@ export default function ComplianceReport() {
       }
     }
 
+    const stateFs = medicaidRates?.[st];
+
     return codes.map(row => {
       const med = medicare.rates[row.hcpcs_code];
       const medicareRate = med?.r || 0;
-      const medicaidRate = row.total_claims > 0 ? row.total_paid / row.total_claims : 0;
+      const tmsisRate = row.total_claims > 0 ? row.total_paid / row.total_claims : 0;
+      const fsEntry = stateFs?.[row.hcpcs_code];
+      const feeScheduleRate = fsEntry ? fsEntry[0] : null;
+      // Prefer fee schedule rate when available and > 0
+      const medicaidRate = (feeScheduleRate && feeScheduleRate > 0) ? feeScheduleRate : tmsisRate;
+      const rateSource: "fee_schedule" | "tmsis" = (feeScheduleRate && feeScheduleRate > 0) ? "fee_schedule" : "tmsis";
       const pctMedicare = medicareRate > 0 ? (medicaidRate / medicareRate) * 100 : 0;
       return {
         hcpcs: row.hcpcs_code,
@@ -189,9 +221,11 @@ export default function ComplianceReport() {
         flag: pctMedicare > 0 && pctMedicare < PARITY_CRITICAL ? "critical" as const
           : pctMedicare > 0 && pctMedicare < PARITY_WARN ? "warning" as const
           : "ok" as const,
+        feeScheduleRate,
+        rateSource,
       };
     }).filter(c => c.medicareRate > 0);
-  }, [medicare, spendData, catFilter]);
+  }, [medicare, spendData, catFilter, medicaidRates, st]);
 
   // Reduction impact analysis
   const reductionAnalysis = useMemo(() => {
@@ -235,7 +269,7 @@ export default function ComplianceReport() {
         label: "FFS rates published in machine-readable format",
         status: isMachineReadable ? "pass" : "fail",
         detail: isMachineReadable
-          ? `Published in ${stateDir?.format || "machine-readable format"}`
+          ? `Published in ${stateDir?.format || "machine-readable format"}${medicaidRates?.[st] ? ` — ${Object.keys(medicaidRates[st]).length.toLocaleString()} codes loaded` : ""}`
           : `Currently published as ${stateDir?.format || "unknown format"} — must convert to Excel or CSV`,
         regulation: "42 CFR §447.203(b)(1)",
       },
@@ -453,6 +487,7 @@ export default function ComplianceReport() {
                   <Met label="Total Claims" value={stateSummary ? f$(stateSummary.total_claims).replace("$", "") : "—"} />
                   <Met label="Providers" value={stateSummary?.n_providers?.toLocaleString() || "—"} />
                   <Met label="FMAP" value={stateSummary ? `${stateSummary.fmap}%` : "—"} color={cB} />
+                  {stateGpci && <Met label="GPCI (PE)" value={stateGpci.pe.toFixed(3)} sub={`${stateGpci.localities} locality${stateGpci.localities > 1 ? "ies" : ""}`} />}
                 </div>
                 {stateDir?.url && (
                   <div style={{ textAlign: "center", marginTop: 12 }}>
@@ -496,6 +531,16 @@ export default function ComplianceReport() {
                 <Met label="Total Spend" value={f$(summary.totalSpend)} />
               </div>
             )}
+            {(() => {
+              const fsCount = codeAnalysis.filter(c => c.rateSource === "fee_schedule").length;
+              if (fsCount === 0) return null;
+              return (
+                <div style={{ fontSize: 10, color: AL, padding: "0 0 8px", display: "flex", gap: 12, alignItems: "center" }}>
+                  <span><span style={{ fontSize: 8, padding: "1px 5px", borderRadius: 8, background: "rgba(46,107,74,0.1)", color: POS, fontWeight: 600, marginRight: 3 }}>FS</span> = Fee Schedule rate ({fsCount} codes)</span>
+                  <span><span style={{ fontSize: 8, padding: "1px 5px", borderRadius: 8, background: SF, color: AL, fontWeight: 600, marginRight: 3 }}>T-MSIS</span> = Actual-paid average ({codeAnalysis.length - fsCount} codes)</span>
+                </div>
+              );
+            })()}
 
             {/* Parity bar chart — top 20 codes by spend, sorted by % Medicare */}
             {codeAnalysis.length > 0 && (
@@ -538,8 +583,8 @@ export default function ComplianceReport() {
                 <table style={{ width: "100%", borderCollapse: "collapse", fontSize: 11, fontFamily: FM }}>
                   <thead>
                     <tr style={{ borderBottom: `2px solid ${BD}` }}>
-                      {["HCPCS", "Description", "Medicaid", "Medicare", "% MCR", "Annual $", "Flag"].map(h => (
-                        <th key={h} style={{ padding: "6px 5px", textAlign: h === "Description" ? "left" : "right",
+                      {["HCPCS", "Description", "Medicaid", "Src", "Medicare", "% MCR", "Annual $", "Flag"].map(h => (
+                        <th key={h} style={{ padding: "6px 5px", textAlign: h === "Description" ? "left" : "center",
                           color: AL, fontWeight: 600, fontSize: 10, whiteSpace: "nowrap" }}>{h}</th>
                       ))}
                     </tr>
@@ -553,6 +598,13 @@ export default function ComplianceReport() {
                         <td style={{ padding: "5px", fontWeight: 600, color: A }}>{c.hcpcs}</td>
                         <td style={{ padding: "5px", color: AL, maxWidth: 200, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap", textAlign: "left" }}>{c.desc}</td>
                         <td style={{ padding: "5px", textAlign: "right" }}>${c.medicaidRate.toFixed(2)}</td>
+                        <td style={{ padding: "5px", textAlign: "center" }}>
+                          <span style={{ fontSize: 8, padding: "1px 5px", borderRadius: 8,
+                            background: c.rateSource === "fee_schedule" ? "rgba(46,107,74,0.1)" : SF,
+                            color: c.rateSource === "fee_schedule" ? POS : AL, fontWeight: 600 }}>
+                            {c.rateSource === "fee_schedule" ? "FS" : "T-MSIS"}
+                          </span>
+                        </td>
                         <td style={{ padding: "5px", textAlign: "right" }}>${c.medicareRate.toFixed(2)}</td>
                         <td style={{ padding: "5px", textAlign: "right", fontWeight: 600,
                           color: c.flag === "critical" ? NEG : c.flag === "warning" ? WARN : POS }}>

@@ -143,6 +143,8 @@ interface StateRate {
   st: string;
   rate: number;
   name: string;
+  feeScheduleRate: number | null;
+  rateSource: "fee_schedule" | "tmsis";
 }
 
 interface SelectedCodeData {
@@ -167,6 +169,9 @@ export default function RateBuilder() {
   const [hcpcsData, setHCPCS] = useState<RateBuilderHcpcs[] | null>(null);
   const [medicareData, setMedicare] = useState<RateBuilderMedicare | null>(null);
   const [loading, setLoading] = useState(true);
+  const [medicaidRates, setMedicaidRates] = useState<Record<string, Record<string, [number, string, string]>> | null>(null);
+  const [gpciData, setGpciData] = useState<{ state: string; pe_gpci: number; pw_gpci: number; mp_gpci: number }[]>([]);
+  const [gpciAdjust, setGpciAdjust] = useState(false);
   const { isPro } = useProAccess();
   const [showGate, setShowGate] = useState(false);
   const [gateFeature, setGateFeature] = useState("");
@@ -177,13 +182,17 @@ export default function RateBuilder() {
     let cancelled = false;
     async function load() {
       try {
-        const [hcpcs, medicare] = await Promise.all([
+        const [hcpcs, medicare, mcdRates, gpci] = await Promise.all([
           fetch("/data/hcpcs.json").then(r=>r.ok?r.json():null).catch(()=>null),
           fetch("/data/medicare_rates.json").then(r=>r.ok?r.json():null).catch(()=>null),
+          fetch("/data/medicaid_rates.json").then(r=>r.ok?r.json():null).catch(()=>null),
+          fetch("/data/gpci.json").then(r=>r.ok?r.json():[]).catch(()=>[]),
         ]);
         if (cancelled) return;
         if (hcpcs) setHCPCS(hcpcs as RateBuilderHcpcs[]);
         if (medicare) setMedicare(medicare as RateBuilderMedicare);
+        if (mcdRates) setMedicaidRates(mcdRates);
+        if (gpci) setGpciData(gpci);
       } catch(e) { console.error(e); }
       if (!cancelled) setLoading(false);
     }
@@ -209,17 +218,44 @@ export default function RateBuilder() {
     return null;
   }, [medicareData]);
 
-  // Get T-MSIS rates across states for a code
+  // Get rates across states for a code (fee schedule preferred, T-MSIS fallback)
   const getStateRates = useCallback((code: string): StateRate[] => {
-    if (!hcpcsData || !Array.isArray(hcpcsData)) return [];
-    const h = hcpcsData.find((r: RateBuilderHcpcs) => (r.code||r.c) === code);
-    if (!h) return [];
-    const ratesObj = h.rates || h.r;
-    if (ratesObj && typeof ratesObj === 'object') {
-      return Object.entries(ratesObj).map(([st, rate]: [string, unknown]) => ({ st, rate: rate as number, name: STATE_NAMES[st]||st })).filter((d: StateRate) => d.rate > 0);
+    const result: Record<string, StateRate> = {};
+
+    // First, populate from T-MSIS
+    if (hcpcsData && Array.isArray(hcpcsData)) {
+      const h = hcpcsData.find((r: RateBuilderHcpcs) => (r.code||r.c) === code);
+      if (h) {
+        const ratesObj = h.rates || h.r;
+        if (ratesObj && typeof ratesObj === 'object') {
+          for (const [st, rate] of Object.entries(ratesObj)) {
+            if ((rate as number) > 0) {
+              result[st] = { st, rate: rate as number, name: STATE_NAMES[st]||st, feeScheduleRate: null, rateSource: "tmsis" };
+            }
+          }
+        }
+      }
     }
-    return [];
-  }, [hcpcsData]);
+
+    // Override with fee schedule rates where available
+    if (medicaidRates) {
+      for (const st of Object.keys(medicaidRates)) {
+        const entry = medicaidRates[st][code];
+        if (entry && entry[0] > 0) {
+          const fsRate = entry[0];
+          if (result[st]) {
+            result[st].feeScheduleRate = fsRate;
+            result[st].rate = fsRate;
+            result[st].rateSource = "fee_schedule";
+          } else {
+            result[st] = { st, rate: fsRate, name: STATE_NAMES[st]||st, feeScheduleRate: fsRate, rateSource: "fee_schedule" };
+          }
+        }
+      }
+    }
+
+    return Object.values(result).filter(d => d.rate > 0);
+  }, [hcpcsData, medicaidRates]);
 
   // Look up code
   const lookupCode = useCallback(() => {
@@ -246,11 +282,30 @@ export default function RateBuilder() {
 
   const curMethod = METHODOLOGIES.find(m => m.id === methodology);
 
+  // GPCI factor for fiscal state
+  const stateGpciFactor = useMemo(() => {
+    if (!gpciData.length) return null;
+    const entries = gpciData.filter(g => g.state === fiscalState);
+    if (!entries.length) return null;
+    // Approximate blended GPCI: 50.9% work, 44.8% PE, 4.3% MP (CMS standard)
+    const avg = (arr: number[]) => arr.reduce((a, b) => a + b, 0) / arr.length;
+    const pw = avg(entries.map(g => g.pw_gpci));
+    const pe = avg(entries.map(g => g.pe_gpci));
+    const mp = avg(entries.map(g => g.mp_gpci));
+    const blended = pw * 0.509 + pe * 0.448 + mp * 0.043;
+    return { pw, pe, mp, blended, localities: entries.length };
+  }, [gpciData, fiscalState]);
+
   // Compute rate
   const result = useMemo((): RateResult | null => {
     if (!selectedCode || !curMethod) return null;
+    let mcrRate = selectedCode.medicareRate ?? undefined;
+    // Apply GPCI adjustment if toggled on
+    if (gpciAdjust && stateGpciFactor && mcrRate) {
+      mcrRate = mcrRate * stateGpciFactor.blended;
+    }
     const ctx: ComputeContext = {
-      medicareRate: selectedCode.medicareRate ?? undefined,
+      medicareRate: mcrRate,
       rvu: selectedCode.rvu ?? undefined,
       peerRates: selectedCode.stateRates,
     };
@@ -259,7 +314,7 @@ export default function RateBuilder() {
     } catch(e) {
       return null;
     }
-  }, [selectedCode, curMethod, methodInputs]);
+  }, [selectedCode, curMethod, methodInputs, gpciAdjust, stateGpciFactor]);
 
   // Fiscal impact estimate
   const fiscalImpact = useMemo(() => {
@@ -403,6 +458,21 @@ export default function RateBuilder() {
               <span style={{ fontFamily:FM,fontSize:13,fontWeight:700,color:cB,whiteSpace:"nowrap" }}>{f.unit==="$"?"$":""}{(methodInputs[f.id]??f.default)}{f.unit==="%"?"%":""}</span>
             </div>
           ))}
+          {/* GPCI Adjustment Toggle */}
+          {stateGpciFactor && (methodology === "rbrvs" || methodology === "flat") && (
+            <div style={{ display:"flex",alignItems:"center",gap:8,padding:"6px 14px",background:gpciAdjust?"rgba(46,107,74,0.06)":SF,borderRadius:8,marginBottom:6,cursor:"pointer",border:`1px solid ${gpciAdjust?cB:BD}` }}
+              onClick={() => setGpciAdjust(v => !v)}>
+              <div style={{ width:14,height:14,borderRadius:3,border:`2px solid ${gpciAdjust?cB:BD}`,display:"flex",alignItems:"center",justifyContent:"center",flexShrink:0 }}>
+                {gpciAdjust && <span style={{ fontSize:10,color:cB,fontWeight:700 }}>{"\u2713"}</span>}
+              </div>
+              <div>
+                <span style={{ fontSize:10,fontWeight:600,color:A }}>GPCI-Adjust Medicare Rate</span>
+                <span style={{ fontSize:9,color:AL,marginLeft:6 }}>
+                  {STATE_NAMES[fiscalState]} factor: {stateGpciFactor.blended.toFixed(3)} ({stateGpciFactor.localities} localit{stateGpciFactor.localities > 1 ? "ies" : "y"})
+                </span>
+              </div>
+            </div>
+          )}
         </div>
       )}
 
@@ -480,8 +550,8 @@ export default function RateBuilder() {
           </button>
           {selectedCode.stateRates.length > 0 && <button onClick={() => {
             downloadCSV(`state_rates_${selectedCode.code}.csv`,
-              ["State","T-MSIS Rate","Calculated Rate","Change","Change %"],
-              selectedCode.stateRates.map((s: StateRate)=>[s.name,s.rate.toFixed(2),result.rate.toFixed(2),(result.rate-s.rate).toFixed(2),((result.rate/s.rate-1)*100).toFixed(1)])
+              ["State","Medicaid Rate","Source","Calculated Rate","Change","Change %"],
+              selectedCode.stateRates.map((s: StateRate)=>[s.name,s.rate.toFixed(2),s.rateSource==="fee_schedule"?"Fee Schedule":"T-MSIS",result.rate.toFixed(2),(result.rate-s.rate).toFixed(2),((result.rate/s.rate-1)*100).toFixed(1)])
             );
           }} style={{ padding:"6px 16px",background:SF,color:A,border:`1px solid ${BD}`,borderRadius:6,fontSize:11,cursor:"pointer" }}>
             Export State Comparison
@@ -515,7 +585,7 @@ export default function RateBuilder() {
         <div style={{ padding:"6px 14px 10px",maxHeight:400,overflowY:"auto" }}>
           <table style={{ width:"100%",borderCollapse:"collapse",fontSize:10 }}>
             <thead><tr style={{ borderBottom:`2px solid ${BD}`,position:"sticky",top:0,background:WH }}>
-              {["State","T-MSIS Rate","Your Rate","Difference","% Change"].map(h=>(
+              {["State","Medicaid Rate","Src","Your Rate","Difference","% Change"].map(h=>(
                 <th key={h} style={{ textAlign:"left",padding:"6px 4px",color:AL,fontWeight:600,fontSize:8,textTransform:"uppercase",fontFamily:FM }}>{h}</th>
               ))}
             </tr></thead>
@@ -527,6 +597,7 @@ export default function RateBuilder() {
                   <tr key={s.st} style={{ borderBottom:`1px solid ${SF}` }}>
                     <td style={{ padding:"4px",fontWeight:500 }}>{s.name}</td>
                     <td style={{ fontFamily:FM }}>${s.rate.toFixed(2)}</td>
+                    <td><span style={{ fontSize:7,padding:"1px 4px",borderRadius:6,background:s.rateSource==="fee_schedule"?"rgba(46,107,74,0.1)":SF,color:s.rateSource==="fee_schedule"?POS:AL,fontWeight:600 }}>{s.rateSource==="fee_schedule"?"FS":"T-MSIS"}</span></td>
                     <td style={{ fontFamily:FM,fontWeight:600,color:cB }}>${result.rate.toFixed(2)}</td>
                     <td style={{ fontFamily:FM,color:diff>=0?POS:NEG }}>{diff>=0?"+":""}${diff.toFixed(2)}</td>
                     <td style={{ fontFamily:FM,color:pct>=0?POS:NEG }}>{pct>=0?"+":""}{pct.toFixed(1)}%</td>

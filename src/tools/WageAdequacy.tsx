@@ -82,6 +82,12 @@ interface QualDataShape {
   measures?: Record<string, QualMeasureMeta>;
 }
 
+interface OesEntry {
+  state: string; soc: string; title: string;
+  employment: number; h_mean: number; a_mean: number;
+  h_median: number; a_median: number; h_10: number; h_90: number;
+}
+
 interface CodeAnalysisEntry {
   hcpcs: string;
   desc?: string;
@@ -183,6 +189,7 @@ export default function WageAdequacy() {
   const [hcpcsData, setHCPCS] = useState<HcpcsEntry[] | null>(null);
   const [statesData, setStates] = useState<Record<string, unknown> | null>(null);
   const [qualData, setQual] = useState<QualDataShape | null>(null);
+  const [oesIndex, setOesIndex] = useState<Record<string, OesEntry>>({});
   const [loading, setLoading] = useState(true);
 
   // Load data
@@ -190,12 +197,13 @@ export default function WageAdequacy() {
     let cancelled = false;
     async function load() {
       try {
-        const [bls, cw, hcpcs, states, qual] = await Promise.all([
+        const [bls, cw, hcpcs, states, qual, oes] = await Promise.all([
           fetch("/data/bls_wages.json").then(r=>r.ok?r.json():null).catch(()=>null),
           fetch("/data/soc_hcpcs_crosswalk.json").then(r=>r.ok?r.json():null).catch(()=>null),
           fetch("/data/hcpcs.json").then(r=>r.ok?r.json():null).catch(()=>null),
           fetch("/data/states.json").then(r=>r.ok?r.json():null).catch(()=>null),
           fetch("/data/quality_measures.json").then(r=>r.ok?r.json():null).catch(()=>null),
+          fetch("/data/oes_wages.json").then(r=>r.ok?r.json():null).catch(()=>null),
         ]);
         if (cancelled) return;
         if (bls) setBLS(bls as BlsData);
@@ -203,6 +211,11 @@ export default function WageAdequacy() {
         if (hcpcs) setHCPCS(hcpcs as HcpcsEntry[]);
         if (states) setStates(states as Record<string, unknown>);
         if (qual) setQual(qual as QualDataShape);
+        if (oes && Array.isArray(oes)) {
+          const idx: Record<string, OesEntry> = {};
+          for (const e of oes as OesEntry[]) { idx[`${e.state}|${e.soc}`] = e; }
+          setOesIndex(idx);
+        }
       } catch(e) { console.error(e); }
       if (!cancelled) setLoading(false);
     }
@@ -232,6 +245,12 @@ export default function WageAdequacy() {
 
   // Get T-MSIS rate (alias for getTmsisRate)
   const getTmsisRateAlt = getTmsisRate;
+
+  // OES data for current state + SOC
+  const oesEntry = useMemo(() => {
+    if (!curCat) return null;
+    return oesIndex[`${s1}|${curCat.soc}`] || null;
+  }, [oesIndex, s1, curCat]);
 
   // Compute analysis for current category + state
   const analysis = useMemo(() => {
@@ -286,14 +305,24 @@ export default function WageAdequacy() {
     const socCode = curCat.soc;
     const primaryCode = curCat.codes.find((c: CrosswalkCode) => c.units_per_hour) || curCat.codes[0];
 
-    return SL.map((st: string) => {
+    // Collect all states with either BLS or OES data
+    const allStateKeys = new Set(SL);
+    // Also add states from OES index
+    for (const key of Object.keys(oesIndex)) {
+      const [st, soc] = key.split("|");
+      if (soc === socCode && STATE_NAMES[st]) allStateKeys.add(st);
+    }
+
+    return Array.from(allStateKeys).map((st: string) => {
       const wage = blsData.states[st]?.[socCode];
+      const oes = oesIndex[`${st}|${socCode}`];
       const tmsisRate = getTmsisRateAlt(st, primaryCode.hcpcs);
       let impliedHourly: number | null = null;
       if (tmsisRate && primaryCode.units_per_hour) {
         impliedHourly = tmsisRate * primaryCode.units_per_hour * (1 - overhead / 100);
       }
-      const blsMedian = wage?.h_median || null;
+      // Prefer OES median when available, fall back to BLS
+      const blsMedian = oes?.h_median || wage?.h_median || null;
       const minW = MIN_WAGE[st] || FED_MIN;
       return {
         st,
@@ -305,11 +334,11 @@ export default function WageAdequacy() {
         gapPct: (impliedHourly && blsMedian) ? ((impliedHourly / blsMedian - 1) * 100) : null,
         minWage: minW,
         belowMin: impliedHourly != null && impliedHourly < minW,
-        emp: wage?.emp || 0,
+        emp: oes?.employment || wage?.emp || 0,
       };
     }).filter((s: AllStateEntry) => s.impliedHourly != null && s.blsMedian != null)
       .sort((a: AllStateEntry, b: AllStateEntry) => safe(a.gap) - safe(b.gap));
-  }, [blsData, curCat, SL, overhead, getTmsisRateAlt]);
+  }, [blsData, curCat, SL, overhead, getTmsisRateAlt, oesIndex]);
 
   // Quality measure linkage
   const qualityLink = useMemo((): QualityLinkEntry[] | null => {
@@ -423,7 +452,7 @@ export default function WageAdequacy() {
             <div style={{ fontSize:10,color:AL }}>{curCat?.name} · {analysis.wage.title}</div>
           </div>
           <div style={{ display:"grid",gridTemplateColumns:"repeat(auto-fit,minmax(130px,1fr))",padding:"0 6px 12px" }}>
-            <Met l="BLS Median Wage" v={`$${safe(analysis.wage.h_median).toFixed(2)}/hr`} sub={`${fN(analysis.wage.emp ?? 0)} employed`}/>
+            <Met l="BLS Median Wage" v={`$${safe(analysis.wage.h_median).toFixed(2)}/hr`} sub={oesEntry ? `${fN(oesEntry.employment)} employed · $${oesEntry.h_10.toFixed(2)}-$${oesEntry.h_90.toFixed(2)} range` : `${fN(analysis.wage.emp ?? 0)} employed`}/>
             <Met l="Medicaid Implied Wage" v={analysis.primary.impliedHourly!=null?`$${analysis.primary.impliedHourly.toFixed(2)}/hr`:"—"} sub={`${analysis.primary.hcpcs} @ $${safe(analysis.primary.tmsisRate).toFixed(2)}/${analysis.primary.unit}`} cl={analysis.primary.gapVsBls!=null&&analysis.primary.gapVsBls<0?NEG:POS}/>
             <Met l="Wage Gap" v={analysis.primary.gapVsBls!=null?`${analysis.primary.gapVsBls>=0?"+":""}$${analysis.primary.gapVsBls.toFixed(2)}/hr`:"—"} sub={analysis.primary.gapVsBls!=null&&analysis.primary.impliedHourly!=null&&analysis.wage.h_median?`${((analysis.primary.impliedHourly/analysis.wage.h_median-1)*100).toFixed(0)}% vs market`:"No rate data"} cl={analysis.primary.gapVsBls!=null&&analysis.primary.gapVsBls<0?NEG:POS}/>
           </div>
@@ -581,7 +610,7 @@ export default function WageAdequacy() {
 
       {/* About */}
       <Card><CH t="Data Sources & Methodology"/><div style={{ padding:"4px 16px 12px",fontSize:11,color:A,lineHeight:1.8 }}>
-        <b>Wages:</b> Bureau of Labor Statistics, Occupational Employment and Wage Statistics (OEWS), May 2024. State-level employment and wage estimates for Standard Occupational Classification (SOC) codes mapped to Medicaid service categories.<br/>
+        <b>Wages:</b> Bureau of Labor Statistics, Occupational Employment and Wage Statistics (OES), May 2024. State-level employment, median wages, and 10th-90th percentile wage distributions for SOC codes mapped to Medicaid service categories. OES data covers 145 healthcare occupations across 52 states.<br/>
         <b>Medicaid rates:</b> T-MSIS actual-paid rates from HHS Medicaid Provider Spending data. These are blended rates across all modifiers, places of service, and managed care encounters — not fee schedule rates.<br/>
         <b>Implied wage calculation:</b> (Medicaid rate × units per hour) × (1 − overhead %). For 15-minute codes, units per hour = 4. Overhead covers employer payroll taxes, workers' comp, admin, benefits, and agency margin.<br/>
         <b>Minimum wages:</b> State minimum wages as of 2024. Federal minimum ($7.25) used where state has no higher minimum.<br/>

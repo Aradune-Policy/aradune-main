@@ -70,15 +70,32 @@ type MethodType = "RBRVS" | "% Medicare" | "Custom CF" | "Cost-Based" | "Negotia
 
 function classifyMethodology(text: string): MethodType {
   const t = text.toLowerCase();
-  if (t.includes("rbrvs")) return "RBRVS";
-  if (t.includes("% of medicare") || t.includes("percentage of medicare") || t.includes("percent of medicare") || t.includes("%-of-medicare")) return "% Medicare";
-  if (t.includes("conversion factor") || t.includes("custom cf") || t.includes("state-specific cf")) return "Custom CF";
-  if (t.includes("cost-based") || t.includes("cost based") || t.includes("cost report")) return "Cost-Based";
-  if (t.includes("negotiat")) return "Negotiated";
-  if (t.includes("rbrvs") && t.includes("medicare")) return "Mixed";
-  // Fallback heuristics
+  if (!t.trim()) return "Mixed";
+
+  // Detect individual signals
+  const hasRbrvs = t.includes("rbrvs") || t.includes("rvu") || t.includes("resource-based");
+  const hasCostBased = t.includes("cost-based") || t.includes("cost based") || t.includes("cost report");
+  const hasNegotiated = t.includes("negotiat");
+  const hasMultiple = t.includes("multiple methodolog");
+  const hasStateDeveloped = t.includes("state-developed") && !hasRbrvs;
+  // "% of Medicare" = explicit percentage reference (not just mentioning "medicare" in passing)
+  const hasPctMedicare = /\d+%?\s*of\s*(prior.year\s*)?medicare/i.test(text)
+    || t.includes("% of medicare") || t.includes("percentage of medicare");
+
+  // Mixed: multiple distinct methodologies mentioned, or explicit "multiple"
+  if (hasMultiple || hasStateDeveloped) return "Mixed";
+  if (hasRbrvs && hasCostBased) return "Mixed";
+  if (hasPctMedicare && hasCostBased) return "Mixed";
+
+  // Single methodology
+  if (hasPctMedicare && !hasRbrvs) return "% Medicare";
+  if (hasRbrvs) return "RBRVS";
+  if (hasCostBased) return "Cost-Based";
+  if (hasNegotiated) return "Negotiated";
+
+  // Weak Medicare reference (e.g., "some services linked to Medicare")
   if (t.includes("medicare")) return "% Medicare";
-  if (t.includes("rvu") || t.includes("resource-based")) return "RBRVS";
+
   return "Mixed";
 }
 
@@ -118,7 +135,8 @@ export default function MethodologyLibrary() {
       fetch("/data/states.json").then(r => r.json()),
     ]).then(([dir, states]) => {
       if (cancelled) return;
-      setDirectory((dir as { directory: DirEntry[] }).directory);
+      // Filter out reference notes (entries without an agency are not real states)
+      setDirectory((dir as { directory: DirEntry[] }).directory.filter((d: DirEntry) => d.agency));
       setStatesData(states as StateSpending[]);
       setLoading(false);
     });

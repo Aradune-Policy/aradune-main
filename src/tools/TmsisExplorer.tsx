@@ -2436,11 +2436,17 @@ export default function TmsisExplorer() {
             <div className="de-filter-3col" style={{ display:"grid",gridTemplateColumns:"1fr 1fr 1fr",gap:8 }}>
               <div>
                 <div style={{ fontSize:10,fontWeight:600,color:A,marginBottom:4 }}>Year From</div>
-                <input type="text" inputMode="numeric" pattern="[0-9]*" value={deDateFrom} onChange={e=>setDEDateFrom(e.target.value.replace(/[^0-9]/g,""))} placeholder="e.g. 2019" style={{ width:"100%",fontSize:10,padding:"4px 6px",borderRadius:6,border:`1px solid ${B}`,color:A,fontFamily:FM }}/>
+                <select value={deDateFrom} onChange={e=>setDEDateFrom(e.target.value)} style={{ width:"100%",fontSize:10,padding:"4px 6px",borderRadius:6,border:`1px solid ${B}`,color:A,fontFamily:FM,background:WH }}>
+                  <option value="">All years</option>
+                  {[2018,2019,2020,2021,2022,2023,2024].map(y=><option key={y} value={String(y)}>{y}</option>)}
+                </select>
               </div>
               <div>
                 <div style={{ fontSize:10,fontWeight:600,color:A,marginBottom:4 }}>Year To</div>
-                <input type="text" inputMode="numeric" pattern="[0-9]*" value={deDateTo} onChange={e=>setDEDateTo(e.target.value.replace(/[^0-9]/g,""))} placeholder="e.g. 2023" style={{ width:"100%",fontSize:10,padding:"4px 6px",borderRadius:6,border:`1px solid ${B}`,color:A,fontFamily:FM }}/>
+                <select value={deDateTo} onChange={e=>setDEDateTo(e.target.value)} style={{ width:"100%",fontSize:10,padding:"4px 6px",borderRadius:6,border:`1px solid ${B}`,color:A,fontFamily:FM,background:WH }}>
+                  <option value="">All years</option>
+                  {[2018,2019,2020,2021,2022,2023,2024].map(y=><option key={y} value={String(y)}>{y}</option>)}
+                </select>
               </div>
               {deExploreMode === "provider" && <div>
                 <div style={{ fontSize:10,fontWeight:600,color:A,marginBottom:4 }}>ZIP3</div>
@@ -2520,18 +2526,36 @@ export default function TmsisExplorer() {
 
         {/* Summary Cards */}
         {deData && !deLoading && deSorted.length > 0 && (() => {
+          // Compute weighted average FFS share for selected states (or all states)
+          const statesInResult = deStates.length > 0 ? deStates : Object.keys(FFS_SHARE);
+          const avgFfs = statesInResult.length > 0
+            ? statesInResult.reduce((a, s) => a + (FFS_SHARE[s] || 0.30), 0) / statesInResult.length
+            : 0.25;
+          const impliedTotal = avgFfs > 0 ? summaryPaid / avgFfs : summaryPaid;
+          const mcPct = Math.round((1 - avgFfs) * 100);
+
           const cards = [
-            { l: "Total Paid", v: f$(summaryPaid) },
+            { l: "Total Paid (FFS)", v: f$(summaryPaid) },
             { l: "Total Claims", v: fN(summaryClaims) },
             { l: "Beneficiaries", v: fN(summaryBene) },
             ...(!isAllServices ? [{ l: "Avg Rate", v: f$(summaryAvgRate) }] : [{ l: "Categories", v: String(new Set(deData.rows.map(r => r.category)).size || deSorted.length) }]),
           ];
-          return <div className="de-kpi-grid" style={{ display:"grid",gridTemplateColumns:`repeat(${cards.length},1fr)`,gap:8 }}>
+          return <>
+          <div className="de-kpi-grid" style={{ display:"grid",gridTemplateColumns:`repeat(${cards.length},1fr)`,gap:8 }}>
             {cards.map(m => <div key={m.l} style={{ background:WH,border:`1px solid ${B}`,borderRadius:8,padding:"10px 12px",boxShadow:SH }}>
               <div style={{ fontSize:9,color:AL,fontWeight:500,marginBottom:2 }}>{m.l}</div>
               <div style={{ fontSize:16,fontWeight:700,color:A,fontFamily:FM }}>{m.v}</div>
             </div>)}
-          </div>;
+          </div>
+          {/* FFS caveat + implied total */}
+          {summaryPaid > 0 && <div style={{ padding:"8px 14px",background:`${WARN}08`,borderRadius:8,fontSize:10,lineHeight:1.6,border:`1px solid ${WARN}25`,color:AL }}>
+            <span style={{ fontWeight:600,color:WARN }}>FFS data only.</span>{" "}
+            These totals reflect fee-for-service adjudicated outpatient/professional claims. Managed care capitation, inpatient, pharmacy, and LTC spending are not included.{" "}
+            {deStates.length === 1
+              ? <>{STATE_NAMES[deStates[0]] || deStates[0]} is ~{mcPct}% managed care. <span style={{ fontWeight:600,color:A }}>Implied total (FFS+MC): {f$(impliedTotal)}</span></>
+              : <><span style={{ fontWeight:600,color:A }}>Implied total (FFS+MC): ~{f$(impliedTotal)}</span> based on avg {mcPct}% MC rate across {statesInResult.length} states</>}
+          </div>}
+          </>;
         })()}
 
         {/* DQ Warning for selected states */}

@@ -1,22 +1,24 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, lazy, Suspense } from "react";
 import { C, FONT, SHADOW, SHADOW_LG } from "./design";
 import type { ToolDef, NavGroup } from "./types";
 import { STATES_LIST, STATE_NAMES } from "./data/states";
 import Term from "./components/Term";
 import NavDrop from "./components/NavDrop";
 import NavSearch from "./components/NavSearch";
-import TmsisExplorer from "./tools/TmsisExplorer";
-import WageAdequacy from "./tools/WageAdequacy";
-import QualityLinkage from "./tools/QualityLinkage";
-import RateDecay from "./tools/RateDecay";
-import RateBuilder from "./tools/RateBuilder";
-import PolicyAnalyst from "./tools/PolicyAnalyst";
-import AheadCalculator from "./tools/AheadCalculator";
-import RateReduction from "./tools/RateReduction";
-import HcbsTracker from "./tools/HcbsTracker";
-import MethodologyLibrary from "./tools/MethodologyLibrary";
-import FeeScheduleDir from "./tools/FeeScheduleDir";
-import ComplianceReport from "./tools/ComplianceReport";
+
+// ── Lazy-loaded tools (code-split per route) ────────────────────────────
+const TmsisExplorer = lazy(() => import("./tools/TmsisExplorer"));
+const WageAdequacy = lazy(() => import("./tools/WageAdequacy"));
+const QualityLinkage = lazy(() => import("./tools/QualityLinkage"));
+const RateDecay = lazy(() => import("./tools/RateDecay"));
+const RateBuilder = lazy(() => import("./tools/RateBuilder"));
+const PolicyAnalyst = lazy(() => import("./tools/PolicyAnalyst"));
+const AheadCalculator = lazy(() => import("./tools/AheadCalculator"));
+const RateReduction = lazy(() => import("./tools/RateReduction"));
+const HcbsTracker = lazy(() => import("./tools/HcbsTracker"));
+const MethodologyLibrary = lazy(() => import("./tools/MethodologyLibrary"));
+const FeeScheduleDir = lazy(() => import("./tools/FeeScheduleDir"));
+const ComplianceReport = lazy(() => import("./tools/ComplianceReport"));
 
 // ── Hash Router ──────────────────────────────────────────────────────────
 function useRoute() {
@@ -627,8 +629,8 @@ function Landing() {
             {TOOLS.filter(t => t.id !== "analyst" && t.status !== "coming").map(t => (
               <div key={t.id}><span style={{ color: C.brand, marginRight: 6 }}>&#10003;</span>{t.name}</div>
             ))}
-            <div style={{ marginTop: 6, fontSize: 10, color: C.inkLight, fontStyle: "italic" }}>
-              + {TOOLS.filter(t => t.status === "coming").length} more tools coming (Fee Schedule Directory, Rate Reduction Analyzer, HCBS Tracker)
+            <div style={{ marginTop: 6, fontSize: 10, color: C.brand, fontStyle: "italic" }}>
+              All {TOOLS.filter(t => t.status !== "coming" && t.id !== "analyst").length} tools included — no login, no paywall
             </div>
           </div>
         </div>
@@ -923,24 +925,37 @@ function Pricing() {
 export default function Platform() {
   const route = useRoute();
 
+  const loadingFallback = (
+    <div style={{ maxWidth: 600, margin: "0 auto", padding: "80px 20px", textAlign: "center" }}>
+      <div style={{ fontSize: 13, color: C.inkLight }}>Loading...</div>
+    </div>
+  );
+
   const renderRoute = () => {
     if (route === "/" || route === "") return <Landing />;
-    if (route === "/explorer") return <TmsisExplorer />;
     if (route === "/about") return <About />;
     if (route === "/pricing") return <Pricing />;
-    if (route === "/wages") return <WageAdequacy />;
-    if (route === "/quality") return <QualityLinkage />;
-    if (route === "/decay") return <RateDecay />;
-    if (route === "/builder") return <RateBuilder />;
-    if (route === "/analyst") return <PolicyAnalyst />;
-    if (route === "/ahead" || route.startsWith("/ahead?")) return <AheadCalculator />;
-    if (route === "/fees") return <FeeScheduleDir />;
-    if (route === "/compliance") return <ComplianceReport />;
-    if (route === "/reduction") return <RateReduction />;
-    if (route === "/hcbs8020") return <HcbsTracker />;
-    if (route === "/methods") return <MethodologyLibrary />;
     const tool = TOOLS.find(t => route === `/${t.id}`);
     if (tool && (tool.status === "coming")) return <ComingSoon tool={tool} />;
+
+    // Lazy-loaded tool routes (code-split)
+    const toolMap: Record<string, JSX.Element> = {
+      "/explorer": <TmsisExplorer />,
+      "/wages": <WageAdequacy />,
+      "/quality": <QualityLinkage />,
+      "/decay": <RateDecay />,
+      "/builder": <RateBuilder />,
+      "/analyst": <PolicyAnalyst />,
+      "/ahead": <AheadCalculator />,
+      "/fees": <FeeScheduleDir />,
+      "/compliance": <ComplianceReport />,
+      "/reduction": <RateReduction />,
+      "/hcbs8020": <HcbsTracker />,
+      "/methods": <MethodologyLibrary />,
+    };
+    const toolRoute = toolMap[route] ?? (route.startsWith("/ahead?") ? toolMap["/ahead"] : null);
+    if (toolRoute) return <Suspense fallback={loadingFallback}>{toolRoute}</Suspense>;
+
     return (
       <div style={{ maxWidth: 400, margin: "0 auto", padding: "80px 20px", textAlign: "center" }}>
         <div style={{ fontSize: 14, color: C.inkLight, marginBottom: 12 }}>Page not found.</div>

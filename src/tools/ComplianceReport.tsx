@@ -363,9 +363,36 @@ export default function ComplianceReport() {
             {STATES.map(s => <option key={s} value={s}>{s} — {STATE_NAMES[s]}</option>)}
           </select>
           <button onClick={handleExport} style={{
+            padding: "6px 14px", borderRadius: 6, background: WH, color: cB,
+            border: `1px solid ${BD}`, fontSize: 12, fontWeight: 600, cursor: "pointer", fontFamily: FB,
+          }}>Export CSV</button>
+          <button onClick={async () => {
+            const { generateCompliancePdf } = await import("../utils/compliancePdf");
+            const withParity = codeAnalysis.filter(c => c.pctMedicare > 0);
+            const sorted = [...withParity].sort((a, b) => a.pctMedicare - b.pctMedicare);
+            const median = sorted.length > 0 ? sorted[Math.floor(sorted.length / 2)].pctMedicare : 0;
+            generateCompliancePdf({
+              state: st,
+              stateName: STATE_NAMES[st] || st,
+              agency: stateDir?.agency || "",
+              methodology: stateDir?.methodology || "",
+              format: stateDir?.format || "",
+              feeScheduleUrl: stateDir?.url || "",
+              totalSpend: stateSummary?.total_spend || 0,
+              fmap: stateSummary?.fmap || 0,
+              checklist,
+              codeAnalysis,
+              medianPctMedicare: median,
+              belowWarn: withParity.filter(c => c.pctMedicare < 80).length,
+              belowCrit: withParity.filter(c => c.pctMedicare < 50).length,
+              reductionPct,
+              reductionDetails: reductionAnalysis?.details || [],
+              reductionTotalImpact: reductionAnalysis?.totalImpact || 0,
+            });
+          }} style={{
             padding: "6px 14px", borderRadius: 6, background: cB, color: WH,
             border: "none", fontSize: 12, fontWeight: 600, cursor: "pointer", fontFamily: FB,
-          }}>Export Report</button>
+          }}>Export PDF</button>
         </div>
       </div>
 

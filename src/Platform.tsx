@@ -15,6 +15,7 @@ import AheadCalculator from "./tools/AheadCalculator";
 import RateReduction from "./tools/RateReduction";
 import HcbsTracker from "./tools/HcbsTracker";
 import MethodologyLibrary from "./tools/MethodologyLibrary";
+import FeeScheduleDir from "./tools/FeeScheduleDir";
 
 // ── Hash Router ──────────────────────────────────────────────────────────
 function useRoute() {
@@ -53,7 +54,7 @@ const TOOLS: ToolDef[] = [
     id: "fees", group: "transparency", name: "Fee Schedule Directory",
     tagline: "Links to every state's published Medicaid fee schedule",
     desc: "Central directory of every state's published Medicaid fee schedule. Updated as states publish new schedules.",
-    status: "coming", icon: "⊞", color: C.brand,
+    status: "live", icon: "⊞", color: C.brand,
   },
   // ── ADEQUACY ──────────────────────────────────────────────────────────
   {
@@ -242,6 +243,7 @@ function PlatformNav({ route }: { route: string }) {
 
 // ── Landing Page ─────────────────────────────────────────────────────────
 function Landing() {
+  const isMobile = useIsMobile();
   const [startTab, setStartTab] = useState("state");
   const [st, setSt] = useState("");
   const [serviceQ, setServiceQ] = useState("");
@@ -251,7 +253,7 @@ function Landing() {
 
       {/* 1. Hero */}
       <div style={{ padding: "56px 0 44px", maxWidth: 640 }}>
-        <h1 style={{ fontSize: 30, fontWeight: 700, color: C.ink, lineHeight: 1.25, letterSpacing: -0.5, margin: 0 }}>
+        <h1 style={{ fontSize: isMobile ? 22 : 30, fontWeight: 700, color: C.ink, lineHeight: 1.25, letterSpacing: -0.5, margin: 0 }}>
           Medicaid rate intelligence for every state — open and free.
         </h1>
         <p style={{ fontSize: 14, color: C.inkLight, lineHeight: 1.7, marginTop: 14, maxWidth: 540 }}>
@@ -281,8 +283,8 @@ function Landing() {
 
       {/* 2. Stats row */}
       <div style={{
-        display: "grid", gridTemplateColumns: "repeat(auto-fit,minmax(130px,1fr))",
-        gap: 16, padding: "20px 0 36px", borderTop: `1px solid ${C.border}`,
+        display: "grid", gridTemplateColumns: `repeat(auto-fit,minmax(${isMobile ? "70px" : "130px"},1fr))`,
+        gap: isMobile ? 10 : 16, padding: "20px 0 36px", borderTop: `1px solid ${C.border}`,
       }}>
         {([["190M+", "claims rows"], ["54", "jurisdictions"], ["9,500+", "HCPCS codes"], ["$1.1T", "total spending"]] as const).map(([val, label]) => (
           <div key={label}>
@@ -320,7 +322,7 @@ function Landing() {
           <div style={{ display: "flex", gap: 10, alignItems: "center", flexWrap: "wrap" }}>
             <span style={{ fontSize: 12, color: C.inkLight, flexShrink: 0 }}>State:</span>
             <select value={st} onChange={e => setSt(e.target.value)} style={{
-              flex: 1, maxWidth: 280, padding: "8px 10px", borderRadius: 6, fontSize: 12,
+              flex: 1, maxWidth: isMobile ? "100%" : 280, padding: "8px 10px", borderRadius: 6, fontSize: 12,
               border: `1px solid ${C.border}`, fontFamily: FONT.body, color: st ? C.ink : C.inkLight,
               background: C.white, outline: "none",
             }}>
@@ -349,7 +351,7 @@ function Landing() {
             <input value={serviceQ} onChange={e => setServiceQ(e.target.value)}
               placeholder="dental, office visits, 99213, therapy..."
               style={{
-                flex: 1, maxWidth: 320, padding: "8px 10px", borderRadius: 6, fontSize: 12,
+                flex: 1, maxWidth: isMobile ? "100%" : 320, padding: "8px 10px", borderRadius: 6, fontSize: 12,
                 border: `1px solid ${C.border}`, fontFamily: FONT.body, color: C.ink, outline: "none",
               }}
             />
@@ -373,7 +375,7 @@ function Landing() {
           <div style={{ display: "flex", gap: 10, alignItems: "center", flexWrap: "wrap" }}>
             <span style={{ fontSize: 12, color: C.inkLight, flexShrink: 0 }}>State:</span>
             <select value={st} onChange={e => setSt(e.target.value)} style={{
-              flex: 1, maxWidth: 280, padding: "8px 10px", borderRadius: 6, fontSize: 12,
+              flex: 1, maxWidth: isMobile ? "100%" : 280, padding: "8px 10px", borderRadius: 6, fontSize: 12,
               border: `1px solid ${C.border}`, fontFamily: FONT.body, color: st ? C.ink : C.inkLight,
               background: C.white, outline: "none",
             }}>
@@ -460,7 +462,7 @@ function Landing() {
 
       {/* 5. Why now: CMS Ensuring Access */}
       <div style={{
-        background: C.ink, borderRadius: 14, padding: "28px 32px",
+        background: C.ink, borderRadius: 14, padding: isMobile ? "20px 16px" : "28px 32px",
         marginBottom: 32, position: "relative", overflow: "hidden",
       }}>
         <div style={{ position: "absolute", top: -40, right: -40, width: 140, height: 140, borderRadius: "50%", background: "rgba(46,107,74,0.12)", pointerEvents: "none" }} />
@@ -475,11 +477,11 @@ function Landing() {
           <div style={{ fontSize: 12, color: "rgba(255,255,255,0.6)", lineHeight: 1.7, maxWidth: 600 }}>
             The Ensuring Access rule creates the first national transparency and
             adequacy requirements for Medicaid rate-setting — one of several reasons
-            this infrastructure is urgently needed. Every tool on Aradune supports
-            compliance, but the platform serves the broader analytical work that
-            states, plans, and researchers need whether or not a federal rule requires it.
+            this infrastructure is urgently needed. Every tool on Aradune serves the
+            analytical work that states, plans, and researchers need — and fully
+            supports Ensuring Access compliance in the process.
           </div>
-          <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit,minmax(160px,1fr))", gap: 10, marginTop: 18 }}>
+          <div style={{ display: "grid", gridTemplateColumns: `repeat(auto-fit,minmax(${isMobile ? "100%" : "160px"},1fr))`, gap: 10, marginTop: 18 }}>
             {([
               ["Rate Transparency", "447.203(b)(1)-(3): Fee schedule publication and Medicare comparison", "Spending Explorer · Medicare Comparison"],
               ["Rate Adequacy", "447.203(b)(4): Tier 1/Tier 2 rate reduction analysis", "Rate & Wage Comparison · Rate Reduction Analyzer"],
@@ -925,7 +927,7 @@ export default function Platform() {
     if (route === "/builder") return <RateBuilder />;
     if (route === "/analyst") return <PolicyAnalyst />;
     if (route === "/ahead" || route.startsWith("/ahead?")) return <AheadCalculator />;
-    if (route === "/fees") { const t = TOOLS.find(x => x.id === "fees")!; return <ComingSoon tool={t} />; }
+    if (route === "/fees") return <FeeScheduleDir />;
     if (route === "/reduction") return <RateReduction />;
     if (route === "/hcbs8020") return <HcbsTracker />;
     if (route === "/methods") return <MethodologyLibrary />;

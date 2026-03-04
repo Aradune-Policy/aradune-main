@@ -700,6 +700,14 @@ export default function TmsisExplorer() {
     return () => { cancelled = true; };
   }, []);
 
+  // When switching to All Services, auto-fix group-by and scatter defaults
+  useEffect(() => {
+    if (dePreset === "all_services") {
+      if (deGroupBy === "Code" || deGroupBy === "State × Code") setDEGroup("Year");
+      if (deScatterX === "avgRate") setDESX("spending");
+    }
+  }, [dePreset]);
+
   // Debounced DuckDB-WASM query execution
   useEffect(() => {
     if (!duckdbReady) return;
@@ -1253,16 +1261,17 @@ export default function TmsisExplorer() {
 
         const deSorted = wRows;
 
+        const isAllServices = dePreset === "all_services";
         const deColumns: { k: keyof DERow; l: string; f: (v: number) => string }[] = [
           { k: "spending", l: "Total Paid", f: f$ },
           { k: "claims", l: "Claims", f: fN },
           { k: "beneficiaries" as keyof DERow, l: "Beneficiaries", f: fN },
-          { k: "avgRate", l: "Avg Rate", f: f$ },
+          ...(!isAllServices ? [{ k: "avgRate" as keyof DERow, l: "Avg Rate", f: f$ }] : []),
           ...(deIncludePerBene ? [{ k: "perBene" as keyof DERow, l: "Per Bene", f: f$ }] : []),
-          { k: "count", l: "Rows", f: fN },
+          ...(!isAllServices ? [{ k: "count" as keyof DERow, l: "Codes", f: fN }] : []),
         ];
 
-        const scatterMetrics = [{ k: "spending", l: "Total Paid" }, { k: "claims", l: "Claims" }, { k: "beneficiaries", l: "Beneficiaries" }, { k: "avgRate", l: "Avg Rate" }, { k: "count", l: "Rows" }];
+        const scatterMetrics = [{ k: "spending", l: "Total Paid" }, { k: "claims", l: "Claims" }, { k: "beneficiaries", l: "Beneficiaries" }, ...(!isAllServices ? [{ k: "avgRate", l: "Avg Rate" }, { k: "count", l: "Codes" }] : [])];
 
         const allGroupOpts = ["State","Code","Category","State × Code","ZIP3","NPI","Taxonomy","Year","Month"];
         const stateList = deMeta?.states || SL;
@@ -2462,7 +2471,7 @@ export default function TmsisExplorer() {
               <div>
                 <div style={{ fontSize:10,fontWeight:600,color:A,marginBottom:4 }}>Group By</div>
                 <div style={{ display:"flex",gap:4,flexWrap:"wrap" }}>
-                  {allGroupOpts.map(g2 => <Pill key={g2} on={deGroupBy===g2} onClick={()=>setDEGroup(g2)}>{g2}{g2 === "Month" && !hasMonthlyData() ? " (yearly)" : ""}</Pill>)}
+                  {allGroupOpts.filter(g2 => !(dePreset === "all_services" && (g2 === "Code" || g2 === "State × Code"))).map(g2 => <Pill key={g2} on={deGroupBy===g2} onClick={()=>setDEGroup(g2)}>{g2}{g2 === "Month" && !hasMonthlyData() ? " (yearly)" : ""}</Pill>)}
                 </div>
               </div>
               <div>
@@ -2510,17 +2519,20 @@ export default function TmsisExplorer() {
         )}
 
         {/* Summary Cards */}
-        {deData && !deLoading && deSorted.length > 0 && <div className="de-kpi-grid" style={{ display:"grid",gridTemplateColumns:"repeat(4,1fr)",gap:8 }}>
-          {[
+        {deData && !deLoading && deSorted.length > 0 && (() => {
+          const cards = [
             { l: "Total Paid", v: f$(summaryPaid) },
             { l: "Total Claims", v: fN(summaryClaims) },
             { l: "Beneficiaries", v: fN(summaryBene) },
-            { l: "Avg Rate", v: f$(summaryAvgRate) },
-          ].map(m => <div key={m.l} style={{ background:WH,border:`1px solid ${B}`,borderRadius:8,padding:"10px 12px",boxShadow:SH }}>
-            <div style={{ fontSize:9,color:AL,fontWeight:500,marginBottom:2 }}>{m.l}</div>
-            <div style={{ fontSize:16,fontWeight:700,color:A,fontFamily:FM }}>{m.v}</div>
-          </div>)}
-        </div>}
+            ...(!isAllServices ? [{ l: "Avg Rate", v: f$(summaryAvgRate) }] : [{ l: "Categories", v: String(new Set(deData.rows.map(r => r.category)).size || deSorted.length) }]),
+          ];
+          return <div className="de-kpi-grid" style={{ display:"grid",gridTemplateColumns:`repeat(${cards.length},1fr)`,gap:8 }}>
+            {cards.map(m => <div key={m.l} style={{ background:WH,border:`1px solid ${B}`,borderRadius:8,padding:"10px 12px",boxShadow:SH }}>
+              <div style={{ fontSize:9,color:AL,fontWeight:500,marginBottom:2 }}>{m.l}</div>
+              <div style={{ fontSize:16,fontWeight:700,color:A,fontFamily:FM }}>{m.v}</div>
+            </div>)}
+          </div>;
+        })()}
 
         {/* DQ Warning for selected states */}
         {(() => {

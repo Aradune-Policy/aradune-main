@@ -516,10 +516,10 @@ function calcAPM(h:AheadHospital,mr:McrResult,dr:McdResult,mp:McrResult[],dp:Mcd
 
 const Card=({children,style:st,onClick}:{children:React.ReactNode;style?:React.CSSProperties;onClick?:()=>void})=><div onClick={onClick} style={{background:C.white,borderRadius:14,boxShadow:SHADOW,overflow:"hidden",transition:TR,...st}}>{children}</div>;
 const CH=({title,badge,right}:{title:string;badge?:string|number|null;right?:React.ReactNode})=><div style={{padding:"14px 20px 8px",display:"flex",alignItems:"baseline",justifyContent:"space-between",flexWrap:"wrap",gap:3}}><div style={{display:"flex",alignItems:"baseline",gap:4}}><span style={{fontSize:16,fontWeight:600,color:C.ink}}>{title}</span>{badge&&<span style={{fontSize:13,fontWeight:500,color:C.inkLight,background:C.surface,padding:"1px 4px",borderRadius:100,fontFamily:FONT.mono}}>{badge}</span>}</div>{right&&<span style={{fontSize:14,color:C.inkLight,fontFamily:FONT.mono}}>{right}</span>}</div>;
-const Met=({label,value,detail,trend,onClick}:{label:string;value:React.ReactNode;detail?:string;trend?:string;onClick?:()=>void})=><div style={{padding:"7px 9px",cursor:onClick?"pointer":"default"}} onClick={onClick}><div style={{fontSize:12,fontWeight:500,color:C.inkLight,textTransform:"uppercase",letterSpacing:1}}>{label}</div><div style={{fontSize:26,fontWeight:300,color:C.ink}}>{value}{onClick&&<span style={{fontSize:11,color:C.inkLight,marginLeft:2}}>▾</span>}</div>{detail&&<div style={{fontSize:13,color:trend==="up"?C.pos:trend==="down"?C.neg:C.inkLight,fontFamily:FONT.mono,fontWeight:500}}>{detail}</div>}</div>;
+const Met=({label,value,detail,trend,onClick,compact:cp}:{label:string;value:React.ReactNode;detail?:string;trend?:string;onClick?:()=>void;compact?:boolean})=><div style={{padding:"7px 9px",cursor:onClick?"pointer":"default"}} onClick={onClick}><div style={{fontSize:12,fontWeight:500,color:C.inkLight,textTransform:"uppercase",letterSpacing:1}}>{label}</div><div style={{fontSize:cp?18:26,fontWeight:300,color:C.ink}}>{value}{onClick&&<span style={{fontSize:11,color:C.inkLight,marginLeft:2}}>▾</span>}</div>{detail&&<div style={{fontSize:13,color:trend==="up"?C.pos:trend==="down"?C.neg:C.inkLight,fontFamily:FONT.mono,fontWeight:500}}>{detail}</div>}</div>;
 const NP=({active,children,onClick,small}:{active:boolean;children:React.ReactNode;onClick:()=>void;small?:boolean})=><button onClick={onClick} style={{padding:small?"5px 12px":"6px 16px",background:active?C.white:"transparent",color:active?C.ink:C.inkLight,border:"none",borderRadius:100,cursor:"pointer",fontFamily:FONT.body,fontSize:small?13:14,fontWeight:active?600:400,boxShadow:active?SHADOW:"none",transition:TR,whiteSpace:"nowrap"}}>{children}</button>;
-const SubT=({active,children,onClick}:{active:boolean;children:React.ReactNode;onClick:()=>void})=><button onClick={onClick} style={{padding:"6px 12px",background:"transparent",color:active?C.ink:C.inkLight,border:"none",borderBottom:active?`2px solid ${C.ink}`:"2px solid transparent",cursor:"pointer",fontFamily:FONT.body,fontSize:22,fontWeight:active?600:400}}>{children}</button>;
-const Pill=({children,color=C.inkLight}:{children:React.ReactNode;color?:string})=><span style={{display:"inline-flex",padding:"2px 8px",borderRadius:100,background:`${color}11`,color,fontSize:18,fontFamily:FONT.mono,fontWeight:500,marginLeft:2}}>{children}</span>;
+const SubT=({active,children,onClick,compact:cp}:{active:boolean;children:React.ReactNode;onClick:()=>void;compact?:boolean})=><button onClick={onClick} style={{padding:"6px 12px",background:"transparent",color:active?C.ink:C.inkLight,border:"none",borderBottom:active?`2px solid ${C.ink}`:"2px solid transparent",cursor:"pointer",fontFamily:FONT.body,fontSize:cp?14:22,fontWeight:active?600:400}}>{children}</button>;
+const Pill=({children,color=C.inkLight,compact:cp}:{children:React.ReactNode;color?:string;compact?:boolean})=><span style={{display:"inline-flex",padding:"2px 8px",borderRadius:100,background:`${color}11`,color,fontSize:cp?12:18,fontFamily:FONT.mono,fontWeight:500,marginLeft:2}}>{children}</span>;
 const Spark=({data,color=cB,w=56,h:hh=18}:{data:number[];color?:string;w?:number;h?:number})=>{if(!data||data.length<2)return null;const mn=Math.min(...data),mx=Math.max(...data),rng=mx-mn||1;return <svg width={w} height={hh}><polyline points={data.map((v,i)=>`${i/(data.length-1)*w},${hh-(v-mn)/rng*hh}`).join(" ")} fill="none" stroke={color} strokeWidth={1.5}/></svg>;};
 const Fade=({children,k}:{children:React.ReactNode;k:string})=>{const[v,setV]=useState(false);useEffect(()=>{setV(false);const t=setTimeout(()=>setV(true),20);return()=>clearTimeout(t);},[k]);return <div style={{opacity:v?1:0,transform:v?"translateY(0)":"translateY(3px)",transition:"opacity 0.2s, transform 0.2s"}}>{children}</div>;};
 const Tbl=({cols,rows}:{cols:string[];rows:CellValue[][]})=><table style={{width:"100%",borderCollapse:"collapse",fontFamily:FONT.mono,fontSize:13}}><thead><tr>{cols.map((c,i)=><th key={i} style={{padding:"2px 1px",textAlign:i===0?"left":"right",color:C.inkLight,fontSize:12,borderBottom:`1px solid ${C.border}`}}>{c}</th>)}</tr></thead><tbody>{rows.map((r,i)=><tr key={i} style={{borderBottom:i<rows.length-1?`1px solid ${C.border}`:"none"}}>{r.map((c,j)=><td key={j} style={{padding:"6px 4px",textAlign:j===0?"left":"right",...(typeof c==="object"&&c!==null?c.s:{})}}>{typeof c==="object"&&c!==null?c.v:c}</td>)}</tr>)}</tbody></table>;
@@ -748,7 +748,7 @@ function DataImport({onImport}:{onImport:(hosps:AheadHospital[])=>void}){
   const stClr=(s:string)=>s==="matched"?C.pos:s==="critical-default"?C.warn:"#94A3B8";
   const stIcon=(s:string)=>s==="matched"?"✓":s==="critical-default"?"⚠":"○";
   return(<div style={{display:"grid",gap:3}}>
-    <div style={{display:"flex",gap:1}}>{([["json","JSON"],["csv","CSV"],["ref","Field Ref"]] as const).map(([k,l])=><SubT key={k} active={mode===k} onClick={()=>setMode(k)}>{l}</SubT>)}</div>
+    <div style={{display:"flex",gap:1,flexWrap:"wrap"}}>{([["json","JSON"],["csv","CSV"],["ref","Field Ref"]] as const).map(([k,l])=><SubT key={k} active={mode===k} onClick={()=>setMode(k)}>{l}</SubT>)}</div>
     {mode==="json"&&<div style={{display:"grid",gap:6}}>
       <div style={{fontSize:12,color:C.inkLight}}>Paste a JSON object or array. Keys map to field names below.</div>
       <textarea rows={8} value={raw} onChange={e=>setRaw(e.target.value)} placeholder={'[\n  { "name": "My Hospital", "state": "MD", ... }\n]'} style={{...is,padding:4,minHeight:80}}/>
@@ -940,9 +940,9 @@ export default function AheadCalculator(){
       const c=r.fin+d.fin,cf=r.ffs+d.ffs;return{nm:sc.nm,fin:c,ffs:cf,delta:c-cf,pct:(c-cf)/cf,mcr:r.fin,mcd:d.fin};});
   },[compSc,scenarios,allH,modH]);
 
-  return(<div style={{padding:"12px 24px",maxWidth:1400,margin:"0 auto"}}>
+  return(<div style={{padding:compact?"12px 12px":"12px 24px",maxWidth:1400,margin:"0 auto"}}>
     <div style={{display:"flex",alignItems:"center",justifyContent:"space-between",marginBottom:8,flexWrap:"wrap",gap:6}}>
-      <div style={{display:"flex",alignItems:"center",gap:4}}><button onClick={()=>{window.location.hash="/";}} style={{background:"none",border:"none",color:C.inkLight,cursor:"pointer",fontSize:14,padding:0}}>← Back</button><Pill color={cG}>v11</Pill></div>
+      <div style={{display:"flex",alignItems:"center",gap:4}}><button onClick={()=>{window.location.hash="/";}} style={{background:"none",border:"none",color:C.inkLight,cursor:"pointer",fontSize:14,padding:0}}>← Back</button><Pill color={cG} compact={compact}>v11</Pill></div>
       <div style={{display:"flex",gap:2,background:C.surface,borderRadius:100,padding:3,flexWrap:"wrap"}}>
         {([["brief","Brief"],["dashboard","Dashboard"],["intervene","Intervene"],["apm","APM Compare"],["compare","Portfolio"],["custom","Import"]] as const).map(([k,l])=><NP key={k} active={view===k} onClick={()=>{setView(k);if(k!=="custom")setUseCust(false);}} small>{l}</NP>)}
       </div>
@@ -964,7 +964,7 @@ export default function AheadCalculator(){
       <div style={{display:"grid",gap:12}}>
         <Card style={{borderLeft:`4px solid ${synth.pathCl}`}}><div style={{padding:"16px 20px",display:"flex",justifyContent:"space-between",alignItems:"center",flexWrap:"wrap",gap:12}}>
           <div><div style={{fontSize:12,color:C.inkLight,fontFamily:FONT.mono,textTransform:"uppercase",letterSpacing:1}}>AHEAD STRATEGIC ADVISORY</div>
-            <div style={{fontSize:28,fontWeight:300,color:C.ink}}>{hosp.nm}{builtInIds.has(hosp.id)&&!useCust&&<Pill color={C.warn}>DEMO</Pill>}</div>
+            <div style={{fontSize:28,fontWeight:300,color:C.ink}}>{hosp.nm}{builtInIds.has(hosp.id)&&!useCust&&<Pill color={C.warn} compact={compact}>DEMO</Pill>}</div>
             <div style={{fontSize:13,color:C.inkLight}}>{hosp.st} · Cohort {hosp.co} · {hosp.beds} beds · {mr.cY}</div></div>
           <div style={{textAlign:"right"}}><div style={{fontSize:36,fontWeight:200,color:synth.pathCl}}>{synth.pathway}</div>
             <div style={{fontSize:13,color:C.inkLight,fontFamily:FONT.mono}}>Score {dec.comp} · {synth.fav} favor · {synth.ag} against · {synth.caut} caution</div></div>
@@ -996,7 +996,7 @@ export default function AheadCalculator(){
           <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",padding:"8px 16px 0"}}>
             <div style={{display:"flex",alignItems:"center",gap:12}}>
               <span style={{fontSize:13,fontWeight:600,color:C.ink}}>Synthesis Weights</span>
-              {wtsChanged&&<Pill color={cT}>CUSTOM</Pill>}
+              {wtsChanged&&<Pill color={cT} compact={compact}>CUSTOM</Pill>}
             </div>
             <div style={{display:"flex",gap:6}}>
               {wtsChanged&&<button onClick={resetWts} style={{background:C.surface,border:`1px solid ${C.border}`,borderRadius:4,padding:"4px 10px",fontSize:11,cursor:"pointer",color:C.inkLight,fontFamily:FONT.mono}}>Reset</button>}
@@ -1037,7 +1037,7 @@ export default function AheadCalculator(){
           </div>}
         </Card>
 
-        <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:8}}>
+        <div style={{display:"grid",gridTemplateColumns:compact?"1fr":"1fr 1fr",gap:8}}>
           <Card><CH title="Projection Fan" badge={`${yrs}Y`}/><div style={{padding:"0 16px 10px"}}><ResponsiveContainer width="100%" height={200}><ComposedChart data={mc}>
             <CartesianGrid strokeDasharray="3 3" stroke={C.border} vertical={false}/>
             <XAxis dataKey="cY" tick={{fontSize:12,fill:C.inkLight,fontFamily:FONT.mono}}/><YAxis tick={{fontSize:11,fill:C.inkLight,fontFamily:FONT.mono}} tickFormatter={v=>fmt(v as number)}/>
@@ -1125,7 +1125,7 @@ export default function AheadCalculator(){
             </div>
           </div>)}
         </div></Card>
-        <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:12}}>
+        <div style={{display:"grid",gridTemplateColumns:compact?"1fr":"1fr 1fr",gap:12}}>
           <Card><CH title="Revenue Impact"/><div style={{padding:"0 14px 10px"}}><ResponsiveContainer width="100%" height={200}><BarChart data={interventions.singles.map((iv:{nm:string;delta:number;cost:number})=>({nm:iv.nm.split(" ")[0],delta:iv.delta,cost:-iv.cost}))}><CartesianGrid strokeDasharray="3 3" stroke={C.border} vertical={false}/><XAxis dataKey="nm" tick={{fontSize:12,fill:C.inkLight}}/><YAxis tick={{fontSize:11,fill:C.inkLight,fontFamily:FONT.mono}} tickFormatter={v=>fmt(v as number)}/>
             <ReferenceLine y={0} stroke={cR} strokeDasharray="3 2"/><Bar dataKey="delta" fill={`${C.pos}CC`} name="Δ Rev" radius={[2,2,0,0]}/><Bar dataKey="cost" fill={`${C.neg}66`} name="Cost" radius={[0,0,2,2]}/><Legend wrapperStyle={{fontSize:18}}/></BarChart></ResponsiveContainer></div></Card>
           <Card style={{borderLeft:`3px solid ${cG}`}}><CH title="Optimal Bundle" badge="TOP 3"/><div style={{padding:"0 16px 12px"}}>
@@ -1170,7 +1170,7 @@ export default function AheadCalculator(){
               <td style={{textAlign:"right"}}><span style={{fontSize:12,padding:"1px 4px",borderRadius:2,background:a.rec==="Favorable"?`${C.pos}11`:a.rec==="Conditional"?`${C.warn}11`:`${C.neg}11`,color:a.rec==="Favorable"?C.pos:a.rec==="Conditional"?C.warn:C.neg,fontWeight:500}}>{a.rec}</span></td>
             </tr>)}</tbody></table></div>
         </div></Card>
-        <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:12}}>
+        <div style={{display:"grid",gridTemplateColumns:compact?"1fr":"1fr 1fr",gap:12}}>
           <Card><CH title="Risk-Return Profile"/><div style={{padding:"0 14px 10px"}}><ResponsiveContainer width="100%" height={260}><ScatterChart>
             <CartesianGrid strokeDasharray="3 3" stroke={C.border}/>
             <XAxis dataKey="x" type="number" name="Downside P" tick={{fontSize:12,fill:C.inkLight,fontFamily:FONT.mono}} label={{value:"P(Loss)",fontSize:12,fill:C.inkLight,position:"bottom"}}/>
@@ -1259,13 +1259,13 @@ export default function AheadCalculator(){
       <Sidebar/>
       <div style={{display:"grid",gap:3}}>
         <Card><div style={{display:"grid",gridTemplateColumns:"repeat(auto-fit, minmax(80px, 1fr))",borderBottom:`1px solid ${C.border}`}}>
-          <Met label="Medicare" value={<DV onClick={()=>setDrill(drill==="mcr"?null:"mcr")}>{fmt(mr.fin)}</DV>} onClick={()=>setDrill(drill==="mcr"?null:"mcr")}/>
-          <div style={{borderLeft:`1px solid ${C.border}`}}><Met label="Medicaid" value={<DV onClick={()=>setDrill(drill==="mcd"?null:"mcd")}>{fmt(dr.fin)}</DV>} onClick={()=>setDrill(drill==="mcd"?null:"mcd")}/></div>
-          <div style={{borderLeft:`1px solid ${C.border}`,background:C.surface}}><Met label="Combined" value={<DV onClick={()=>setDrill(drill==="combined"?null:"combined")}>{fmt(cF)}</DV>} detail={fP(cPct)} trend={cPct>0?"up":"down"} onClick={()=>setDrill(drill==="combined"?null:"combined")}/></div>
-          <div style={{borderLeft:`1px solid ${C.border}`}}><Met label="Score" value={<DV onClick={()=>setDrill(drill==="score"?null:"score")}>{dec.comp+""}</DV>} detail={dec.rec} onClick={()=>setDrill(drill==="score"?null:"score")}/></div>
+          <Met compact={compact} label="Medicare" value={<DV onClick={()=>setDrill(drill==="mcr"?null:"mcr")}>{fmt(mr.fin)}</DV>} onClick={()=>setDrill(drill==="mcr"?null:"mcr")}/>
+          <div style={{borderLeft:`1px solid ${C.border}`}}><Met compact={compact} label="Medicaid" value={<DV onClick={()=>setDrill(drill==="mcd"?null:"mcd")}>{fmt(dr.fin)}</DV>} onClick={()=>setDrill(drill==="mcd"?null:"mcd")}/></div>
+          <div style={{borderLeft:`1px solid ${C.border}`,background:C.surface}}><Met compact={compact} label="Combined" value={<DV onClick={()=>setDrill(drill==="combined"?null:"combined")}>{fmt(cF)}</DV>} detail={fP(cPct)} trend={cPct>0?"up":"down"} onClick={()=>setDrill(drill==="combined"?null:"combined")}/></div>
+          <div style={{borderLeft:`1px solid ${C.border}`}}><Met compact={compact} label="Score" value={<DV onClick={()=>setDrill(drill==="score"?null:"score")}>{dec.comp+""}</DV>} detail={dec.rec} onClick={()=>setDrill(drill==="score"?null:"score")}/></div>
         </div></Card>
         {drill&&<DrillPanel drill={drill} onClose={()=>setDrill(null)} mr={mr} dr={dr} hosp={modH} mp={mp} dp={dp} mc={mc}/>}
-        <div style={{display:"flex",gap:0,borderBottom:`1px solid ${C.border}`,flexWrap:"wrap"}}>{([["overview","Overview"],["analytics","Analytics"],["waterfall","Waterfalls"],["projection","Projection"],["medicaid","Medicaid"]] as const).map(([k,l])=><SubT key={k} active={tab===k} onClick={()=>setTab(k)}>{l}</SubT>)}</div>
+        <div style={{display:"flex",gap:0,borderBottom:`1px solid ${C.border}`,flexWrap:"wrap"}}>{([["overview","Overview"],["analytics","Analytics"],["waterfall","Waterfalls"],["projection","Projection"],["medicaid","Medicaid"]] as const).map(([k,l])=><SubT key={k} active={tab===k} onClick={()=>setTab(k)} compact={compact}>{l}</SubT>)}</div>
         <Fade k={tab}>
 
         {tab==="analytics"&&<div style={{display:"grid",gap:12}}>

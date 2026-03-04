@@ -359,7 +359,7 @@ const Met = ({ l, v, cl }: { l: string; v: React.ReactNode; cl?: string }) => (
 );
 
 const Pill = ({ children, on, onClick }: { children: React.ReactNode; on: boolean; onClick: () => void }) => (
-  <button onClick={onClick} style={{
+  <button onClick={onClick} aria-pressed={on} style={{
     padding: "3px 10px", borderRadius: 20, border: `1px solid ${on ? cB : B}`,
     background: on ? "rgba(46,107,74,0.07)" : WH, color: on ? cB : AL,
     fontSize: 10, fontWeight: on ? 600 : 400, cursor: "pointer", whiteSpace: "nowrap"

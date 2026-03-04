@@ -67,7 +67,7 @@ const Met = ({ l, v, cl, sub }: { l: string; v: React.ReactNode; cl?: string; su
   </div>
 );
 const Pill = ({ on, onClick, children }: { on: boolean; onClick: () => void; children: React.ReactNode }) => (
-  <button onClick={onClick} style={{ padding:"3px 9px",fontSize:10,fontWeight:on?700:400,color:on?WH:AL,background:on?cB:"transparent",border:`1px solid ${on?cB:BD}`,borderRadius:5,cursor:"pointer" }}>{children}</button>
+  <button aria-pressed={on} onClick={onClick} style={{ padding:"3px 9px",fontSize:10,fontWeight:on?700:400,color:on?WH:AL,background:on?cB:"transparent",border:`1px solid ${on?cB:BD}`,borderRadius:5,cursor:"pointer" }}>{children}</button>
 );
 const SafeTip = ({ active, payload, render }: SafeTipProps) => {
   if (!active||!payload?.length) return null;

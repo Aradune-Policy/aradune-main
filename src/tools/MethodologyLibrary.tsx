@@ -34,7 +34,7 @@ const Met = ({ label, value, color }: { label: string; value: string; color?: st
   </div>
 );
 const Pill = ({ label, on, onClick }: { label: string; on: boolean; onClick: () => void }) => (
-  <button onClick={onClick} style={{
+  <button onClick={onClick} aria-pressed={on} style={{
     padding: "5px 14px", borderRadius: 20, border: `1px solid ${on ? cB : BD}`,
     background: on ? cB : WH, color: on ? WH : AL, fontSize: 12, fontWeight: 600,
     cursor: "pointer", fontFamily: FB, marginRight: 6, marginBottom: 6,

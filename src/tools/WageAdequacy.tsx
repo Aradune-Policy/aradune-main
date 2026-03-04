@@ -135,7 +135,7 @@ const Met = ({ l, v, cl, sub }: { l: string; v: React.ReactNode; cl?: string; su
   </div>
 );
 const Pill = ({ on, onClick, children }: { on: boolean; onClick: () => void; children: React.ReactNode }) => (
-  <button onClick={onClick} style={{ padding:"3px 9px",fontSize:10,fontWeight:on?700:400,color:on?WH:AL,background:on?cB:"transparent",border:`1px solid ${on?cB:BD}`,borderRadius:5,cursor:"pointer" }}>{children}</button>
+  <button aria-pressed={on} onClick={onClick} style={{ padding:"3px 9px",fontSize:10,fontWeight:on?700:400,color:on?WH:AL,background:on?cB:"transparent",border:`1px solid ${on?cB:BD}`,borderRadius:5,cursor:"pointer" }}>{children}</button>
 );
 
 const f$ = (v: number): string => {
@@ -422,7 +422,7 @@ export default function WageAdequacy() {
             <div style={{ fontSize:18,fontWeight:300 }}>{analysis.stateName}</div>
             <div style={{ fontSize:10,color:AL }}>{curCat?.name} · {analysis.wage.title}</div>
           </div>
-          <div style={{ display:"grid",gridTemplateColumns:"repeat(3,1fr)",padding:"0 6px 12px" }}>
+          <div style={{ display:"grid",gridTemplateColumns:"repeat(auto-fit,minmax(130px,1fr))",padding:"0 6px 12px" }}>
             <Met l="BLS Median Wage" v={`$${safe(analysis.wage.h_median).toFixed(2)}/hr`} sub={`${fN(analysis.wage.emp ?? 0)} employed`}/>
             <Met l="Medicaid Implied Wage" v={analysis.primary.impliedHourly!=null?`$${analysis.primary.impliedHourly.toFixed(2)}/hr`:"—"} sub={`${analysis.primary.hcpcs} @ $${safe(analysis.primary.tmsisRate).toFixed(2)}/${analysis.primary.unit}`} cl={analysis.primary.gapVsBls!=null&&analysis.primary.gapVsBls<0?NEG:POS}/>
             <Met l="Wage Gap" v={analysis.primary.gapVsBls!=null?`${analysis.primary.gapVsBls>=0?"+":""}$${analysis.primary.gapVsBls.toFixed(2)}/hr`:"—"} sub={analysis.primary.gapVsBls!=null&&analysis.primary.impliedHourly!=null&&analysis.wage.h_median?`${((analysis.primary.impliedHourly/analysis.wage.h_median-1)*100).toFixed(0)}% vs market`:"No rate data"} cl={analysis.primary.gapVsBls!=null&&analysis.primary.gapVsBls<0?NEG:POS}/>

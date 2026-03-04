@@ -46,7 +46,7 @@ const Met = ({ l, v, cl, sub }: { l: string; v: React.ReactNode; cl?: string; su
   </div>
 );
 const Pill = ({ on, onClick, children }: { on: boolean; onClick: () => void; children: React.ReactNode }) => (
-  <button onClick={onClick} style={{ padding:"3px 9px",fontSize:10,fontWeight:on?700:400,color:on?WH:AL,background:on?cB:"transparent",border:`1px solid ${on?cB:BD}`,borderRadius:5,cursor:"pointer",whiteSpace:"nowrap" }}>{children}</button>
+  <button aria-pressed={on} onClick={onClick} style={{ padding:"3px 9px",fontSize:10,fontWeight:on?700:400,color:on?WH:AL,background:on?cB:"transparent",border:`1px solid ${on?cB:BD}`,borderRadius:5,cursor:"pointer",whiteSpace:"nowrap" }}>{children}</button>
 );
 const SafeTip = ({ active, payload, render }: SafeTipProps) => {
   if (!active||!payload?.length) return null;
@@ -317,7 +317,7 @@ export default function QualityLinkage() {
             <div style={{ fontSize:9,color:DOMAIN_COLORS[curMeasure.domain]||AL,fontWeight:500,marginTop:2 }}>{curMeasure.domain}</div>
             <div style={{ fontSize:10,color:AL,marginTop:4,lineHeight:1.5 }}>{curMeasure.rate_def}</div>
           </div>
-          <div style={{ display:"grid",gridTemplateColumns:"repeat(3,1fr)",padding:"4px 6px 10px" }}>
+          <div style={{ display:"grid",gridTemplateColumns:"repeat(auto-fit,minmax(130px,1fr))",padding:"4px 6px 10px" }}>
             <Met l={`${STATE_NAMES[highlightState]} Rate`} v={selectedMeasure && qualData.rates[selectedMeasure]?.[highlightState]!=null?`${qualData.rates[selectedMeasure][highlightState]}%`:"—"} cl={selectedMeasure && qualData.rates[selectedMeasure]?.[highlightState]>=(curMeasure.median??0)?POS:NEG}/>
             <Met l="National Median" v={curMeasure.median!=null?`${curMeasure.median}%`:"—"}/>
             <Met l="States Reporting" v={`${curMeasure.n_states}`} sub={`of ${Object.keys(STATE_NAMES).length}`}/>

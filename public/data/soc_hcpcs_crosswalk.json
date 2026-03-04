@@ -1,1 +1,269 @@
-{"categories": [{"id": "hcbs", "name": "Home Care / HCBS", "soc": "31-1120", "codes": [{"hcpcs": "T1019", "desc": "Personal Care /15min", "units_per_hour": 4, "unit": "15min"}, {"hcpcs": "T1020", "desc": "Personal Care /diem", "units_per_hour": null, "unit": "day"}, {"hcpcs": "S5130", "desc": "Homemaker /15min", "units_per_hour": 4, "unit": "15min"}, {"hcpcs": "S5125", "desc": "Attendant Care /15min", "units_per_hour": 4, "unit": "15min"}, {"hcpcs": "T2025", "desc": "Waiver Services NOS", "units_per_hour": null, "unit": "varies"}], "overhead_default": 35, "overhead_range": [25, 45], "overhead_note": "Agency overhead includes payroll taxes (~10%), workers comp (~5%), admin/billing (~8%), benefits (~5%), margin (~7%)"}, {"id": "nursing", "name": "Nursing Services", "soc": "29-2061", "codes": [{"hcpcs": "T1030", "desc": "Nursing Care /15min (RN)", "units_per_hour": 4, "unit": "15min"}, {"hcpcs": "T1031", "desc": "Nursing Care /15min (LPN)", "units_per_hour": 4, "unit": "15min"}, {"hcpcs": "99211", "desc": "Office Visit (Nurse)", "units_per_hour": null, "unit": "visit"}], "overhead_default": 30, "overhead_range": [20, 40], "overhead_note": "Nursing agency overhead typically lower than home care due to higher billing rates"}, {"id": "behavioral", "name": "Behavioral Health", "soc": "21-1014", "codes": [{"hcpcs": "90834", "desc": "Psychotherapy 45min", "units_per_hour": 1.15, "unit": "45min"}, {"hcpcs": "90837", "desc": "Psychotherapy 60min", "units_per_hour": 1, "unit": "60min"}, {"hcpcs": "90832", "desc": "Psychotherapy 30min", "units_per_hour": 1.6, "unit": "30min"}, {"hcpcs": "H0031", "desc": "MH Assessment", "units_per_hour": null, "unit": "assessment"}, {"hcpcs": "H0004", "desc": "BH Counseling /15min", "units_per_hour": 4, "unit": "15min"}], "overhead_default": 30, "overhead_range": [20, 45], "overhead_note": "Includes practice overhead for licensed clinicians; solo practitioners have lower overhead (~20%)"}, {"id": "aba", "name": "ABA / Autism Services", "soc": "21-1021", "codes": [{"hcpcs": "97153", "desc": "ABA Adaptive Behavior", "units_per_hour": 4, "unit": "15min"}, {"hcpcs": "97151", "desc": "BH Assessment", "units_per_hour": null, "unit": "assessment"}, {"hcpcs": "97155", "desc": "ABA Protocol Modification", "units_per_hour": 4, "unit": "15min"}, {"hcpcs": "97156", "desc": "ABA Family Guidance", "units_per_hour": 4, "unit": "15min"}], "overhead_default": 35, "overhead_range": [25, 45], "overhead_note": "ABA agencies typically have higher overhead due to supervision requirements (BCBA oversight)"}, {"id": "dental", "name": "Dental Services", "soc": "31-9091", "codes": [{"hcpcs": "D0120", "desc": "Periodic Oral Eval", "units_per_hour": null, "unit": "visit"}, {"hcpcs": "D1110", "desc": "Prophylaxis Adult", "units_per_hour": null, "unit": "visit"}, {"hcpcs": "D1351", "desc": "Dental Sealant", "units_per_hour": null, "unit": "tooth"}, {"hcpcs": "D0150", "desc": "Comprehensive Oral Eval", "units_per_hour": null, "unit": "visit"}], "overhead_default": 40, "overhead_range": [30, 55], "overhead_note": "Dental practice overhead is high due to equipment, supplies, and facility costs"}, {"id": "therapy", "name": "Therapy (PT/OT/Speech)", "soc": "31-2021", "codes": [{"hcpcs": "97110", "desc": "Therapeutic Exercises /15min", "units_per_hour": 4, "unit": "15min"}, {"hcpcs": "97530", "desc": "Therapeutic Activities /15min", "units_per_hour": 4, "unit": "15min"}, {"hcpcs": "97140", "desc": "Manual Therapy /15min", "units_per_hour": 4, "unit": "15min"}, {"hcpcs": "92507", "desc": "Speech Therapy", "units_per_hour": null, "unit": "session"}], "overhead_default": 35, "overhead_range": [25, 45], "overhead_note": "Therapy practice overhead includes facility, equipment, and administrative costs"}, {"id": "respite", "name": "Respite / Day Programs", "soc": "31-1120", "codes": [{"hcpcs": "T1005", "desc": "Respite Care /15min", "units_per_hour": 4, "unit": "15min"}, {"hcpcs": "S5150", "desc": "Respite Care /day", "units_per_hour": null, "unit": "day"}, {"hcpcs": "T2021", "desc": "Day Habilitation /15min", "units_per_hour": 4, "unit": "15min"}, {"hcpcs": "S5100", "desc": "Adult Day Care /day", "units_per_hour": null, "unit": "day"}], "overhead_default": 35, "overhead_range": [25, 45], "overhead_note": "Similar to HCBS overhead; day programs may have higher facility costs"}]}
+{
+  "categories": [
+    {
+      "id": "hcbs",
+      "name": "Home Care / HCBS",
+      "soc": "31-1120",
+      "codes": [
+        {
+          "hcpcs": "T1019",
+          "desc": "Personal Care /15min",
+          "units_per_hour": 4,
+          "unit": "15min"
+        },
+        {
+          "hcpcs": "T1020",
+          "desc": "Personal Care /diem",
+          "units_per_hour": null,
+          "unit": "day"
+        },
+        {
+          "hcpcs": "S5130",
+          "desc": "Homemaker /15min",
+          "units_per_hour": 4,
+          "unit": "15min"
+        },
+        {
+          "hcpcs": "S5125",
+          "desc": "Attendant Care /15min",
+          "units_per_hour": 4,
+          "unit": "15min"
+        },
+        {
+          "hcpcs": "T2025",
+          "desc": "Waiver Services NOS",
+          "units_per_hour": null,
+          "unit": "varies"
+        }
+      ],
+      "overhead_default": 35,
+      "overhead_range": [
+        25,
+        45
+      ],
+      "overhead_note": "Agency overhead includes payroll taxes (~10%), workers comp (~5%), admin/billing (~8%), benefits (~5%), margin (~7%)"
+    },
+    {
+      "id": "nursing",
+      "name": "Nursing Services",
+      "soc": "29-2061",
+      "codes": [
+        {
+          "hcpcs": "T1030",
+          "desc": "Nursing Care /15min (RN)",
+          "units_per_hour": 4,
+          "unit": "15min"
+        },
+        {
+          "hcpcs": "T1031",
+          "desc": "Nursing Care /15min (LPN)",
+          "units_per_hour": 4,
+          "unit": "15min"
+        },
+        {
+          "hcpcs": "99211",
+          "desc": "Office Visit (Nurse)",
+          "units_per_hour": null,
+          "unit": "visit"
+        }
+      ],
+      "overhead_default": 30,
+      "overhead_range": [
+        20,
+        40
+      ],
+      "overhead_note": "Nursing agency overhead typically lower than home care due to higher billing rates"
+    },
+    {
+      "id": "behavioral",
+      "name": "Behavioral Health",
+      "soc": "21-1023",
+      "codes": [
+        {
+          "hcpcs": "90834",
+          "desc": "Psychotherapy 45min",
+          "units_per_hour": 1.15,
+          "unit": "45min"
+        },
+        {
+          "hcpcs": "90837",
+          "desc": "Psychotherapy 60min",
+          "units_per_hour": 1,
+          "unit": "60min"
+        },
+        {
+          "hcpcs": "90832",
+          "desc": "Psychotherapy 30min",
+          "units_per_hour": 1.6,
+          "unit": "30min"
+        },
+        {
+          "hcpcs": "H0031",
+          "desc": "MH Assessment",
+          "units_per_hour": null,
+          "unit": "assessment"
+        },
+        {
+          "hcpcs": "H0004",
+          "desc": "BH Counseling /15min",
+          "units_per_hour": 4,
+          "unit": "15min"
+        }
+      ],
+      "overhead_default": 30,
+      "overhead_range": [
+        20,
+        45
+      ],
+      "overhead_note": "Includes practice overhead for licensed clinicians; solo practitioners have lower overhead (~20%)"
+    },
+    {
+      "id": "aba",
+      "name": "ABA / Autism Services",
+      "soc": "21-1021",
+      "codes": [
+        {
+          "hcpcs": "97153",
+          "desc": "ABA Adaptive Behavior",
+          "units_per_hour": 4,
+          "unit": "15min"
+        },
+        {
+          "hcpcs": "97151",
+          "desc": "BH Assessment",
+          "units_per_hour": null,
+          "unit": "assessment"
+        },
+        {
+          "hcpcs": "97155",
+          "desc": "ABA Protocol Modification",
+          "units_per_hour": 4,
+          "unit": "15min"
+        },
+        {
+          "hcpcs": "97156",
+          "desc": "ABA Family Guidance",
+          "units_per_hour": 4,
+          "unit": "15min"
+        }
+      ],
+      "overhead_default": 35,
+      "overhead_range": [
+        25,
+        45
+      ],
+      "overhead_note": "ABA agencies typically have higher overhead due to supervision requirements (BCBA oversight)"
+    },
+    {
+      "id": "dental",
+      "name": "Dental Services",
+      "soc": "31-9091",
+      "codes": [
+        {
+          "hcpcs": "D0120",
+          "desc": "Periodic Oral Eval",
+          "units_per_hour": null,
+          "unit": "visit"
+        },
+        {
+          "hcpcs": "D1110",
+          "desc": "Prophylaxis Adult",
+          "units_per_hour": null,
+          "unit": "visit"
+        },
+        {
+          "hcpcs": "D1351",
+          "desc": "Dental Sealant",
+          "units_per_hour": null,
+          "unit": "tooth"
+        },
+        {
+          "hcpcs": "D0150",
+          "desc": "Comprehensive Oral Eval",
+          "units_per_hour": null,
+          "unit": "visit"
+        }
+      ],
+      "overhead_default": 40,
+      "overhead_range": [
+        30,
+        55
+      ],
+      "overhead_note": "Dental practice overhead is high due to equipment, supplies, and facility costs"
+    },
+    {
+      "id": "therapy",
+      "name": "Therapy (PT/OT/Speech)",
+      "soc": "31-2021",
+      "codes": [
+        {
+          "hcpcs": "97110",
+          "desc": "Therapeutic Exercises /15min",
+          "units_per_hour": 4,
+          "unit": "15min"
+        },
+        {
+          "hcpcs": "97530",
+          "desc": "Therapeutic Activities /15min",
+          "units_per_hour": 4,
+          "unit": "15min"
+        },
+        {
+          "hcpcs": "97140",
+          "desc": "Manual Therapy /15min",
+          "units_per_hour": 4,
+          "unit": "15min"
+        },
+        {
+          "hcpcs": "92507",
+          "desc": "Speech Therapy",
+          "units_per_hour": null,
+          "unit": "session"
+        }
+      ],
+      "overhead_default": 35,
+      "overhead_range": [
+        25,
+        45
+      ],
+      "overhead_note": "Therapy practice overhead includes facility, equipment, and administrative costs"
+    },
+    {
+      "id": "respite",
+      "name": "Respite / Day Programs",
+      "soc": "31-1120",
+      "codes": [
+        {
+          "hcpcs": "T1005",
+          "desc": "Respite Care /15min",
+          "units_per_hour": 4,
+          "unit": "15min"
+        },
+        {
+          "hcpcs": "S5150",
+          "desc": "Respite Care /day",
+          "units_per_hour": null,
+          "unit": "day"
+        },
+        {
+          "hcpcs": "T2021",
+          "desc": "Day Habilitation /15min",
+          "units_per_hour": 4,
+          "unit": "15min"
+        },
+        {
+          "hcpcs": "S5100",
+          "desc": "Adult Day Care /day",
+          "units_per_hour": null,
+          "unit": "day"
+        }
+      ],
+      "overhead_default": 35,
+      "overhead_range": [
+        25,
+        45
+      ],
+      "overhead_note": "Similar to HCBS overhead; day programs may have higher facility costs"
+    }
+  ]
+}

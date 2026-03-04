@@ -38,7 +38,7 @@ const Met = ({ label, value, color, sub }: { label: string; value: string; color
   </div>
 );
 const Pill = ({ label, on, onClick }: { label: string; on: boolean; onClick: () => void }) => (
-  <button onClick={onClick} style={{
+  <button onClick={onClick} aria-pressed={on} style={{
     padding: "5px 14px", borderRadius: 20, border: `1px solid ${on ? cB : BD}`,
     background: on ? cB : WH, color: on ? WH : AL, fontSize: 12, fontWeight: 600,
     cursor: "pointer", fontFamily: FB, marginRight: 6, marginBottom: 6,
@@ -296,6 +296,14 @@ export default function HcbsTracker() {
           </Card>
 
           {/* Code-Level Table */}
+          {codeAnalysis.length === 0 && !loading && (
+            <Card>
+              <div style={{ padding: "24px 14px", textAlign: "center", color: AL, fontSize: 11, lineHeight: 1.7 }}>
+                No per-unit codes available for {curCat?.name ?? "this category"} in {STATE_NAMES[st] ?? st}.
+                This category may not have unit-based billing codes with rate data for this state.
+              </div>
+            </Card>
+          )}
           {codeAnalysis.length > 0 && (
             <Card>
               <CH title="Code-Level Analysis" sub={`${curCat?.name ?? ""} codes in ${STATE_NAMES[st] ?? st}`} right={

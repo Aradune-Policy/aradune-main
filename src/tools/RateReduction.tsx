@@ -11,6 +11,10 @@ import { query } from "../lib/duckdb";
 import { getPreset } from "../lib/presets";
 import { STATES_LIST, STATE_NAMES } from "../data/states";
 
+// ── Constants ───────────────────────────────────────────────────────────
+const DATA_YEAR = 2023; // T-MSIS data year in claims.parquet
+const MCR_CF = 32.3465; // CY2025 Medicare conversion factor ($/RVU)
+
 // ── Design tokens ───────────────────────────────────────────────────────
 const A = "#0A2540", AL = "#425A70", POS = "#2E6B4A", NEG = "#A4262C", WARN = "#B8860B";
 const SF = "#F5F7F5", BD = "#E4EAE4", WH = "#fff", cB = "#2E6B4A";
@@ -40,7 +44,7 @@ const Met = ({ label, value, color, sub }: { label: string; value: string; color
   </div>
 );
 const Pill = ({ label, on, onClick }: { label: string; on: boolean; onClick: () => void }) => (
-  <button onClick={onClick} style={{
+  <button onClick={onClick} aria-pressed={on} style={{
     padding: "5px 14px", borderRadius: 20, border: `1px solid ${on ? cB : BD}`,
     background: on ? cB : WH, color: on ? WH : AL, fontSize: 12, fontWeight: 600,
     cursor: "pointer", fontFamily: FB, marginRight: 6, marginBottom: 6,
@@ -133,7 +137,7 @@ export default function RateReduction() {
       const mDescs: Record<string, string> = {};
       const rates = (med as MedRates).rates;
       for (const [code, entry] of Object.entries(rates)) {
-        mRates[code] = entry.r ?? (entry.rvu ? entry.rvu * 33.8872 : 0);
+        mRates[code] = entry.r ?? (entry.rvu ? entry.rvu * MCR_CF : 0);
         if (entry.d) mDescs[code] = entry.d;
       }
       setMedMap(mRates);
@@ -152,7 +156,7 @@ export default function RateReduction() {
              SUM(total_claims) AS total_claims,
              SUM(total_beneficiaries) AS total_bene
       FROM 'claims.parquet'
-      WHERE state = '${esc}' AND year = 2023
+      WHERE state = '${esc}' AND year = ${DATA_YEAR}
       GROUP BY hcpcs_code
       ORDER BY total_paid DESC
       LIMIT 500
@@ -350,6 +354,7 @@ export default function RateReduction() {
                   </tr>
                 </thead>
                 <tbody>
+                  {analysis.length === 0 && <tr><td colSpan={10} style={{ padding: "20px 8px", textAlign: "center", color: AL, fontSize: 11 }}>No codes found for this category in {STATE_NAMES[st] ?? st}.</td></tr>}
                   {analysis.slice(0, 100).map(r => (
                     <tr key={r.hcpcs} style={{
                       borderBottom: `1px solid ${BD}`,

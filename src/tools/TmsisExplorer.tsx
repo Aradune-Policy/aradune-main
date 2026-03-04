@@ -1265,13 +1265,13 @@ export default function TmsisExplorer() {
         const deColumns: { k: keyof DERow; l: string; f: (v: number) => string }[] = [
           { k: "spending", l: "Total Paid", f: f$ },
           { k: "claims", l: "Claims", f: fN },
-          { k: "beneficiaries" as keyof DERow, l: "Beneficiaries", f: fN },
+          { k: "beneficiaries" as keyof DERow, l: "Pt-Svc Events", f: fN },
           ...(!isAllServices ? [{ k: "avgRate" as keyof DERow, l: "Avg Rate", f: f$ }] : []),
           ...(deIncludePerBene ? [{ k: "perBene" as keyof DERow, l: "Per Bene", f: f$ }] : []),
           ...(!isAllServices ? [{ k: "count" as keyof DERow, l: "Codes", f: fN }] : []),
         ];
 
-        const scatterMetrics = [{ k: "spending", l: "Total Paid" }, { k: "claims", l: "Claims" }, { k: "beneficiaries", l: "Beneficiaries" }, ...(!isAllServices ? [{ k: "avgRate", l: "Avg Rate" }, { k: "count", l: "Codes" }] : [])];
+        const scatterMetrics = [{ k: "spending", l: "Total Paid" }, { k: "claims", l: "Claims" }, { k: "beneficiaries", l: "Pt-Svc Events" }, ...(!isAllServices ? [{ k: "avgRate", l: "Avg Rate" }, { k: "count", l: "Codes" }] : [])];
 
         const allGroupOpts = ["State","Code","Category","State × Code","ZIP3","NPI","Taxonomy","Year","Month"];
         const stateList = deMeta?.states || SL;
@@ -1383,7 +1383,7 @@ export default function TmsisExplorer() {
             ))}
           </div>
           <div style={{ padding:"0 14px 10px",fontSize:9,color:AL,lineHeight:1.5 }}>
-            <strong>Columns:</strong> state, hcpcs_code, category, year, claim_month, total_paid, total_claims, total_beneficiaries, provider_count, npi, provider_name, zip3, taxonomy, code_count
+            <strong>Columns:</strong> state, hcpcs_code, category, year, claim_month, total_paid, total_claims, total_beneficiaries (= patient-service events, not unique headcount), provider_count, npi, provider_name, zip3, taxonomy, code_count
           </div>
         </Card>
 
@@ -1606,8 +1606,8 @@ export default function TmsisExplorer() {
             <div style={{ padding:"0 14px 12px",overflowX:"auto" }}>
               <table style={{ width:"100%",fontSize:10,borderCollapse:"collapse" }}>
                 <thead><tr style={{ borderBottom:`2px solid ${B}` }}>
-                  {["HCPCS","Description","Cat","Scope","Claims","Benes","Total Paid","Avg Rate"].map(h =>
-                    <th key={h} style={{ textAlign:["Claims","Benes","Total Paid","Avg Rate"].includes(h)?"right":"left",padding:"6px 6px",color:AL,fontWeight:600,fontSize:9,whiteSpace:"nowrap" }}>{h}</th>
+                  {["HCPCS","Description","Cat","Scope","Claims","Pt-Svc","Total Paid","Avg Rate"].map(h =>
+                    <th key={h} style={{ textAlign:["Claims","Pt-Svc","Total Paid","Avg Rate"].includes(h)?"right":"left",padding:"6px 6px",color:AL,fontWeight:600,fontSize:9,whiteSpace:"nowrap" }}>{h}</th>
                   )}
                 </tr></thead>
                 <tbody>
@@ -1714,7 +1714,7 @@ export default function TmsisExplorer() {
               <div style={{ fontSize:10,fontWeight:600,color:A,marginBottom:4 }}>Spending by SAMHSA Category</div>
               <table style={{ width:"100%",fontSize:10,borderCollapse:"collapse" }}>
                 <thead><tr style={{ borderBottom:`2px solid ${B}` }}>
-                  {["Category","Total Paid","Claims","Benes"].map(h =>
+                  {["Category","Total Paid","Claims","Pt-Svc"].map(h =>
                     <th key={h} style={{ textAlign:h==="Category"?"left":"right",padding:"5px 6px",color:AL,fontWeight:600,fontSize:9 }}>{h}</th>
                   )}
                 </tr></thead>
@@ -1736,8 +1736,8 @@ export default function TmsisExplorer() {
             {r.providers.length > 0 ? <div style={{ padding:"0 14px 12px",overflowX:"auto" }}>
               <table style={{ width:"100%",fontSize:10,borderCollapse:"collapse" }}>
                 <thead><tr style={{ borderBottom:`2px solid ${B}` }}>
-                  {["NPI","Provider Name","ZIP3","Taxonomy","Total Paid","Claims","Benes"].map(h =>
-                    <th key={h} style={{ textAlign:["Total Paid","Claims","Benes"].includes(h)?"right":"left",padding:"5px 6px",color:AL,fontWeight:600,fontSize:9,whiteSpace:"nowrap" }}>{h}</th>
+                  {["NPI","Provider Name","ZIP3","Taxonomy","Total Paid","Claims","Pt-Svc"].map(h =>
+                    <th key={h} style={{ textAlign:["Total Paid","Claims","Pt-Svc"].includes(h)?"right":"left",padding:"5px 6px",color:AL,fontWeight:600,fontSize:9,whiteSpace:"nowrap" }}>{h}</th>
                   )}
                 </tr></thead>
                 <tbody>{r.providers.map((p, i) => (
@@ -1788,7 +1788,7 @@ export default function TmsisExplorer() {
                     <div><div style={{ fontWeight:600 }}>{String(d.month)}</div>
                       <div>Spending: {f$$(d.total_paid as number)}</div>
                       <div>Claims: {fNu(d.total_claims as number)}</div>
-                      <div>Beneficiaries: {fNu(d.total_beneficiaries as number)}</div>
+                      <div>Pt-Svc Events: {fNu(d.total_beneficiaries as number)}</div>
                     </div>
                   )}/>}/>
                   <Area type="monotone" dataKey="total_paid" stroke={cB} fill={`${cB}30`} strokeWidth={1.5}/>
@@ -1804,7 +1804,7 @@ export default function TmsisExplorer() {
                     <div><div style={{ fontWeight:600 }}>Year {String(d.year)}</div>
                       <div>Spending: {f$$(d.total_paid as number)}</div>
                       <div>Claims: {fNu(d.total_claims as number)}</div>
-                      <div>Beneficiaries: {fNu(d.total_beneficiaries as number)}</div>
+                      <div>Pt-Svc Events: {fNu(d.total_beneficiaries as number)}</div>
                     </div>
                   )}/>}/>
                   <Area type="monotone" dataKey="total_paid" stroke={cB} fill={`${cB}30`} strokeWidth={2}/>
@@ -1815,7 +1815,7 @@ export default function TmsisExplorer() {
               <div style={{ fontSize:10,fontWeight:600,color:A,marginBottom:4 }}>Year-over-Year Growth</div>
               <table style={{ width:"100%",fontSize:10,borderCollapse:"collapse" }}>
                 <thead><tr style={{ borderBottom:`2px solid ${B}` }}>
-                  {["Year","Total Paid","Claims","Benes","YoY Growth"].map(h =>
+                  {["Year","Total Paid","Claims","Pt-Svc","YoY Growth"].map(h =>
                     <th key={h} style={{ textAlign:h==="Year"?"left":"right",padding:"4px 6px",color:AL,fontWeight:600,fontSize:9 }}>{h}</th>
                   )}
                 </tr></thead>
@@ -1859,7 +1859,7 @@ export default function TmsisExplorer() {
             <div style={{ padding:"0 14px 10px",overflowX:"auto" }}>
               <table style={{ width:"100%",fontSize:10,borderCollapse:"collapse" }}>
                 <thead><tr style={{ borderBottom:`2px solid ${B}` }}>
-                  {["State","Total Paid","Claims","Benes","Per Claim","Per Bene"].map(h =>
+                  {["State","Total Paid","Claims","Pt-Svc","Per Claim","Per Pt-Svc"].map(h =>
                     <th key={h} style={{ textAlign:h==="State"?"left":"right",padding:"4px 6px",color:AL,fontWeight:600,fontSize:9 }}>{h}</th>
                   )}
                 </tr></thead>
@@ -1875,7 +1875,7 @@ export default function TmsisExplorer() {
                 ))}</tbody>
               </table>
               {flBenchmark && <div style={{ padding:"6px 0 0",fontSize:10,color:A,lineHeight:1.5 }}>
-                <strong>Finding:</strong> {ccbhcState} ranks {flRank}{flRank===1?"st":flRank===2?"nd":flRank===3?"rd":"th"} among peer states in per-beneficiary CCBHC spending at {f$$(flBenchmark.per_bene)}.
+                <strong>Finding:</strong> {ccbhcState} ranks {flRank}{flRank===1?"st":flRank===2?"nd":flRank===3?"rd":"th"} among peer states in per-patient-service-event CCBHC spending at {f$$(flBenchmark.per_bene)}.
               </div>}
             </div>
           </Card>
@@ -2075,7 +2075,7 @@ export default function TmsisExplorer() {
                     <div><div style={{ fontWeight:600 }}>{String(d.month)}</div>
                       <div>Daily claims: {fNu(d.daily_claims as number)}</div>
                       <div>Monthly claims: {fNu(d.claims as number)}</div>
-                      <div>Beneficiaries: {fNu(d.benes as number)}</div>
+                      <div>Pt-Svc Events: {fNu(d.benes as number)}</div>
                       <div>Daily spending: {f$$(d.daily_paid as number)}</div>
                     </div>
                   )}/>}/>
@@ -2107,12 +2107,12 @@ export default function TmsisExplorer() {
 
           {/* Section 8: Visit Frequency (Task 1 support) */}
           {r.enhanced && r.enhanced.visit_frequency.length > 0 && <Card>
-            <CH t="Section 8: Visit Frequency by Code (2023)" b="Claims per beneficiary — proxy for visit intensity"/>
+            <CH t="Section 8: Visit Frequency by Code (2023)" b="Claims per patient-service event — proxy for visit intensity"/>
             <div style={{ padding:"0 14px 12px",overflowX:"auto" }}>
               <table style={{ width:"100%",fontSize:10,borderCollapse:"collapse" }}>
                 <thead><tr style={{ borderBottom:`2px solid ${B}` }}>
-                  {["HCPCS","Description","Claims","Benes","Claims/Bene","Avg Rate","Intensity"].map(h =>
-                    <th key={h} style={{ textAlign:["Claims","Benes","Claims/Bene","Avg Rate"].includes(h)?"right":"left",padding:"4px 6px",color:AL,fontWeight:600,fontSize:9 }}>{h}</th>
+                  {["HCPCS","Description","Claims","Pt-Svc","Claims/Pt-Svc","Avg Rate","Intensity"].map(h =>
+                    <th key={h} style={{ textAlign:["Claims","Pt-Svc","Claims/Pt-Svc","Avg Rate"].includes(h)?"right":"left",padding:"4px 6px",color:AL,fontWeight:600,fontSize:9 }}>{h}</th>
                   )}
                 </tr></thead>
                 <tbody>{r.enhanced.visit_frequency.map((v, i) => (
@@ -2461,7 +2461,7 @@ export default function TmsisExplorer() {
                 <input type="number" value={deMinClaims ?? ""} onChange={e=>setDEMinClaims(e.target.value ? Number(e.target.value) : undefined)} placeholder="No minimum" style={{ width:"100%",fontSize:10,padding:"4px 6px",borderRadius:6,border:`1px solid ${B}`,color:A,fontFamily:FM }}/>
               </div>
               <div>
-                <div style={{ fontSize:10,fontWeight:600,color:A,marginBottom:4 }}>Min Beneficiaries</div>
+                <div style={{ fontSize:10,fontWeight:600,color:A,marginBottom:4 }}>Min Pt-Svc Events</div>
                 <input type="number" value={deMinBene ?? ""} onChange={e=>setDEMinBene(e.target.value ? Number(e.target.value) : undefined)} placeholder="No minimum" style={{ width:"100%",fontSize:10,padding:"4px 6px",borderRadius:6,border:`1px solid ${B}`,color:A,fontFamily:FM }}/>
               </div>
               <div style={{ display:"flex",alignItems:"flex-end",paddingBottom:2 }}>
@@ -2537,7 +2537,7 @@ export default function TmsisExplorer() {
           const cards = [
             { l: "Total Paid (FFS)", v: f$(summaryPaid) },
             { l: "Total Claims", v: fN(summaryClaims) },
-            { l: "Beneficiaries", v: fN(summaryBene) },
+            { l: "Pt-Svc Events", v: fN(summaryBene) },
             ...(!isAllServices ? [{ l: "Avg Rate", v: f$(summaryAvgRate) }] : [{ l: "Categories", v: String(new Set(deData.rows.map(r => r.category)).size || deSorted.length) }]),
           ];
           return <>
@@ -2975,7 +2975,7 @@ export default function TmsisExplorer() {
                 <div style={{ fontSize:16,fontWeight:300 }}>{selProv.name||`NPI ${selProv.npi}`}</div>
                 <div style={{ fontSize:10,color:AL,marginTop:2 }}>NPI: {selProv.npi} · {selProv.type==="org"?"Organization":"Individual"}{selProv.taxonomy?` · ${selProv.taxonomy}`:""}</div>
                 <div style={{ display:"grid",gridTemplateColumns:"repeat(3,1fr)",marginTop:8,gap:4 }}>
-                  <Met l="Total Paid" v={f$(safe(selProv.total_paid))}/><Met l="Claims" v={fN(safe(selProv.total_claims))}/><Met l="Beneficiaries" v={fN(safe(selProv.total_bene))}/>
+                  <Met l="Total Paid" v={f$(safe(selProv.total_paid))}/><Met l="Claims" v={fN(safe(selProv.total_claims))}/><Met l="Pt-Svc Events" v={fN(safe(selProv.total_bene))}/>
                   <Met l="State" v={states[selProv.state || ""]?.name||selProv.state||""}/><Met l="Codes Billed" v={selProv.n_codes ?? 0}/><Met l="Avg/Claim" v={(selProv.total_claims ?? 0)>0?`$${((selProv.total_paid ?? 0)/(selProv.total_claims ?? 1)).toFixed(2)}`:"—"}/>
                 </div>
                 {selProv.peer && <div style={{ marginTop:6,padding:"6px 0 0",borderTop:`1px solid ${S}` }}>
@@ -3324,7 +3324,7 @@ export default function TmsisExplorer() {
         <Card><CH t="Data Notes & Limitations"/><div style={{ padding:"4px 16px 12px",fontSize:11,color:A,lineHeight:1.8 }}>
           <b>T-MSIS ≠ fee schedule:</b> T-MSIS "avg paid per claim" reflects what was actually paid across all claim types, modifiers, and settings. It is not a fee schedule lookup. Expect Medicaid T-MSIS rates to be lower than fee schedule rates due to blended modifier/POS mix, MC encounters reported at $0 or capitated amounts, and claims processing reductions.<br/>
           <b>State assignment:</b> Provider state is derived from NPPES practice address. For telehealth or multistate organizations, claims may attribute to provider's registered state rather than where services were delivered.<br/>
-          <b>Beneficiary counts:</b> The dataset reports TOTAL_UNIQUE_BENEFICIARIES at NPI × HCPCS × month — not deduplicated. Per-enrollee figures use published CMS enrollment milestones instead.<br/>
+          <b>Patient-Service Events:</b> Labeled "Pt-Svc Events" throughout. The source field (TOTAL_UNIQUE_BENEFICIARIES) is unique within each NPI × HCPCS × month cell but <em>not</em> deduplicated when summed across providers, codes, or months. One patient seeing 3 providers counts as 3 events. This is not a headcount of unique enrollees. Per-enrollee figures use published CMS enrollment milestones instead.<br/>
           <b>Suppression:</b> HHS suppresses cells with fewer than 11 beneficiaries. The dataset covers the majority of spending but excludes rare services.<br/>
           <b>Risk adjustment limitations:</b> Eligibility-mix adjustment accounts for broad demographic differences but does not capture within-group severity, chronic disease burden, or social determinants. Full risk adjustment requires beneficiary-level diagnosis data (e.g., CDPS scores) available only through restricted-use T-MSIS TAF files.<br/>
           <b>Data quality:</b> T-MSIS data quality varies by state. State Medicaid agencies remain the authoritative source for their own claims data.

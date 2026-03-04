@@ -19,21 +19,37 @@ const GROUP_COLUMNS: Record<string, string> = {
   taxonomy: "taxonomy",
 };
 
+// Resolve HCPCS codes including preset expansion
+function resolveHcpcsCodes(req: QueryRequest): string[] {
+  let codes = [...(req.hcpcs_codes || [])];
+  if (req.preset) {
+    const preset = getPreset(req.preset);
+    if (preset?.codes?.length && preset.filter_type === "hcpcs_codes") {
+      codes = [...new Set([...codes, ...preset.codes])];
+    }
+  }
+  return codes;
+}
+
 // Which Parquet file to query based on group-by and filters
-function pickTable(req: QueryRequest): string {
+function pickTable(req: QueryRequest, resolvedCodes: string[]): string {
   const gb = req.group_by || [];
-  // Provider-level queries
-  if (gb.includes("billing_npi") || req.npi?.length || req.provider_name || req.zip3?.length) {
+  // Provider-level queries (NPI, ZIP3, Taxonomy all live in providers.parquet)
+  if (gb.includes("billing_npi") || gb.includes("zip3") || gb.includes("taxonomy") ||
+      req.npi?.length || req.provider_name || req.zip3?.length) {
     return "'providers.parquet'";
   }
-  // Monthly granularity — use the full monthly file if available
-  if (gb.includes("claim_month") && hasMonthlyData()) {
-    return "'claims_monthly.parquet'";
+  // Monthly granularity — requires claims_monthly.parquet
+  if (gb.includes("claim_month")) {
+    if (hasMonthlyData()) return "'claims_monthly.parquet'";
+    // Monthly data unavailable — fall back to yearly via claims.parquet
+    // (buildSQL will remap claim_month → year)
+    return "'claims.parquet'";
   }
-  // Category-only rollups (faster, smaller file)
+  // Category-only rollups (faster, smaller file) — but only if no code-level filters
   if (
     gb.every(g => ["state", "category", "claim_year"].includes(g)) &&
-    !req.hcpcs_codes?.length
+    !resolvedCodes.length
   ) {
     return "'categories.parquet'";
   }
@@ -43,16 +59,8 @@ function pickTable(req: QueryRequest): string {
 
 function buildSQL(req: QueryRequest): string {
   const where: string[] = [];
-  const table = pickTable(req);
-
-  // Apply preset codes
-  let hcpcsCodes = [...(req.hcpcs_codes || [])];
-  if (req.preset) {
-    const preset = getPreset(req.preset);
-    if (preset?.codes?.length && preset.filter_type === "hcpcs_codes") {
-      hcpcsCodes = [...new Set([...hcpcsCodes, ...preset.codes])];
-    }
-  }
+  const hcpcsCodes = resolveHcpcsCodes(req);
+  const table = pickTable(req, hcpcsCodes);
 
   // WHERE clauses
   if (req.states?.length) {
@@ -110,8 +118,14 @@ function buildSQL(req: QueryRequest): string {
       selectParts.push(`${col} AS claim_year`);
       groupParts.push(col);
     } else if (gb === "claim_month") {
-      selectParts.push(`${col} AS claim_month`);
-      groupParts.push(col);
+      if (table === "'claims_monthly.parquet'") {
+        selectParts.push(`${col} AS claim_month`);
+        groupParts.push(col);
+      } else {
+        // Monthly data unavailable — fall back to year grouping
+        selectParts.push("year AS claim_year");
+        groupParts.push("year");
+      }
     } else if (gb === "billing_npi") {
       selectParts.push("npi");
       if (table === "'providers.parquet'") selectParts.push("provider_name");

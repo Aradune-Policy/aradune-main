@@ -16,3 +16,18 @@ public/data/claims_monthly.parquet
 server/__pycache__/
 server/.env
 *.pyc
+
+# Working directories (local scraping, analysis, data processing)
+.wrangler/
+AHEAD/
+WORKING/
+mfs_scraper/
+oesm24all/
+server/
+data/NPPES_Data_Dissemination_*/
+data/dme*/
+
+# Local working files
+aradune-*.md
+process_data.R
+tmsis_pipeline_duckdb.R

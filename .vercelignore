@@ -1,2 +1,8 @@
 /data
 node_modules/
+.wrangler/
+mfs_scraper/
+oesm24all/
+AHEAD/
+WORKING/
+server/

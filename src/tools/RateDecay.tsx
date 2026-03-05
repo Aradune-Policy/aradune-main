@@ -432,6 +432,14 @@ export default function RateDecay() {
         <b>Rate decay:</b> When a state's rates fall behind Medicare over time, it creates compounding access problems. Medicare adjusts annually; if Medicaid doesn't match, the gap widens each year. A code at 60% of Medicare that stays frozen while Medicare increases 3% annually drops to ~52% in 5 years.
       </div></Card>
 
+      {/* Cross-link to Compliance Report */}
+      <Card>
+        <div style={{ padding:"10px 14px",fontSize:11,color:AL,lineHeight:1.6 }}>
+          This tool shows how far Medicaid has fallen behind Medicare. For regulatory compliance analysis under 42 CFR §447.203, see the{" "}
+          <a href="#/compliance" style={{ color:cB,fontWeight:600,textDecoration:"none" }}>Compliance Report</a>.
+        </div>
+      </Card>
+
       <div style={{ fontSize:10,color:AL,marginTop:8 }}>Aradune Rate Decay Tracker v1.0 · CY2026 Medicare PFS + T-MSIS</div>
     </div>
   );

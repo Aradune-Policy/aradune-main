@@ -405,6 +405,7 @@ export default function RateReduction() {
           </Card>
         </>
       )}
+      <div style={{ fontSize:10,color:AL,marginTop:8 }}>Aradune Rate Reduction Estimator v1.0 · T-MSIS FFS Claims (2018-2024)</div>
     </div>
   );
 }

@@ -12,6 +12,11 @@ data/*.xlsx
 # Large Parquet files hosted externally (Cloudflare R2)
 public/data/claims_monthly.parquet
 
+# Large Terminal B outputs (slim extracts used instead)
+public/data/cpra_all.json
+public/data/dq_flags.json
+public/data/medicare_rates_locality.parquet
+
 # Python
 server/__pycache__/
 server/.env

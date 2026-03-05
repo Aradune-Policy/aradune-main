@@ -1,10 +1,28 @@
-import { useState, useEffect, lazy, Suspense } from "react";
+import { useState, useEffect, lazy, Suspense, Component } from "react";
+import type { ReactNode, ErrorInfo } from "react";
 import { C, FONT, SHADOW, SHADOW_LG } from "./design";
 import type { ToolDef, NavGroup } from "./types";
 import { STATES_LIST, STATE_NAMES } from "./data/states";
 import Term from "./components/Term";
 import NavDrop from "./components/NavDrop";
 import NavSearch from "./components/NavSearch";
+
+// ── Error Boundary ──────────────────────────────────────────────────────
+class ToolErrorBoundary extends Component<{ children: ReactNode }, { error: string | null }> {
+  state = { error: null as string | null };
+  static getDerivedStateFromError(err: Error) { return { error: err.message || "Unknown error" }; }
+  componentDidCatch(err: Error, info: ErrorInfo) { console.error("Tool render error:", err, info); }
+  render() {
+    if (this.state.error) return (
+      <div style={{ maxWidth: 600, margin: "0 auto", padding: "80px 20px", textAlign: "center" }}>
+        <div style={{ fontSize: 15, fontWeight: 600, color: "#A4262C", marginBottom: 8 }}>Something went wrong</div>
+        <div style={{ fontSize: 12, color: "#425A70", fontFamily: "'SF Mono',Menlo,monospace", marginBottom: 16 }}>{this.state.error}</div>
+        <a href="#/" style={{ fontSize: 13, color: "#2E6B4A", textDecoration: "none" }}>Back to Aradune</a>
+      </div>
+    );
+    return this.props.children;
+  }
+}
 
 // ── Lazy-loaded tools (code-split per route) ────────────────────────────
 const TmsisExplorer = lazy(() => import("./tools/TmsisExplorer"));
@@ -16,9 +34,10 @@ const PolicyAnalyst = lazy(() => import("./tools/PolicyAnalyst"));
 const AheadCalculator = lazy(() => import("./tools/AheadCalculator"));
 const RateReduction = lazy(() => import("./tools/RateReduction"));
 const HcbsTracker = lazy(() => import("./tools/HcbsTracker"));
-const MethodologyLibrary = lazy(() => import("./tools/MethodologyLibrary"));
 const FeeScheduleDir = lazy(() => import("./tools/FeeScheduleDir"));
+const RateLookup = lazy(() => import("./tools/RateLookup"));
 const ComplianceReport = lazy(() => import("./tools/ComplianceReport"));
+const CpraGenerator = lazy(() => import("./tools/CpraGenerator"));
 
 // ── Hash Router ──────────────────────────────────────────────────────────
 function useRoute() {
@@ -48,22 +67,28 @@ const TOOLS: ToolDef[] = [
     status: "live", icon: "◧", color: C.brand,
   },
   {
-    id: "methods", group: "transparency", name: "Methodology Library",
-    tagline: "How each state sets Medicaid rates, in one place",
-    desc: "How each state sets its rates: methodology type, conversion factors, fee schedule sources, and spending context.",
-    status: "live", icon: "≡", color: C.brand,
+    id: "fees", group: "transparency", name: "State Fee Schedule Directory",
+    tagline: "Fee schedules, methodologies, and access for every state",
+    desc: "Every state's Medicaid fee schedule in one place: methodology type, format, access requirements, spending context, and CMS compliance readiness.",
+    status: "live", icon: "⊞", color: C.brand,
   },
   {
-    id: "fees", group: "transparency", name: "Fee Schedule Directory",
-    tagline: "Links to every state's published Medicaid fee schedule",
-    desc: "Direct links to every state's published Medicaid fee schedule, updated as states publish new schedules.",
-    status: "live", icon: "⊞", color: C.brand,
+    id: "lookup", group: "transparency", name: "Rate Lookup",
+    tagline: "Search any HCPCS code, compare fee schedule rates across states",
+    desc: "Type a HCPCS code and instantly see every state's fee schedule rate vs Medicare. 16,000+ codes across 40+ states.",
+    status: "live", icon: "⊘", color: C.brand,
   },
   {
     id: "compliance", group: "transparency", name: "Compliance Report",
     tagline: "Access Rule compliance checklist and rate transparency package",
     desc: "Unified compliance package for 42 CFR §447.203: Medicare parity, rate reduction modeling, methodology documentation, and export-ready formats.",
     status: "live", icon: "◇", color: C.brand,
+  },
+  {
+    id: "cpra", group: "transparency", name: "CPRA Generator",
+    tagline: "Comparative Payment Rate Analysis for 42 CFR 447.203 compliance",
+    desc: "Generate the Comparative Payment Rate Analysis required by July 2026. Medicaid vs Medicare rates across primary care, OB/GYN, and MH/SUD with PDF, Excel, and HTML export.",
+    status: "live", icon: "◆", color: C.brand,
   },
   // ── ADEQUACY ──────────────────────────────────────────────────────────
   {
@@ -294,7 +319,7 @@ function Landing() {
         display: "grid", gridTemplateColumns: `repeat(auto-fit,minmax(${isMobile ? "70px" : "130px"},1fr))`,
         gap: isMobile ? 10 : 16, padding: "20px 0 36px", borderTop: `1px solid ${C.border}`,
       }}>
-        {([["12", "analytical tools"], ["54", "states & territories"], ["8", "federal datasets"], ["36", "state fee schedules"]] as const).map(([val, label]) => (
+        {([["13", "analytical tools"], ["54", "states & territories"], ["8", "federal datasets"], ["42", "state fee schedules"]] as const).map(([val, label]) => (
           <div key={label}>
             <div style={{ fontSize: 20, fontWeight: 700, fontFamily: FONT.mono, color: C.brand, letterSpacing: -0.5 }}>{val}</div>
             <div style={{ fontSize: 11, color: C.inkLight, marginTop: 2 }}>{label}</div>
@@ -429,7 +454,7 @@ function Landing() {
                 return (
                   <div
                     key={tool.id}
-                    onClick={() => { if (isLive) window.location.hash = `/${tool.id}`; else window.location.hash = `/${tool.id}`; }}
+                    onClick={() => { window.location.hash = `/${tool.id}`; }}
                     style={{
                       background: C.white, borderRadius: 12, boxShadow: SHADOW,
                       padding: "20px 22px 18px", borderLeft: `3px solid ${tool.color}`,
@@ -481,8 +506,8 @@ function Landing() {
         <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit,minmax(240px,1fr))", gap: 14 }}>
           {([
             { num: "1", label: "Transparency", q: "What does the data show?",
-              desc: "Browse 227M+ claims across 54 jurisdictions. Compare Medicaid rates to Medicare. Access state fee schedules and rate-setting methodologies.",
-              tools: "Spending Explorer · Medicare Comparison · Fee Schedule Directory", color: C.brand },
+              desc: "Browse 190M+ claims across 54 jurisdictions. Compare Medicaid rates to Medicare. Access state fee schedules and rate-setting methodologies.",
+              tools: "Spending Explorer · Medicare Comparison · Rate Lookup · Fee Schedule Directory", color: C.brand },
             { num: "2", label: "Adequacy", q: "Are rates sufficient?",
               desc: "Compare Medicaid reimbursement against BLS market wages, map quality outcomes to payment levels, and analyze rate reductions against access thresholds.",
               tools: "Rate & Wage Comparison · Quality Linkage · Rate Reduction Analyzer", color: C.accent },
@@ -534,8 +559,8 @@ function Landing() {
           adequacy requirements for Medicaid rate-setting. Every tool on this
           platform supports compliance, but the analytical need is broader than
           any single regulation.{" "}
-          <a href="#/about" style={{ color: C.brand, textDecoration: "none", fontWeight: 600 }}>
-            Learn more →
+          <a href="#/compliance" style={{ color: C.brand, textDecoration: "none", fontWeight: 600 }}>
+            View compliance tools →
           </a>
         </div>
       </div>
@@ -580,56 +605,14 @@ function Landing() {
         <span style={{ marginLeft: "auto", fontSize: 9, fontFamily: FONT.mono, color: C.brand, letterSpacing: 0.3, fontWeight: 600 }}>Queryable via DuckDB-WASM</span>
       </div>
 
-      {/* 9. Free vs Professional */}
-      <div style={{
-        display: "grid", gridTemplateColumns: "repeat(auto-fit,minmax(280px,1fr))", gap: 16,
-        marginBottom: 40,
-      }}>
-        <div style={{
-          padding: "28px 28px 24px", background: C.white, borderRadius: 12, boxShadow: SHADOW,
-          borderTop: `3px solid ${C.brand}`,
-        }}>
-          <div style={{ fontSize: 16, fontWeight: 700, color: C.brand, marginBottom: 4 }}>Free, always</div>
-          <div style={{ fontSize: 12, color: C.inkLight, lineHeight: 1.7, marginBottom: 14 }}>
-            Every analytical tool on the platform, free. No login, no paywall.
-            CSV exports included on every tool.
-          </div>
-          <div style={{ fontSize: 11, color: C.inkLight, lineHeight: 1.9 }}>
-            {TOOLS.filter(t => t.id !== "analyst" && t.status !== "coming").map(t => (
-              <div key={t.id}><span style={{ color: C.brand, marginRight: 6 }}>&#10003;</span>{t.name}</div>
-            ))}
-            <div style={{ marginTop: 6, fontSize: 10, color: C.brand, fontStyle: "italic" }}>
-              All {TOOLS.filter(t => t.status !== "coming" && t.id !== "analyst").length} tools included, no login required
-            </div>
-          </div>
-        </div>
-        <div style={{
-          padding: "28px 28px 24px", background: C.white, borderRadius: 12, boxShadow: SHADOW,
-          borderTop: `3px solid ${C.accent}`,
-        }}>
-          <div style={{ display: "flex", alignItems: "center", gap: 10, marginBottom: 4 }}>
-            <span style={{ fontSize: 16, fontWeight: 700, color: C.accent }}>Professional</span>
-            <span style={{ fontSize: 10, fontWeight: 600, padding: "2px 8px", borderRadius: 8, background: `${C.accent}12`, color: C.accent }}>Coming Soon</span>
-          </div>
-          <div style={{ fontSize: 12, color: C.inkLight, lineHeight: 1.7, marginBottom: 10 }}>
-            Same tools, with branded reports, formatted exports, and workflow
-            features for production analytical work.
-          </div>
-          <div style={{ fontSize: 11, color: C.inkLight, lineHeight: 1.9, marginBottom: 14 }}>
-            <div><span style={{ color: C.accent, marginRight: 6 }}>&#10003;</span>AI Policy Analyst (Claude-powered)</div>
-            <div><span style={{ color: C.accent, marginRight: 6 }}>&#10003;</span>Batch HCPCS code lookup</div>
-            <div><span style={{ color: C.accent, marginRight: 6 }}>&#10003;</span>Branded PDF reports</div>
-            <div><span style={{ color: C.accent, marginRight: 6 }}>&#10003;</span>Formatted Excel workbooks</div>
-            <div><span style={{ color: C.accent, marginRight: 6 }}>&#10003;</span>Persistent saved scenarios</div>
-          </div>
-          <a href="#/pricing" style={{
-            display: "inline-flex", alignItems: "center", padding: "9px 18px",
-            background: C.accent, color: C.white, borderRadius: 8,
-            fontSize: 12, fontWeight: 600, textDecoration: "none",
-          }}>
-            Learn more &#8594;
-          </a>
-        </div>
+      {/* Footer links */}
+      <div style={{ display: "flex", gap: 16, marginBottom: 40, fontSize: 12 }}>
+        <a href="#/pricing" style={{ color: C.inkLight, textDecoration: "none", fontWeight: 500 }}>
+          See pricing →
+        </a>
+        <a href="#/about" style={{ color: C.inkLight, textDecoration: "none", fontWeight: 500 }}>
+          About the project
+        </a>
       </div>
     </div>
   );
@@ -846,7 +829,7 @@ function Pricing() {
         }}>
           <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 6 }}>
             <span style={{ fontSize: 11, fontWeight: 700, color: C.accent, fontFamily: FONT.mono, textTransform: "uppercase", letterSpacing: 1 }}>Professional</span>
-            <span style={{ fontSize: 9, fontWeight: 600, padding: "2px 8px", borderRadius: 8, background: `${C.accent}12`, color: C.accent }}>In Development</span>
+            <span style={{ fontSize: 9, fontWeight: 600, padding: "2px 8px", borderRadius: 8, background: `${C.accent}12`, color: C.accent }}>Coming Soon</span>
           </div>
           <div style={{ fontSize: 18, fontWeight: 600, color: C.inkLight, marginBottom: 16 }}>Paid subscription</div>
           <div style={{ fontSize: 11, color: C.inkLight, lineHeight: 2 }}>
@@ -916,13 +899,15 @@ export default function Platform() {
       "/analyst": <PolicyAnalyst />,
       "/ahead": <AheadCalculator />,
       "/fees": <FeeScheduleDir />,
+      "/lookup": <RateLookup />,
       "/compliance": <ComplianceReport />,
       "/reduction": <RateReduction />,
       "/hcbs8020": <HcbsTracker />,
-      "/methods": <MethodologyLibrary />,
+      "/cpra": <CpraGenerator />,
+      "/methods": <FeeScheduleDir />,
     };
     const toolRoute = toolMap[route] ?? (route.startsWith("/ahead?") ? toolMap["/ahead"] : null);
-    if (toolRoute) return <Suspense fallback={loadingFallback}>{toolRoute}</Suspense>;
+    if (toolRoute) return <ToolErrorBoundary><Suspense fallback={loadingFallback}>{toolRoute}</Suspense></ToolErrorBoundary>;
 
     return (
       <div style={{ maxWidth: 400, margin: "0 auto", padding: "80px 20px", textAlign: "center" }}>

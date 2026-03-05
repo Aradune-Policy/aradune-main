@@ -531,6 +531,10 @@ export default function ComplianceReport() {
                 <Met label="Total Spend" value={f$(summary.totalSpend)} />
               </div>
             )}
+            <div style={{ fontSize: 11, color: AL, padding: "0 0 8px", lineHeight: 1.6 }}>
+              For a focused benchmark view of Medicare parity across standard codes, see the{" "}
+              <a href="#/decay" style={{ color: cB, fontWeight: 600, textDecoration: "none" }}>Medicare Comparison</a> tool.
+            </div>
             {(() => {
               const fsCount = codeAnalysis.filter(c => c.rateSource === "fee_schedule").length;
               if (fsCount === 0) return null;
@@ -751,6 +755,7 @@ export default function ComplianceReport() {
           </Card>
         </>
       )}
+      <div style={{ fontSize:10,color:AL,marginTop:8 }}>Aradune Compliance Report v1.0 · 42 CFR 447.203 · T-MSIS + State Fee Schedules</div>
     </div>
   );
 }

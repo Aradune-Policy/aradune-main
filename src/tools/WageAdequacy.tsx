@@ -69,19 +69,6 @@ interface HcpcsEntry {
   [key: string]: unknown;
 }
 
-interface QualMeasureMeta {
-  name: string;
-  domain: string;
-  median?: number;
-  type?: string;
-  [key: string]: unknown;
-}
-
-interface QualDataShape {
-  rates?: Record<string, Record<string, number>>;
-  measures?: Record<string, QualMeasureMeta>;
-}
-
 interface OesEntry {
   state: string; soc: string; title: string;
   employment: number; h_mean: number; a_mean: number;
@@ -111,16 +98,6 @@ interface AllStateEntry {
   minWage: number;
   belowMin: boolean;
   emp: number;
-}
-
-interface QualityLinkEntry {
-  id: string;
-  name: string;
-  domain: string;
-  stateRate: number | undefined;
-  median: number | undefined;
-  gapVsMedian: number | null;
-  direction: string | undefined;
 }
 
 // ── Shared Components ─────────────────────────────────────────────────
@@ -188,7 +165,6 @@ export default function WageAdequacy() {
   const [crosswalk, setCW] = useState<CrosswalkData | null>(null);
   const [hcpcsData, setHCPCS] = useState<HcpcsEntry[] | null>(null);
   const [statesData, setStates] = useState<Record<string, unknown> | null>(null);
-  const [qualData, setQual] = useState<QualDataShape | null>(null);
   const [oesIndex, setOesIndex] = useState<Record<string, OesEntry>>({});
   const [loading, setLoading] = useState(true);
 
@@ -197,12 +173,11 @@ export default function WageAdequacy() {
     let cancelled = false;
     async function load() {
       try {
-        const [bls, cw, hcpcs, states, qual, oes] = await Promise.all([
+        const [bls, cw, hcpcs, states, oes] = await Promise.all([
           fetch("/data/bls_wages.json").then(r=>r.ok?r.json():null).catch(()=>null),
           fetch("/data/soc_hcpcs_crosswalk.json").then(r=>r.ok?r.json():null).catch(()=>null),
           fetch("/data/hcpcs.json").then(r=>r.ok?r.json():null).catch(()=>null),
           fetch("/data/states.json").then(r=>r.ok?r.json():null).catch(()=>null),
-          fetch("/data/quality_measures.json").then(r=>r.ok?r.json():null).catch(()=>null),
           fetch("/data/oes_wages.json").then(r=>r.ok?r.json():null).catch(()=>null),
         ]);
         if (cancelled) return;
@@ -210,7 +185,6 @@ export default function WageAdequacy() {
         if (cw) setCW(cw as CrosswalkData);
         if (hcpcs) setHCPCS(hcpcs as HcpcsEntry[]);
         if (states) setStates(states as Record<string, unknown>);
-        if (qual) setQual(qual as QualDataShape);
         if (oes && Array.isArray(oes)) {
           const idx: Record<string, OesEntry> = {};
           for (const e of oes as OesEntry[]) { idx[`${e.state}|${e.soc}`] = e; }
@@ -340,41 +314,6 @@ export default function WageAdequacy() {
       .sort((a: AllStateEntry, b: AllStateEntry) => safe(a.gap) - safe(b.gap));
   }, [blsData, curCat, SL, overhead, getTmsisRateAlt, oesIndex]);
 
-  // Quality measure linkage
-  const qualityLink = useMemo((): QualityLinkEntry[] | null => {
-    if (!qualData?.rates || !curCat) return null;
-    // Find quality measures that relate to this service category
-    const catMeasures: Record<string, string[]> = {
-      hcbs: [],
-      behavioral: ['FUH-AD', 'FUM-AD', 'IET-AD', 'CDF-AD'],
-      dental: ['SFM-CH', 'OEV-CH', 'TFL-CH'],
-      nursing: [],
-      aba: ['ADD-CH', 'APM-CH', 'APP-CH'],
-      therapy: [],
-      respite: [],
-    };
-    const measureIds = catMeasures[cat] || [];
-    if (measureIds.length === 0) return null;
-
-    const mapped = measureIds.map((mId: string): QualityLinkEntry | null => {
-      const meta = qualData.measures?.[mId];
-      const rates = qualData.rates?.[mId];
-      if (!meta || !rates) return null;
-      const stateRate = rates[s1];
-      return {
-        id: mId,
-        name: meta.name,
-        domain: meta.domain,
-        stateRate,
-        median: meta.median,
-        gapVsMedian: (stateRate != null && meta.median != null) ? stateRate - meta.median : null,
-        direction: meta.type,
-      };
-    });
-    const results: QualityLinkEntry[] = mapped.filter((m): m is QualityLinkEntry => m != null);
-
-    return results.length > 0 ? results : null;
-  }, [qualData, curCat, cat, s1]);
 
   if (loading) return (
     <div style={{ display:"flex",justifyContent:"center",alignItems:"center",minHeight:400,fontFamily:"Helvetica Neue,Arial,sans-serif" }}>
@@ -572,30 +511,6 @@ export default function WageAdequacy() {
         </div>
       </Card>}
 
-      {/* Quality Measure Linkage */}
-      {qualityLink && qualityLink.length > 0 && <Card x>
-        <CH t="Quality Outcome Linkage" b={`${curCat?.name} quality measures for ${STATE_NAMES[s1]||s1}`}/>
-        <div style={{ padding:"6px 14px 12px" }}>
-          <div style={{ fontSize:10,color:AL,marginBottom:8,lineHeight:1.6 }}>
-            These Medicaid quality measures are linked to the services in this category. Low rates and poor quality outcomes together suggest a rate adequacy problem: providers can't afford to deliver the services that drive these measures.
-          </div>
-          {qualityLink.map((m: QualityLinkEntry) => {
-            const isGood = m.direction?.includes("Higher") ? (m.stateRate ?? 0) >= safe(m.median) : (m.stateRate ?? 0) <= safe(m.median);
-            return <div key={m.id} style={{ display:"flex",alignItems:"center",gap:8,padding:"5px 0",borderBottom:`1px solid ${SF}` }}>
-              <span style={{ fontFamily:FM,fontSize:9,fontWeight:600,width:60,color:cB }}>{m.id}</span>
-              <div style={{ flex:1,minWidth:0 }}>
-                <div style={{ fontSize:10,whiteSpace:"nowrap",overflow:"hidden",textOverflow:"ellipsis" }}>{m.name}</div>
-                <div style={{ fontSize:9,color:AL }}>{m.domain}</div>
-              </div>
-              <div style={{ textAlign:"right",flexShrink:0 }}>
-                <div style={{ fontFamily:FM,fontWeight:600,fontSize:12,color:isGood?POS:NEG }}>{m.stateRate!=null?`${m.stateRate}%`:"—"}</div>
-                <div style={{ fontSize:8,color:AL }}>median {m.median}%</div>
-              </div>
-            </div>;
-          })}
-        </div>
-      </Card>}
-
       {/* Summary Stats */}
       {allStates.length > 0 && <Card>
         <CH t="National Summary" b={`${curCat?.name} at ${overhead}% overhead`}/>
@@ -614,11 +529,10 @@ export default function WageAdequacy() {
         <b>Medicaid rates:</b> T-MSIS actual-paid rates from HHS Medicaid Provider Spending data. These are blended rates across all modifiers, places of service, and managed care encounters, not fee schedule rates.<br/>
         <b>Implied wage calculation:</b> (Medicaid rate × units per hour) × (1 − overhead %). For 15-minute codes, units per hour = 4. Overhead covers employer payroll taxes, workers' comp, admin, benefits, and agency margin.<br/>
         <b>Minimum wages:</b> State minimum wages as of 2024. Federal minimum ($7.25) used where state has no higher minimum.<br/>
-        <b>Quality measures:</b> CMS Medicaid & CHIP Core Set, 2024 reporting cycle (services primarily CY2023). State-level performance rates for measures linked to specific service categories.<br/>
         <b>Limitations:</b> T-MSIS rates are averages across all claim types and may not reflect rates for specific programs (e.g., waiver rates vs. state plan rates). The overhead model is a simplification. Actual overhead varies by agency size, geography, and program requirements. BLS wage data covers all employers, not just Medicaid-funded positions. This tool provides directional analysis for rate adequacy discussions, not definitive cost modeling.
       </div></Card>
 
-      <div style={{ fontSize:10,color:AL,marginTop:8 }}>Aradune Rate & Wage Comparison v1.0 · BLS OEWS May 2024 + T-MSIS + CMS Core Set 2024</div>
+      <div style={{ fontSize:10,color:AL,marginTop:8 }}>Aradune Rate & Wage Comparison v1.0 · BLS OEWS May 2024 + T-MSIS</div>
     </div>
   );
 }

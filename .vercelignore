@@ -5,4 +5,9 @@ mfs_scraper/
 oesm24all/
 AHEAD/
 WORKING/
+VISION/
 server/
+public/data/cpra_all.json
+public/data/dq_flags.json
+public/data/claims_monthly.parquet
+public/data/medicare_rates_locality.parquet

@@ -5,6 +5,7 @@
  */
 import React, { useState, useEffect, useMemo } from "react";
 import { STATES_LIST, STATE_NAMES } from "../data/states";
+import { API_BASE } from "../lib/api";
 
 // ── Design tokens ───────────────────────────────────────────────────────
 const A = "#0A2540", AL = "#425A70", POS = "#2E6B4A", NEG = "#A4262C", WARN = "#B8860B";
@@ -170,9 +171,15 @@ export default function FeeScheduleDir() {
 
   useEffect(() => {
     let cancelled = false;
+    const tryApi = async (apiPath: string, fallback: string, dflt: any = null) => {
+      if (API_BASE) { try { const r = await fetch(`${API_BASE}${apiPath}`); if (r.ok) return r.json(); } catch {} }
+      const r = await fetch(fallback);
+      if (!r.ok) { if (dflt !== null) return dflt; throw new Error(`${fallback}: ${r.status}`); }
+      return r.json();
+    };
     Promise.all([
       fetch("/data/fee_schedule_directory.json").then(r => { if (!r.ok) throw new Error(`fee_schedule_directory: ${r.status}`); return r.json(); }),
-      fetch("/data/states.json").then(r => { if (!r.ok) throw new Error(`states: ${r.status}`); return r.json(); }),
+      tryApi("/api/bulk/states", "/data/states.json"),
       fetch("/data/conversion_factors.json").then(r => r.ok ? r.json() : {}).catch(() => ({})),
     ]).then(([dir, states, cf]) => {
       if (cancelled) return;

@@ -9,6 +9,7 @@ primary_region = "iad"
   ARADUNE_LAKE_DIR = "/app/data/lake"
   ARADUNE_S3_BUCKET = "aradune-datalake"
   ARADUNE_S3_PREFIX = "lake/"
+  ARADUNE_S3_ENDPOINT = "https://8b6e7d89eb4e759c5dd59fe9a5cd028e.r2.cloudflarestorage.com"
   ARADUNE_CORS_ORIGINS = '["https://aradune.co","https://www.aradune.co","http://localhost:5173"]'
 
 [http_service]

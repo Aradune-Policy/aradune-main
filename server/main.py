@@ -3,7 +3,7 @@ from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from server.config import settings
 from server.db import init_db, close_db
-from server.routes import query, meta, presets, cpra, lake, pipeline, pharmacy, policy, wages, hospitals, enrollment, staffing, quality, context
+from server.routes import query, meta, presets, cpra, lake, pipeline, pharmacy, policy, wages, hospitals, enrollment, staffing, quality, context, bulk, supplemental
 
 
 @asynccontextmanager
@@ -42,6 +42,8 @@ app.include_router(enrollment.router)
 app.include_router(staffing.router)
 app.include_router(quality.router)
 app.include_router(context.router)
+app.include_router(bulk.router)
+app.include_router(supplemental.router)
 
 
 @app.get("/health")

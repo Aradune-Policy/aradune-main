@@ -8,6 +8,7 @@ import { useState, useEffect, useMemo } from "react";
 import { STATE_NAMES } from "../data/states";
 import { query as duckQuery } from "../lib/duckdb";
 import { getPreset } from "../lib/presets";
+import { API_BASE } from "../lib/api";
 
 // ── Design tokens ───────────────────────────────────────────────────────
 const A = "#0A2540", AL = "#425A70", POS = "#2E6B4A", NEG = "#A4262C", WARN = "#B8860B";
@@ -109,12 +110,16 @@ export default function ComplianceReport() {
 
   // Load static data
   useEffect(() => {
+    const tryApi = async (apiPath: string, fallback: string, dflt: any = null) => {
+      if (API_BASE) { try { const r = await fetch(`${API_BASE}${apiPath}`); if (r.ok) return r.json(); } catch {} }
+      return fetch(fallback).then(r => r.ok ? r.json() : dflt).catch(() => dflt);
+    };
     Promise.all([
-      fetch("/data/medicare_rates.json").then(r => r.json()),
+      tryApi("/api/bulk/medicare-rates", "/data/medicare_rates.json"),
       fetch("/data/fee_schedule_directory.json").then(r => r.json()),
-      fetch("/data/states.json").then(r => r.json()),
-      fetch("/data/medicaid_rates.json").then(r => r.ok ? r.json() : null).catch(() => null),
-      fetch("/data/gpci.json").then(r => r.ok ? r.json() : []).catch(() => []),
+      tryApi("/api/bulk/states", "/data/states.json"),
+      tryApi("/api/bulk/medicaid-rates", "/data/medicaid_rates.json"),
+      tryApi("/api/bulk/gpci", "/data/gpci.json", []),
     ]).then(([med, dir, states, mcdRates, gpci]) => {
       setMedicare(med as MedicareData);
       setDirectory((dir as { directory: DirEntry[] }).directory.filter((d: DirEntry) => d.agency));

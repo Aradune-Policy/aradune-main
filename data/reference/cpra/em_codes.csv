@@ -1,0 +1,69 @@
+hcpcs_code,description,is_primary_care,is_obgyn,is_mhsud,status_code,work_rvu,pe_rvu_nf,pe_rvu_fac,mp_rvu,nf_total,fac_total
+99202,Office o/p new sf 15 min,TRUE,TRUE,TRUE,A,0.93,1.16,0.4,0.07,2.16,1.4
+99203,Office o/p new low 30 min,TRUE,TRUE,TRUE,A,1.6,1.61,0.69,0.16,3.37,2.45
+99204,Office o/p new mod 45 min,TRUE,TRUE,TRUE,A,2.6,2.21,1.15,0.24,5.05,3.99
+99205,Office o/p new hi 60 min,TRUE,TRUE,TRUE,A,3.5,2.83,1.59,0.34,6.67,5.43
+99211,Off/op est may x req phy/qhp,TRUE,TRUE,TRUE,A,0.18,0.51,0.07,0.01,0.7,0.26
+99212,Office o/p est sf 10 min,TRUE,TRUE,TRUE,A,0.7,0.95,0.3,0.05,1.7,1.05
+99213,Office o/p est low 20 min,TRUE,TRUE,TRUE,A,1.3,1.35,0.57,0.1,2.75,1.97
+99214,Office o/p est mod 30 min,TRUE,TRUE,TRUE,A,1.92,1.8,0.83,0.15,3.87,2.9
+99215,Office o/p est hi 40 min,TRUE,TRUE,TRUE,A,2.8,2.42,1.28,0.21,5.43,4.29
+99381,Init pm e/m new pat infant,TRUE,TRUE,TRUE,N,1.5,1.7,0.59,0.08,3.28,2.17
+99382,Init pm e/m new pat 1-4 yrs,TRUE,TRUE,TRUE,N,1.6,1.74,0.63,0.1,3.44,2.33
+99383,Prev visit new age 5-11,TRUE,TRUE,TRUE,N,1.7,1.77,0.67,0.1,3.57,2.47
+99384,Prev visit new age 12-17,TRUE,TRUE,TRUE,N,2,1.88,0.79,0.13,4.01,2.92
+99385,Prev visit new age 18-39,TRUE,TRUE,TRUE,N,1.92,1.85,0.75,0.13,3.9,2.8
+99386,Prev visit new age 40-64,TRUE,TRUE,TRUE,N,2.33,2.01,0.91,0.15,4.49,3.39
+99387,Init pm e/m new pat 65+ yrs,TRUE,TRUE,TRUE,N,2.5,2.22,0.98,0.16,4.88,3.64
+99391,Per pm reeval est pat infant,TRUE,TRUE,TRUE,N,1.37,1.5,0.54,0.07,2.94,1.98
+99392,Prev visit est age 1-4,TRUE,TRUE,TRUE,N,1.5,1.55,0.59,0.08,3.13,2.17
+99393,Prev visit est age 5-11,TRUE,TRUE,TRUE,N,1.5,1.55,0.59,0.08,3.13,2.17
+99394,Prev visit est age 12-17,TRUE,TRUE,TRUE,N,1.7,1.62,0.67,0.1,3.42,2.47
+99395,Prev visit est age 18-39,TRUE,TRUE,TRUE,N,1.75,1.65,0.69,0.12,3.52,2.56
+99396,Prev visit est age 40-64,TRUE,TRUE,TRUE,N,1.9,1.71,0.75,0.13,3.74,2.78
+99397,Per pm reeval est pat 65+ yr,TRUE,TRUE,TRUE,N,2,1.9,0.79,0.13,4.03,2.92
+99401,Prev med cnsl indiv apprx 15,TRUE,TRUE,TRUE,N,0.48,0.64,0.19,0.03,1.15,0.7
+99402,Prev med cnsl indiv apprx 30,TRUE,TRUE,TRUE,N,0.98,0.84,0.38,0.05,1.87,1.41
+99403,Prev med cnsl indiv apprx 45,TRUE,TRUE,TRUE,N,1.46,1.02,0.57,0.08,2.56,2.11
+99404,Prev med cnsl indiv apprx 60,TRUE,TRUE,TRUE,N,1.95,1.22,0.77,0.13,3.3,2.85
+99406,Behav chng smoking 3-10 min,TRUE,TRUE,TRUE,A,0.24,0.17,0.09,0.02,0.43,0.35
+99407,Behav chng smoking > 10 min,TRUE,TRUE,TRUE,A,0.5,0.28,0.2,0.04,0.82,0.74
+99408,Audit/dast 15-30 min,TRUE,TRUE,TRUE,N,0.65,0.33,0.26,0.04,1.02,0.95
+99409,Audit/dast over 30 min,TRUE,TRUE,TRUE,N,1.3,0.59,0.51,0.07,1.96,1.88
+99412,Preventive counseling group,TRUE,TRUE,TRUE,N,0.25,0.47,0.1,0.02,0.74,0.37
+99415,Prolng clin staff svc 1st hr,TRUE,FALSE,FALSE,A,0,0.61,0.61,0.01,0.62,0.62
+99416,Prolng clin staff svc ea add,TRUE,FALSE,FALSE,A,0,0.28,0.28,0.01,0.29,0.29
+99421,Ol dig e/m svc 5-10 min,TRUE,TRUE,FALSE,A,0.25,0.18,0.11,0.02,0.45,0.38
+99422,Ol dig e/m svc 11-20 min,TRUE,TRUE,FALSE,A,0.5,0.34,0.22,0.04,0.88,0.76
+99423,Ol dig e/m svc 21+ min,TRUE,TRUE,FALSE,A,0.8,0.55,0.34,0.04,1.39,1.18
+99424,Prin care mgmt phys 1st 30,TRUE,FALSE,FALSE,A,1.45,0.93,0.66,0.12,2.5,2.23
+99425,Prin care mgmt phys ea addl,TRUE,FALSE,FALSE,A,1,0.76,0.46,0.06,1.82,1.52
+99426,Prin care mgmt staff 1st 30,TRUE,FALSE,FALSE,A,1,0.85,0.41,0.06,1.91,1.47
+99427,Prin care mgmt staff ea addl,TRUE,FALSE,FALSE,A,0.71,0.81,0.31,0.04,1.56,1.06
+99437,Chrnc care mgmt phys ea addl,TRUE,TRUE,TRUE,A,1,0.72,0.42,0.06,1.78,1.48
+99439,Chrnc care mgmt staf ea addl,TRUE,TRUE,TRUE,A,0.7,0.68,0.28,0.04,1.42,1.02
+99446,Ntrprof ph1/ntrnet/ehr 5-10,TRUE,TRUE,TRUE,A,0.35,0.15,0.15,0.03,0.53,0.53
+99447,Ntrprof ph1/ntrnet/ehr 11-20,TRUE,TRUE,TRUE,A,0.7,0.31,0.31,0.06,1.07,1.07
+99448,Ntrprof ph1/ntrnet/ehr 21-30,TRUE,TRUE,TRUE,A,1.05,0.46,0.46,0.08,1.59,1.59
+99449,Ntrprof ph1/ntrnet/ehr 31/>,TRUE,TRUE,TRUE,A,1.4,0.63,0.63,0.12,2.15,2.15
+99451,Ntrprof ph1/ntrnet/ehr 5/>,TRUE,TRUE,TRUE,A,0.7,0.28,0.28,0.04,1.02,1.02
+99452,Ntrprof ph1/ntrnet/ehr rfrl,TRUE,TRUE,TRUE,A,0.7,0.3,0.3,0.04,1.04,1.04
+99453,Rem mntr physiol param setup,TRUE,TRUE,TRUE,A,0,0.59,0.59,0.02,0.61,0.61
+99454,Rem mntr physiol param dev,TRUE,TRUE,TRUE,A,0,1.32,1.32,0.01,1.33,1.33
+99457,Rem physiol mntr 1st 20 min,TRUE,TRUE,TRUE,A,0.61,0.83,0.24,0.04,1.48,0.89
+99458,Rem physiol mntr ea addl 20,TRUE,TRUE,TRUE,A,0.61,0.54,0.24,0.04,1.19,0.89
+99473,Self-meas bp pt educaj/train,TRUE,FALSE,FALSE,A,0,0.42,0.42,0.01,0.43,0.43
+99474,Self-meas bp 2 readg bid 30d,TRUE,FALSE,FALSE,A,0.18,0.32,0.07,0.01,0.51,0.26
+99483,Assmt & care pln pt cog imp,TRUE,FALSE,TRUE,A,3.84,4.12,1.64,0.27,8.23,5.75
+99484,Care mgmt svc bhvl hlth cond,TRUE,FALSE,TRUE,A,0.93,0.66,0.3,0.05,1.64,1.28
+99487,Cplx chrnc care 1st 60 min,TRUE,FALSE,FALSE,A,1.81,2.13,0.75,0.13,4.07,2.69
+99489,Cplx chrnc care ea addl 30,TRUE,FALSE,FALSE,A,1,1.12,0.4,0.06,2.18,1.46
+99490,Chrnc care mgmt staff 1st 20,TRUE,TRUE,TRUE,A,1,0.81,0.42,0.06,1.87,1.48
+99491,Chrnc care mgmt phys 1st 30,TRUE,TRUE,TRUE,A,1.5,0.94,0.64,0.1,2.54,2.24
+99492,1st psyc collab care mgmt,TRUE,TRUE,TRUE,A,1.88,2.48,0.8,0.13,4.49,2.81
+99493,Sbsq psyc collab care mgmt,TRUE,TRUE,TRUE,A,2.05,1.93,0.86,0.15,4.13,3.06
+99494,1st/sbsq psyc collab care,TRUE,TRUE,TRUE,A,0.82,0.87,0.34,0.04,1.73,1.2
+99495,Transj care mgmt mod f2f 14d,TRUE,FALSE,FALSE,A,2.78,3.27,1.2,0.17,6.22,4.15
+99496,Transj care mgmt high f2f 7d,TRUE,FALSE,FALSE,A,3.79,4.4,1.61,0.24,8.43,5.64
+99497,Advncd care plan 30 min,TRUE,FALSE,FALSE,A,1.5,0.86,0.64,0.1,2.46,2.24
+99498,Advncd care plan addl 30 min,TRUE,FALSE,FALSE,A,1.4,0.63,0.62,0.1,2.13,2.12

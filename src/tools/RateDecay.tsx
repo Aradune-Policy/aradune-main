@@ -1,6 +1,7 @@
 import React, { useState, useMemo, useEffect, useCallback } from "react";
 import { BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer, CartesianGrid, ReferenceLine, Cell, ScatterChart, Scatter, ZAxis } from "recharts";
 import type { SafeTipProps, TooltipEntry, DecayHcpcs } from "../types";
+import { API_BASE } from "../lib/api";
 
 // ── Design System ───────────────────────────────────────────────────────
 const A = "#0A2540";
@@ -123,10 +124,14 @@ export default function RateDecay() {
     let cancelled = false;
     async function load() {
       try {
+        const tryApi = async (apiPath: string, fallback: string) => {
+          if (API_BASE) { try { const r = await fetch(`${API_BASE}${apiPath}`); if (r.ok) return r.json(); } catch {} }
+          return fetch(fallback).then(r=>r.ok?r.json():null).catch(()=>null);
+        };
         const [hcpcs, medicare, mcdRates] = await Promise.all([
-          fetch("/data/hcpcs.json").then(r=>r.ok?r.json():null).catch(()=>null),
-          fetch("/data/medicare_rates.json").then(r=>r.ok?r.json():null).catch(()=>null),
-          fetch("/data/medicaid_rates.json").then(r=>r.ok?r.json():null).catch(()=>null),
+          tryApi("/api/bulk/hcpcs-rates", "/data/hcpcs.json"),
+          tryApi("/api/bulk/medicare-rates", "/data/medicare_rates.json"),
+          tryApi("/api/bulk/medicaid-rates", "/data/medicaid_rates.json"),
         ]);
         if (cancelled) return;
         if (hcpcs) setHCPCS(hcpcs);

@@ -2,6 +2,7 @@ import React, { useState, useMemo, useEffect, useCallback } from "react";
 import type { Methodology, ComputeContext, RateResult, RateBuilderHcpcs, RateBuilderMedicare } from "../types";
 import { useProAccess, ProBadge, ProGateModal } from "../components/ProGate";
 import { query as duckQuery } from "../lib/duckdb";
+import { API_BASE } from "../lib/api";
 
 // ── Design System ───────────────────────────────────────────────────────
 const A = "#0A2540";
@@ -182,11 +183,15 @@ export default function RateBuilder() {
     let cancelled = false;
     async function load() {
       try {
+        const tryApi = async (apiPath: string, fallback: string, dflt: any = null) => {
+          if (API_BASE) { try { const r = await fetch(`${API_BASE}${apiPath}`); if (r.ok) return r.json(); } catch {} }
+          return fetch(fallback).then(r=>r.ok?r.json():dflt).catch(()=>dflt);
+        };
         const [hcpcs, medicare, mcdRates, gpci] = await Promise.all([
-          fetch("/data/hcpcs.json").then(r=>r.ok?r.json():null).catch(()=>null),
-          fetch("/data/medicare_rates.json").then(r=>r.ok?r.json():null).catch(()=>null),
-          fetch("/data/medicaid_rates.json").then(r=>r.ok?r.json():null).catch(()=>null),
-          fetch("/data/gpci.json").then(r=>r.ok?r.json():[]).catch(()=>[]),
+          tryApi("/api/bulk/hcpcs-rates", "/data/hcpcs.json"),
+          tryApi("/api/bulk/medicare-rates", "/data/medicare_rates.json"),
+          tryApi("/api/bulk/medicaid-rates", "/data/medicaid_rates.json"),
+          tryApi("/api/bulk/gpci", "/data/gpci.json", []),
         ]);
         if (cancelled) return;
         if (hcpcs) setHCPCS(hcpcs as RateBuilderHcpcs[]);

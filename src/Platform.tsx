@@ -55,88 +55,88 @@ function useRoute() {
 const TOOLS: ToolDef[] = [
   // ── TRANSPARENCY ──────────────────────────────────────────────────────
   {
-    id: "explorer", group: "transparency", name: "Spending Explorer",
+    id: "explorer", group: "explore", name: "Spending Explorer",
     tagline: "Search and compare Medicaid spending across every state",
     desc: "Query 190M+ FFS claims across 54 jurisdictions with cross-state rate comparisons, provider analysis, and a full SQL editor.",
     status: "live", icon: "⌕", color: C.brand,
   },
   {
-    id: "decay", group: "transparency", name: "Medicare Comparison",
+    id: "decay", group: "explore", name: "Medicare Comparison",
     navLabel: "Medicare Comparison",
     tagline: "Medicaid rates as a percentage of Medicare, by code and state",
     desc: "Every HCPCS code as a percentage of the Medicare PFS, by state. Identify where Medicaid has fallen furthest behind.",
     status: "live", icon: "◧", color: C.brand,
   },
   {
-    id: "fees", group: "transparency", name: "State Fee Schedule Directory",
+    id: "fees", group: "explore", name: "State Fee Schedule Directory",
     tagline: "Fee schedules, methodologies, and access for every state",
     desc: "Every state's Medicaid fee schedule in one place: methodology type, format, access requirements, spending context, and CMS compliance readiness.",
     status: "live", icon: "⊞", color: C.brand,
   },
   {
-    id: "lookup", group: "transparency", name: "Rate Lookup",
+    id: "lookup", group: "explore", name: "Rate Lookup",
     tagline: "Search any HCPCS code, compare fee schedule rates across states",
     desc: "Type a HCPCS code and instantly see every state's fee schedule rate vs Medicare. 16,000+ codes across 40+ states.",
     status: "live", icon: "⊘", color: C.brand,
   },
   {
-    id: "compliance", group: "transparency", name: "Compliance Report",
+    id: "compliance", group: "explore", name: "Compliance Report",
     tagline: "Access Rule compliance checklist and rate transparency package",
     desc: "Unified compliance package for 42 CFR §447.203: Medicare parity, rate reduction modeling, methodology documentation, and export-ready formats.",
     status: "live", icon: "◇", color: C.brand,
   },
   {
-    id: "cpra", group: "transparency", name: "CPRA Generator",
+    id: "cpra", group: "explore", name: "CPRA Generator",
     tagline: "Comparative Payment Rate Analysis for 42 CFR 447.203 compliance",
     desc: "Generate the Comparative Payment Rate Analysis required by July 2026. Medicaid vs Medicare rates across primary care, OB/GYN, and MH/SUD with PDF, Excel, and HTML export.",
     status: "live", icon: "◆", color: C.brand,
   },
   // ── ADEQUACY ──────────────────────────────────────────────────────────
   {
-    id: "wages", group: "adequacy", name: "Rate & Wage Comparison",
+    id: "wages", group: "analyze", name: "Rate & Wage Comparison",
     tagline: "BLS market wages vs Medicaid reimbursement rates",
     desc: "Medicaid reimbursement vs. BLS market wages for healthcare occupations across every state.",
     status: "live", icon: "⊿", color: C.accent,
   },
   {
-    id: "quality", group: "adequacy", name: "Quality Linkage",
+    id: "quality", group: "analyze", name: "Quality Linkage",
     tagline: "CMS Core Set outcomes mapped to payment rates",
     desc: "55 CMS Core Set measures across 52 jurisdictions. See whether higher rates correlate with better outcomes.",
     status: "live", icon: "◈", color: C.accent,
   },
   {
-    id: "reduction", group: "adequacy", name: "Rate Reduction Analyzer",
+    id: "reduction", group: "analyze", name: "Rate Reduction Analyzer",
     tagline: "Analyze the impact of proposed Medicaid rate reductions",
     desc: "Model proposed rate cuts against access thresholds and Medicare ratios, code by code.",
     status: "live", icon: "▼", color: C.accent,
   },
   {
-    id: "hcbs8020", group: "adequacy", name: "HCBS Compensation Tracker",
+    id: "hcbs8020", group: "analyze", name: "HCBS Compensation Tracker",
     tagline: "How much of HCBS spending reaches direct care workers?",
     desc: "Track HCBS payment share reaching direct care workers against the 80/20 pass-through benchmark, by state and code.",
     status: "live", icon: "⊕", color: C.accent,
   },
   // ── MODELING ──────────────────────────────────────────────────────────
   {
-    id: "builder", group: "modeling", name: "Rate Builder",
+    id: "builder", group: "build", name: "Rate Builder",
     tagline: "Calculate Medicaid rates with full audit trails",
     desc: "RBRVS rate calculations with real conversion factors, RVU components, and state-specific rules.",
     status: "live", icon: "⬡", color: C.teal,
   },
   {
-    id: "ahead", group: "modeling", name: "AHEAD Calculator",
+    id: "ahead", group: "build", name: "AHEAD Calculator",
     tagline: "Model hospital global budgets under CMS's AHEAD demonstration",
     desc: "Model hospital global budgets under AHEAD parameters. Compare participation scenarios and savings targets.",
     status: "live", icon: "△", color: C.teal,
   },
   {
-    id: "ahead-readiness", group: "modeling", name: "AHEAD Readiness Score",
+    id: "ahead-readiness", group: "build", name: "AHEAD Readiness Score",
     tagline: "Scored dashboard: how ready is your hospital for a global budget?",
     desc: "Enter a CCN. Aradune scores your hospital across four dimensions — financial stability, revenue concentration, supplemental exposure, and volume stability — using public HCRIS and CMS data.",
     status: "live", icon: "⬢", color: C.teal,
   },
   {
-    id: "analyst", group: "modeling", name: "Policy Analyst",
+    id: "analyst", group: "build", name: "Policy Analyst",
     tagline: "AI-powered rate analysis and SPA language drafting",
     desc: "Ask questions in plain English. Get answers grounded in real data: rates, comparisons, fiscal impact, and draft SPA language.",
     status: "beta", icon: "◎", color: C.teal,
@@ -144,16 +144,16 @@ const TOOLS: ToolDef[] = [
 ];
 
 const NAV_GROUPS: NavGroup[] = [
-  { key: "transparency", label: "Transparency", tools: TOOLS.filter(t => t.group === "transparency") },
-  { key: "adequacy", label: "Adequacy", tools: TOOLS.filter(t => t.group === "adequacy") },
-  { key: "modeling", label: "Modeling", tools: TOOLS.filter(t => t.group === "modeling") },
+  { key: "explore", label: "Explore", tools: TOOLS.filter(t => t.group === "explore") },
+  { key: "analyze", label: "Analyze", tools: TOOLS.filter(t => t.group === "analyze") },
+  { key: "build", label: "Build", tools: TOOLS.filter(t => t.group === "build") },
 ];
 
-const GROUP_COLORS: Record<string, string> = { transparency: C.brand, adequacy: C.accent, modeling: C.teal };
+const GROUP_COLORS: Record<string, string> = { explore: C.brand, analyze: C.accent, build: C.teal };
 const GROUP_DESCS: Record<string, string> = {
-  transparency: "Spending, rates, and comparative data across every state.",
-  adequacy: "Are rates sufficient? Workforce wages, quality outcomes, and access.",
-  modeling: "Calculate rates, model scenarios, draft policy.",
+  explore: "Browse and query rate data across every state and service code.",
+  analyze: "Three lenses on rate adequacy — workforce wages, health outcomes, and Medicare benchmarking.",
+  build: "Calculate rates, model scenarios, draft policy, and build the case for change.",
 };
 
 // ── Responsive hook ──────────────────────────────────────────────────────
@@ -326,7 +326,7 @@ function Landing() {
         display: "grid", gridTemplateColumns: `repeat(auto-fit,minmax(${isMobile ? "70px" : "130px"},1fr))`,
         gap: isMobile ? 10 : 16, padding: "20px 0 36px", borderTop: `1px solid ${C.border}`,
       }}>
-        {([["13", "analytical tools"], ["54", "states & territories"], ["8", "federal datasets"], ["42", "state fee schedules"]] as const).map(([val, label]) => (
+        {([["14", "analytical tools"], ["54", "states & territories"], ["89.5M", "data lake rows"], ["81", "lake tables"]] as const).map(([val, label]) => (
           <div key={label}>
             <div style={{ fontSize: 20, fontWeight: 700, fontFamily: FONT.mono, color: C.brand, letterSpacing: -0.5 }}>{val}</div>
             <div style={{ fontSize: 11, color: C.inkLight, marginTop: 2 }}>{label}</div>
@@ -503,24 +503,24 @@ function Landing() {
       {/* 5. Transparency → Adequacy → Modeling workflow */}
       <div style={{ padding: "36px 0 40px", borderTop: `1px solid ${C.border}` }}>
         <div style={{ fontSize: 14, fontWeight: 600, color: C.ink, marginBottom: 6 }}>
-          Transparency → Adequacy → Modeling
+          Explore → Analyze → Build
         </div>
         <div style={{ fontSize: 12, color: C.inkLight, lineHeight: 1.7, maxWidth: 560, marginBottom: 20 }}>
-          Start with what the data shows. Measure whether rates are sufficient.
-          Then calculate what rates should be, model the scenarios, and build
-          the case for change.
+          Start by understanding what your state spends and on what. Measure
+          whether those rates are adequate. Then calculate what rates should be
+          and build the case for change.
         </div>
         <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit,minmax(240px,1fr))", gap: 14 }}>
           {([
-            { num: "1", label: "Transparency", q: "What does the data show?",
-              desc: "Browse 190M+ claims across 54 jurisdictions. Compare Medicaid rates to Medicare. Access state fee schedules and rate-setting methodologies.",
-              tools: "Spending Explorer · Medicare Comparison · Rate Lookup · Fee Schedule Directory", color: C.brand },
-            { num: "2", label: "Adequacy", q: "Are rates sufficient?",
-              desc: "Compare Medicaid reimbursement against BLS market wages, map quality outcomes to payment levels, and analyze rate reductions against access thresholds.",
-              tools: "Rate & Wage Comparison · Quality Linkage · Rate Reduction Analyzer", color: C.accent },
-            { num: "3", label: "Modeling", q: "What should rates be? Build the case.",
+            { num: "1", label: "Explore", q: "What are we spending?",
+              desc: "Browse 227M+ claims across 54 jurisdictions. Compare rates by code, category, or state. Access fee schedules and rate-setting methodologies.",
+              tools: "Spending Explorer · Medicare Comparison · Rate Lookup · CPRA Generator", color: C.brand },
+            { num: "2", label: "Analyze", q: "Are rates adequate?",
+              desc: "Three lenses: compare against BLS market wages, map quality outcomes to payment levels, and track how far rates have eroded relative to Medicare.",
+              tools: "Wage Adequacy · Quality Linkage · Rate Reduction · HCBS Tracker", color: C.accent },
+            { num: "3", label: "Build", q: "What should we pay?",
               desc: "Calculate defensible rates using real RVUs and conversion factors. Model hospital global budgets. Draft methodology language. Get AI-powered policy analysis.",
-              tools: "Rate Builder · AHEAD Calculator · Policy Analyst", color: C.teal },
+              tools: "Rate Builder · AHEAD Calculator · AHEAD Readiness · Policy Analyst", color: C.teal },
           ] as const).map(item => (
             <div key={item.num} style={{
               background: C.white, borderRadius: 12, boxShadow: SHADOW,
@@ -888,6 +888,7 @@ function PasswordGate({ onAuth }: { onAuth: () => void }) {
   const submit = () => {
     if (pw === "mediquiad") {
       sessionStorage.setItem("aradune_auth", "1");
+      try { localStorage.setItem("aradune_token", pw); } catch {}
       onAuth();
     } else {
       setError(true);
@@ -900,34 +901,59 @@ function PasswordGate({ onAuth }: { onAuth: () => void }) {
       minHeight: "100vh", display: "flex", flexDirection: "column",
       alignItems: "center", justifyContent: "center",
       fontFamily: FONT.body, background: C.bg, color: C.ink,
+      padding: "0 20px",
     }}>
-      <img src="/assets/logo-full.png" alt="Aradune" style={{ height: 56, marginBottom: 24 }} />
-      <div style={{ fontSize: 20, fontWeight: 700, letterSpacing: -0.5, marginBottom: 6 }}>Coming Soon</div>
-      <div style={{ fontSize: 13, color: C.inkLight, marginBottom: 24, textAlign: "center", maxWidth: 360, lineHeight: 1.6 }}>
-        The Medicaid data intelligence platform. Enter the access code to preview.
-      </div>
-      <form onSubmit={e => { e.preventDefault(); submit(); }} style={{ display: "flex", gap: 8, alignItems: "center" }}>
-        <input
-          type="password"
-          value={pw}
-          onChange={e => { setPw(e.target.value); setError(false); }}
-          placeholder="Access code"
-          autoFocus
-          style={{
-            padding: "8px 14px", fontSize: 13, borderRadius: 6,
-            border: `1px solid ${error ? C.neg : C.border}`,
-            outline: "none", width: 200, fontFamily: FONT.body,
-          }}
-        />
-        <button type="submit" style={{
-          padding: "8px 18px", fontSize: 13, fontWeight: 600,
-          background: C.brand, color: C.white, border: "none",
-          borderRadius: 6, cursor: "pointer",
-        }}>Enter</button>
-      </form>
-      {error && <div style={{ fontSize: 11, color: C.neg, marginTop: 8 }}>Incorrect code</div>}
-      <div style={{ marginTop: 40, fontSize: 11, color: C.inkLight }}>
-        Questions? <a href="mailto:aradune-medicaid@proton.me" style={{ color: C.brand, textDecoration: "none" }}>aradune-medicaid@proton.me</a>
+      <div style={{ width: "100%", maxWidth: 400 }}>
+        {/* Logo as text */}
+        <div style={{
+          fontSize: 32, fontWeight: 700, letterSpacing: 3,
+          color: C.brand, textTransform: "uppercase", marginBottom: 40,
+        }}>
+          ARADUNE
+        </div>
+
+        {/* Description */}
+        <div style={{ marginBottom: 32 }}>
+          <div style={{ fontSize: 20, fontWeight: 700, color: C.ink, letterSpacing: -0.5, marginBottom: 10 }}>
+            Coming Soon
+          </div>
+          <p style={{ fontSize: 13, color: C.inkLight, lineHeight: 1.7, margin: 0 }}>
+            The Medicaid data intelligence platform. Rate transparency, adequacy
+            measurement, and fiscal modeling across all 54 jurisdictions.
+          </p>
+        </div>
+
+        {/* Access code input */}
+        <div style={{ marginBottom: 8 }}>
+          <div style={{ fontSize: 11, fontWeight: 600, color: C.inkLight, marginBottom: 6, textTransform: "uppercase", letterSpacing: 0.5 }}>
+            Access code
+          </div>
+          <form onSubmit={e => { e.preventDefault(); submit(); }} style={{ display: "flex", gap: 8 }}>
+            <input
+              type="password"
+              value={pw}
+              onChange={e => { setPw(e.target.value); setError(false); }}
+              placeholder="Enter code"
+              autoFocus
+              style={{
+                flex: 1, padding: "10px 14px", fontSize: 13, borderRadius: 6,
+                border: `1px solid ${error ? C.neg : C.border}`,
+                outline: "none", fontFamily: FONT.body, background: C.white,
+              }}
+            />
+            <button type="submit" style={{
+              padding: "10px 22px", fontSize: 13, fontWeight: 600,
+              background: C.brand, color: C.white, border: "none",
+              borderRadius: 6, cursor: "pointer", flexShrink: 0,
+            }}>Enter</button>
+          </form>
+          {error && <div style={{ fontSize: 11, color: C.neg, marginTop: 6 }}>Incorrect code</div>}
+        </div>
+
+        {/* Contact */}
+        <div style={{ marginTop: 48, fontSize: 11, color: C.inkLight }}>
+          Questions? <a href="mailto:aradune-medicaid@proton.me" style={{ color: C.brand, textDecoration: "none" }}>aradune-medicaid@proton.me</a>
+        </div>
       </div>
     </div>
   );

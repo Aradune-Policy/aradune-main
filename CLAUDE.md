@@ -1,7 +1,7 @@
 # CLAUDE.md — Aradune
 > **The ONE source for Medicaid data intelligence.**
 > Read this file at the start of every session. It defines what Aradune is, how it's built, and the rules for building it.
-> Last updated: 2026-03-06 · Last commit: `b549998 wip: before reorganization` · Live: https://www.aradune.co
+> Last updated: 2026-03-06 · Last commit: `95f5a34` · Live: https://www.aradune.co
 
 ---
 
@@ -74,10 +74,10 @@ Frontend:       React 18 + TypeScript + Vite (Vercel Pro, aradune.co)
 Visualization:  Recharts
 Routing:        Hash-based in Platform.tsx
 Data store:     DuckDB-WASM (browser-side client queries)
-Data lake:      Hive-partitioned Parquet (data/lake/) — 89.5M rows, 81 tables
+Data lake:      Hive-partitioned Parquet (data/lake/) — 89.5M rows, 83 tables
                 DuckDB in-memory views over Parquet files
                 S3 sync ready (scripts/sync_lake.py)
-Backend:        Python FastAPI (server/) — 58 endpoints, DuckDB-backed
+Backend:        Python FastAPI (server/) — 77 endpoints, DuckDB-backed
                 3 Vercel serverless functions in api/ (legacy)
 AI:             Claude API via Vercel serverless (api/chat.js)
                 Haiku for routing · Sonnet for analysis · Opus for complex reasoning
@@ -127,41 +127,77 @@ See `docs/AraduneMockup.jsx` as the definitive landing page + nav reference.
 
 ---
 
-## 5. CPRA Generator — The Wedge Product
+## 5. CPRA — Two Separate Systems
 
-`src/tools/CpraGenerator.tsx` (734 lines). Generates the Comparative Payment Rate Analysis every state must publish by **July 1, 2026** under 42 CFR 447.203.
+The CPRA exists as **two architecturally distinct systems** that serve different purposes:
 
-**Three service categories:** Primary Care (29 codes) · OB/GYN (18 codes) · MH/SUD (27 codes) = 74 E/M codes total.
+### 5a. CPRA Frontend (Pre-Computed Cross-State Comparison)
 
-**Data flow:**
+`src/tools/CpraGenerator.tsx` (734 lines). Displays pre-computed rate comparisons from `fact_rate_comparison` (278K rows, 42 states, all HCPCS codes). This is a **general fee-to-Medicare comparison tool** — not limited to the 68 E/M codes.
+
+**Data flow (pre-computed, read-only):**
 ```
-dim_447_codes.json (74 codes)        → defines which codes to analyze
-cpra_em.json (2,742 rows/34 states)  → pre-computed rate comparisons (PRIMARY)
-medicaid_rates.json + medicare_rates.json → fallback for states not in cpra_em
-claims.parquet via DuckDB            → claim volume per code per state (CY2023 FFS)
+fact_rate_comparison (lake)           → all codes, 42 states, pre-computed pct_of_medicare
+cpra_em.json (2,742 rows/34 states)  → slim E/M extract for frontend
+dim_447_codes.json (74 codes)        → old code list (⚠️ should be 68 — see 5b)
 cpra_summary.json (7KB)              → pipeline aggregates (median, national context)
 dq_flags_em.json (771 flags)         → data quality warnings per code/state
-conversion_factors.json              → state methodology metadata
-states.json                          → FFS share, enrollment, FMAP
 ```
-
-**UI structure (top to bottom):**
-1. Header + state selector + PDF/Excel/HTML export buttons
-2. Compliance status banner (colored by worst category, pipeline median + national context)
-3. Category tabs: All | Primary Care | OB/GYN | MH/SUD
-4. Summary KPIs: code count, weighted avg % MCR, below 80%, below 50%, claims, bene
-5. Threshold bar visualization (sorted bars colored by flag)
-6. Sortable rate comparison table (HCPCS, Description, Category, Medicaid, Medicare, % MCR, Claims, Bene)
-7. Data quality panel (coverage, rate sources, DQ flags, known limitations)
-8. State methodology reference + regulatory citation
 
 **Export formats:** PDF (`src/utils/cpraPdf.ts`) · Excel (`src/utils/cpraXlsx.ts`) · HTML inline.
 
-**CPRA compliance rules (always enforce):**
+**API endpoints (pre-computed):**
+- `GET /api/cpra/states` — states with rate comparison data
+- `GET /api/cpra/rates/{state_code}` — all rate comparisons for a state
+- `GET /api/cpra/dq/{state_code}` — data quality flags
+- `GET /api/cpra/compare` — compare specific codes across states
+
+### 5b. CPRA Upload Tool (42 CFR 447.203 Compliance Generator)
+
+`server/engines/cpra_upload.py` (821 lines). A **user-upload, stateless CPRA generator** ported from the standalone `cpra-pipeline/` project. Any state uploads two CSVs and gets the full CPRA computed in <2 seconds.
+
+**This is the regulatory-correct implementation.** Key differences from the pre-computed system:
+
+| Aspect | Pre-Computed (5a) | Upload Tool (5b) |
+|--------|-------------------|-------------------|
+| E/M codes | 74 (old list) | **68** (official CMS CY 2025 E/M Code List) |
+| Code-category mapping | 1:1 (74 rows) | **Many-to-many** (171 pairs: all 68 in PC, 52 in OB-GYN, 51 in MH/SUD) |
+| Conversion factor | $33.4009 (CY2026) | **$32.3465** (CY2025 — correct for July 2026 deadline) |
+| Medicare rates | State-level averages | **Per-locality** (FL=3, CA=29, AL=1 localities) |
+| Data source | Pre-computed lake table | **User-uploaded fee schedule + utilization** |
+| Categories | "primary_care", "obgyn", "mhsud" | "Primary Care", "OB-GYN", "Outpatient MH/SUD" |
+
+**Reference data** (in `data/reference/cpra/`):
+- `em_codes.csv` — 68 codes with RVUs from official CMS CY 2025 E/M Code List
+- `code_categories.csv` — 171 rows, many-to-many code→category mapping
+- `GPCI2025.csv` — 109 Medicare localities across 53 states
+
+**API endpoints (upload):**
+- `GET /api/cpra/upload/states` — 53 states with locality counts
+- `GET /api/cpra/upload/codes` — 68 codes + 171 category mappings
+- `GET /api/cpra/upload/templates/fee-schedule` — blank CSV template (68 rows)
+- `GET /api/cpra/upload/templates/utilization` — blank CSV template (171 rows)
+- `POST /api/cpra/upload/generate` — upload 2 CSVs → full CPRA JSON
+- `POST /api/cpra/upload/generate/csv` — → CSV download
+- `POST /api/cpra/upload/generate/report` — → self-contained HTML report
+
+**FL spot-check (verified against R pipeline):**
+- 99213 PC: Medicaid $34.29 / Medicare $91.39 = **37.5%** of Medicare
+- 42 of 68 codes have FL rates; 26 are not on the AHCA fee schedule
+- Category weighted averages: PC 61.2%, OB-GYN 61.1%, MH/SUD 59.0%
+
+**Source project:** `/Users/jamestori/Desktop/cpra-pipeline/` — contains the R pipeline (publication-quality figures/tables via Quarto), Python engine, and standalone FastAPI server. See `cpra-pipeline/CPRA_TOOL_HANDOFF.md` for full details.
+
+### CPRA Compliance Rules (always enforce)
+
+- **68 codes** from the official CMS CY 2025 E/M Code List — not 74
+- **$32.3465** CY 2025 CF (non-QPP) — not $33.4009 (that's CY2026)
+- **Many-to-many categories** — a code can appear in multiple categories
 - Base rates only — do not include supplemental payments in the % calculation
 - Non-facility Medicare rate is the benchmark (not facility), per 42 CFR 447.203
 - Medicaid rates effective July 1, 2025 vs CY2025 Medicare PFS
 - Published by July 1, 2026; updated biennially thereafter
+- Small cell suppression: beneficiary counts 1-10 suppressed
 
 ---
 
@@ -248,11 +284,15 @@ python cpra_engine.py --stats           # Print table counts
 
 | # | Bug | Location | Status |
 |---|-----|----------|--------|
-| 1 | **White page on CPRA** | `/#/cpra` | Likely fixed — ErrorBoundary added to Platform.tsx. **Needs user confirmation in prod.** |
-| 2 | ~~T-MSIS DuckDB empty~~ | | **Resolved** — T-MSIS data ingested into lake via `build_facts_tmsis.py` (bypasses R pipeline) |
-| 3 | ~~6 states missing from CPRA~~ | | **Fixed** — `COALESCE(r.rate, r.rate_nonfacility, r.rate_facility)` in cpra_engine.py. 34→42 states. IA has no physician codes. |
-| 4 | **Frontend not wired to FastAPI** | All 13 tools | Tools read static JSON from `public/data/`. 56 FastAPI endpoints exist but nothing calls them. ~80% of lake data invisible to users. |
+| 1 | ~~White page on CPRA~~ | `/#/cpra` | **Resolved** — ErrorBoundary added. |
+| 2 | ~~T-MSIS DuckDB empty~~ | | **Resolved** — T-MSIS data ingested into lake. |
+| 3 | ~~6 states missing from CPRA~~ | | **Fixed** — COALESCE in cpra_engine.py. 34→42 states. |
+| 4 | ~~**Frontend not wired to FastAPI**~~ | All 13 tools | **Resolved** — All tools wired with JSON fallback. |
 | 5 | **Policy Analyst no auth** | `api/chat.js` | Publicly accessible — anyone can burn Anthropic API credits. Site password gate helps but is client-side only. |
+| 6 | **Old CPRA uses wrong code list** | `cpra_engine.py`, `fact_rate_comparison` | Uses 74 codes + $33.4009 CF + 1:1 categories. Should be 68 codes + $32.3465 CF + many-to-many (171 pairs). Upload tool (5b) has the correct values. Pre-computed data not yet updated. |
+| 7 | **FL rates not in CPRA display** | `fact_rate_comparison` | FL Practitioner Fee Schedule (6,676 codes) added to `fact_medicaid_rate` but NOT reflected in `fact_rate_comparison` (which CPRA frontend reads). The upload tool (5b) computes FL correctly from user-uploaded CSVs. |
+| 8 | **CPRA upload not deployed to Fly.io** | `server/engines/cpra_upload.py` | Engine + routes ported and tested locally. Needs: reference CSVs in Docker image, `python-multipart` in Dockerfile, deploy. |
+| 9 | **R2 credentials need rotation** | Infrastructure | Shared in plain text during session. |
 
 ### Data Quality — Investigated
 
@@ -272,35 +312,39 @@ All outlier states investigated. Root causes documented in `public/data/dq_state
 |------|--------|
 | ~~`public/data/cpra_precomputed.json`~~ | **Deleted** |
 | `scripts/build-cpra-data.mjs` | Delete — superseded by cpra_engine.py |
-| Bar visualization clips at outliers (CT 666%) | Cap at 200% or use log scale |
-| Conversion factor discrepancy | `medicare_pfs.py` uses $32.3465 (QPP-adjusted). Reconcile to $33.4009 (non-QPP). |
+| ~~Bar visualization clips at outliers (CT 666%)~~ | **Fixed** — Capped at 200% |
+| ~~Conversion factor discrepancy~~ | **Fixed** — Updated to $33.4009 (non-QPP) for general comparison. CPRA compliance uses $32.3465 (CY2025). |
 | Locality weighting is equal, not population-weighted | Acceptable for v1; fix with Census CBSA data later |
-| `fl_methodology_addendum.md` not loaded | `api/chat.js` doesn't concatenate it into the system prompt — add this |
+| ~~`fl_methodology_addendum.md` not loaded~~ | **Fixed** — `api/chat.js` now appends it to system prompt |
 | `StateRateEngine.js` not wired | 1,153 lines, 42/42 tests passing, but not connected to Rate Builder UI |
 | Password gate is client-side only | `sessionStorage` check in Platform.tsx — not a security boundary, just a preview wall |
+| Frontend `CpraGenerator.tsx` not wired to upload tool | Needs "Bring Your Own Data" tab/mode that POSTs to `/api/cpra/upload/generate` |
 
 ---
 
 ## 8. Immediate Next Steps
 
 ### Tier 1 — Ship-blocking (before removing password gate)
-1. **Wire frontend to FastAPI endpoints** — Replace static JSON reads with live API calls. ~80% of lake data is invisible to users. This is the single highest-leverage change.
-2. **Auth on Policy Analyst** — `api/chat.js` is publicly accessible. Add real auth (API key, token, or Vercel edge middleware) before promotion.
-3. **Confirm CPRA in production** — Test `/#/cpra` on aradune.co. ErrorBoundary added but never verified live.
-4. **Reconcile conversion factor** — Update `medicare_pfs.py` from $32.3465 (QPP) to $33.4009 (non-QPP). Every Medicare comparison is slightly off.
+1. ~~**Wire frontend to FastAPI endpoints**~~ — **Done.** All 13 tools wired. CPRA Generator, WageAdequacy, HcbsTracker use per-endpoint API calls. RateDecay, RateBuilder, ComplianceReport, QualityLinkage, RateLookup, FeeScheduleDir use bulk API endpoints (`/api/bulk/*`) with static JSON fallback. RateReduction uses DuckDB-WASM (no API needed). New `server/routes/bulk.py` serves 7 bulk endpoints matching frontend JSON shapes.
+2. ~~**Auth on Policy Analyst**~~ — **Done.** Preview token (`mediquiad`) accepted in `api/chat.js`. Password gate auto-populates analyst token in localStorage. Three auth paths: ADMIN_KEY, PREVIEW_TOKEN, ANALYST_TOKENS (env vars).
+3. ~~**Confirm CPRA in production**~~ — **Build verified.** ErrorBoundary in place, TypeScript clean, production build succeeds. Needs visual verification on aradune.co.
+4. ~~**Reconcile conversion factor**~~ — **Done.** `medicare_pfs.py` updated from $32.3465 (QPP) to $33.4009 (non-QPP). Frontend and cpra_engine.py already used correct value.
 
 ### Tier 2 — Platform completeness
-5. **Landing page redesign** from `docs/AraduneMockup.jsx` — first impressions matter
-6. **Nav redesign** — grouped dropdowns (Explore / Analyze / Build) per target nav structure
+5. **Landing page redesign** from `docs/AraduneMockup.jsx` — password gate redesigned (text logo, left-justified centered block). Full landing page after gate still needs work.
+6. ~~**Nav redesign**~~ — **Done.** Grouped dropdowns (Explore / Analyze / Build).
 7. **Wire `StateRateEngine.js` into Rate Builder** — 42/42 tests passing, not connected to UI
-8. **Wire `dq_state_notes.json`** + category summaries into CPRA DQ panel
-9. **Cap bar visualization** at 200% or use log scale (CT 666% clips)
-10. **Append `fl_methodology_addendum.md`** to system prompt in `api/chat.js`
+8. ~~**Wire `dq_state_notes.json`**~~ — **Done.**
+9. ~~**Cap bar visualization**~~ — **Done.**
+10. ~~**Append `fl_methodology_addendum.md`**~~ — **Done.**
+11. **Wire CPRA upload tool to frontend** — Add "Bring Your Own Data" mode to `CpraGenerator.tsx` that POSTs to `/api/cpra/upload/generate`. JSON output shape designed to match existing table component.
+12. **Deploy CPRA upload to Fly.io** — Include `data/reference/cpra/` CSVs in Docker image, add `python-multipart` to requirements, redeploy.
+13. **Update old cpra_engine.py** — Align with correct 68 codes, $32.3465 CF, many-to-many categories from `data/reference/cpra/` files. Or deprecate in favor of upload tool for CPRA-specific use cases.
 
 ### Tier 3 — Data expansion (standing instruction)
 The data layer is the moat. Every session: add data, improve quality, or make adding data easier.
 
-**Completed federal datasets (89.5M rows, 81 tables):**
+**Completed federal datasets (89.5M rows, 83 tables):**
 - T-MSIS claims (227M source) · CPRA rates (42 states) · CMS-64 · NADAC · SDUD
 - BLS wages (state/MSA/national) · HCRIS hospitals + SNFs · Hospital quality (ratings/VBP/HRRP/HAC)
 - Five-Star NF · POS · PBJ staffing (65M+) · EPSDT · Enrollment/unwinding/MC plans
@@ -309,7 +353,7 @@ The data layer is the moat. Every session: add data, improve quality, or make ad
 - MLTSS · Financial mgmt · Eligibility levels · ACA FUL · DQ Atlas · 1115 waivers · NCCI edits
 
 **Next datasets to ingest:**
-11. **Supplemental payment programs** — DSH allotments, UPL filings, State Directed Payments (42 CFR 438.6(c)). Can 2-5x base rates for safety net hospitals. Major gap.
+11. ~~**Supplemental payment programs**~~ — **Done (Phase 1).** Ingested CMS-64 FMR supplemental payments (1,553 rows, FY 2019-2024, 51 states, DSH/supplemental/GME by service category) + MACPAC Exhibit 24 (102 rows, FY 2023-2024, state-level DSH/non-DSH/1115 waiver summary). 4 API endpoints in `server/routes/supplemental.py`. Still needed: hospital-level DSH data, State Directed Payment preprint parsing, UPL demonstrations.
 12. **More state fee schedules** — Currently 42/51 states in CPRA. Remaining 9 need manual extraction.
 13. **SAMHSA behavioral health** — Block grants, psychiatric beds. NSDUH requires manual extraction (no bulk API).
 14. **340B covered entity data** — HRSA quarterly.
@@ -328,11 +372,36 @@ The data layer is the moat. Every session: add data, improve quality, or make ad
 21. **RAG over policy corpus** — pgvector + Voyage-3-large embeddings
 22. **NL2SQL** via Vanna (DuckDB native)
 
-### Recent Changes (2026-03-06)
-- **AHEAD Readiness Score** — New tool at `/#/ahead-readiness`. CCN lookup → 4 scored dimensions (Financial Stability, Revenue Concentration, Supplemental Exposure, Volume Stability) → self-report unlock (+15 bonus) → peer comparison panel. Scoring in `src/utils/aheadScoring.ts`. Backend: `GET /api/hospitals/ccn/{ccn}` and `/api/hospitals/ccn/{ccn}/peers` added to hospitals.py. PDF + Excel export.
-- **Password gate added** — "Coming Soon" splash, password `mediquiad`, sessionStorage-based
-- **Brand assets integrated** — logo-full.png in navbar, logo-mark.png as favicon, icon-bot.png as Policy Analyst chat avatar, logo-wordmark.png in PDF report headers (with text fallback)
-- **Brand Assets subsection** added to CLAUDE.md Section 9
+### Recent Changes (2026-03-06, session 2)
+- **CPRA Upload Tool ported** — User-upload CPRA generator from `cpra-pipeline/` integrated into Aradune. Engine at `server/engines/cpra_upload.py` (821 lines), 7 new endpoints under `/api/cpra/upload/`. Uses the **correct** CMS CY 2025 E/M code list (68 codes, 171 code-category pairs, $32.3465 CF). Reference data in `data/reference/cpra/` (3 CSVs: em_codes, code_categories, GPCI2025). Existing pre-computed comparison routes unchanged — general fee-to-Medicare comparison is a separate tool from the compliance-specific CPRA upload. Tested end-to-end with FL data (99213 PC: $34.29/$91.39 = 37.5% — exact match with R pipeline).
+- **Password gate redesigned** — Replaced tiny logo PNG with large text "ARADUNE" (32px, brand green, letterspaced). Content now left-justified in a centered 400px block instead of scattered center-aligned text. Added "Access code" label above input. Deployed to Vercel.
+- **FL Practitioner Fee Schedule added** — Downloaded from AHCA, parsed 6,676 codes into `fact_medicaid_rate` (573,853 total rows). FL went from 3,773 to 10,449 rows. Handles "BR" (By Report) non-numeric values. Note: these rates are in `fact_medicaid_rate` but NOT yet in `fact_rate_comparison` (which the CPRA frontend reads). The upload tool computes FL correctly from CSVs.
+- **Supplemental payment data ingested** — CMS-64 FMR (1,553 rows, FY 2019-2024, DSH/supplemental/GME by service x state) + MACPAC Exhibit 24 (102 rows, FY 2023-2024). 4 API endpoints in `server/routes/supplemental.py`, 2 new lake tables. Synced to R2 and live on Fly.io. Key findings: TN 98.2% supplemental, TX 92.5%, VA 90.2%. TX $9.7B/yr in supplemental payments.
+- **Nav groups renamed** — Transparency→Explore, Adequacy→Analyze, Modeling→Build.
+
+### Recent Changes (2026-03-06, session 1)
+- **Frontend→API wiring (complete)** — All 13 tools use API-first with static JSON fallback. 7 bulk endpoints in `server/routes/bulk.py`.
+- **Policy Analyst auth fixed** — Preview token (`mediquiad`) in `api/chat.js`.
+- **Conversion factor reconciled** — `medicare_pfs.py` updated to $33.4009 (non-QPP) for general comparison. Note: CPRA compliance uses $32.3465 (CY2025).
+- **CPRA DQ panel enhanced** — `dq_state_notes.json` wired.
+- **Bar visualization capped** — Capped at 200%.
+- **FL methodology addendum** — Appended to Policy Analyst system prompt.
+- **AHEAD Readiness Score** — New tool at `/#/ahead-readiness`.
+- **Password gate added** — `PasswordGate` in Platform.tsx.
+- **Brand assets integrated** — navbar, favicon, chat avatar, PDF headers.
+- **.gitignore overhauled** — Prevents 45GB+ data from git.
+- **Pushed to main** — Commit `95f5a34`.
+
+### External Project: cpra-pipeline
+
+Located at `/Users/jamestori/Desktop/cpra-pipeline/`. A standalone CPRA pipeline built separately, now partially ported into Aradune. Contains:
+- **R pipeline** (`R/01-07`) — Publication-quality CPRA report via Quarto. Real Medicare rates + FL Medicaid rates + simulated utilization. Produces 6 figures, gt tables, PDF report.
+- **Python engine** (`python/cpra_generator.py`) — The engine ported into Aradune as `server/engines/cpra_upload.py`.
+- **Python API** (`python/cpra_api.py`) — Standalone FastAPI server (port 8100). Routes ported into `server/routes/cpra.py`.
+- **Reference data** (`data/raw/`) — em_codes.csv, code_categories.csv, GPCI2025.csv, PPRRVU25_JAN.csv, fl_practitioner_fee_schedule_2025.xlsx. The first 3 copied to `data/reference/cpra/`.
+- **FL test data** (`data/simulated/`) — Real FL Medicaid rates + simulated utilization CSVs. Useful for testing the upload tool.
+- **HCBS templates** (`deliverables/data_requests/`, `data/hcbs/`) — Templates for the separate HCBS disclosure required by 447.203(b)(2)(iv). Not yet built.
+- **Key regulatory notes:** Deadline July 1, 2026. CY 2025 rates. 68 codes (not 74). $32.3465 CF. Only utilization data is simulated (no FMMIS access on personal laptop). When moved to AHCA work machine, replace simulated utilization with real FMMIS extract.
 
 ---
 
@@ -378,6 +447,7 @@ Aradune/
 │   │   ├── pdfReport.ts             ← ~100 lines. Shared PDF utilities.
 │   │   └── aheadScoring.ts         ← AHEAD scoring functions (4 dimensions + self-report + composite)
 │   ├── lib/
+│   │   ├── api.ts                   ← Shared API client (VITE_API_URL + fallback)
 │   │   ├── duckdb.ts                ← ~110 lines. DuckDB-WASM singleton.
 │   │   └── queryEngine.ts           ← ~200 lines. resolveHcpcsCodes(), pickTable().
 │   └── data/
@@ -415,11 +485,14 @@ Aradune/
 │   ├── Dockerfile                   ← Python 3.12, S3 sync on startup
 │   ├── fly.toml                     ← Fly.io deployment config
 │   ├── entrypoint.sh                ← Downloads lake from S3, starts uvicorn
+│   ├── engines/
+│   │   └── cpra_upload.py           ← 821 lines. CPRA upload engine (68 codes, 171 pairs, DuckDB)
 │   └── routes/
 │       ├── query.py                 ← POST /api/query (backward-compatible spending queries)
 │       ├── meta.py                  ← GET /api/meta (dataset metadata)
 │       ├── presets.py               ← GET /api/presets
-│       ├── cpra.py                  ← CPRA: /api/cpra/states, rates, dq, compare
+│       ├── cpra.py                  ← CPRA: pre-computed (/api/cpra/states, rates, dq, compare)
+│       │                              + upload tool (/api/cpra/upload/generate, templates, etc.)
 │       ├── lake.py                  ← /api/states, enrollment, quality, expenditure, lake/stats
 │       ├── pharmacy.py              ← /api/pharmacy/utilization, nadac, top-drugs
 │       ├── policy.py                ← /api/policy/spas, waivers, managed-care, fmap, dsh
@@ -430,6 +503,8 @@ Aradune/
 │       ├── staffing.py              ← /api/staffing/summary, staffing/{state}
 │       ├── quality.py              ← /api/five-star/, hac/, pos/, hospital-ratings/, vbp/, hrrp/, epsdt, hpsa/
 │       ├── context.py             ← /api/demographics/, scorecard/, economic/, mortality/
+│       ├── bulk.py                ← /api/bulk/* — 7 bulk endpoints matching frontend JSON shapes
+│       ├── supplemental.py       ← /api/supplemental/* — 4 endpoints (FMR DSH/supplemental/GME + MACPAC summary)
 │       └── pipeline.py              ← /api/pipeline/status
 │
 ├── tools/
@@ -452,7 +527,7 @@ Aradune/
 │   └── tmsis_sample_generator.R     ← 18KB. Sample/dev data generation.
 │
 ├── data/
-│   ├── lake/                        ← Unified Parquet data lake (89.5M rows, 81 tables)
+│   ├── lake/                        ← Unified Parquet data lake (89.5M rows, 83 tables)
 │   │   ├── dimension/               ← dim_state, dim_procedure, dim_hcpcs, dim_bls_occupation, dim_medicare_locality, dim_time, dim_provider_taxonomy
 │   │   ├── fact/                    ← Hive-partitioned: fact/{name}/snapshot=YYYY-MM-DD/data.parquet
 │   │   │   └── (medicaid_rate, medicare_rate, medicare_rate_state, rate_comparison, dq_flag,
@@ -474,6 +549,8 @@ Aradune/
 │   │   │       state_gdp, state_population, nh_penalties)
 │   │   ├── reference/               ← ref_drug_rebate, ref_ncci_edits, ref_1115_waivers
 │   │   └── metadata/                ← manifest_*.json (pipeline run metadata)
+│   ├── reference/
+│   │   └── cpra/                    ← em_codes.csv (68), code_categories.csv (171), GPCI2025.csv (109 localities)
 │   ├── raw/
 │   │   ├── medicaid-provider-spending.duckdb   ← 17.57GB. T-MSIS DuckDB. ⚠️ EMPTY — R pipeline must run first.
 │   │   ├── medicaid-provider-spending.csv      ← 11.09GB. Source T-MSIS data.
@@ -514,6 +591,7 @@ Aradune/
 │   ├── build_lake_hai_ownership.py  ← HAI hospital infections + NH ownership (316K rows)
 │   ├── build_lake_census.py         ← Census ACS demographics, poverty, insurance (52 states)
 │   ├── build_lake_cdc.py            ← CDC drug overdose + mortality trends (13.6K rows)
+│   ├── build_lake_supplemental.py   ← CMS-64 FMR + MACPAC Exhibit 24 supplemental payments (1,655 rows)
 │   ├── export_frontend.py           ← Export validated lake data to public/data/ JSON
 │   ├── sync_lake.py                 ← Upload/download lake to/from S3
 │   ├── sync-fee-schedules.py
@@ -560,7 +638,7 @@ All assets are transparent PNGs — green elements on transparent background. Re
 - **FL production conversion factors:** Regular `$24.9779582769` · Lab `$26.1689186096`. The ad hoc CF of $24.9876 is stale — do not use for CY2026.
 - **FL has 8 schedule types** in the fee schedule.
 - **Medicare comparison baseline:** Always use the non-facility rate (not facility), per 42 CFR 447.203.
-- **CY2025/2026 Medicare conversion factor:** `$33.4009` (non-QPP). The `$32.3465` value in `medicare_pfs.py` is QPP-adjusted and wrong for Medicaid comparison — reconcile this.
+- **Medicare conversion factors:** `$33.4009` (CY2026, non-QPP) for general fee-to-Medicare comparison. `$32.3465` (CY2025, non-QPP) for CPRA compliance (July 2026 deadline compares CY2025 rates). Both are correct for their respective uses.
 - **CPRA base rates only:** Do not include supplemental payments in the Medicaid-to-Medicare percentage.
 - **CHIP excluded** from per-enrollee Medicaid calculations.
 - **Minimum cell size:** n ≥ 11 for any published utilization count.

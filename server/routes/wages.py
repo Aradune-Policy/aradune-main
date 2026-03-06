@@ -2,6 +2,7 @@
 
 from fastapi import APIRouter, Query
 from server.db import get_cursor
+from collections import defaultdict
 
 router = APIRouter()
 
@@ -72,6 +73,53 @@ async def msa_wages(
                     "total_employment", "hourly_mean", "annual_mean",
                     "hourly_median", "annual_median"]
         return [dict(zip(columns, r)) for r in rows]
+
+
+@router.get("/api/wages/bulk")
+async def bulk_wages():
+    """All state + national wages in nested format for frontend WageAdequacy tool."""
+    states: dict = defaultdict(dict)
+    national: dict = {}
+
+    with get_cursor() as cur:
+        # State-level
+        rows = cur.execute("""
+            SELECT state_code, soc_code, occupation_title,
+                   total_employment, hourly_mean,
+                   hourly_median, hourly_p10, hourly_p25, hourly_p75, hourly_p90,
+                   annual_median
+            FROM fact_bls_wage
+            ORDER BY state_code, soc_code
+        """).fetchall()
+        for r in rows:
+            sc, soc, title, emp, h_mean, h_med, h10, h25, h75, h90, a_med = r
+            states[sc][soc] = {
+                "title": title, "emp": emp, "h_mean": h_mean,
+                "h_median": h_med, "h_p10": h10, "h_p25": h25,
+                "h_p75": h75, "h_p90": h90, "a_median": a_med,
+            }
+
+        # National-level
+        nrows = cur.execute("""
+            SELECT soc_code, occupation_title,
+                   total_employment, hourly_mean,
+                   hourly_median, hourly_p10, hourly_p90, annual_median
+            FROM fact_bls_wage_national
+            ORDER BY soc_code
+        """).fetchall()
+        for r in nrows:
+            soc, title, emp, h_mean, h_med, h10, h90, a_med = r
+            national[soc] = {
+                "title": title, "emp": emp, "h_mean": h_mean,
+                "h_median": h_med, "h_p10": h10, "h_p90": h90,
+                "a_median": a_med,
+            }
+
+    return {
+        "source": "BLS Occupational Employment and Wage Statistics (OEWS)",
+        "states": dict(states),
+        "national": national,
+    }
 
 
 @router.get("/api/wages/national")

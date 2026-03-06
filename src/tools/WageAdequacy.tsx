@@ -1,6 +1,7 @@
 import React, { useState, useMemo, useEffect, useCallback } from "react";
 import { BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer, Cell, CartesianGrid, ReferenceLine, ScatterChart, Scatter, ZAxis } from "recharts";
 import type { SafeTipProps, TooltipEntry, WageCategory } from "../types";
+import { API_BASE } from "../lib/api";
 
 // ── Design System (matches Aradune v14) ─────────────────────────────────
 const A = "#0A2540";
@@ -168,13 +169,23 @@ export default function WageAdequacy() {
   const [oesIndex, setOesIndex] = useState<Record<string, OesEntry>>({});
   const [loading, setLoading] = useState(true);
 
-  // Load data
+  // Load data — try API first, fall back to static JSON
   useEffect(() => {
     let cancelled = false;
+    async function loadBls(): Promise<BlsData | null> {
+      // Try bulk API endpoint
+      try {
+        const res = await fetch(`${API_BASE}/api/wages/bulk`);
+        if (res.ok) return res.json();
+      } catch { /* API unavailable */ }
+      // Fallback to static JSON
+      return fetch("/data/bls_wages.json").then(r => r.ok ? r.json() : null).catch(() => null);
+    }
+
     async function load() {
       try {
         const [bls, cw, hcpcs, states, oes] = await Promise.all([
-          fetch("/data/bls_wages.json").then(r=>r.ok?r.json():null).catch(()=>null),
+          loadBls(),
           fetch("/data/soc_hcpcs_crosswalk.json").then(r=>r.ok?r.json():null).catch(()=>null),
           fetch("/data/hcpcs.json").then(r=>r.ok?r.json():null).catch(()=>null),
           fetch("/data/states.json").then(r=>r.ok?r.json():null).catch(()=>null),

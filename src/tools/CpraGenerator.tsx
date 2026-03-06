@@ -4,9 +4,10 @@
  * Uses Terminal B pre-computed data (cpra_em.json, dim_447_codes.json) as primary
  * source, with client-side fallback to medicaid_rates + medicare_rates.
  */
-import { useState, useEffect, useMemo, useCallback } from "react";
+import { useState, useEffect, useMemo, useCallback, useRef } from "react";
 import { STATE_NAMES } from "../data/states";
 import { query as duckQuery } from "../lib/duckdb";
+import { API_BASE } from "../lib/api";
 
 // ── Design tokens ───────────────────────────────────────────────────────
 const A = "#0A2540", AL = "#425A70", POS = "#2E6B4A", NEG = "#A4262C", WARN = "#B8860B";
@@ -102,6 +103,7 @@ export default function CpraGenerator() {
   const [dim447, setDim447] = useState<Dim447Entry[]>([]);
   const [cpraEm, setCpraEm] = useState<CpraEmData>({});
   const [dqFlags, setDqFlags] = useState<DqEmData | null>(null);
+  const [dqStateNotes, setDqStateNotes] = useState<Record<string, { flags: string[]; notes: string[] }>>({});
   const [cpraSummary, setCpraSummary] = useState<CpraSummaryData | null>(null);
   const [claimsMap, setClaimsMap] = useState<Map<string, { paid: number; claims: number; bene: number }>>(new Map());
   const [loading, setLoading] = useState(true);
@@ -120,7 +122,7 @@ export default function CpraGenerator() {
   }, [dim447]);
   const allCodes = useMemo(() => new Set(dim447.map(e => e.cpt_code)), [dim447]);
 
-  // ── Static data load ────────────────────────────────────────────────
+  // ── Reference data load (one-time) ──────────────────────────────────
   useEffect(() => {
     Promise.all([
       fetch("/data/medicare_rates.json").then(r => r.json()),
@@ -128,18 +130,16 @@ export default function CpraGenerator() {
       fetch("/data/conversion_factors.json").then(r => r.json()),
       fetch("/data/states.json").then(r => r.json()),
       fetch("/data/dim_447_codes.json").then(r => r.json()),
-      fetch("/data/cpra_em.json").then(r => r.json()).catch(() => ({})),
-      fetch("/data/dq_flags_em.json").then(r => r.json()).catch(() => null),
       fetch("/data/cpra_summary.json").then(r => r.json()).catch(() => null),
-    ]).then(([mc, md, cf, sts, dim, em, dq, summ]) => {
+      fetch("/data/dq_state_notes.json").then(r => r.ok ? r.json() : {}).catch(() => ({})),
+    ]).then(([mc, md, cf, sts, dim, summ, dqNotes]) => {
       setMedicare(mc);
       setMedicaid(md);
       setConvFactors(cf);
       setStatesData(sts);
       setDim447(Array.isArray(dim) ? dim : []);
-      setCpraEm(em && typeof em === "object" ? em : {});
-      if (dq) setDqFlags(dq);
       if (summ) setCpraSummary(summ);
+      if (dqNotes) setDqStateNotes(dqNotes);
       setLoading(false);
     }).catch(err => {
       console.error("CPRA data load failed:", err);
@@ -147,6 +147,95 @@ export default function CpraGenerator() {
       setLoading(false);
     });
   }, []);
+
+  // ── Per-state CPRA rates from API (with static fallback) ──────────
+  const cpraEmCache = useRef<CpraEmData>({});
+  const dqCache = useRef<Record<string, DqEmData | null>>({});
+  const dqBulkLoaded = useRef(false);
+
+  useEffect(() => {
+    if (!st) return;
+    // Already cached
+    if (cpraEmCache.current[st]) {
+      setCpraEm(cpraEmCache.current);
+      return;
+    }
+
+    // Try API first, then fall back to bulk static JSON
+    const loadRates = async () => {
+      try {
+        const res = await fetch(`${API_BASE}/api/cpra/rates/${st}?em_only=true`);
+        if (res.ok) {
+          const rows: Array<{ procedure_code: string; medicaid_rate: number; medicare_nonfac_rate: number; medicare_fac_rate: number; pct_of_medicare: number; description: string; em_category?: string }> = await res.json();
+          // Map API shape to frontend CpraEmRow shape
+          const mapped: CpraEmRow[] = rows.map(r => ({
+            procedure_code: r.procedure_code,
+            medicaid_rate: r.medicaid_rate,
+            medicare_nonfac_rate: r.medicare_nonfac_rate,
+            medicare_fac_rate: r.medicare_fac_rate,
+            pct_of_medicare: r.pct_of_medicare,
+            rate_description: r.description || "",
+            em_category: r.em_category,
+          }));
+          cpraEmCache.current = { ...cpraEmCache.current, [st]: mapped };
+          setCpraEm({ ...cpraEmCache.current });
+          return;
+        }
+      } catch { /* API unavailable, fall through */ }
+
+      // Fallback: load bulk static file
+      if (Object.keys(cpraEmCache.current).length === 0) {
+        try {
+          const em = await fetch("/data/cpra_em.json").then(r => r.json());
+          if (em && typeof em === "object") {
+            cpraEmCache.current = em;
+            setCpraEm(em);
+            return;
+          }
+        } catch { /* no static data either */ }
+      }
+    };
+
+    const loadDq = async () => {
+      if (dqCache.current[st] !== undefined) {
+        if (dqCache.current[st]) setDqFlags(dqCache.current[st]);
+        return;
+      }
+      try {
+        const res = await fetch(`${API_BASE}/api/cpra/dq/${st}`);
+        if (res.ok) {
+          const flags: DqFlag[] = await res.json();
+          const summary: Record<string, number> = {};
+          // eslint-disable-next-line @typescript-eslint/no-explicit-any
+          const mapped: DqFlag[] = (flags as any[]).map((f: any) => ({
+            state_code: f.state_code || st,
+            procedure_code: f.entity_id || f.procedure_code || "",
+            flag: f.flag_type || f.flag || "",
+            detail: f.detail || "",
+          }));
+          for (const f of mapped) summary[f.flag] = (summary[f.flag] || 0) + 1;
+          const dqData: DqEmData = { summary, total_flags: mapped.length, flags: mapped };
+          dqCache.current[st] = dqData;
+          setDqFlags(dqData);
+          return;
+        }
+      } catch { /* fall through */ }
+
+      // Fallback: bulk static
+      if (!dqBulkLoaded.current) {
+        try {
+          const dq = await fetch("/data/dq_flags_em.json").then(r => r.json());
+          if (dq) {
+            dqBulkLoaded.current = true;
+            setDqFlags(dq);
+          }
+        } catch { /* no data */ }
+      }
+    };
+
+    loadRates();
+    loadDq();
+  }, [st]);
 
   // ── Claims query per state ──────────────────────────────────────────
   useEffect(() => {
@@ -577,16 +666,16 @@ ${stateConv ? `State methodology: ${stateConv.methodology_detail || stateConv.me
         <Card>
           <CH title="Rate Distribution" sub="All codes with Medicare comparison, sorted by % of Medicare" />
           <div style={{ position: "relative", height: 80, background: SF, borderRadius: 6, overflow: "hidden" }}>
-            <div style={{ position: "absolute", left: "80%", top: 0, bottom: 0, width: 1, background: `${POS}44`, zIndex: 1 }} />
-            <div style={{ position: "absolute", left: "50%", top: 0, bottom: 0, width: 1, background: `${NEG}44`, zIndex: 1 }} />
-            <div style={{ position: "absolute", left: "100%", top: 0, bottom: 0, width: 1, background: `${AL}22`, zIndex: 1 }} />
-            <div style={{ position: "absolute", left: "80%", top: 2, fontSize: 9, color: POS, fontFamily: FM, transform: "translateX(-100%)", paddingRight: 3, zIndex: 2 }}>80%</div>
-            <div style={{ position: "absolute", left: "50%", top: 2, fontSize: 9, color: NEG, fontFamily: FM, transform: "translateX(-100%)", paddingRight: 3, zIndex: 2 }}>50%</div>
-            <div style={{ position: "absolute", right: 0, top: 2, fontSize: 9, color: AL, fontFamily: FM, paddingRight: 3, zIndex: 2 }}>100%</div>
+            <div style={{ position: "absolute", left: "25%", top: 0, bottom: 0, width: 1, background: `${NEG}44`, zIndex: 1 }} />
+            <div style={{ position: "absolute", left: "40%", top: 0, bottom: 0, width: 1, background: `${POS}44`, zIndex: 1 }} />
+            <div style={{ position: "absolute", left: "50%", top: 0, bottom: 0, width: 1, background: `${AL}22`, zIndex: 1 }} />
+            <div style={{ position: "absolute", left: "25%", top: 2, fontSize: 9, color: NEG, fontFamily: FM, transform: "translateX(-100%)", paddingRight: 3, zIndex: 2 }}>50%</div>
+            <div style={{ position: "absolute", left: "40%", top: 2, fontSize: 9, color: POS, fontFamily: FM, transform: "translateX(-100%)", paddingRight: 3, zIndex: 2 }}>80%</div>
+            <div style={{ position: "absolute", left: "50%", top: 2, fontSize: 9, color: AL, fontFamily: FM, paddingRight: 3, zIndex: 2 }}>100%</div>
             <div style={{ display: "flex", alignItems: "flex-end", height: "100%", padding: "0 2px", gap: 1 }}>
               {barData.map((d, i) => {
-                const maxPct = Math.max(...barData.map(b => b.pct), 150);
-                const h = Math.max(4, (d.pct / maxPct) * 70);
+                const cappedPct = Math.min(d.pct, 200);
+                const h = Math.max(4, (cappedPct / 200) * 70);
                 const barColor = d.flag === "critical" ? NEG : d.flag === "warn" ? WARN : POS;
                 return (
                   <div key={i} title={`${d.code}: ${d.pct.toFixed(1)}% of Medicare`} style={{
@@ -703,6 +792,11 @@ ${stateConv ? `State methodology: ${stateConv.methodology_detail || stateConv.me
           </div>
           <div>
             <div style={{ fontWeight: 600, color: A, marginBottom: 4, fontSize: 11 }}>Known Limitations</div>
+            {dqStateNotes[st]?.notes?.length > 0 ? (
+              dqStateNotes[st].notes.map((note, i) => (
+                <div key={i} style={{ color: WARN, marginBottom: 2 }}>{note}</div>
+              ))
+            ) : null}
             <div>Beneficiary counts = patient-service events (not unique headcount)</div>
             <div>FFS-only: missing managed care, inpatient, pharmacy, LTSS</div>
             <div>T-MSIS effective rates may differ from published fee schedules</div>

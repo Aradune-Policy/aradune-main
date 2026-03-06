@@ -1,6 +1,7 @@
 import React, { useState, useMemo, useEffect, useCallback } from "react";
 import { ScatterChart, Scatter, XAxis, YAxis, Tooltip, ResponsiveContainer, CartesianGrid, ReferenceLine, Cell, BarChart, Bar, Legend } from "recharts";
 import type { QualData, LinkedMeasure, MeasureHcpcsInfo, MeasureMeta, SafeTipProps, TooltipEntry, QualHcpcsRecord } from "../types";
+import { API_BASE } from "../lib/api";
 
 // ── Design System (matches Aradune) ─────────────────────────────────────
 const A = "#0A2540";
@@ -83,9 +84,13 @@ export default function QualityLinkage() {
     let cancelled = false;
     async function load() {
       try {
+        const tryApi = async (apiPath: string, fallback: string) => {
+          if (API_BASE) { try { const r = await fetch(`${API_BASE}${apiPath}`); if (r.ok) return r.json(); } catch {} }
+          return fetch(fallback).then(r=>r.ok?r.json():null).catch(()=>null);
+        };
         const [qual, hcpcs] = await Promise.all([
-          fetch("/data/quality_measures.json").then(r=>r.ok?r.json():null).catch(()=>null),
-          fetch("/data/hcpcs.json").then(r=>r.ok?r.json():null).catch(()=>null),
+          tryApi("/api/bulk/quality-measures", "/data/quality_measures.json"),
+          tryApi("/api/bulk/hcpcs-rates", "/data/hcpcs.json"),
         ]);
         if (cancelled) return;
         if (qual) { setQual(qual); }

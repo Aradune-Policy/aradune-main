@@ -331,6 +331,7 @@ def facts_supplemental(context: AssetExecutionContext):
         ("build_lake_scorecard.py", ["scorecard", "elig_group_monthly", "elig_group_annual",
             "cms64_new_adult", "ffcra_fmap", "mc_enroll_pop", "mc_enroll_duals", "hai_state"]),
         ("build_lake_hai_ownership.py", ["hai_hospital", "nh_ownership"]),
+        ("build_lake_supplemental.py", ["fmr_supplemental", "macpac_supplemental"]),
     ]
     row_counts = {}
     for script_name, fact_names in scripts:

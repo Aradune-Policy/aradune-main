@@ -24,10 +24,14 @@ LAKE_DIR = PROJECT_ROOT / "data" / "lake"
 
 S3_BUCKET = os.environ.get("ARADUNE_S3_BUCKET", "aradune-datalake")
 S3_PREFIX = os.environ.get("ARADUNE_S3_PREFIX", "lake/")
+S3_ENDPOINT = os.environ.get("ARADUNE_S3_ENDPOINT", "")  # Cloudflare R2 endpoint
 
 
 def get_s3_client():
-    return boto3.client("s3")
+    kwargs = {}
+    if S3_ENDPOINT:
+        kwargs["endpoint_url"] = S3_ENDPOINT
+    return boto3.client("s3", **kwargs)
 
 
 def upload(dry_run: bool = False, only: str = None):

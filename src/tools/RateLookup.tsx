@@ -4,6 +4,7 @@
  * Uses fee_schedule_rates.json (code-centric, 16K+ codes across 40+ states).
  */
 import { useState, useEffect, useMemo, useCallback } from "react";
+import { API_BASE } from "../lib/api";
 
 // ── Design tokens ───────────────────────────────────────────────────────
 const A = "#0A2540", AL = "#425A70", POS = "#2E6B4A", NEG = "#A4262C", WARN = "#B8860B";
@@ -68,10 +69,13 @@ export default function RateLookup() {
   const [sortAsc, setSortAsc] = useState(true);
 
   useEffect(() => {
-    fetch("/data/fee_schedule_rates.json")
-      .then(r => r.json())
-      .then(d => { setData(d); setLoading(false); })
-      .catch(() => setLoading(false));
+    async function load() {
+      if (API_BASE) {
+        try { const r = await fetch(`${API_BASE}/api/bulk/fee-schedule-rates`); if (r.ok) { setData(await r.json()); setLoading(false); return; } } catch {}
+      }
+      fetch("/data/fee_schedule_rates.json").then(r => r.json()).then(d => { setData(d); setLoading(false); }).catch(() => setLoading(false));
+    }
+    load();
   }, []);
 
   // Search results: match code or description

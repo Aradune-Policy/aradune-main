@@ -402,6 +402,10 @@ async function validateToken(token) {
   // Admin key
   if (token === process.env.ADMIN_KEY) return true;
 
+  // Preview gate password (allows anyone who passed the site password gate)
+  const previewToken = process.env.PREVIEW_TOKEN || "mediquiad";
+  if (token === previewToken) return true;
+
   // Static tokens (backwards compat)
   const validTokens = (process.env.ANALYST_TOKENS || "").split(",").map(t => t.trim()).filter(Boolean);
   if (validTokens.includes(token)) return true;
@@ -453,11 +457,18 @@ function checkRateLimit(token) {
 function getSystemPrompt() {
   // Try loading from file, fall back to embedded
   const promptPath = join(DATA_DIR, "system_prompt.md");
+  let prompt;
   if (existsSync(promptPath)) {
-    return readFileSync(promptPath, "utf-8");
+    prompt = readFileSync(promptPath, "utf-8");
+  } else {
+    prompt = "You are the Aradune Policy Analyst, an AI specialized in Medicaid rate-setting and fee schedule analysis. Use the available tools to ground your answers in real data from Aradune's dataset. Always cite data sources and vintages.";
   }
-  // Minimal fallback
-  return "You are the Aradune Policy Analyst, an AI specialized in Medicaid rate-setting and fee schedule analysis. Use the available tools to ground your answers in real data from Aradune's dataset. Always cite data sources and vintages.";
+  // Append FL methodology addendum if available
+  const addendumPath = join(DATA_DIR, "fl_methodology_addendum.md");
+  if (existsSync(addendumPath)) {
+    prompt += "\n\n" + readFileSync(addendumPath, "utf-8");
+  }
+  return prompt;
 }
 
 // ── API Handler ───────────────────────────────────────────────────────

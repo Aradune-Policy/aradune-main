@@ -64,6 +64,7 @@ def init_db() -> None:
         "acs_state", "drug_overdose", "mortality_trend",
         "state_gdp", "state_population", "nh_penalties",
         "nh_deficiencies", "brfss", "hcahps_state", "imaging_hospital",
+        "fmr_supplemental", "macpac_supplemental",
     ]
     for fact_name in fact_names:
         p = _latest_snapshot(fact_dir, fact_name)

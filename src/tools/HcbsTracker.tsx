@@ -8,6 +8,7 @@ import {
   BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer, Cell, ReferenceLine,
 } from "recharts";
 import { STATES_LIST, STATE_NAMES } from "../data/states";
+import { API_BASE } from "../lib/api";
 
 // ── Design tokens ───────────────────────────────────────────────────────
 const A = "#0A2540", AL = "#425A70", POS = "#2E6B4A", NEG = "#A4262C", WARN = "#B8860B";
@@ -103,12 +104,21 @@ export default function HcbsTracker() {
   const [hcpcsData, setHcpcsData] = useState<HcpcsEntry[]>([]);
   const [loading, setLoading] = useState(true);
 
-  // Load data on mount
+  // Load data on mount — try API for BLS, fall back to static JSON
   useEffect(() => {
     let cancelled = false;
+    async function loadBls() {
+      try {
+        const res = await fetch(`${API_BASE}/api/wages/bulk`);
+        if (res.ok) return res.json();
+      } catch { /* API unavailable */ }
+      const r = await fetch("/data/bls_wages.json");
+      if (!r.ok) throw new Error("Failed");
+      return r.json();
+    }
     Promise.all([
       fetch("/data/soc_hcpcs_crosswalk.json").then(r => { if (!r.ok) throw new Error("Failed"); return r.json(); }),
-      fetch("/data/bls_wages.json").then(r => { if (!r.ok) throw new Error("Failed"); return r.json(); }),
+      loadBls(),
       fetch("/data/hcpcs.json").then(r => { if (!r.ok) throw new Error("Failed"); return r.json(); }),
     ]).then(([xw, bls, hcpcs]) => {
       if (cancelled) return;

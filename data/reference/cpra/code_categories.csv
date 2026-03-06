@@ -1,0 +1,172 @@
+hcpcs_code,description,category
+99202,Office o/p new sf 15 min,Primary Care
+99203,Office o/p new low 30 min,Primary Care
+99204,Office o/p new mod 45 min,Primary Care
+99205,Office o/p new hi 60 min,Primary Care
+99211,Off/op est may x req phy/qhp,Primary Care
+99212,Office o/p est sf 10 min,Primary Care
+99213,Office o/p est low 20 min,Primary Care
+99214,Office o/p est mod 30 min,Primary Care
+99215,Office o/p est hi 40 min,Primary Care
+99381,Init pm e/m new pat infant,Primary Care
+99382,Init pm e/m new pat 1-4 yrs,Primary Care
+99383,Prev visit new age 5-11,Primary Care
+99384,Prev visit new age 12-17,Primary Care
+99385,Prev visit new age 18-39,Primary Care
+99386,Prev visit new age 40-64,Primary Care
+99387,Init pm e/m new pat 65+ yrs,Primary Care
+99391,Per pm reeval est pat infant,Primary Care
+99392,Prev visit est age 1-4,Primary Care
+99393,Prev visit est age 5-11,Primary Care
+99394,Prev visit est age 12-17,Primary Care
+99395,Prev visit est age 18-39,Primary Care
+99396,Prev visit est age 40-64,Primary Care
+99397,Per pm reeval est pat 65+ yr,Primary Care
+99401,Prev med cnsl indiv apprx 15,Primary Care
+99402,Prev med cnsl indiv apprx 30,Primary Care
+99403,Prev med cnsl indiv apprx 45,Primary Care
+99404,Prev med cnsl indiv apprx 60,Primary Care
+99406,Behav chng smoking 3-10 min,Primary Care
+99407,Behav chng smoking > 10 min,Primary Care
+99408,Audit/dast 15-30 min,Primary Care
+99409,Audit/dast over 30 min,Primary Care
+99412,Preventive counseling group,Primary Care
+99415,Prolng clin staff svc 1st hr,Primary Care
+99416,Prolng clin staff svc ea add,Primary Care
+99421,Ol dig e/m svc 5-10 min,Primary Care
+99422,Ol dig e/m svc 11-20 min,Primary Care
+99423,Ol dig e/m svc 21+ min,Primary Care
+99424,Prin care mgmt phys 1st 30,Primary Care
+99425,Prin care mgmt phys ea addl,Primary Care
+99426,Prin care mgmt staff 1st 30,Primary Care
+99427,Prin care mgmt staff ea addl,Primary Care
+99437,Chrnc care mgmt phys ea addl,Primary Care
+99439,Chrnc care mgmt staf ea addl,Primary Care
+99446,Ntrprof ph1/ntrnet/ehr 5-10,Primary Care
+99447,Ntrprof ph1/ntrnet/ehr 11-20,Primary Care
+99448,Ntrprof ph1/ntrnet/ehr 21-30,Primary Care
+99449,Ntrprof ph1/ntrnet/ehr 31/>,Primary Care
+99451,Ntrprof ph1/ntrnet/ehr 5/>,Primary Care
+99452,Ntrprof ph1/ntrnet/ehr rfrl,Primary Care
+99453,Rem mntr physiol param setup,Primary Care
+99454,Rem mntr physiol param dev,Primary Care
+99457,Rem physiol mntr 1st 20 min,Primary Care
+99458,Rem physiol mntr ea addl 20,Primary Care
+99473,Self-meas bp pt educaj/train,Primary Care
+99474,Self-meas bp 2 readg bid 30d,Primary Care
+99483,Assmt & care pln pt cog imp,Primary Care
+99484,Care mgmt svc bhvl hlth cond,Primary Care
+99487,Cplx chrnc care 1st 60 min,Primary Care
+99489,Cplx chrnc care ea addl 30,Primary Care
+99490,Chrnc care mgmt staff 1st 20,Primary Care
+99491,Chrnc care mgmt phys 1st 30,Primary Care
+99492,1st psyc collab care mgmt,Primary Care
+99493,Sbsq psyc collab care mgmt,Primary Care
+99494,1st/sbsq psyc collab care,Primary Care
+99495,Transj care mgmt mod f2f 14d,Primary Care
+99496,Transj care mgmt high f2f 7d,Primary Care
+99497,Advncd care plan 30 min,Primary Care
+99498,Advncd care plan addl 30 min,Primary Care
+99202,Office o/p new sf 15 min,OB-GYN
+99203,Office o/p new low 30 min,OB-GYN
+99204,Office o/p new mod 45 min,OB-GYN
+99205,Office o/p new hi 60 min,OB-GYN
+99211,Off/op est may x req phy/qhp,OB-GYN
+99212,Office o/p est sf 10 min,OB-GYN
+99213,Office o/p est low 20 min,OB-GYN
+99214,Office o/p est mod 30 min,OB-GYN
+99215,Office o/p est hi 40 min,OB-GYN
+99381,Init pm e/m new pat infant,OB-GYN
+99382,Init pm e/m new pat 1-4 yrs,OB-GYN
+99383,Prev visit new age 5-11,OB-GYN
+99384,Prev visit new age 12-17,OB-GYN
+99385,Prev visit new age 18-39,OB-GYN
+99386,Prev visit new age 40-64,OB-GYN
+99387,Init pm e/m new pat 65+ yrs,OB-GYN
+99391,Per pm reeval est pat infant,OB-GYN
+99392,Prev visit est age 1-4,OB-GYN
+99393,Prev visit est age 5-11,OB-GYN
+99394,Prev visit est age 12-17,OB-GYN
+99395,Prev visit est age 18-39,OB-GYN
+99396,Prev visit est age 40-64,OB-GYN
+99397,Per pm reeval est pat 65+ yr,OB-GYN
+99401,Prev med cnsl indiv apprx 15,OB-GYN
+99402,Prev med cnsl indiv apprx 30,OB-GYN
+99403,Prev med cnsl indiv apprx 45,OB-GYN
+99404,Prev med cnsl indiv apprx 60,OB-GYN
+99406,Behav chng smoking 3-10 min,OB-GYN
+99407,Behav chng smoking > 10 min,OB-GYN
+99408,Audit/dast 15-30 min,OB-GYN
+99409,Audit/dast over 30 min,OB-GYN
+99412,Preventive counseling group,OB-GYN
+99421,Ol dig e/m svc 5-10 min,OB-GYN
+99422,Ol dig e/m svc 11-20 min,OB-GYN
+99423,Ol dig e/m svc 21+ min,OB-GYN
+99437,Chrnc care mgmt phys ea addl,OB-GYN
+99439,Chrnc care mgmt staf ea addl,OB-GYN
+99446,Ntrprof ph1/ntrnet/ehr 5-10,OB-GYN
+99447,Ntrprof ph1/ntrnet/ehr 11-20,OB-GYN
+99448,Ntrprof ph1/ntrnet/ehr 21-30,OB-GYN
+99449,Ntrprof ph1/ntrnet/ehr 31/>,OB-GYN
+99451,Ntrprof ph1/ntrnet/ehr 5/>,OB-GYN
+99452,Ntrprof ph1/ntrnet/ehr rfrl,OB-GYN
+99453,Rem mntr physiol param setup,OB-GYN
+99454,Rem mntr physiol param dev,OB-GYN
+99457,Rem physiol mntr 1st 20 min,OB-GYN
+99458,Rem physiol mntr ea addl 20,OB-GYN
+99490,Chrnc care mgmt staff 1st 20,OB-GYN
+99491,Chrnc care mgmt phys 1st 30,OB-GYN
+99492,1st psyc collab care mgmt,OB-GYN
+99493,Sbsq psyc collab care mgmt,OB-GYN
+99494,1st/sbsq psyc collab care,OB-GYN
+99202,Office o/p new sf 15 min,Outpatient MH/SUD
+99203,Office o/p new low 30 min,Outpatient MH/SUD
+99204,Office o/p new mod 45 min,Outpatient MH/SUD
+99205,Office o/p new hi 60 min,Outpatient MH/SUD
+99211,Off/op est may x req phy/qhp,Outpatient MH/SUD
+99212,Office o/p est sf 10 min,Outpatient MH/SUD
+99213,Office o/p est low 20 min,Outpatient MH/SUD
+99214,Office o/p est mod 30 min,Outpatient MH/SUD
+99215,Office o/p est hi 40 min,Outpatient MH/SUD
+99381,Init pm e/m new pat infant,Outpatient MH/SUD
+99382,Init pm e/m new pat 1-4 yrs,Outpatient MH/SUD
+99383,Prev visit new age 5-11,Outpatient MH/SUD
+99384,Prev visit new age 12-17,Outpatient MH/SUD
+99385,Prev visit new age 18-39,Outpatient MH/SUD
+99386,Prev visit new age 40-64,Outpatient MH/SUD
+99387,Init pm e/m new pat 65+ yrs,Outpatient MH/SUD
+99391,Per pm reeval est pat infant,Outpatient MH/SUD
+99392,Prev visit est age 1-4,Outpatient MH/SUD
+99393,Prev visit est age 5-11,Outpatient MH/SUD
+99394,Prev visit est age 12-17,Outpatient MH/SUD
+99395,Prev visit est age 18-39,Outpatient MH/SUD
+99396,Prev visit est age 40-64,Outpatient MH/SUD
+99397,Per pm reeval est pat 65+ yr,Outpatient MH/SUD
+99401,Prev med cnsl indiv apprx 15,Outpatient MH/SUD
+99402,Prev med cnsl indiv apprx 30,Outpatient MH/SUD
+99403,Prev med cnsl indiv apprx 45,Outpatient MH/SUD
+99404,Prev med cnsl indiv apprx 60,Outpatient MH/SUD
+99406,Behav chng smoking 3-10 min,Outpatient MH/SUD
+99407,Behav chng smoking > 10 min,Outpatient MH/SUD
+99408,Audit/dast 15-30 min,Outpatient MH/SUD
+99409,Audit/dast over 30 min,Outpatient MH/SUD
+99412,Preventive counseling group,Outpatient MH/SUD
+99437,Chrnc care mgmt phys ea addl,Outpatient MH/SUD
+99439,Chrnc care mgmt staf ea addl,Outpatient MH/SUD
+99446,Ntrprof ph1/ntrnet/ehr 5-10,Outpatient MH/SUD
+99447,Ntrprof ph1/ntrnet/ehr 11-20,Outpatient MH/SUD
+99448,Ntrprof ph1/ntrnet/ehr 21-30,Outpatient MH/SUD
+99449,Ntrprof ph1/ntrnet/ehr 31/>,Outpatient MH/SUD
+99451,Ntrprof ph1/ntrnet/ehr 5/>,Outpatient MH/SUD
+99452,Ntrprof ph1/ntrnet/ehr rfrl,Outpatient MH/SUD
+99453,Rem mntr physiol param setup,Outpatient MH/SUD
+99454,Rem mntr physiol param dev,Outpatient MH/SUD
+99457,Rem physiol mntr 1st 20 min,Outpatient MH/SUD
+99458,Rem physiol mntr ea addl 20,Outpatient MH/SUD
+99483,Assmt & care pln pt cog imp,Outpatient MH/SUD
+99484,Care mgmt svc bhvl hlth cond,Outpatient MH/SUD
+99490,Chrnc care mgmt staff 1st 20,Outpatient MH/SUD
+99491,Chrnc care mgmt phys 1st 30,Outpatient MH/SUD
+99492,1st psyc collab care mgmt,Outpatient MH/SUD
+99493,Sbsq psyc collab care mgmt,Outpatient MH/SUD
+99494,1st/sbsq psyc collab care,Outpatient MH/SUD

@@ -38,6 +38,7 @@ const FeeScheduleDir = lazy(() => import("./tools/FeeScheduleDir"));
 const RateLookup = lazy(() => import("./tools/RateLookup"));
 const ComplianceReport = lazy(() => import("./tools/ComplianceReport"));
 const CpraGenerator = lazy(() => import("./tools/CpraGenerator"));
+const AheadReadiness = lazy(() => import("./tools/AheadReadiness"));
 
 // ── Hash Router ──────────────────────────────────────────────────────────
 function useRoute() {
@@ -129,6 +130,12 @@ const TOOLS: ToolDef[] = [
     status: "live", icon: "△", color: C.teal,
   },
   {
+    id: "ahead-readiness", group: "modeling", name: "AHEAD Readiness Score",
+    tagline: "Scored dashboard: how ready is your hospital for a global budget?",
+    desc: "Enter a CCN. Aradune scores your hospital across four dimensions — financial stability, revenue concentration, supplemental exposure, and volume stability — using public HCRIS and CMS data.",
+    status: "live", icon: "⬢", color: C.teal,
+  },
+  {
     id: "analyst", group: "modeling", name: "Policy Analyst",
     tagline: "AI-powered rate analysis and SPA language drafting",
     desc: "Ask questions in plain English. Get answers grounded in real data: rates, comparisons, fiscal impact, and draft SPA language.",
@@ -183,8 +190,8 @@ function PlatformNav({ route }: { route: string }) {
         gap: 4,
       }}>
         <div style={{ display: "flex", alignItems: "center", gap: 8, flexShrink: 0 }}>
-          <a href="#/" style={{ textDecoration: "none", fontSize: 15, fontWeight: 700, color: C.ink, letterSpacing: -0.3, fontFamily: FONT.body }}>
-            Aradune
+          <a href="#/" style={{ textDecoration: "none", display: "flex", alignItems: "center" }}>
+            <img src="/assets/logo-full.png" alt="Aradune" style={{ height: 28 }} />
           </a>
           {activeTool && (
             <>
@@ -873,8 +880,64 @@ function Pricing() {
 }
 
 // ── Platform Shell ───────────────────────────────────────────────────────
+// ── Password Gate ───────────────────────────────────────────────────────
+function PasswordGate({ onAuth }: { onAuth: () => void }) {
+  const [pw, setPw] = useState("");
+  const [error, setError] = useState(false);
+
+  const submit = () => {
+    if (pw === "mediquiad") {
+      sessionStorage.setItem("aradune_auth", "1");
+      onAuth();
+    } else {
+      setError(true);
+      setPw("");
+    }
+  };
+
+  return (
+    <div style={{
+      minHeight: "100vh", display: "flex", flexDirection: "column",
+      alignItems: "center", justifyContent: "center",
+      fontFamily: FONT.body, background: C.bg, color: C.ink,
+    }}>
+      <img src="/assets/logo-full.png" alt="Aradune" style={{ height: 56, marginBottom: 24 }} />
+      <div style={{ fontSize: 20, fontWeight: 700, letterSpacing: -0.5, marginBottom: 6 }}>Coming Soon</div>
+      <div style={{ fontSize: 13, color: C.inkLight, marginBottom: 24, textAlign: "center", maxWidth: 360, lineHeight: 1.6 }}>
+        The Medicaid data intelligence platform. Enter the access code to preview.
+      </div>
+      <form onSubmit={e => { e.preventDefault(); submit(); }} style={{ display: "flex", gap: 8, alignItems: "center" }}>
+        <input
+          type="password"
+          value={pw}
+          onChange={e => { setPw(e.target.value); setError(false); }}
+          placeholder="Access code"
+          autoFocus
+          style={{
+            padding: "8px 14px", fontSize: 13, borderRadius: 6,
+            border: `1px solid ${error ? C.neg : C.border}`,
+            outline: "none", width: 200, fontFamily: FONT.body,
+          }}
+        />
+        <button type="submit" style={{
+          padding: "8px 18px", fontSize: 13, fontWeight: 600,
+          background: C.brand, color: C.white, border: "none",
+          borderRadius: 6, cursor: "pointer",
+        }}>Enter</button>
+      </form>
+      {error && <div style={{ fontSize: 11, color: C.neg, marginTop: 8 }}>Incorrect code</div>}
+      <div style={{ marginTop: 40, fontSize: 11, color: C.inkLight }}>
+        Questions? <a href="mailto:aradune-medicaid@proton.me" style={{ color: C.brand, textDecoration: "none" }}>aradune-medicaid@proton.me</a>
+      </div>
+    </div>
+  );
+}
+
 export default function Platform() {
+  const [authed, setAuthed] = useState(() => sessionStorage.getItem("aradune_auth") === "1");
   const route = useRoute();
+
+  if (!authed) return <PasswordGate onAuth={() => setAuthed(true)} />;
 
   const loadingFallback = (
     <div style={{ maxWidth: 600, margin: "0 auto", padding: "80px 20px", textAlign: "center" }}>
@@ -898,6 +961,7 @@ export default function Platform() {
       "/builder": <RateBuilder />,
       "/analyst": <PolicyAnalyst />,
       "/ahead": <AheadCalculator />,
+      "/ahead-readiness": <AheadReadiness />,
       "/fees": <FeeScheduleDir />,
       "/lookup": <RateLookup />,
       "/compliance": <ComplianceReport />,

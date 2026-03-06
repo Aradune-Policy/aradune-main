@@ -1,0 +1,477 @@
+{
+  "AL": {
+    "total_codes": 8232,
+    "em_codes": 75,
+    "avg_pct": 142.5,
+    "median_pct": 118.4,
+    "em_avg_pct": 158.7,
+    "em_median_pct": 136.1,
+    "flags": [],
+    "notes": []
+  },
+  "AR": {
+    "total_codes": 8814,
+    "em_codes": 145,
+    "avg_pct": 134.0,
+    "median_pct": 107.7,
+    "em_avg_pct": 102.4,
+    "em_median_pct": 75.9,
+    "flags": [],
+    "notes": []
+  },
+  "AZ": {
+    "total_codes": 7336,
+    "em_codes": 66,
+    "avg_pct": 116.5,
+    "median_pct": 112.4,
+    "em_avg_pct": 116.2,
+    "em_median_pct": 98.4,
+    "flags": [],
+    "notes": []
+  },
+  "CA": {
+    "total_codes": 736,
+    "em_codes": 59,
+    "avg_pct": 94.4,
+    "median_pct": 84.9,
+    "em_avg_pct": 97.9,
+    "em_median_pct": 81.7,
+    "flags": [],
+    "notes": []
+  },
+  "CO": {
+    "total_codes": 9424,
+    "em_codes": 138,
+    "avg_pct": 84.5,
+    "median_pct": 85.6,
+    "em_avg_pct": 98.8,
+    "em_median_pct": 86.1,
+    "flags": [],
+    "notes": []
+  },
+  "CT": {
+    "total_codes": 5006,
+    "em_codes": 60,
+    "avg_pct": 666.9,
+    "median_pct": 440.6,
+    "em_avg_pct": 170.4,
+    "em_median_pct": 105.8,
+    "flags": [
+      "facility_rate_bundling"
+    ],
+    "notes": [
+      "Non-E/M codes include facility/surgical rates ($3K-$21K) that bundle facility costs, inflating comparison vs Medicare professional-only rates. E/M codes are more reliable: median 105.8% of Medicare."
+    ]
+  },
+  "DC": {
+    "total_codes": 45731,
+    "em_codes": 272,
+    "avg_pct": 40.3,
+    "median_pct": 28.3,
+    "em_avg_pct": 79.0,
+    "em_median_pct": 74.9,
+    "flags": [
+      "high_code_count"
+    ],
+    "notes": [
+      "45,731 codes matched \u2014 significantly more than typical state. May include non-standard codes or multiple fee schedule types. Median 28.3% MCR."
+    ]
+  },
+  "DE": {
+    "total_codes": 6788,
+    "em_codes": 88,
+    "avg_pct": 109.3,
+    "median_pct": 108.6,
+    "em_avg_pct": 112.0,
+    "em_median_pct": 97.7,
+    "flags": [],
+    "notes": []
+  },
+  "FL": {
+    "total_codes": 149,
+    "em_codes": 10,
+    "avg_pct": 97.5,
+    "median_pct": 74.4,
+    "em_avg_pct": 38.0,
+    "em_median_pct": 35.2,
+    "flags": [],
+    "notes": []
+  },
+  "GA": {
+    "total_codes": 8160,
+    "em_codes": 99,
+    "avg_pct": 98.7,
+    "median_pct": 85.6,
+    "em_avg_pct": 104.4,
+    "em_median_pct": 97.4,
+    "flags": [],
+    "notes": []
+  },
+  "HI": {
+    "total_codes": 7338,
+    "em_codes": 75,
+    "avg_pct": 103.5,
+    "median_pct": 108.5,
+    "em_avg_pct": 95.5,
+    "em_median_pct": 83.5,
+    "flags": [],
+    "notes": []
+  },
+  "ID": {
+    "total_codes": 8704,
+    "em_codes": 97,
+    "avg_pct": 92.1,
+    "median_pct": 91.4,
+    "em_avg_pct": 98.5,
+    "em_median_pct": 89.5,
+    "flags": [],
+    "notes": []
+  },
+  "IL": {
+    "total_codes": 314,
+    "em_codes": 21,
+    "avg_pct": 82.1,
+    "median_pct": 67.9,
+    "em_avg_pct": 51.9,
+    "em_median_pct": 53.0,
+    "flags": [],
+    "notes": []
+  },
+  "IN": {
+    "total_codes": 7297,
+    "em_codes": 62,
+    "avg_pct": 107.4,
+    "median_pct": 104.7,
+    "em_avg_pct": 115.3,
+    "em_median_pct": 94.0,
+    "flags": [],
+    "notes": []
+  },
+  "KY": {
+    "total_codes": 6682,
+    "em_codes": 62,
+    "avg_pct": 252.8,
+    "median_pct": 105.6,
+    "em_avg_pct": 72.0,
+    "em_median_pct": 71.3,
+    "flags": [
+      "facility_rate_bundling"
+    ],
+    "notes": [
+      "Some codes include bundled facility costs. E/M median is more reliable than overall average. Codes >1000% MCR likely include facility component."
+    ]
+  },
+  "LA": {
+    "total_codes": 6334,
+    "em_codes": 71,
+    "avg_pct": 93.2,
+    "median_pct": 88.5,
+    "em_avg_pct": 81.1,
+    "em_median_pct": 79.3,
+    "flags": [],
+    "notes": []
+  },
+  "MA": {
+    "total_codes": 7179,
+    "em_codes": 71,
+    "avg_pct": 79.9,
+    "median_pct": 76.2,
+    "em_avg_pct": 82.5,
+    "em_median_pct": 71.6,
+    "flags": [],
+    "notes": []
+  },
+  "MD": {
+    "total_codes": 7187,
+    "em_codes": 64,
+    "avg_pct": 86.8,
+    "median_pct": 86.9,
+    "em_avg_pct": 106.8,
+    "em_median_pct": 96.6,
+    "flags": [],
+    "notes": []
+  },
+  "ME": {
+    "total_codes": 8892,
+    "em_codes": 97,
+    "avg_pct": 72.9,
+    "median_pct": 72.1,
+    "em_avg_pct": 76.9,
+    "em_median_pct": 69.7,
+    "flags": [],
+    "notes": []
+  },
+  "MN": {
+    "total_codes": 7273,
+    "em_codes": 69,
+    "avg_pct": 82.4,
+    "median_pct": 77.0,
+    "em_avg_pct": 91.8,
+    "em_median_pct": 78.5,
+    "flags": [],
+    "notes": []
+  },
+  "MO": {
+    "total_codes": 16021,
+    "em_codes": 250,
+    "avg_pct": 204.2,
+    "median_pct": 91.0,
+    "em_avg_pct": 84.2,
+    "em_median_pct": 82.9,
+    "flags": [],
+    "notes": []
+  },
+  "MS": {
+    "total_codes": 8558,
+    "em_codes": 88,
+    "avg_pct": 374.3,
+    "median_pct": 130.3,
+    "em_avg_pct": 134.9,
+    "em_median_pct": 93.2,
+    "flags": [],
+    "notes": []
+  },
+  "MT": {
+    "total_codes": 772,
+    "em_codes": 30,
+    "avg_pct": 107.3,
+    "median_pct": 98.6,
+    "em_avg_pct": 98.9,
+    "em_median_pct": 92.8,
+    "flags": [],
+    "notes": []
+  },
+  "NC": {
+    "total_codes": 3156,
+    "em_codes": 1,
+    "avg_pct": 147.9,
+    "median_pct": 104.2,
+    "em_avg_pct": 63.0,
+    "em_median_pct": 63.0,
+    "flags": [
+      "low_em_coverage"
+    ],
+    "notes": [
+      "Only 1 E/M code(s) matched. NC fee schedule may use different code formatting or cover E/M under managed care only."
+    ]
+  },
+  "ND": {
+    "total_codes": 848,
+    "em_codes": 14,
+    "avg_pct": 65.0,
+    "median_pct": 44.9,
+    "em_avg_pct": 91.9,
+    "em_median_pct": 76.8,
+    "flags": [
+      "low_em_coverage"
+    ],
+    "notes": [
+      "Only 14 E/M codes with rates \u2014 limited CPRA coverage."
+    ]
+  },
+  "NE": {
+    "total_codes": 2603,
+    "em_codes": 5,
+    "avg_pct": 170.3,
+    "median_pct": 140.4,
+    "em_avg_pct": 67.2,
+    "em_median_pct": 68.7,
+    "flags": [
+      "low_em_coverage"
+    ],
+    "notes": [
+      "Only 5 E/M codes with rates \u2014 limited CPRA coverage."
+    ]
+  },
+  "NH": {
+    "total_codes": 6910,
+    "em_codes": 186,
+    "avg_pct": 67.2,
+    "median_pct": 56.7,
+    "em_avg_pct": 90.4,
+    "em_median_pct": 87.1,
+    "flags": [],
+    "notes": []
+  },
+  "NV": {
+    "total_codes": 8766,
+    "em_codes": 109,
+    "avg_pct": 116.5,
+    "median_pct": 125.6,
+    "em_avg_pct": 108.9,
+    "em_median_pct": 100.8,
+    "flags": [],
+    "notes": []
+  },
+  "NY": {
+    "total_codes": 13,
+    "em_codes": 0,
+    "avg_pct": 92.4,
+    "median_pct": 86.0,
+    "em_avg_pct": null,
+    "em_median_pct": null,
+    "flags": [
+      "low_coverage"
+    ],
+    "notes": [
+      "Only 13 codes matched. NY fee schedule primarily uses HCPCS Level II codes (A/G-codes), not CPT. Most physician services are delivered through managed care."
+    ]
+  },
+  "OH": {
+    "total_codes": 988,
+    "em_codes": 1,
+    "avg_pct": 86.6,
+    "median_pct": 80.1,
+    "em_avg_pct": 51.7,
+    "em_median_pct": 51.7,
+    "flags": [
+      "low_em_coverage"
+    ],
+    "notes": [
+      "Only 1 E/M codes with rates \u2014 limited CPRA coverage."
+    ]
+  },
+  "OK": {
+    "total_codes": 10100,
+    "em_codes": 68,
+    "avg_pct": 301.4,
+    "median_pct": 100.6,
+    "em_avg_pct": 131.3,
+    "em_median_pct": 91.2,
+    "flags": [],
+    "notes": []
+  },
+  "OR": {
+    "total_codes": 102,
+    "em_codes": 36,
+    "avg_pct": 98.5,
+    "median_pct": 95.3,
+    "em_avg_pct": 94.8,
+    "em_median_pct": 93.3,
+    "flags": [],
+    "notes": []
+  },
+  "PA": {
+    "total_codes": 298,
+    "em_codes": 56,
+    "avg_pct": 193.4,
+    "median_pct": 93.6,
+    "em_avg_pct": 104.2,
+    "em_median_pct": 93.6,
+    "flags": [],
+    "notes": []
+  },
+  "RI": {
+    "total_codes": 6418,
+    "em_codes": 76,
+    "avg_pct": 418.2,
+    "median_pct": 277.7,
+    "em_avg_pct": 169.3,
+    "em_median_pct": 124.6,
+    "flags": [
+      "facility_rate_bundling"
+    ],
+    "notes": [
+      "Fee schedule includes bundled facility rates for surgical/procedural codes, inflating averages. E/M-only comparison is more meaningful."
+    ]
+  },
+  "SC": {
+    "total_codes": 18013,
+    "em_codes": 242,
+    "avg_pct": 89.0,
+    "median_pct": 90.4,
+    "em_avg_pct": 117.0,
+    "em_median_pct": 107.0,
+    "flags": [],
+    "notes": []
+  },
+  "SD": {
+    "total_codes": 4368,
+    "em_codes": 28,
+    "avg_pct": 10.6,
+    "median_pct": 5.8,
+    "em_avg_pct": 3.0,
+    "em_median_pct": 2.1,
+    "flags": [
+      "unit_mismatch",
+      "possible_unit_error"
+    ],
+    "notes": [
+      "Rates appear to be per-15-minute units, not per-service. Medicaid rates ($0.98-$6.87 for E/M) are ~2-10% of Medicare \u2014 likely need unit conversion (x4 for hourly codes)."
+    ]
+  },
+  "TX": {
+    "total_codes": 18,
+    "em_codes": 0,
+    "avg_pct": 101.0,
+    "median_pct": 98.7,
+    "em_avg_pct": null,
+    "em_median_pct": null,
+    "flags": [],
+    "notes": []
+  },
+  "UT": {
+    "total_codes": 6757,
+    "em_codes": 69,
+    "avg_pct": 88.1,
+    "median_pct": 83.2,
+    "em_avg_pct": 90.2,
+    "em_median_pct": 78.8,
+    "flags": [],
+    "notes": []
+  },
+  "VA": {
+    "total_codes": 1,
+    "em_codes": 0,
+    "avg_pct": 77.4,
+    "median_pct": 77.4,
+    "em_avg_pct": null,
+    "em_median_pct": null,
+    "flags": [],
+    "notes": []
+  },
+  "WA": {
+    "total_codes": 285,
+    "em_codes": 37,
+    "avg_pct": 77.2,
+    "median_pct": 62.5,
+    "em_avg_pct": 105.2,
+    "em_median_pct": 65.5,
+    "flags": [],
+    "notes": []
+  },
+  "WV": {
+    "total_codes": 9108,
+    "em_codes": 102,
+    "avg_pct": 81.1,
+    "median_pct": 78.6,
+    "em_avg_pct": 85.4,
+    "em_median_pct": 73.4,
+    "flags": [],
+    "notes": []
+  },
+  "WY": {
+    "total_codes": 7022,
+    "em_codes": 70,
+    "avg_pct": 115.0,
+    "median_pct": 99.2,
+    "em_avg_pct": 105.5,
+    "em_median_pct": 93.2,
+    "flags": [],
+    "notes": []
+  },
+  "IA": {
+    "total_codes": 0,
+    "em_codes": 0,
+    "avg_pct": null,
+    "median_pct": null,
+    "em_avg_pct": null,
+    "em_median_pct": null,
+    "flags": [
+      "no_data"
+    ],
+    "notes": [
+      "No FFS fee schedule codes matched Medicare PFS. IA Medicaid fee schedule contains only HCBS/waiver codes (H2016, T1019, etc.). Physician services likely delivered entirely through managed care."
+    ]
+  }
+}

@@ -327,7 +327,10 @@ export default function PolicyAnalyst() {
         )}
 
         {messages.map((msg, i) => (
-          <div key={i} style={{ marginBottom:12,display:"flex",justifyContent:msg.role==="user"?"flex-end":"flex-start" }}>
+          <div key={i} style={{ marginBottom:12,display:"flex",justifyContent:msg.role==="user"?"flex-end":"flex-start",alignItems:"flex-start",gap:8 }}>
+            {msg.role === "assistant" && (
+              <img src="/assets/icon-bot.png" alt="" style={{ width:32,height:32,borderRadius:"50%",objectFit:"cover",flexShrink:0,marginTop:2 }} />
+            )}
             <div style={{
               maxWidth:"85%",
               padding:msg.role==="user"?"8px 14px":"12px 16px",

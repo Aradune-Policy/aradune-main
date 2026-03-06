@@ -4,6 +4,10 @@ dist/
 .DS_Store
 
 # Large data files (not for git)
+data/lake/
+data/raw/
+data/processed/
+data/sources/
 data/*.csv
 data/*.duckdb
 data/*.zip
@@ -28,7 +32,6 @@ AHEAD/
 WORKING/
 mfs_scraper/
 oesm24all/
-server/
 data/NPPES_Data_Dissemination_*/
 data/dme*/
 
@@ -36,3 +39,9 @@ data/dme*/
 aradune-*.md
 process_data.R
 tmsis_pipeline_duckdb.R
+
+# Brand asset source files (copies live in public/assets/)
+/icon-bot.png
+/logo-full.png
+/logo-mark.png
+/logo-wordmark.png

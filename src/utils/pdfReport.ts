@@ -16,25 +16,45 @@ export async function loadAutoTable(): Promise<typeof import("jspdf-autotable")>
   return import("jspdf-autotable");
 }
 
+async function loadLogoDataUrl(): Promise<string | null> {
+  try {
+    const resp = await fetch("/assets/logo-wordmark.png");
+    const blob = await resp.blob();
+    return await new Promise<string>((resolve) => {
+      const reader = new FileReader();
+      reader.onloadend = () => resolve(reader.result as string);
+      reader.readAsDataURL(blob);
+    });
+  } catch {
+    return null;
+  }
+}
+
 export async function createAradunePDF(title: string): Promise<jsPDF> {
   const { default: jsPDF } = await loadJsPDF();
   await loadAutoTable(); // registers the autoTable plugin
 
   const doc = new jsPDF({ orientation: "portrait", unit: "pt", format: "letter" });
+  const logoDataUrl = await loadLogoDataUrl();
 
   // Header bar
   doc.setFillColor(...BRAND);
   doc.rect(0, 0, 612, 44, "F");
 
-  // "ARADUNE" wordmark
-  doc.setFont("helvetica", "bold");
-  doc.setFontSize(14);
-  doc.setTextColor(255, 255, 255);
-  doc.text("ARADUNE", 28, 28);
+  // Logo wordmark or fallback text
+  if (logoDataUrl) {
+    doc.addImage(logoDataUrl, "PNG", 28, 12, 100, 20);
+  } else {
+    doc.setFont("helvetica", "bold");
+    doc.setFontSize(14);
+    doc.setTextColor(255, 255, 255);
+    doc.text("ARADUNE", 28, 28);
+  }
 
   // Date right-aligned
   doc.setFontSize(9);
   doc.setFont("helvetica", "normal");
+  doc.setTextColor(255, 255, 255);
   doc.text(new Date().toLocaleDateString("en-US", { year: "numeric", month: "long", day: "numeric" }), 584, 28, { align: "right" });
 
   // Report title

@@ -8,6 +8,9 @@ RUN pip install --no-cache-dir -r requirements.txt
 COPY server/ ./server/
 COPY scripts/sync_lake.py ./scripts/sync_lake.py
 
+# CPRA upload tool needs reference CSVs (68 E/M codes, code-category map, GPCI)
+COPY data/reference/cpra/ ./data/reference/cpra/
+
 # Download lake data from S3 on build (or at runtime via entrypoint)
 COPY server/entrypoint.sh .
 RUN chmod +x entrypoint.sh

@@ -1,7 +1,7 @@
 # CLAUDE.md — Aradune
 > **The ONE source for Medicaid data intelligence.**
 > Read this file at the start of every session. It defines what Aradune is, how it's built, and the rules for building it.
-> Last updated: 2026-03-06 · Last commit: `95f5a34` · Live: https://www.aradune.co
+> Last updated: 2026-03-08 · Live: https://www.aradune.co
 
 ---
 
@@ -74,10 +74,10 @@ Frontend:       React 18 + TypeScript + Vite (Vercel Pro, aradune.co)
 Visualization:  Recharts
 Routing:        Hash-based in Platform.tsx
 Data store:     DuckDB-WASM (browser-side client queries)
-Data lake:      Hive-partitioned Parquet (data/lake/) — 89.5M rows, 83 tables
+Data lake:      Hive-partitioned Parquet (data/lake/) — 101.2M+ rows, 201 views (185 fact + 9 dim + 5 ref + 2 compat)
                 DuckDB in-memory views over Parquet files
-                S3 sync ready (scripts/sync_lake.py)
-Backend:        Python FastAPI (server/) — 77 endpoints, DuckDB-backed
+                S3/R2 sync (scripts/sync_lake.py, Cloudflare R2 bucket: aradune-datalake)
+Backend:        Python FastAPI (server/) — 216 endpoints across 20 route files, DuckDB-backed
                 3 Vercel serverless functions in api/ (legacy)
 AI:             Claude API via Vercel serverless (api/chat.js)
                 Haiku for routing · Sonnet for analysis · Opus for complex reasoning
@@ -98,26 +98,28 @@ Access:         Password gate ("mediquiad") via sessionStorage in Platform.tsx
 
 ---
 
-## 4. Live Tools (14 total)
+## 4. Live Tools (16 total)
 
 **Site is behind a password gate** (`PasswordGate` component in `Platform.tsx`). Password: `mediquiad`. Stored in `sessionStorage` — clears on tab close. All tools are lazy-loaded and code-split per route.
 
 | Group | Tool | Route | Status |
 |-------|------|-------|--------|
-| Transparency | Spending Explorer | `/#/explorer` | live |
-| Transparency | Medicare Comparison | `/#/decay` | live |
-| Transparency | State Fee Schedule Directory | `/#/fees` | live |
-| Transparency | Rate Lookup | `/#/lookup` | live |
-| Transparency | Compliance Report | `/#/compliance` | live |
-| **Transparency** | **CPRA Generator** | **`/#/cpra`** | **live — wedge product** |
-| Adequacy | Rate & Wage Comparison | `/#/wages` | live |
-| Adequacy | Quality Linkage | `/#/quality` | live |
-| Adequacy | Rate Reduction Analyzer | `/#/reduction` | live |
-| Adequacy | HCBS Compensation Tracker | `/#/hcbs8020` | live |
-| Modeling | Rate Builder | `/#/builder` | live |
-| Modeling | AHEAD Calculator | `/#/ahead` | live |
-| Modeling | AHEAD Readiness Score | `/#/ahead-readiness` | live |
-| Modeling | Policy Analyst | `/#/analyst` | beta — **NO AUTH, publicly accessible** |
+| **Explore** | **State Profile** | **`/#/state` or `/#/state/{code}`** | **live — 18 parallel API fetches, 7 sections** |
+| Explore | Spending Explorer | `/#/explorer` | live |
+| Explore | Medicare Comparison | `/#/decay` | live |
+| Explore | State Fee Schedule Directory | `/#/fees` | live |
+| Explore | Rate Lookup | `/#/lookup` | live |
+| Explore | Compliance Report | `/#/compliance` | live |
+| **Explore** | **CPRA Generator** | **`/#/cpra`** | **live — wedge product** |
+| Analyze | Rate & Wage Comparison | `/#/wages` | live |
+| Analyze | Quality Linkage | `/#/quality` | live |
+| Analyze | Rate Reduction Analyzer | `/#/reduction` | live |
+| Analyze | HCBS Compensation Tracker | `/#/hcbs8020` | live |
+| Build | Rate Builder | `/#/builder` | live |
+| Build | AHEAD Calculator | `/#/ahead` | live |
+| Build | AHEAD Readiness Score | `/#/ahead-readiness` | live |
+| **Build** | **Caseload Forecaster** | **`/#/forecast`** | **live — caseload + expenditure** |
+| Build | Policy Analyst | `/#/analyst` | beta — has Bearer token auth |
 
 **Target nav structure:**
 ```
@@ -133,11 +135,11 @@ The CPRA exists as **two architecturally distinct systems** that serve different
 
 ### 5a. CPRA Frontend (Pre-Computed Cross-State Comparison)
 
-`src/tools/CpraGenerator.tsx` (734 lines). Displays pre-computed rate comparisons from `fact_rate_comparison` (278K rows, 42 states, all HCPCS codes). This is a **general fee-to-Medicare comparison tool** — not limited to the 68 E/M codes.
+`src/tools/CpraGenerator.tsx` (734 lines). Displays pre-computed rate comparisons from `fact_rate_comparison` (302K rows, 45 states, all HCPCS codes). This is a **general fee-to-Medicare comparison tool** — not limited to the 68 E/M codes.
 
 **Data flow (pre-computed, read-only):**
 ```
-fact_rate_comparison (lake)           → all codes, 42 states, pre-computed pct_of_medicare
+fact_rate_comparison (lake)           → all codes, 45 states, pre-computed pct_of_medicare
 cpra_em.json (2,742 rows/34 states)  → slim E/M extract for frontend
 dim_447_codes.json (74 codes)        → old code list (⚠️ should be 68 — see 5b)
 cpra_summary.json (7KB)              → pipeline aggregates (median, national context)
@@ -186,6 +188,10 @@ dq_flags_em.json (771 flags)         → data quality warnings per code/state
 - 42 of 68 codes have FL rates; 26 are not on the AHCA fee schedule
 - Category weighted averages: PC 61.2%, OB-GYN 61.1%, MH/SUD 59.0%
 
+**Frontend:** CpraGenerator.tsx has two modes:
+- **Cross-State Comparison** (default) — pre-computed rate comparisons from `fact_rate_comparison`
+- **Bring Your Own Data** — upload fee schedule + utilization CSVs, generates full CPRA via `/api/cpra/upload/generate`
+
 **Source project:** `/Users/jamestori/Desktop/cpra-pipeline/` — contains the R pipeline (publication-quality figures/tables via Quarto), Python engine, and standalone FastAPI server. See `cpra-pipeline/CPRA_TOOL_HANDOFF.md` for full details.
 
 ### CPRA Compliance Rules (always enforce)
@@ -233,14 +239,14 @@ python cpra_engine.py --stats           # Print table counts
 | xwalk_locality_to_state | 109 | Equal-weighted locality→state crosswalk |
 | fact_medicare_rate | 858,593 | Medicare rates × 109 localities |
 | fact_medicare_rate_state | 417,481 | State-level Medicare averages |
-| fact_rate_comparison | 278,702 | CPRA: Medicaid vs Medicare (42 states) |
-| fact_dq_flags | 270,000 | Data quality flags |
+| fact_rate_comparison | 302,332 | CPRA: Medicaid vs Medicare (45 states) |
+| fact_dq_flags | 269,475 | Data quality flags |
 
 **Output files (what the frontend reads):**
 
 | File | Size | Frontend? | Notes |
 |------|------|-----------|-------|
-| `cpra_em.json` | 709KB | ✅ Primary CPRA data | 39 states, 3,169 E/M rows |
+| `cpra_em.json` | 495KB | ✅ Primary CPRA data | 40 states, 2,216 E/M rows |
 | `dq_flags_em.json` | 81KB | ✅ DQ warnings | 789 flags, 6 types |
 | `dim_447_codes.json` | 14KB | ✅ Code definitions | 74 E/M codes |
 | `cpra_summary.json` | 7KB | ✅ State aggregates | median, national context |
@@ -248,7 +254,7 @@ python cpra_engine.py --stats           # Print table counts
 | `dq_flags.json` | 27.2MB | ❌ gitignored/vercelignored | full 258K flags |
 | `medicare_rates_locality.parquet` | 10MB | ❌ gitignored/vercelignored | locality-level rates |
 
-**42 states in rate_comparison (39 with E/M codes in cpra_em.json):** AL, AR, AZ, CA, CO, CT, DC, DE, FL, GA, HI, ID, IL, IN, KY, LA, MA, MD, ME, MN, MO, MS, MT, NC, ND, NE, NH, NV, NY, OH, OK, OR, PA, RI, SC, SD, TX, UT, VA, WA, WV, WY
+**45 states in rate_comparison (40 with E/M codes in cpra_em.json):** AK, AL, AR, AZ, CA, CO, CT, DC, DE, FL, GA, HI, ID, IL, IN, KY, LA, MA, MD, ME, MI, MN, MO, MS, MT, NC, ND, NE, NH, NM, NV, NY, OH, OK, OR, PA, RI, SC, SD, TX, UT, VA, WA, WV, WY
 
 **States with limited CPRA data:**
 - IA: No FFS physician codes (HCBS-only fee schedule)
@@ -286,13 +292,16 @@ python cpra_engine.py --stats           # Print table counts
 |---|-----|----------|--------|
 | 1 | ~~White page on CPRA~~ | `/#/cpra` | **Resolved** — ErrorBoundary added. |
 | 2 | ~~T-MSIS DuckDB empty~~ | | **Resolved** — T-MSIS data ingested into lake. |
-| 3 | ~~6 states missing from CPRA~~ | | **Fixed** — COALESCE in cpra_engine.py. 34→42 states. |
+| 3 | ~~6 states missing from CPRA~~ | | **Fixed** — COALESCE in cpra_engine.py. 34→45 states (AK/MI/NM computed from RBRVS). |
 | 4 | ~~**Frontend not wired to FastAPI**~~ | All 13 tools | **Resolved** — All tools wired with JSON fallback. |
-| 5 | **Policy Analyst no auth** | `api/chat.js` | Publicly accessible — anyone can burn Anthropic API credits. Site password gate helps but is client-side only. |
-| 6 | **Old CPRA uses wrong code list** | `cpra_engine.py`, `fact_rate_comparison` | Uses 74 codes + $33.4009 CF + 1:1 categories. Should be 68 codes + $32.3465 CF + many-to-many (171 pairs). Upload tool (5b) has the correct values. Pre-computed data not yet updated. |
-| 7 | **FL rates not in CPRA display** | `fact_rate_comparison` | FL Practitioner Fee Schedule (6,676 codes) added to `fact_medicaid_rate` but NOT reflected in `fact_rate_comparison` (which CPRA frontend reads). The upload tool (5b) computes FL correctly from user-uploaded CSVs. |
-| 8 | **CPRA upload not deployed to Fly.io** | `server/engines/cpra_upload.py` | Engine + routes ported and tested locally. Needs: reference CSVs in Docker image, `python-multipart` in Dockerfile, deploy. |
+| 5 | ~~**Policy Analyst no auth**~~ | `api/chat.js` | **Mitigated** — Has Bearer token auth (PREVIEW_TOKEN + Stripe + rate limiting at 30/hr). Set PREVIEW_TOKEN env var on Vercel to restrict beyond site password. |
+| 6 | ~~**Old CPRA uses wrong code list**~~ | `cpra_engine.py` | **Fixed** — Updated to 68 codes from reference CSVs, $32.3465 CF, many-to-many (171 pairs). Re-run `--em-codes --cpra --export` to regenerate `fact_rate_comparison`. |
+| 7 | ~~FL rates not in CPRA display~~ | `fact_rate_comparison` | **Fixed** — Re-ran cpra_engine.py. FL now in rate_comparison. Also added AK/MI/NM computed fee schedules (RBRVS). 45 states, 302K rows. |
+| 8 | ~~**CPRA upload not deployed to Fly.io**~~ | `server/Dockerfile` | **Fixed** — Dockerfile updated to COPY `data/reference/cpra/`. Deployed to Fly.io. |
 | 9 | **R2 credentials need rotation** | Infrastructure | Shared in plain text during session. |
+| 10 | **db.py fact_names must match filesystem** | `server/db.py` | Only facts listed in `fact_names` array (line 41-118) are registered as views. When adding new lake tables, always update this list. Currently 185 entries = 185 filesystem directories. |
+| 11 | **Fly.io cold start slow** | Infrastructure | S3 sync downloads 237 files on startup (~40s). Health check fails during sync. Consider pre-baking lake into Docker image or using persistent volumes. |
+| 12 | ~~**Forecast engine needs frontend**~~ | `/#/forecast` | **Done.** Full UI: upload form, caseload forecast (fan chart + model table + interventions), expenditure projection (summary, chart, category table, MC/FFS breakdown bar). Tab toggle between caseload and expenditure views. |
 
 ### Data Quality — Investigated
 
@@ -310,15 +319,12 @@ All outlier states investigated. Root causes documented in `public/data/dq_state
 
 | Item | Action |
 |------|--------|
-| ~~`public/data/cpra_precomputed.json`~~ | **Deleted** |
 | `scripts/build-cpra-data.mjs` | Delete — superseded by cpra_engine.py |
-| ~~Bar visualization clips at outliers (CT 666%)~~ | **Fixed** — Capped at 200% |
-| ~~Conversion factor discrepancy~~ | **Fixed** — Updated to $33.4009 (non-QPP) for general comparison. CPRA compliance uses $32.3465 (CY2025). |
 | Locality weighting is equal, not population-weighted | Acceptable for v1; fix with Census CBSA data later |
-| ~~`fl_methodology_addendum.md` not loaded~~ | **Fixed** — `api/chat.js` now appends it to system prompt |
 | `StateRateEngine.js` not wired | 1,153 lines, 42/42 tests passing, but not connected to Rate Builder UI |
 | Password gate is client-side only | `sessionStorage` check in Platform.tsx — not a security boundary, just a preview wall |
-| Frontend `CpraGenerator.tsx` not wired to upload tool | Needs "Bring Your Own Data" tab/mode that POSTs to `/api/cpra/upload/generate` |
+| No export on most tools | Only CPRA has PDF/Excel. Other tools need CSV/PDF export buttons. |
+| `cpra_precomputed.json` still in public/data | Listed as "⚠️ DELETE" in file map — actually delete it |
 
 ---
 
@@ -330,47 +336,106 @@ All outlier states investigated. Root causes documented in `public/data/dq_state
 3. ~~**Confirm CPRA in production**~~ — **Build verified.** ErrorBoundary in place, TypeScript clean, production build succeeds. Needs visual verification on aradune.co.
 4. ~~**Reconcile conversion factor**~~ — **Done.** `medicare_pfs.py` updated from $32.3465 (QPP) to $33.4009 (non-QPP). Frontend and cpra_engine.py already used correct value.
 
-### Tier 2 — Platform completeness
-5. **Landing page redesign** from `docs/AraduneMockup.jsx` — password gate redesigned (text logo, left-justified centered block). Full landing page after gate still needs work.
-6. ~~**Nav redesign**~~ — **Done.** Grouped dropdowns (Explore / Analyze / Build).
-7. **Wire `StateRateEngine.js` into Rate Builder** — 42/42 tests passing, not connected to UI
-8. ~~**Wire `dq_state_notes.json`**~~ — **Done.**
-9. ~~**Cap bar visualization**~~ — **Done.**
-10. ~~**Append `fl_methodology_addendum.md`**~~ — **Done.**
-11. **Wire CPRA upload tool to frontend** — Add "Bring Your Own Data" mode to `CpraGenerator.tsx` that POSTs to `/api/cpra/upload/generate`. JSON output shape designed to match existing table component.
-12. **Deploy CPRA upload to Fly.io** — Include `data/reference/cpra/` CSVs in Docker image, add `python-multipart` to requirements, redeploy.
-13. **Update old cpra_engine.py** — Align with correct 68 codes, $32.3465 CF, many-to-many categories from `data/reference/cpra/` files. Or deprecate in favor of upload tool for CPRA-specific use cases.
+### Tier 2 — Platform completeness (done items collapsed)
+
+**Done:** ~~Nav redesign~~, ~~DQ state notes~~, ~~Bar cap~~, ~~FL methodology addendum~~, ~~CPRA upload frontend~~, ~~CPRA upload Fly.io deploy~~, ~~cpra_engine.py update~~, ~~Caseload Forecaster frontend~~, ~~Expenditure modeling engine + API + frontend~~.
+
+**Still open:**
+5. **Landing page redesign** from `docs/AraduneMockup.jsx` — password gate restyled but full post-gate landing page not built.
+7. **Wire `StateRateEngine.js` into Rate Builder** — 42/42 tests passing, not connected to UI.
+
+### Tier 2b — Critical platform gaps (what's actually blocking public launch)
+
+These are the things that would make a user say "this is a real product":
+
+| # | Gap | Why it matters | Effort |
+|---|-----|----------------|--------|
+| A | ~~**State Profile pages**~~ | ~~Primary entry point for 80% of users.~~ **Done.** `StateProfile.tsx` (~470 lines), 18 parallel API fetches, 7 collapsible sections (overview, enrollment, rates, hospitals, quality, workforce, pharmacy, economic). Hash routing: `/#/state/{code}`. | **Done** |
+| B | **Search / discovery** | 185 fact tables, 216 endpoints, 15 tools — no way to find anything. `UX_FEATURES_SPEC.md` has the design spec. | Medium |
+| C | **Landing page** | Behind password gate, the site is just a tool list. No value proposition, no "why Aradune". `AraduneMockup.jsx` exists. | Small-medium |
+| D | **Data catalog** | Users need to know what data is available. Something like a browsable index of all 185 tables with descriptions, row counts, freshness dates. | Small |
+| E | **Export for all tools** | Only CPRA has PDF/Excel export. Wage Adequacy, Quality Linkage, AHEAD, Forecast — no exports. | Small per tool |
+| F | **User accounts** | Can't monetize with a shared password gate. Need at minimum email + magic link auth, saved workspaces, usage tracking. | Large |
 
 ### Tier 3 — Data expansion (standing instruction)
+
 The data layer is the moat. Every session: add data, improve quality, or make adding data easier.
 
-**Completed federal datasets (89.5M rows, 83 tables):**
-- T-MSIS claims (227M source) · CPRA rates (42 states) · CMS-64 · NADAC · SDUD
+**Completed federal datasets (101.2M rows, 185 fact tables):**
+- T-MSIS claims (227M source) · CPRA rates (45 states) · CMS-64 · NADAC · SDUD + SDUD 2024 (5.2M)
 - BLS wages (state/MSA/national) · HCRIS hospitals + SNFs · Hospital quality (ratings/VBP/HRRP/HAC)
 - Five-Star NF · POS · PBJ staffing (65M+) · EPSDT · Enrollment/unwinding/MC plans
 - Census ACS · BRFSS · CDC mortality/overdose · FRED economic (GDP/pop/unemployment/income)
 - HPSA · Scorecard · HAI · NH ownership/penalties/deficiencies · HCAHPS · Imaging
 - MLTSS · Financial mgmt · Eligibility levels · ACA FUL · DQ Atlas · 1115 waivers · NCCI edits
+- SAMHSA: NSDUH (5,865 rows), N-SUMHSS (27,957 MH/SUD facilities), Block Grants ($0.95B)
+- CHIP: enrollment, unwinding, monthly/annual, eligibility, continuous eligibility
+- Behavioral health: BH by condition, MH/SUD recipients, IPF quality, BRFSS behavioral
+- Managed care: enrollment by plan (7,804), MLTSS enrollment, PACE (201 orgs), MC quality features
+- Hospice: quality (331K), provider, directory, CAHPS · Maternal health · ASC quality
+- Medicare: enrollment (557K), provider enrollment, IPPS impact, opioid prescribing (539K)
+- Drug rebate products (1.9M) · AHRF county · Physician Compare · ESRD QIP
+- Home health agencies · IRF providers · LTCH providers · Dialysis facilities
+- SNF VBP · SNF quality · Nursing home state averages · FQHC directory
+- Vital stats · Maternal mortality · Pregnancy outcomes · Well-child visits
+- Telehealth services · Dental services · Contraceptive care · Respiratory conditions
 
-**Next datasets to ingest:**
-11. ~~**Supplemental payment programs**~~ — **Done (Phase 1).** Ingested CMS-64 FMR supplemental payments (1,553 rows, FY 2019-2024, 51 states, DSH/supplemental/GME by service category) + MACPAC Exhibit 24 (102 rows, FY 2023-2024, state-level DSH/non-DSH/1115 waiver summary). 4 API endpoints in `server/routes/supplemental.py`. Still needed: hospital-level DSH data, State Directed Payment preprint parsing, UPL demonstrations.
-12. **More state fee schedules** — Currently 42/51 states in CPRA. Remaining 9 need manual extraction.
-13. **SAMHSA behavioral health** — Block grants, psychiatric beds. NSDUH requires manual extraction (no bulk API).
-14. **340B covered entity data** — HRSA quarterly.
-15. **HCBS deeper** — Waiver utilization, waitlists (700K+ nationally), DSW workforce data.
-16. **CHIP enrollment/expenditure** — Separate from Medicaid, CMS/MBES quarterly.
+**Highest-value datasets not yet ingested:**
+
+| # | Dataset | Why it matters | Source | Status |
+|---|---------|---------------|--------|--------|
+| 1 | **Hospital price transparency MRFs** | Only way to see what MCOs actually pay providers. Covers ~70% of Medicaid (MC). Unique competitive advantage — no one has assembled this for Medicaid. | CMS MRF index | Not started — massive dataset, requires targeted extraction |
+| 2 | **HCBS waitlist data** | 700K+ people waiting for HCBS services nationally. No public database aggregates this. Genuinely differentiated. | KFF / state reports | Not started |
+| 3 | **340B covered entity data** | HRSA quarterly. Drug pricing intersection with Medicaid. | hrsa.gov | Not started |
+| 4 | **SPA/waiver policy corpus** | The text of State Plan Amendments, 1115 waivers, CIBs, SHO letters. Central to "AI-native policy intelligence." | CMS MACPro / medicaid.gov | Not started (have 647 waiver metadata records, but not the actual documents) |
+| 5 | **MCO contract terms** | Rate certifications, MLR reports, network adequacy standards. ~70% of Medicaid flows through MCOs. | State portals | Not started |
+| 6 | **SNAP/TANF enrollment** | Cross-program correlation for caseload forecasting. | fns.usda.gov / ACF | Not started |
+| 7 | **More state fee schedules** | 45/51 states in CPRA. Remaining: KS (portal login), NJ (portal login), TN (MC only), WI (manual). IA/VT in medicaid_rate but not rate_comparison. | State portals | 4 remaining |
+| 8 | **UPL demonstrations** | Upper payment limit filings — key to understanding supplemental payment structure. | CMS MACPro | Not started |
+| 9 | **Full SDP preprint parsing** | Have 34 state index entries. Need actual preprint PDF content via Claude API + pdfplumber. | CMS | Index done, parsing not started |
+| 10 | **Historical HCRIS (FY2021-2022)** | Enables 3-year trend sparklines for AHEAD Readiness. | cms.gov | Not started |
 
 **Improve existing data:**
-17. Add `weighted_avg_pct` to `cpra_summary.json` using CY2023 FFS claim volume weights
-18. Add category-level breakdowns to `cpra_summary.json` per state
-19. Build reusable ingestion pattern (fetch→parse→validate→normalize→load) to accelerate new sources
-20. **AHEAD Readiness: historical HCRIS** — Ingest FY2021–2022 HCRIS for 3-year trend sparklines
-21. **AHEAD Readiness: hospital-level supplemental** — CMS-64 Schedule A/B at hospital level for UPL/SDP
+- Add `weighted_avg_pct` to `cpra_summary.json` using CY2023 FFS claim volume weights
+- Add category-level breakdowns to `cpra_summary.json` per state
+- Build reusable ingestion pattern (fetch→parse→validate→normalize→load) to accelerate new sources
 
 ### Tier 4 — Analytical features
-20. **Caseload forecasting** — ARIMA/ETS per state with economic covariates
-21. **RAG over policy corpus** — pgvector + Voyage-3-large embeddings
-22. **NL2SQL** via Vanna (DuckDB native)
+
+| # | Feature | Status | Next action |
+|---|---------|--------|-------------|
+| 1 | ~~**Caseload forecasting**~~ | **Done.** Engine + API (10 endpoints) + full frontend UI with fan charts, model comparison, intervention effects. | Scenario builder (Phase 3) |
+| 2 | ~~**Expenditure modeling**~~ | **Done.** Engine (`expenditure_model.py`) + 4 API endpoints + frontend UI (summary, chart, per-category table, MC/FFS breakdown bar). Tab toggle with caseload view. | — |
+| 3 | **Scenario builder** | Not started | "What if unemployment rises 2pp?" Extend forecast engine with hypothetical intervention variables + UI sliders. |
+| 4 | **NL2SQL over the data lake** | Not started | The AI-native promise. User asks a question in English → DuckDB SQL over 185 fact tables → answer. Vanna (open-source, DuckDB native) is the likely framework. This is the single biggest feature gap vs. the vision. |
+| 5 | **RAG over policy corpus** | Not started | pgvector + Voyage-3-large embeddings over SPAs, waivers, CIBs. Requires ingesting the policy documents first (Tier 3 #4). |
+| 6 | **Forecast accuracy dashboard** | Not started | Principle #15: "Log predictions. Compare to actuals. Publish accuracy." Unique credibility signal — no Medicaid analytics firm publishes their forecast accuracy. |
+| 7 | **Cross-dataset insights** | Not started | The moat's real value: "States with lowest rates AND highest uninsured AND longest HCBS waitlists." Requires cross-table joins that the current tool-per-table architecture doesn't support. State Profile pages (Tier 2b-A) are the natural home for this. |
+
+### Recent Changes (2026-03-08, session 2)
+- **Expenditure Modeling Engine** — `server/engines/expenditure_model.py` (~430 lines). Takes caseload forecast output + user-uploaded expenditure parameters CSV (cap rates for MC, cost-per-eligible for FFS). Applies compound monthly trend, admin load, risk margin, policy adjustments. Returns per-category and aggregate projections with CI bands. Key classes: `ExpenditureModeler`, `CategoryExpenditure`, `ExpenditureResult`.
+- **Expenditure API routes** — 4 new endpoints added to `server/routes/forecast.py` (now 10 total): `GET /api/forecast/templates/expenditure-params`, `POST /api/forecast/expenditure` (full pipeline), `POST /api/forecast/expenditure/csv`, `POST /api/forecast/expenditure-only`.
+- **Caseload Forecaster frontend** — `src/tools/CaseloadForecaster.tsx` (~830 lines). Full upload UI: state selector, horizon dropdown, caseload/events/expenditure-params file inputs with template download links, seasonality/economic checkboxes. Caseload view: summary metrics, category pills, fan chart with 80/95% CI bands, event markers, intervention effects panel, model comparison table. Expenditure view: summary card (total/MC/FFS), expenditure fan chart (orange accent), per-category table (9 columns + totals row), MC vs FFS horizontal breakdown bar. Tab toggle between views.
+- **Platform.tsx updated** — CaseloadForecaster registered as lazy-loaded tool at `/#/forecast` in Build group. Tool count: 15.
+- **CLAUDE.md overhauled** — Sections 4, 7, 8, 9, 16 updated. Section 8 restructured with Tier 2b (critical platform gaps: State Profiles, search, landing page, data catalog, export, user accounts) and Tier 3/4 tables with clear-eyed gap analysis.
+
+### Recent Changes (2026-03-08, session 1)
+- **Caseload Forecasting Engine (Phase 1)** — `server/engines/caseload_forecast.py` (~650 lines). SARIMAX + ETS model competition per category with intervention variables (COVID PHE, unwinding, MC launches, eligibility changes). Economic covariate enrichment from Aradune's public unemployment data. Holdout MAPE validation. Template-driven CSV upload pattern (same as CPRA). Tested with synthetic FL data: 8 categories, 96 months, all SARIMAX, <1% MAPE. Key fixes: event deduplication for multicollinearity, future exog construction for step functions. Dependencies added: `statsmodels>=0.14.0`, `pmdarima>=2.0.0`, `pandas>=2.1.0`, `numpy>=1.26.0`.
+- **Forecast API routes** — `server/routes/forecast.py` (original 6 endpoints): template downloads (caseload + events CSVs), generate forecast (JSON + CSV), public enrollment time series, enrollment by eligibility group.
+- **Round 9 data ingestion** — `scripts/build_lake_round9.py` (17 datasets): Medicare Enrollment (557K), Opioid Prescribing (539K), SDUD 2024 (5.2M), Drug Rebate Products (1.9M), CMS IPPS Impact (3,152), AHRF County, Physician Compare, ESRD QIP, OTP providers, CMS-64 FFCRA, contraceptive care, respiratory conditions, program monthly, MC annual/info monthly, CHIP monthly/app-elig, performance indicator, new adult enrollment, Medicare provider enrollment. Total: ~8.3M new rows.
+- **Round 9 API routes** — `server/routes/round9.py` (22 endpoints): Medicare enrollment/duals, opioid prescribing summary, SDUD 2024 top drugs, CMS IPPS impact, Medicare provider enrollment by type, and more.
+- **Rounds 4-8 data ingestion** — Multiple build scripts ingested ~80+ additional fact tables across sessions: hospital directories, MC programs, CHIP enrollment/unwinding, medicaid applications, vaccinations, blood lead screening, dual status, benefit packages, NAS rates, SNF VBP/quality, FQHC directory, vital stats, HHCAHPS, hospice directory/CAHPS, VHA providers, pregnancy outcomes, and more.
+- **db.py expanded** — Now registers 185 fact tables (up from ~70). Fixed duplicate `imaging_hospital` entry. All 185 lake directories matched.
+- **Data lake milestone** — 101.2M rows across 185 fact tables, 9 dimensions, 5 references, 2 compat views = 201 total views. 216 API endpoints across 20 route files. Deployed to Fly.io.
+- **Platform.tsx updated** — Stats now show "100M+" rows and "185" fact tables.
+
+### Recent Changes (2026-03-07)
+- **3 new computed fee schedules** — AK (RBRVS CF=$43.412, 138.6% MCR), MI (RBRVS CF=$21.30, 66.7% MCR), NM (150% of Medicare, 154.9% MCR). Script: `scripts/build_lake_fee_schedules_computed.py`. Added to both Parquet lake and SQLite.
+- **CPRA coverage expanded** — 42→45 states in `fact_rate_comparison` (302,332 rows), 39→40 states with E/M data in `cpra_em.json`.
+- **cpra_engine.py regenerated** — Updated to 68 codes, $32.3465 CF, many-to-many (171 pairs) from reference CSVs. All exports refreshed.
+- **Supplemental Payments Phase 2** — `build_lake_supplemental_p2.py` created: hospital-level DSH (6,103 hospitals) + SDP preprint (34 states). 3 new API endpoints.
+- **CpraGenerator.tsx upload tab** — "Bring Your Own Data" mode added, POSTs to `/api/cpra/upload/generate`.
+- **Dockerfile updated** — `COPY data/reference/cpra/` for upload tool. Ready for `fly deploy`.
 
 ### Recent Changes (2026-03-06, session 2)
 - **CPRA Upload Tool ported** — User-upload CPRA generator from `cpra-pipeline/` integrated into Aradune. Engine at `server/engines/cpra_upload.py` (821 lines), 7 new endpoints under `/api/cpra/upload/`. Uses the **correct** CMS CY 2025 E/M code list (68 codes, 171 code-category pairs, $32.3465 CF). Reference data in `data/reference/cpra/` (3 CSVs: em_codes, code_categories, GPCI2025). Existing pre-computed comparison routes unchanged — general fee-to-Medicare comparison is a separate tool from the compliance-specific CPRA upload. Tested end-to-end with FL data (99213 PC: $34.29/$91.39 = 37.5% — exact match with R pipeline).
@@ -433,9 +498,14 @@ Aradune/
 │   │   ├── RateBuilder.tsx          ← 499 lines. Rate calculator (#/builder)
 │   │   ├── AheadReadiness.tsx       ← AHEAD Readiness Score (#/ahead-readiness)
 │   │   │                              CCN lookup → 4 scored dimensions → self-report → peers
-│   │   ├── PolicyAnalyst.tsx        ← 378 lines. AI chat (#/analyst) — ⚠️ NO AUTH
+│   │   ├── CaseloadForecaster.tsx    ← ~830 lines. Caseload forecast + expenditure (#/forecast)
+│   │   │                              Upload form, fan chart, model table, expenditure projection,
+│   │   │                              MC/FFS breakdown bar. Tab toggle caseload↔expenditure.
+│   │   ├── PolicyAnalyst.tsx        ← 378 lines. AI chat (#/analyst)
 │   │   ├── ComplianceReport.tsx     ← (#/compliance)
 │   │   ├── RateReductionAnalyzer.tsx ← (#/reduction)
+│   │   ├── StateProfile.tsx          ← ~470 lines. State Profile (#/state, #/state/{code})
+│   │   │                              18 parallel API fetches, 7 collapsible sections, hash-based deep linking
 │   │   ├── HcbsCompTracker.tsx      ← (#/hcbs8020)
 │   │   └── AheadCalculator.tsx      ← (#/ahead)
 │   ├── engine/
@@ -465,13 +535,13 @@ Aradune/
 │   ├── medicare_rates.json          ← Medicare rates (may be incomplete)
 │   ├── providers.json               ← Provider counts
 │   ├── specialties.json             ← Specialty breakdown
-│   ├── fee_schedules.json           ← State fee schedule rates (42 states)
+│   ├── fee_schedules.json           ← State fee schedule rates (45 states)
 │   ├── bls_wages.json               ← BLS wages
 │   ├── quality_measures.json        ← CMS Core Set
 │   ├── soc_hcpcs_crosswalk.json     ← SOC-HCPCS mapping
 │   ├── conversion_factors.json      ← State methodology metadata
 │   ├── system_prompt.md             ← AI tier system prompt
-│   ├── fl_methodology_addendum.md   ← ⚠️ NOT YET LOADED in api/chat.js
+│   ├── fl_methodology_addendum.md   ← Loaded in api/chat.js system prompt
 │   └── [external]                   ← claims_monthly.parquet (82MB) via VITE_MONTHLY_PARQUET_URL
 │
 ├── api/
@@ -486,7 +556,9 @@ Aradune/
 │   ├── fly.toml                     ← Fly.io deployment config
 │   ├── entrypoint.sh                ← Downloads lake from S3, starts uvicorn
 │   ├── engines/
-│   │   └── cpra_upload.py           ← 821 lines. CPRA upload engine (68 codes, 171 pairs, DuckDB)
+│   │   ├── cpra_upload.py           ← 821 lines. CPRA upload engine (68 codes, 171 pairs, DuckDB)
+│   │   ├── caseload_forecast.py     ← ~650 lines. SARIMAX+ETS forecasting engine (template-driven upload)
+│   │   └── expenditure_model.py     ← ~430 lines. Expenditure projection engine (cap rates + cost-per-eligible)
 │   └── routes/
 │       ├── query.py                 ← POST /api/query (backward-compatible spending queries)
 │       ├── meta.py                  ← GET /api/meta (dataset metadata)
@@ -504,7 +576,10 @@ Aradune/
 │       ├── quality.py              ← /api/five-star/, hac/, pos/, hospital-ratings/, vbp/, hrrp/, epsdt, hpsa/
 │       ├── context.py             ← /api/demographics/, scorecard/, economic/, mortality/
 │       ├── bulk.py                ← /api/bulk/* — 7 bulk endpoints matching frontend JSON shapes
-│       ├── supplemental.py       ← /api/supplemental/* — 4 endpoints (FMR DSH/supplemental/GME + MACPAC summary)
+│       ├── supplemental.py       ← /api/supplemental/* — 7 endpoints (FMR + MACPAC + DSH hospital + SDP)
+│       ├── behavioral_health.py  ← /api/behavioral-health/*, /api/gme/*, rounds 2-8 data (109 endpoints)
+│       ├── round9.py             ← /api/medicare/*, /api/opioid/*, /api/pharmacy/sdud-2024/* (22 endpoints)
+│       ├── forecast.py           ← /api/forecast/* — caseload templates + generate + expenditure pipeline (10 endpoints)
 │       └── pipeline.py              ← /api/pipeline/status
 │
 ├── tools/
@@ -527,28 +602,15 @@ Aradune/
 │   └── tmsis_sample_generator.R     ← 18KB. Sample/dev data generation.
 │
 ├── data/
-│   ├── lake/                        ← Unified Parquet data lake (89.5M rows, 83 tables)
-│   │   ├── dimension/               ← dim_state, dim_procedure, dim_hcpcs, dim_bls_occupation, dim_medicare_locality, dim_time, dim_provider_taxonomy
-│   │   ├── fact/                    ← Hive-partitioned: fact/{name}/snapshot=YYYY-MM-DD/data.parquet
-│   │   │   └── (medicaid_rate, medicare_rate, medicare_rate_state, rate_comparison, dq_flag,
-│   │   │       enrollment, quality_measure, expenditure, claims, claims_monthly, claims_categories,
-│   │   │       provider, drug_utilization, nadac, managed_care, dsh_payment, fmap, spa,
-│   │   │       bls_wage, bls_wage_msa, bls_wage_national,
-│   │   │       hospital_cost, snf_cost, eligibility, new_adult, unwinding, mc_enrollment,
-│   │   │       pbj_nurse_staffing, pbj_nonnurse_staffing, pbj_employee,
-│   │   │       five_star, hac_measure, pos_hospital, pos_other,
-│   │   │       hospital_rating, hospital_vbp, hospital_hrrp, epsdt,
-│   │   │       mspb_state, timely_effective, complications, unplanned_visits,
-│   │   │       dialysis_state, home_health_state,
-│   │   │       mltss, financial_mgmt, eligibility_levels, aca_ful, dq_atlas,
-│   │   │       cpi, unemployment, median_income, mspb_hospital,
-│   │   │       hpsa, scorecard, elig_group_monthly, elig_group_annual,
-│   │   │       cms64_new_adult, ffcra_fmap, mc_enroll_pop, mc_enroll_duals,
-│   │   │       hai_state, hai_hospital, nh_ownership,
-│   │   │       acs_state, drug_overdose, mortality_trend,
-│   │   │       state_gdp, state_population, nh_penalties)
-│   │   ├── reference/               ← ref_drug_rebate, ref_ncci_edits, ref_1115_waivers
-│   │   └── metadata/                ← manifest_*.json (pipeline run metadata)
+│   ├── lake/                        ← Unified Parquet data lake (101.2M rows, 185 fact tables)
+│   │   ├── dimension/               ← 9 tables: dim_state, dim_procedure, dim_hcpcs, dim_bls_occupation,
+│   │   │                              dim_medicare_locality, dim_time, dim_provider_taxonomy,
+│   │   │                              dim_pace_organization, dim_scorecard_measure
+│   │   ├── fact/                    ← 185 Hive-partitioned tables: fact/{name}/snapshot=YYYY-MM-DD/data.parquet
+│   │   │                              Full list: see `ls data/lake/fact/` or `server/db.py` lines 41-118
+│   │   ├── reference/               ← 5 tables: ref_drug_rebate, ref_ncci_edits, ref_1115_waivers,
+│   │   │                              ref_poverty_guidelines, ref_presumptive_eligibility
+│   │   └── metadata/                ← manifest_*.json (pipeline run metadata, ~25 manifests)
 │   ├── reference/
 │   │   └── cpra/                    ← em_codes.csv (68), code_categories.csv (171), GPCI2025.csv (109 localities)
 │   ├── raw/
@@ -592,6 +654,24 @@ Aradune/
 │   ├── build_lake_census.py         ← Census ACS demographics, poverty, insurance (52 states)
 │   ├── build_lake_cdc.py            ← CDC drug overdose + mortality trends (13.6K rows)
 │   ├── build_lake_supplemental.py   ← CMS-64 FMR + MACPAC Exhibit 24 supplemental payments (1,655 rows)
+│   ├── build_lake_supplemental_p2.py ← Hospital-level DSH (6,103) + SDP preprint (34 states)
+│   ├── build_lake_behavioral_health.py ← NSDUH, N-SUMHSS, IPF quality, BRFSS behavioral
+│   ├── build_lake_gme_blockgrant.py ← GME/CMS PSF (68K providers) + MHBG block grants
+│   ├── build_lake_chip_hcbs.py      ← CHIP eligibility + continuous eligibility policies
+│   ├── build_lake_fee_schedules_computed.py ← AK/MI/NM RBRVS-computed fee schedules
+│   ├── build_lake_providers_demographics.py ← Provider demographics + facility data
+│   ├── build_lake_round2.py         ← Hospice, maternal health, ASC, home health, HCBS
+│   ├── build_lake_round2b.py        ← CMS-372 waivers, MC enrollment by plan, MLTSS
+│   ├── build_lake_round2c.py        ← MC enrollment by population, PACE directory
+│   ├── build_lake_round3.py         ← BH by condition, dental, telehealth, IRF, LTCH, HHA
+│   ├── build_lake_round3b.py        ← MC share, MC monthly, dialysis facility, IPF facility
+│   ├── build_lake_round3c.py        ← Hospital directory, MC programs
+│   ├── build_lake_round4.py         ← CHIP unwinding, medicaid applications, vaccinations
+│   ├── build_lake_round5.py         ← Dual status, benefit package, NAS rates, SMM extended
+│   ├── build_lake_round6.py         ← HAI hospital2, complications/timely/unplanned hosp-level
+│   ├── build_lake_round7.py         ← SNF VBP/quality, FQHC directory, vital stats, HHCAHPS
+│   ├── build_lake_round8.py         ← Hospice directory/CAHPS, Medicare spending, VHA providers
+│   ├── build_lake_round9.py         ← Medicare enrollment, opioid, SDUD 2024, drug rebate, CMS impact
 │   ├── export_frontend.py           ← Export validated lake data to public/data/ JSON
 │   ├── sync_lake.py                 ← Upload/download lake to/from S3
 │   ├── sync-fee-schedules.py
@@ -649,22 +729,22 @@ All assets are transparent PNGs — green elements on transparent background. Re
 
 ### Ring 0: Public Regulatory Data (No HIPAA, no DUA — build here first)
 
-| Dataset | Source | Format | Cadence | Priority |
-|---|---|---|---|---|
-| State Medicaid fee schedules (all 51) | State agency websites | CSV/XLSX/PDF | Annual/quarterly | **P0** |
-| Medicare Physician Fee Schedule | cms.gov PFS RVU files | ZIP/CSV | Annual + quarterly | **P0** |
-| T-MSIS HHS open data (227M rows) | HHS/Hugging Face | Parquet | Done (Feb 2026) | **P0** ✓ |
-| NPPES NPI Registry | download.cms.gov | CSV | Weekly | **P0** ✓ |
-| Medicaid Provider Enrollment Files | State portals — actively enrolled providers | State portals | Annual | **P0** |
-| CMS-64 expenditure reports | medicaid.gov | Excel/CSV | Quarterly | **P1** |
-| MBES/CBES enrollment/expenditure | medicaid.gov | Excel | Quarterly | **P1** |
-| HCRIS hospital cost reports | cms.gov | CSV | Quarterly (2–4yr lag) | **P1** |
-| Provider of Services (POS) File | cms.gov | CSV | Quarterly | **P1** |
-| NADAC pharmacy pricing | medicaid.gov | CSV | Weekly | **P1** |
-| State Drug Utilization Data (SDUD) | data.medicaid.gov | CSV + API | Quarterly | **P1** |
-| FMAP rates | medicaid.gov/kff.org | Web | Annual | **P1** |
-| Adult/Child Core Set quality measures | medicaid.gov | Web/Excel | Annual | **P1** |
-| MACStats | macpac.gov | PDF/Excel | Annual | **P2** |
+| Dataset | Source | Format | Cadence | Priority | Status |
+|---|---|---|---|---|---|
+| State Medicaid fee schedules (all 51) | State agency websites | CSV/XLSX/PDF | Annual/quarterly | **P0** | **47 states** (597K rows). 4 remaining: KS/NJ (portal login), TN (MC only), WI (manual). |
+| Medicare Physician Fee Schedule | cms.gov PFS RVU files | ZIP/CSV | Annual + quarterly | **P0** | **✓** 16,978 codes, 858K locality rates, 417K state rates |
+| T-MSIS HHS open data (227M rows) | HHS/Hugging Face | Parquet | Done (Feb 2026) | **P0** | **✓** Ingested into lake |
+| NPPES NPI Registry | download.cms.gov | CSV | Weekly | **P0** | **✓** 11.2GB raw file downloaded |
+| Medicaid Provider Enrollment Files | State portals | State portals | Annual | **P0** | Not started |
+| CMS-64 expenditure reports | medicaid.gov | Excel/CSV | Quarterly | **P1** | **✓** fact_expenditure + fact_fmr_supplemental |
+| MBES/CBES enrollment/expenditure | medicaid.gov | Excel | Quarterly | **P1** | **Partial** — enrollment data ingested |
+| HCRIS hospital cost reports | cms.gov | CSV | Quarterly (2–4yr lag) | **P1** | **✓** fact_hospital_cost + fact_dsh_hospital (6,103 hospitals) |
+| Provider of Services (POS) File | cms.gov | CSV | Quarterly | **P1** | **✓** fact_pos_hospital + fact_pos_other |
+| NADAC pharmacy pricing | medicaid.gov | CSV | Weekly | **P1** | **✓** fact_nadac |
+| State Drug Utilization Data (SDUD) | data.medicaid.gov | CSV + API | Quarterly | **P1** | **✓** fact_drug_utilization |
+| FMAP rates | medicaid.gov/kff.org | Web | Annual | **P1** | **✓** fact_fmap |
+| Adult/Child Core Set quality measures | medicaid.gov | Web/Excel | Annual | **P1** | **✓** fact_quality_measure |
+| MACStats / MACPAC Exhibits | macpac.gov | PDF/Excel | Annual | **P2** | **✓** fact_macpac_supplemental (Exhibit 24) |
 
 ### AHEAD Readiness Score — HCRIS Field Map
 
@@ -688,82 +768,92 @@ Discharges, bed count    → total_discharges, bed_count (HCRIS Worksheet S-3)
 5. **3-year trends** — HCRIS only has FY2023 in lake. Multi-year would need historical HCRIS downloads.
 6. **Days cash on hand, DSCR, days AR** — Not directly in HCRIS extract. Derived from balance sheet where possible.
 
-### Supplemental Payment Programs ← MAJOR GAP
+### Supplemental Payment Programs ← PARTIALLY ADDRESSED
 
 For safety net hospitals, supplemental payments can exceed base rates by 2–5x. All Ring 0.
 
 | Dataset | Program | Source | Cadence | Priority |
 |---|---|---|---|---|
-| CMS DSH Allotment Reports | DSH | medicaid.gov | Annual | **P1** |
-| CMS-64 Schedule A/B | UPL/DSH | medicaid.gov | Quarterly | **P1** |
-| UPL Demonstration filings (state SPAs) | UPL/IGT/CPE | CMS MACPro | Ongoing | **P1** |
-| State Directed Payment filings (42 CFR 438.6(c)) | SDP | CMS | Annual | **P1** |
-| HRSA GME payment data | GME (direct + indirect) | hrsa.gov | Annual | **P1** |
-| 1115 waiver financial terms | LIP/DSRIP/UC pools | medicaid.gov | Ongoing | **P1** |
-| MACPAC supplemental payment reports | All programs | macpac.gov | Annual | **P2** |
-| OIG DSH audit reports | DSH | oig.hhs.gov | Ongoing | **P2** |
+| CMS DSH Allotment Reports | DSH | medicaid.gov | Annual | **P1** | **✓** fact_dsh_payment + fact_dsh_hospital |
+| CMS-64 Schedule A/B | UPL/DSH | medicaid.gov | Quarterly | **P1** | **✓** fact_fmr_supplemental (state-level) |
+| UPL Demonstration filings (state SPAs) | UPL/IGT/CPE | CMS MACPro | Ongoing | **P1** | Not started |
+| State Directed Payment filings (42 CFR 438.6(c)) | SDP | CMS | Annual | **P1** | **✓** fact_sdp_preprint (34 states, curated index) |
+| HRSA GME payment data | GME (direct + indirect) | hrsa.gov | Annual | **P1** | Not started |
+| 1115 waiver financial terms | LIP/DSRIP/UC pools | medicaid.gov | Ongoing | **P1** | **Partial** — ref_1115_waivers (647 waivers) |
+| MACPAC supplemental payment reports | All programs | macpac.gov | Annual | **P2** | **✓** fact_macpac_supplemental |
+| OIG DSH audit reports | DSH | oig.hhs.gov | Ongoing | **P2** | Not started |
 
 **Programs to model:** DSH (disproportionate share) · UPL/IGT/CPE (upper payment limit + intergovernmental transfers) · State Directed Payments (managed care) · LIP (Low Income Pool, FL + others) · DSRIP · GME direct + indirect · Uncompensated Care pools. The "all-in Medicaid rate" = base rate + all supplemental programs. No platform shows this today.
 
-### LTSS / HCBS ← SIGNIFICANT GAP (~40% of Medicaid spending)
+### LTSS / HCBS ← PARTIALLY ADDRESSED (~40% of Medicaid spending)
 
-| Dataset | Source | Cadence | Priority |
-|---|---|---|---|
-| CMS-64 Schedule B (HCBS expenditure by waiver) | medicaid.gov | Quarterly | **P1** |
-| 1915(c) Waiver Utilization & Expenditure | CMS waiver reports | Annual | **P1** |
-| HCBS Quality Measures (CMS national framework) | medicaid.gov | Annual | **P1** |
-| HCBS Waitlist Data (700K+ people waiting nationally) | KFF / state reports | Annual | **P1** |
-| Nursing Facility Cost Reports (CMS-2540) | cms.gov | Annual | **P1** |
-| Five-Star Quality Rating (Care Compare, NF) | cms.gov API | Monthly | **P1** |
-| Payroll-Based Journal (PBJ) NF staffing | cms.gov | Quarterly | **P1** |
-| Direct Support Workforce data (wages, vacancy, turnover) | PHI / ANCOR | Annual | **P1** |
-| MDS facility-level aggregates | cms.gov | Quarterly | **P2** |
-| 1915(k) Community First Choice utilization | CMS reports | Annual | **P2** |
-| PACE enrollment & spending | CMS reports | Annual | **P2** |
+| Dataset | Source | Cadence | Priority | Status |
+|---|---|---|---|---|
+| CMS-64 Schedule B (HCBS expenditure by waiver) | medicaid.gov | Quarterly | **P1** | Not started |
+| 1915(c) Waiver Utilization & Expenditure | CMS waiver reports | Annual | **P1** | Not started |
+| HCBS Quality Measures (CMS national framework) | medicaid.gov | Annual | **P1** | Not started |
+| HCBS Waitlist Data (700K+ people waiting nationally) | KFF / state reports | Annual | **P1** | Not started |
+| Nursing Facility Cost Reports (CMS-2540) | cms.gov | Annual | **P1** | **✓** fact_snf_cost |
+| Five-Star Quality Rating (Care Compare, NF) | cms.gov API | Monthly | **P1** | **✓** fact_five_star |
+| Payroll-Based Journal (PBJ) NF staffing | cms.gov | Quarterly | **P1** | **✓** fact_pbj_nurse/nonnurse/employee (65M+ rows) |
+| Direct Support Workforce data (wages, vacancy, turnover) | PHI / ANCOR | Annual | **P1** | Not started |
+| MDS facility-level aggregates | cms.gov | Quarterly | **P2** | **✓** fact_mds_quality (250K rows) |
+| 1915(k) Community First Choice utilization | CMS reports | Annual | **P2** | Not started |
+| PACE enrollment & spending | CMS reports | Annual | **P2** | **Partial** — dim_pace_organization (201 orgs), fact_mc_enrollment_plan has PACE |
+| CMS-372 Waiver data | CMS reports | Annual | **P2** | **✓** fact_cms372_waiver (553 programs, $55.75B) |
+| HCBS authority measures | Medicaid Scorecard | Annual | **P2** | **✓** fact_hcbs_authority (59 measures) |
 
-### Hospital Quality & Value-Based Programs ← NOT IN ARADUNE YET
+### Hospital Quality & Value-Based Programs ← DONE
 
-| Dataset | Source | Cadence | Priority |
-|---|---|---|---|
-| Care Compare — hospital ratings | cms.gov API | Quarterly | **P1** |
-| Inpatient Quality Reporting (IQR) | cms.gov API | Quarterly | **P1** |
-| Hospital Value-Based Purchasing (VBP) scores | cms.gov | Annual | **P1** |
-| Hospital Readmissions Reduction Program (HRRP) | cms.gov | Annual | **P1** |
-| Hospital-Acquired Condition (HAC) Reduction | cms.gov | Annual | **P2** |
+| Dataset | Source | Cadence | Priority | Status |
+|---|---|---|---|---|
+| Care Compare — hospital ratings | cms.gov API | Quarterly | **P1** | **✓** fact_hospital_rating |
+| Inpatient Quality Reporting (IQR) | cms.gov API | Quarterly | **P1** | **✓** (via Care Compare) |
+| Hospital Value-Based Purchasing (VBP) scores | cms.gov | Annual | **P1** | **✓** fact_hospital_vbp |
+| Hospital Readmissions Reduction Program (HRRP) | cms.gov | Annual | **P1** | **✓** fact_hospital_hrrp |
+| Hospital-Acquired Condition (HAC) Reduction | cms.gov | Annual | **P2** | **✓** fact_hac_measure |
 
-### Behavioral Health ← UNDERREPRESENTED
+### Behavioral Health ← SUBSTANTIALLY ADDRESSED
 
-| Dataset | Source | Cadence | Priority |
-|---|---|---|---|
-| SAMHSA NSDUH (MH/SUD prevalence by state) | samhsa.gov | Annual | **P1** |
-| SAMHSA Block Grant expenditure reports | samhsa.gov | Annual | **P1** |
-| Psychiatric bed capacity by state | samhsa.gov | Annual | **P1** |
-| 1115 IMD waiver utilization | CMS reports | Annual | **P1** |
-| BH-specific HRSA HPSA designations | hrsa.gov API | Ongoing | **P1** |
+| Dataset | Source | Cadence | Priority | Status |
+|---|---|---|---|---|
+| SAMHSA NSDUH (MH/SUD prevalence by state) | samhsa.gov | Annual | **P1** | **✓** fact_nsduh_prevalence (5,865 rows, 2023-2024) |
+| SAMHSA Block Grant expenditure reports | samhsa.gov | Annual | **P1** | **✓** fact_block_grant (55 state allotments, $0.95B) |
+| Psychiatric bed capacity by state | samhsa.gov | Annual | **P1** | **✓** fact_mh_facility (27,957 MH/SUD treatment facilities) |
+| IPF Quality (psychiatric facility quality) | cms.gov | Annual | **P1** | **✓** fact_ipf_quality_state + fact_ipf_quality_facility (1,474 rows) |
+| BH by condition (T-MSIS) | CMS | Annual | **P1** | **✓** fact_bh_by_condition (4,240 rows, 16 conditions) |
+| MH/SUD service recipients | CMS | Annual | **P1** | **✓** fact_mh_sud_recipients (216 rows, 2020-2022) |
+| Physical conditions among BH beneficiaries | CMS | Annual | **P1** | **✓** fact_physical_among_mh + fact_physical_among_sud (11,130 rows) |
+| 1115 IMD waiver utilization | CMS reports | Annual | **P1** | Not started |
+| BH-specific HRSA HPSA designations | hrsa.gov API | Ongoing | **P1** | **✓** fact_hpsa (69K rows, 3 disciplines incl. MH) |
 
-### Children's Health / CHIP / EPSDT
+### Children's Health / CHIP / EPSDT ← SUBSTANTIALLY ADDRESSED
 
-| Dataset | Source | Cadence | Priority |
-|---|---|---|---|
-| CHIP enrollment & expenditure (separate from Medicaid) | CMS/MBES | Quarterly | **P1** |
-| EPSDT Participation Reports (CMS-416) | medicaid.gov | Annual | **P1** |
-| Children's Core Set measures | medicaid.gov | Annual | **P1** ✓ Terminal B |
+| Dataset | Source | Cadence | Priority | Status |
+|---|---|---|---|---|
+| CHIP enrollment & expenditure (separate from Medicaid) | CMS/MBES | Quarterly | **P1** | **✓** fact_chip_enrollment, fact_chip_monthly, fact_chip_program_monthly/annual, fact_chip_app_elig, fact_chip_enrollment_unwinding |
+| CHIP eligibility thresholds | medicaid.gov | Annual | **P1** | **✓** fact_chip_eligibility (51 states, income thresholds by age) |
+| EPSDT Participation Reports (CMS-416) | medicaid.gov | Annual | **P1** | **✓** fact_epsdt |
+| Children's Core Set measures | medicaid.gov | Annual | **P1** | **✓** fact_quality_measure |
+| Well-child visits | CMS | Annual | **P1** | **✓** fact_well_child_visits |
+| Blood lead screening | CMS | Annual | **P1** | **✓** fact_blood_lead_screening |
+| Vaccinations | CMS | Annual | **P1** | **✓** fact_vaccinations |
 
 ### Eligibility & Unwinding
 
-| Dataset | Source | Cadence | Priority |
-|---|---|---|---|
-| Medicaid unwinding / redetermination outcomes | CMS dashboard | Monthly | **P1** |
-| KFF Medicaid eligibility policy tracker | kff.org | Ongoing | **P1** |
+| Dataset | Source | Cadence | Priority | Status |
+|---|---|---|---|---|
+| Medicaid unwinding / redetermination outcomes | CMS dashboard | Monthly | **P1** | **✓** fact_unwinding |
+| KFF Medicaid eligibility policy tracker | kff.org | Ongoing | **P1** | **✓** fact_eligibility_levels |
 
 ### Pharmacy (Deeper)
 
-| Dataset | Source | Cadence | Priority |
-|---|---|---|---|
-| NADAC | medicaid.gov | Weekly | **P1** ✓ Terminal B |
-| SDUD | data.medicaid.gov | Quarterly | **P1** ✓ Terminal B |
-| 340B covered entity data | hrsa.gov | Quarterly | **P1** |
-| State MAC prices | State portals | Varies | **P2** |
+| Dataset | Source | Cadence | Priority | Status |
+|---|---|---|---|---|
+| NADAC | medicaid.gov | Weekly | **P1** | **✓** fact_nadac |
+| SDUD | data.medicaid.gov | Quarterly | **P1** | **✓** fact_drug_utilization |
+| 340B covered entity data | hrsa.gov | Quarterly | **P1** | Not started |
+| State MAC prices | State portals | Varies | **P2** | Not started |
 
 ### Ring 0.5: Economic & Contextual Data (Essential for Forecasting)
 
@@ -1022,10 +1112,85 @@ Use **prompt caching** (90% input cost reduction) and **batch API** (50% discoun
 
 ## 16. Caseload & Expenditure Forecasting
 
-**Phase 1:** ARIMA/ETS per state — display forecast + confidence intervals on state profiles.
-**Phase 2:** Driver-based with economic covariates (unemployment, poverty, population). Publish elasticity estimates.
-**Phase 3:** ML models (gradient boosting / random forest) with public performance tracking. Model leaderboard: best algorithm per state over rolling 12/24/36-month windows.
-**Phase 4:** Ensemble + scenario builder ("What if unemployment rises 2 points?").
+### Phase 1 — DONE: Template-Driven Caseload Forecasting
+
+**Engine:** `server/engines/caseload_forecast.py` (~650 lines)
+**Frontend:** `src/tools/CaseloadForecaster.tsx` (~830 lines)
+**API:** `server/routes/forecast.py` (10 endpoints total — 6 caseload + 4 expenditure)
+**Dependencies:** `statsmodels>=0.14.0`, `pmdarima>=2.0.0`, `pandas>=2.1.0`, `numpy>=1.26.0`
+
+**How it works:**
+1. User downloads CSV templates (caseload + optional events + optional expenditure params)
+2. Fills in monthly enrollment by category (e.g., SSI Aged, TANF Children, MMA Managed Care)
+3. Uploads → engine runs SARIMAX + ETS model competition per category
+4. Returns per-category forecasts with 80/95% confidence intervals, model metadata, intervention effects
+
+**Frontend UI (`/#/forecast`):**
+- Upload form: state selector, horizon (12-60 months), caseload CSV, events CSV (optional), expenditure params CSV (optional)
+- Caseload view: summary card, category pills, fan chart with CI bands, event markers, intervention effects, model comparison table
+- Expenditure view: summary card (total/MC/FFS), expenditure fan chart, per-category table (type, base rate, trend, admin, risk, total), MC vs FFS breakdown bar
+- Tab toggle between caseload and expenditure views when both exist
+
+**Key class:** `CaseloadForecaster` with methods:
+- `load_caseload_bytes(content)` — validates CSV (min 24 months, required columns)
+- `load_events_bytes(content)` — optional structural events (MC launches, eligibility changes)
+- `load_economic_data(db_cursor)` — enriches with Aradune's public unemployment data
+- `forecast(horizon_months, include_seasonality, include_economic)` — runs model competition
+
+**Model competition:**
+- Tests multiple SARIMAX orders with intervention variables (step functions for PHE, unwinding, etc.)
+- Tests ETS (exponential smoothing) as baseline
+- Picks best model per category by AIC, validates on holdout MAPE
+- Falls back to naive (last-12-month average) if all models fail
+
+**Known events (built-in):** COVID-19 PHE start (2020-03), PHE unwinding start (2023-04), unwinding peak (2023-07)
+**User events:** MC launches, eligibility changes, with affected categories and magnitude
+
+**Caseload API endpoints:**
+- `GET /api/forecast/templates/caseload` — blank CSV template (9 FL-style categories)
+- `GET /api/forecast/templates/events` — events template with examples
+- `POST /api/forecast/generate` — upload → forecast JSON
+- `POST /api/forecast/generate/csv` — upload → forecast CSV download
+- `GET /api/forecast/public-enrollment` — Aradune's public enrollment by state
+- `GET /api/forecast/public-enrollment/by-group` — enrollment by eligibility group
+
+**Tested:** Synthetic FL data (8 categories, 96 months, 2016-2024). All categories selected SARIMAX with <1% MAPE. Meaningful intervention effects detected (unwinding: MMA -248K, TANF Children -265K).
+
+### Phase 2 — DONE: Expenditure Modeling
+
+**Engine:** `server/engines/expenditure_model.py` (~430 lines)
+**Class:** `ExpenditureModeler` — takes caseload forecast output + expenditure parameters CSV
+
+**How it works:**
+1. Runs caseload forecast (Phase 1) to get per-category enrollment projections
+2. User uploads expenditure parameters CSV: cap_rate_pmpm (MC) or cost_per_eligible (FFS) per category
+3. Applies annual trend (compound monthly), admin load, risk margin, policy adjustments
+4. Returns per-category and aggregate expenditure projections with CI bands
+
+**Expenditure API endpoints:**
+- `GET /api/forecast/templates/expenditure-params` — blank params CSV template (8 FL-style categories)
+- `POST /api/forecast/expenditure` — full pipeline: caseload + params → forecast + expenditure JSON
+- `POST /api/forecast/expenditure/csv` — → expenditure CSV download
+- `POST /api/forecast/expenditure-only` — apply params to existing forecast CSV (skip re-forecasting)
+
+**Key data classes:**
+- `CategoryExpenditure`: per-category projection with base_rate, trend, admin_load, risk_margin, monthly projections with CI
+- `ExpenditureResult`: aggregate with total_projected, total_mc_projected, total_ffs_projected, per-category list
+
+**Verified:** FL with 2M MC enrollees × $850 PMPM = ~$23.4B/yr MC + 300K FFS × $1,200/eligible = ~$4.5B/yr FFS = ~$27.9B/yr total.
+
+### Phase 3 — FUTURE: Scenario Builder
+
+- "What if unemployment rises 2 percentage points?"
+- "What if we launch a new MC program covering TANF Adults?"
+- "What if we expand eligibility to 138% FPL?"
+- Hypothetical intervention variables injected into existing model
+
+### Phase 4 — FUTURE: ML Models + Ensemble
+
+- Gradient boosting / random forest with public performance tracking
+- Model leaderboard: best algorithm per state over rolling 12/24/36-month windows
+- Ensemble forecasts combining SARIMAX + ML predictions
 
 Schema tables: `forecast_enrollment`, `forecast_expenditure`, `model_performance`, `economic_indicators` — see Section 14.
 
@@ -1190,13 +1355,21 @@ git add . && git commit -m "describe change" && git push
 
 ## 21. What Success Looks Like
 
-**1–3 months:** All 50 states have rate data. Cross-state comparisons work. CPRA tool confirmed working in production. A journalist or staffer cites Aradune.
+**Current state (March 2026):** 101M rows, 185 fact tables, 216 API endpoints, 16 tools (incl. State Profiles), 3 upload-driven engines (CPRA, Caseload Forecast, Expenditure Modeling). Behind password gate. No users outside the builder.
 
-**3–6 months:** Caseload forecasting for top 15 states. SPA search live. Rate adequacy reports generating. First paying institutional client. User data upload in beta.
+**Next milestone — Public beta (remove password gate):**
+- State Profile pages working (the primary user entry point)
+- Landing page with clear value proposition
+- Search/discovery across the platform
+- All tools have CSV/PDF export
+- Deploy latest frontend (caseload forecaster + expenditure UI) to Vercel + Fly.io
+- At least one person outside the team has used it and given feedback
 
-**6–12 months:** Cited in a MACPAC report or state filing. Forecast accuracy dashboard published. Multiple institutional clients. Revenue covers infrastructure costs. ML model leaderboard public.
+**3–6 months:** NL2SQL working over the data lake (the AI promise). SPA/waiver search live. User accounts + usage tracking. First external citation. First revenue conversation.
 
-**1–3 years:** Default reference for Medicaid data. CMS links to it. Firms license the data. State agencies use it for compliance. Seven-figure revenue. Aradune is where Medicaid professionals start their day.
+**6–12 months:** Cited in a MACPAC report or state filing. Forecast accuracy dashboard published. Multiple institutional clients. Revenue covers infrastructure. Hospital price transparency MRFs ingested.
+
+**1–3 years:** Default reference for Medicaid data. CMS links to it. Firms license the data. State agencies use it for CPRA compliance. Seven-figure revenue. Aradune is where Medicaid professionals start their day.
 
 ---
 

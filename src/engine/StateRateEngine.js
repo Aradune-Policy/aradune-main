@@ -1142,12 +1142,11 @@ function round4(n) { return Math.round(n * 10000) / 10000; }
 // EXPORTS
 // =============================================================================
 
-if (typeof module !== 'undefined' && module.exports) {
-  module.exports = {
-    StateRateEngine,
-    applyConstraint, calcRBRVS, calcComponents, optimizeCF,
-    calcFCSOWeightedAvg, calcAnesthesia, applyCrosswalks,
-    validateAgainstPublished, detectGapPatterns,
-    createTier1Config, FL_CONFIG,
-  };
-}
+export {
+  StateRateEngine,
+  applyConstraint, calcRBRVS, calcComponents, optimizeCF,
+  calcFCSOWeightedAvg, calcAnesthesia, applyCrosswalks,
+  validateAgainstPublished, detectGapPatterns,
+  createTier1Config, FL_CONFIG,
+  round2, round4,
+};

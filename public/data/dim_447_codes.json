@@ -1,446 +1,1028 @@
 [
   {
-    "cpt_code": "90791",
+    "cpt_code": "99202",
     "category": "mh_sud",
-    "description": "Psychiatric diagnostic evaluation",
-    "source": "CMS CY2025 E/M Code List (hardcoded fallback)"
+    "description": "Office o/p new sf 15 min",
+    "source": "CMS CY2025 E/M Code List (reference CSVs)"
   },
   {
-    "cpt_code": "90792",
+    "cpt_code": "99203",
     "category": "mh_sud",
-    "description": "Psychiatric diagnostic evaluation with medical services",
-    "source": "CMS CY2025 E/M Code List (hardcoded fallback)"
+    "description": "Office o/p new low 30 min",
+    "source": "CMS CY2025 E/M Code List (reference CSVs)"
   },
   {
-    "cpt_code": "90832",
+    "cpt_code": "99204",
     "category": "mh_sud",
-    "description": "Psychotherapy, 30 minutes",
-    "source": "CMS CY2025 E/M Code List (hardcoded fallback)"
+    "description": "Office o/p new mod 45 min",
+    "source": "CMS CY2025 E/M Code List (reference CSVs)"
   },
   {
-    "cpt_code": "90833",
+    "cpt_code": "99205",
     "category": "mh_sud",
-    "description": "Psychotherapy, 30 minutes, add-on to E/M",
-    "source": "CMS CY2025 E/M Code List (hardcoded fallback)"
+    "description": "Office o/p new hi 60 min",
+    "source": "CMS CY2025 E/M Code List (reference CSVs)"
   },
   {
-    "cpt_code": "90834",
+    "cpt_code": "99211",
     "category": "mh_sud",
-    "description": "Psychotherapy, 45 minutes",
-    "source": "CMS CY2025 E/M Code List (hardcoded fallback)"
+    "description": "Off/op est may x req phy/qhp",
+    "source": "CMS CY2025 E/M Code List (reference CSVs)"
   },
   {
-    "cpt_code": "90836",
+    "cpt_code": "99212",
     "category": "mh_sud",
-    "description": "Psychotherapy, 45 minutes, add-on to E/M",
-    "source": "CMS CY2025 E/M Code List (hardcoded fallback)"
+    "description": "Office o/p est sf 10 min",
+    "source": "CMS CY2025 E/M Code List (reference CSVs)"
   },
   {
-    "cpt_code": "90837",
+    "cpt_code": "99213",
     "category": "mh_sud",
-    "description": "Psychotherapy, 60 minutes",
-    "source": "CMS CY2025 E/M Code List (hardcoded fallback)"
+    "description": "Office o/p est low 20 min",
+    "source": "CMS CY2025 E/M Code List (reference CSVs)"
   },
   {
-    "cpt_code": "90838",
+    "cpt_code": "99214",
     "category": "mh_sud",
-    "description": "Psychotherapy, 60 minutes, add-on to E/M",
-    "source": "CMS CY2025 E/M Code List (hardcoded fallback)"
+    "description": "Office o/p est mod 30 min",
+    "source": "CMS CY2025 E/M Code List (reference CSVs)"
   },
   {
-    "cpt_code": "90839",
+    "cpt_code": "99215",
     "category": "mh_sud",
-    "description": "Psychotherapy for crisis, first 60 minutes",
-    "source": "CMS CY2025 E/M Code List (hardcoded fallback)"
+    "description": "Office o/p est hi 40 min",
+    "source": "CMS CY2025 E/M Code List (reference CSVs)"
   },
   {
-    "cpt_code": "90840",
+    "cpt_code": "99381",
     "category": "mh_sud",
-    "description": "Psychotherapy for crisis, each additional 30 minutes",
-    "source": "CMS CY2025 E/M Code List (hardcoded fallback)"
+    "description": "Init pm e/m new pat infant",
+    "source": "CMS CY2025 E/M Code List (reference CSVs)"
   },
   {
-    "cpt_code": "90845",
+    "cpt_code": "99382",
     "category": "mh_sud",
-    "description": "Psychoanalysis",
-    "source": "CMS CY2025 E/M Code List (hardcoded fallback)"
+    "description": "Init pm e/m new pat 1-4 yrs",
+    "source": "CMS CY2025 E/M Code List (reference CSVs)"
   },
   {
-    "cpt_code": "90846",
+    "cpt_code": "99383",
     "category": "mh_sud",
-    "description": "Family psychotherapy without patient",
-    "source": "CMS CY2025 E/M Code List (hardcoded fallback)"
+    "description": "Prev visit new age 5-11",
+    "source": "CMS CY2025 E/M Code List (reference CSVs)"
   },
   {
-    "cpt_code": "90847",
+    "cpt_code": "99384",
     "category": "mh_sud",
-    "description": "Family/couples psychotherapy with patient",
-    "source": "CMS CY2025 E/M Code List (hardcoded fallback)"
+    "description": "Prev visit new age 12-17",
+    "source": "CMS CY2025 E/M Code List (reference CSVs)"
   },
   {
-    "cpt_code": "90849",
+    "cpt_code": "99385",
     "category": "mh_sud",
-    "description": "Multiple-family group psychotherapy",
-    "source": "CMS CY2025 E/M Code List (hardcoded fallback)"
+    "description": "Prev visit new age 18-39",
+    "source": "CMS CY2025 E/M Code List (reference CSVs)"
   },
   {
-    "cpt_code": "90853",
+    "cpt_code": "99386",
     "category": "mh_sud",
-    "description": "Group psychotherapy",
-    "source": "CMS CY2025 E/M Code List (hardcoded fallback)"
+    "description": "Prev visit new age 40-64",
+    "source": "CMS CY2025 E/M Code List (reference CSVs)"
   },
   {
-    "cpt_code": "90863",
+    "cpt_code": "99387",
     "category": "mh_sud",
-    "description": "Pharmacologic management with psychotherapy",
-    "source": "CMS CY2025 E/M Code List (hardcoded fallback)"
+    "description": "Init pm e/m new pat 65+ yrs",
+    "source": "CMS CY2025 E/M Code List (reference CSVs)"
   },
   {
-    "cpt_code": "99221",
+    "cpt_code": "99391",
     "category": "mh_sud",
-    "description": "Initial hospital care, straightforward/low MDM",
-    "source": "CMS CY2025 E/M Code List (hardcoded fallback)"
+    "description": "Per pm reeval est pat infant",
+    "source": "CMS CY2025 E/M Code List (reference CSVs)"
   },
   {
-    "cpt_code": "99222",
+    "cpt_code": "99392",
     "category": "mh_sud",
-    "description": "Initial hospital care, moderate MDM",
-    "source": "CMS CY2025 E/M Code List (hardcoded fallback)"
+    "description": "Prev visit est age 1-4",
+    "source": "CMS CY2025 E/M Code List (reference CSVs)"
   },
   {
-    "cpt_code": "99223",
+    "cpt_code": "99393",
     "category": "mh_sud",
-    "description": "Initial hospital care, high MDM",
-    "source": "CMS CY2025 E/M Code List (hardcoded fallback)"
+    "description": "Prev visit est age 5-11",
+    "source": "CMS CY2025 E/M Code List (reference CSVs)"
   },
   {
-    "cpt_code": "99231",
+    "cpt_code": "99394",
     "category": "mh_sud",
-    "description": "Subsequent hospital care, straightforward/low MDM",
-    "source": "CMS CY2025 E/M Code List (hardcoded fallback)"
+    "description": "Prev visit est age 12-17",
+    "source": "CMS CY2025 E/M Code List (reference CSVs)"
   },
   {
-    "cpt_code": "99232",
+    "cpt_code": "99395",
     "category": "mh_sud",
-    "description": "Subsequent hospital care, moderate MDM",
-    "source": "CMS CY2025 E/M Code List (hardcoded fallback)"
+    "description": "Prev visit est age 18-39",
+    "source": "CMS CY2025 E/M Code List (reference CSVs)"
   },
   {
-    "cpt_code": "99233",
+    "cpt_code": "99396",
     "category": "mh_sud",
-    "description": "Subsequent hospital care, high MDM",
-    "source": "CMS CY2025 E/M Code List (hardcoded fallback)"
+    "description": "Prev visit est age 40-64",
+    "source": "CMS CY2025 E/M Code List (reference CSVs)"
   },
   {
-    "cpt_code": "99281",
+    "cpt_code": "99397",
     "category": "mh_sud",
-    "description": "Emergency department visit, self-limited",
-    "source": "CMS CY2025 E/M Code List (hardcoded fallback)"
+    "description": "Per pm reeval est pat 65+ yr",
+    "source": "CMS CY2025 E/M Code List (reference CSVs)"
   },
   {
-    "cpt_code": "99282",
+    "cpt_code": "99401",
     "category": "mh_sud",
-    "description": "Emergency department visit, low severity",
-    "source": "CMS CY2025 E/M Code List (hardcoded fallback)"
+    "description": "Prev med cnsl indiv apprx 15",
+    "source": "CMS CY2025 E/M Code List (reference CSVs)"
   },
   {
-    "cpt_code": "99283",
+    "cpt_code": "99402",
     "category": "mh_sud",
-    "description": "Emergency department visit, moderate severity",
-    "source": "CMS CY2025 E/M Code List (hardcoded fallback)"
+    "description": "Prev med cnsl indiv apprx 30",
+    "source": "CMS CY2025 E/M Code List (reference CSVs)"
   },
   {
-    "cpt_code": "99284",
+    "cpt_code": "99403",
     "category": "mh_sud",
-    "description": "Emergency department visit, high severity",
-    "source": "CMS CY2025 E/M Code List (hardcoded fallback)"
+    "description": "Prev med cnsl indiv apprx 45",
+    "source": "CMS CY2025 E/M Code List (reference CSVs)"
   },
   {
-    "cpt_code": "99285",
+    "cpt_code": "99404",
     "category": "mh_sud",
-    "description": "Emergency department visit, high severity with threat",
-    "source": "CMS CY2025 E/M Code List (hardcoded fallback)"
+    "description": "Prev med cnsl indiv apprx 60",
+    "source": "CMS CY2025 E/M Code List (reference CSVs)"
   },
   {
-    "cpt_code": "59025",
+    "cpt_code": "99406",
+    "category": "mh_sud",
+    "description": "Behav chng smoking 3-10 min",
+    "source": "CMS CY2025 E/M Code List (reference CSVs)"
+  },
+  {
+    "cpt_code": "99407",
+    "category": "mh_sud",
+    "description": "Behav chng smoking > 10 min",
+    "source": "CMS CY2025 E/M Code List (reference CSVs)"
+  },
+  {
+    "cpt_code": "99408",
+    "category": "mh_sud",
+    "description": "Audit/dast 15-30 min",
+    "source": "CMS CY2025 E/M Code List (reference CSVs)"
+  },
+  {
+    "cpt_code": "99409",
+    "category": "mh_sud",
+    "description": "Audit/dast over 30 min",
+    "source": "CMS CY2025 E/M Code List (reference CSVs)"
+  },
+  {
+    "cpt_code": "99412",
+    "category": "mh_sud",
+    "description": "Preventive counseling group",
+    "source": "CMS CY2025 E/M Code List (reference CSVs)"
+  },
+  {
+    "cpt_code": "99437",
+    "category": "mh_sud",
+    "description": "Chrnc care mgmt phys ea addl",
+    "source": "CMS CY2025 E/M Code List (reference CSVs)"
+  },
+  {
+    "cpt_code": "99439",
+    "category": "mh_sud",
+    "description": "Chrnc care mgmt staf ea addl",
+    "source": "CMS CY2025 E/M Code List (reference CSVs)"
+  },
+  {
+    "cpt_code": "99446",
+    "category": "mh_sud",
+    "description": "Ntrprof ph1/ntrnet/ehr 5-10",
+    "source": "CMS CY2025 E/M Code List (reference CSVs)"
+  },
+  {
+    "cpt_code": "99447",
+    "category": "mh_sud",
+    "description": "Ntrprof ph1/ntrnet/ehr 11-20",
+    "source": "CMS CY2025 E/M Code List (reference CSVs)"
+  },
+  {
+    "cpt_code": "99448",
+    "category": "mh_sud",
+    "description": "Ntrprof ph1/ntrnet/ehr 21-30",
+    "source": "CMS CY2025 E/M Code List (reference CSVs)"
+  },
+  {
+    "cpt_code": "99449",
+    "category": "mh_sud",
+    "description": "Ntrprof ph1/ntrnet/ehr 31/>",
+    "source": "CMS CY2025 E/M Code List (reference CSVs)"
+  },
+  {
+    "cpt_code": "99451",
+    "category": "mh_sud",
+    "description": "Ntrprof ph1/ntrnet/ehr 5/>",
+    "source": "CMS CY2025 E/M Code List (reference CSVs)"
+  },
+  {
+    "cpt_code": "99452",
+    "category": "mh_sud",
+    "description": "Ntrprof ph1/ntrnet/ehr rfrl",
+    "source": "CMS CY2025 E/M Code List (reference CSVs)"
+  },
+  {
+    "cpt_code": "99453",
+    "category": "mh_sud",
+    "description": "Rem mntr physiol param setup",
+    "source": "CMS CY2025 E/M Code List (reference CSVs)"
+  },
+  {
+    "cpt_code": "99454",
+    "category": "mh_sud",
+    "description": "Rem mntr physiol param dev",
+    "source": "CMS CY2025 E/M Code List (reference CSVs)"
+  },
+  {
+    "cpt_code": "99457",
+    "category": "mh_sud",
+    "description": "Rem physiol mntr 1st 20 min",
+    "source": "CMS CY2025 E/M Code List (reference CSVs)"
+  },
+  {
+    "cpt_code": "99458",
+    "category": "mh_sud",
+    "description": "Rem physiol mntr ea addl 20",
+    "source": "CMS CY2025 E/M Code List (reference CSVs)"
+  },
+  {
+    "cpt_code": "99483",
+    "category": "mh_sud",
+    "description": "Assmt & care pln pt cog imp",
+    "source": "CMS CY2025 E/M Code List (reference CSVs)"
+  },
+  {
+    "cpt_code": "99484",
+    "category": "mh_sud",
+    "description": "Care mgmt svc bhvl hlth cond",
+    "source": "CMS CY2025 E/M Code List (reference CSVs)"
+  },
+  {
+    "cpt_code": "99490",
+    "category": "mh_sud",
+    "description": "Chrnc care mgmt staff 1st 20",
+    "source": "CMS CY2025 E/M Code List (reference CSVs)"
+  },
+  {
+    "cpt_code": "99491",
+    "category": "mh_sud",
+    "description": "Chrnc care mgmt phys 1st 30",
+    "source": "CMS CY2025 E/M Code List (reference CSVs)"
+  },
+  {
+    "cpt_code": "99492",
+    "category": "mh_sud",
+    "description": "1st psyc collab care mgmt",
+    "source": "CMS CY2025 E/M Code List (reference CSVs)"
+  },
+  {
+    "cpt_code": "99493",
+    "category": "mh_sud",
+    "description": "Sbsq psyc collab care mgmt",
+    "source": "CMS CY2025 E/M Code List (reference CSVs)"
+  },
+  {
+    "cpt_code": "99494",
+    "category": "mh_sud",
+    "description": "1st/sbsq psyc collab care",
+    "source": "CMS CY2025 E/M Code List (reference CSVs)"
+  },
+  {
+    "cpt_code": "99202",
     "category": "obgyn",
-    "description": "Fetal non-stress test",
-    "source": "CMS CY2025 E/M Code List (hardcoded fallback)"
+    "description": "Office o/p new sf 15 min",
+    "source": "CMS CY2025 E/M Code List (reference CSVs)"
   },
   {
-    "cpt_code": "59400",
+    "cpt_code": "99203",
     "category": "obgyn",
-    "description": "Routine obstetric care, antepartum, delivery, postpartum",
-    "source": "CMS CY2025 E/M Code List (hardcoded fallback)"
+    "description": "Office o/p new low 30 min",
+    "source": "CMS CY2025 E/M Code List (reference CSVs)"
   },
   {
-    "cpt_code": "59510",
+    "cpt_code": "99204",
     "category": "obgyn",
-    "description": "Cesarean delivery, including antepartum and postpartum care",
-    "source": "CMS CY2025 E/M Code List (hardcoded fallback)"
+    "description": "Office o/p new mod 45 min",
+    "source": "CMS CY2025 E/M Code List (reference CSVs)"
   },
   {
-    "cpt_code": "59610",
+    "cpt_code": "99205",
     "category": "obgyn",
-    "description": "VBAC, including antepartum and postpartum care",
-    "source": "CMS CY2025 E/M Code List (hardcoded fallback)"
+    "description": "Office o/p new hi 60 min",
+    "source": "CMS CY2025 E/M Code List (reference CSVs)"
   },
   {
-    "cpt_code": "76801",
+    "cpt_code": "99211",
     "category": "obgyn",
-    "description": "Ultrasound, pregnant uterus, first trimester, single fetus",
-    "source": "CMS CY2025 E/M Code List (hardcoded fallback)"
+    "description": "Off/op est may x req phy/qhp",
+    "source": "CMS CY2025 E/M Code List (reference CSVs)"
   },
   {
-    "cpt_code": "76805",
+    "cpt_code": "99212",
     "category": "obgyn",
-    "description": "Ultrasound, pregnant uterus, after first trimester, single fetus",
-    "source": "CMS CY2025 E/M Code List (hardcoded fallback)"
+    "description": "Office o/p est sf 10 min",
+    "source": "CMS CY2025 E/M Code List (reference CSVs)"
   },
   {
-    "cpt_code": "76811",
+    "cpt_code": "99213",
     "category": "obgyn",
-    "description": "Ultrasound, pregnant uterus, detailed fetal anatomic exam",
-    "source": "CMS CY2025 E/M Code List (hardcoded fallback)"
+    "description": "Office o/p est low 20 min",
+    "source": "CMS CY2025 E/M Code List (reference CSVs)"
   },
   {
-    "cpt_code": "76812",
+    "cpt_code": "99214",
     "category": "obgyn",
-    "description": "Ultrasound, pregnant uterus, detailed, each additional fetus",
-    "source": "CMS CY2025 E/M Code List (hardcoded fallback)"
+    "description": "Office o/p est mod 30 min",
+    "source": "CMS CY2025 E/M Code List (reference CSVs)"
   },
   {
-    "cpt_code": "76813",
+    "cpt_code": "99215",
     "category": "obgyn",
-    "description": "Ultrasound, nuchal translucency, first trimester, single fetus",
-    "source": "CMS CY2025 E/M Code List (hardcoded fallback)"
+    "description": "Office o/p est hi 40 min",
+    "source": "CMS CY2025 E/M Code List (reference CSVs)"
   },
   {
-    "cpt_code": "76814",
+    "cpt_code": "99381",
     "category": "obgyn",
-    "description": "Ultrasound, nuchal translucency, each additional fetus",
-    "source": "CMS CY2025 E/M Code List (hardcoded fallback)"
+    "description": "Init pm e/m new pat infant",
+    "source": "CMS CY2025 E/M Code List (reference CSVs)"
   },
   {
-    "cpt_code": "76815",
+    "cpt_code": "99382",
     "category": "obgyn",
-    "description": "Ultrasound, pregnant uterus, limited",
-    "source": "CMS CY2025 E/M Code List (hardcoded fallback)"
+    "description": "Init pm e/m new pat 1-4 yrs",
+    "source": "CMS CY2025 E/M Code List (reference CSVs)"
   },
   {
-    "cpt_code": "76816",
+    "cpt_code": "99383",
     "category": "obgyn",
-    "description": "Ultrasound, pregnant uterus, follow-up",
-    "source": "CMS CY2025 E/M Code List (hardcoded fallback)"
+    "description": "Prev visit new age 5-11",
+    "source": "CMS CY2025 E/M Code List (reference CSVs)"
   },
   {
-    "cpt_code": "76817",
+    "cpt_code": "99384",
     "category": "obgyn",
-    "description": "Ultrasound, transvaginal",
-    "source": "CMS CY2025 E/M Code List (hardcoded fallback)"
+    "description": "Prev visit new age 12-17",
+    "source": "CMS CY2025 E/M Code List (reference CSVs)"
   },
   {
-    "cpt_code": "76818",
+    "cpt_code": "99385",
     "category": "obgyn",
-    "description": "Fetal biophysical profile with NST",
-    "source": "CMS CY2025 E/M Code List (hardcoded fallback)"
+    "description": "Prev visit new age 18-39",
+    "source": "CMS CY2025 E/M Code List (reference CSVs)"
   },
   {
-    "cpt_code": "76819",
+    "cpt_code": "99386",
     "category": "obgyn",
-    "description": "Fetal biophysical profile without NST",
-    "source": "CMS CY2025 E/M Code List (hardcoded fallback)"
+    "description": "Prev visit new age 40-64",
+    "source": "CMS CY2025 E/M Code List (reference CSVs)"
   },
   {
-    "cpt_code": "76820",
+    "cpt_code": "99387",
     "category": "obgyn",
-    "description": "Doppler velocimetry, fetal umbilical artery",
-    "source": "CMS CY2025 E/M Code List (hardcoded fallback)"
+    "description": "Init pm e/m new pat 65+ yrs",
+    "source": "CMS CY2025 E/M Code List (reference CSVs)"
   },
   {
-    "cpt_code": "76821",
+    "cpt_code": "99391",
     "category": "obgyn",
-    "description": "Doppler velocimetry, fetal middle cerebral artery",
-    "source": "CMS CY2025 E/M Code List (hardcoded fallback)"
+    "description": "Per pm reeval est pat infant",
+    "source": "CMS CY2025 E/M Code List (reference CSVs)"
   },
   {
-    "cpt_code": "81025",
+    "cpt_code": "99392",
     "category": "obgyn",
-    "description": "Urine pregnancy test",
-    "source": "CMS CY2025 E/M Code List (hardcoded fallback)"
+    "description": "Prev visit est age 1-4",
+    "source": "CMS CY2025 E/M Code List (reference CSVs)"
+  },
+  {
+    "cpt_code": "99393",
+    "category": "obgyn",
+    "description": "Prev visit est age 5-11",
+    "source": "CMS CY2025 E/M Code List (reference CSVs)"
+  },
+  {
+    "cpt_code": "99394",
+    "category": "obgyn",
+    "description": "Prev visit est age 12-17",
+    "source": "CMS CY2025 E/M Code List (reference CSVs)"
+  },
+  {
+    "cpt_code": "99395",
+    "category": "obgyn",
+    "description": "Prev visit est age 18-39",
+    "source": "CMS CY2025 E/M Code List (reference CSVs)"
+  },
+  {
+    "cpt_code": "99396",
+    "category": "obgyn",
+    "description": "Prev visit est age 40-64",
+    "source": "CMS CY2025 E/M Code List (reference CSVs)"
+  },
+  {
+    "cpt_code": "99397",
+    "category": "obgyn",
+    "description": "Per pm reeval est pat 65+ yr",
+    "source": "CMS CY2025 E/M Code List (reference CSVs)"
+  },
+  {
+    "cpt_code": "99401",
+    "category": "obgyn",
+    "description": "Prev med cnsl indiv apprx 15",
+    "source": "CMS CY2025 E/M Code List (reference CSVs)"
+  },
+  {
+    "cpt_code": "99402",
+    "category": "obgyn",
+    "description": "Prev med cnsl indiv apprx 30",
+    "source": "CMS CY2025 E/M Code List (reference CSVs)"
+  },
+  {
+    "cpt_code": "99403",
+    "category": "obgyn",
+    "description": "Prev med cnsl indiv apprx 45",
+    "source": "CMS CY2025 E/M Code List (reference CSVs)"
+  },
+  {
+    "cpt_code": "99404",
+    "category": "obgyn",
+    "description": "Prev med cnsl indiv apprx 60",
+    "source": "CMS CY2025 E/M Code List (reference CSVs)"
+  },
+  {
+    "cpt_code": "99406",
+    "category": "obgyn",
+    "description": "Behav chng smoking 3-10 min",
+    "source": "CMS CY2025 E/M Code List (reference CSVs)"
+  },
+  {
+    "cpt_code": "99407",
+    "category": "obgyn",
+    "description": "Behav chng smoking > 10 min",
+    "source": "CMS CY2025 E/M Code List (reference CSVs)"
+  },
+  {
+    "cpt_code": "99408",
+    "category": "obgyn",
+    "description": "Audit/dast 15-30 min",
+    "source": "CMS CY2025 E/M Code List (reference CSVs)"
+  },
+  {
+    "cpt_code": "99409",
+    "category": "obgyn",
+    "description": "Audit/dast over 30 min",
+    "source": "CMS CY2025 E/M Code List (reference CSVs)"
+  },
+  {
+    "cpt_code": "99412",
+    "category": "obgyn",
+    "description": "Preventive counseling group",
+    "source": "CMS CY2025 E/M Code List (reference CSVs)"
+  },
+  {
+    "cpt_code": "99421",
+    "category": "obgyn",
+    "description": "Ol dig e/m svc 5-10 min",
+    "source": "CMS CY2025 E/M Code List (reference CSVs)"
+  },
+  {
+    "cpt_code": "99422",
+    "category": "obgyn",
+    "description": "Ol dig e/m svc 11-20 min",
+    "source": "CMS CY2025 E/M Code List (reference CSVs)"
+  },
+  {
+    "cpt_code": "99423",
+    "category": "obgyn",
+    "description": "Ol dig e/m svc 21+ min",
+    "source": "CMS CY2025 E/M Code List (reference CSVs)"
+  },
+  {
+    "cpt_code": "99437",
+    "category": "obgyn",
+    "description": "Chrnc care mgmt phys ea addl",
+    "source": "CMS CY2025 E/M Code List (reference CSVs)"
+  },
+  {
+    "cpt_code": "99439",
+    "category": "obgyn",
+    "description": "Chrnc care mgmt staf ea addl",
+    "source": "CMS CY2025 E/M Code List (reference CSVs)"
+  },
+  {
+    "cpt_code": "99446",
+    "category": "obgyn",
+    "description": "Ntrprof ph1/ntrnet/ehr 5-10",
+    "source": "CMS CY2025 E/M Code List (reference CSVs)"
+  },
+  {
+    "cpt_code": "99447",
+    "category": "obgyn",
+    "description": "Ntrprof ph1/ntrnet/ehr 11-20",
+    "source": "CMS CY2025 E/M Code List (reference CSVs)"
+  },
+  {
+    "cpt_code": "99448",
+    "category": "obgyn",
+    "description": "Ntrprof ph1/ntrnet/ehr 21-30",
+    "source": "CMS CY2025 E/M Code List (reference CSVs)"
+  },
+  {
+    "cpt_code": "99449",
+    "category": "obgyn",
+    "description": "Ntrprof ph1/ntrnet/ehr 31/>",
+    "source": "CMS CY2025 E/M Code List (reference CSVs)"
+  },
+  {
+    "cpt_code": "99451",
+    "category": "obgyn",
+    "description": "Ntrprof ph1/ntrnet/ehr 5/>",
+    "source": "CMS CY2025 E/M Code List (reference CSVs)"
+  },
+  {
+    "cpt_code": "99452",
+    "category": "obgyn",
+    "description": "Ntrprof ph1/ntrnet/ehr rfrl",
+    "source": "CMS CY2025 E/M Code List (reference CSVs)"
+  },
+  {
+    "cpt_code": "99453",
+    "category": "obgyn",
+    "description": "Rem mntr physiol param setup",
+    "source": "CMS CY2025 E/M Code List (reference CSVs)"
+  },
+  {
+    "cpt_code": "99454",
+    "category": "obgyn",
+    "description": "Rem mntr physiol param dev",
+    "source": "CMS CY2025 E/M Code List (reference CSVs)"
+  },
+  {
+    "cpt_code": "99457",
+    "category": "obgyn",
+    "description": "Rem physiol mntr 1st 20 min",
+    "source": "CMS CY2025 E/M Code List (reference CSVs)"
+  },
+  {
+    "cpt_code": "99458",
+    "category": "obgyn",
+    "description": "Rem physiol mntr ea addl 20",
+    "source": "CMS CY2025 E/M Code List (reference CSVs)"
+  },
+  {
+    "cpt_code": "99490",
+    "category": "obgyn",
+    "description": "Chrnc care mgmt staff 1st 20",
+    "source": "CMS CY2025 E/M Code List (reference CSVs)"
+  },
+  {
+    "cpt_code": "99491",
+    "category": "obgyn",
+    "description": "Chrnc care mgmt phys 1st 30",
+    "source": "CMS CY2025 E/M Code List (reference CSVs)"
+  },
+  {
+    "cpt_code": "99492",
+    "category": "obgyn",
+    "description": "1st psyc collab care mgmt",
+    "source": "CMS CY2025 E/M Code List (reference CSVs)"
+  },
+  {
+    "cpt_code": "99493",
+    "category": "obgyn",
+    "description": "Sbsq psyc collab care mgmt",
+    "source": "CMS CY2025 E/M Code List (reference CSVs)"
+  },
+  {
+    "cpt_code": "99494",
+    "category": "obgyn",
+    "description": "1st/sbsq psyc collab care",
+    "source": "CMS CY2025 E/M Code List (reference CSVs)"
   },
   {
     "cpt_code": "99202",
     "category": "primary_care",
-    "description": "Office/outpatient visit, new patient, straightforward MDM",
-    "source": "CMS CY2025 E/M Code List (hardcoded fallback)"
+    "description": "Office o/p new sf 15 min",
+    "source": "CMS CY2025 E/M Code List (reference CSVs)"
   },
   {
     "cpt_code": "99203",
     "category": "primary_care",
-    "description": "Office/outpatient visit, new patient, low MDM",
-    "source": "CMS CY2025 E/M Code List (hardcoded fallback)"
+    "description": "Office o/p new low 30 min",
+    "source": "CMS CY2025 E/M Code List (reference CSVs)"
   },
   {
     "cpt_code": "99204",
     "category": "primary_care",
-    "description": "Office/outpatient visit, new patient, moderate MDM",
-    "source": "CMS CY2025 E/M Code List (hardcoded fallback)"
+    "description": "Office o/p new mod 45 min",
+    "source": "CMS CY2025 E/M Code List (reference CSVs)"
   },
   {
     "cpt_code": "99205",
     "category": "primary_care",
-    "description": "Office/outpatient visit, new patient, high MDM",
-    "source": "CMS CY2025 E/M Code List (hardcoded fallback)"
+    "description": "Office o/p new hi 60 min",
+    "source": "CMS CY2025 E/M Code List (reference CSVs)"
   },
   {
     "cpt_code": "99211",
     "category": "primary_care",
-    "description": "Office/outpatient visit, established patient, may not require physician",
-    "source": "CMS CY2025 E/M Code List (hardcoded fallback)"
+    "description": "Off/op est may x req phy/qhp",
+    "source": "CMS CY2025 E/M Code List (reference CSVs)"
   },
   {
     "cpt_code": "99212",
     "category": "primary_care",
-    "description": "Office/outpatient visit, established patient, straightforward MDM",
-    "source": "CMS CY2025 E/M Code List (hardcoded fallback)"
+    "description": "Office o/p est sf 10 min",
+    "source": "CMS CY2025 E/M Code List (reference CSVs)"
   },
   {
     "cpt_code": "99213",
     "category": "primary_care",
-    "description": "Office/outpatient visit, established patient, low MDM",
-    "source": "CMS CY2025 E/M Code List (hardcoded fallback)"
+    "description": "Office o/p est low 20 min",
+    "source": "CMS CY2025 E/M Code List (reference CSVs)"
   },
   {
     "cpt_code": "99214",
     "category": "primary_care",
-    "description": "Office/outpatient visit, established patient, moderate MDM",
-    "source": "CMS CY2025 E/M Code List (hardcoded fallback)"
+    "description": "Office o/p est mod 30 min",
+    "source": "CMS CY2025 E/M Code List (reference CSVs)"
   },
   {
     "cpt_code": "99215",
     "category": "primary_care",
-    "description": "Office/outpatient visit, established patient, high MDM",
-    "source": "CMS CY2025 E/M Code List (hardcoded fallback)"
+    "description": "Office o/p est hi 40 min",
+    "source": "CMS CY2025 E/M Code List (reference CSVs)"
   },
   {
     "cpt_code": "99381",
     "category": "primary_care",
-    "description": "Initial preventive medicine, infant",
-    "source": "CMS CY2025 E/M Code List (hardcoded fallback)"
+    "description": "Init pm e/m new pat infant",
+    "source": "CMS CY2025 E/M Code List (reference CSVs)"
   },
   {
     "cpt_code": "99382",
     "category": "primary_care",
-    "description": "Initial preventive medicine, age 1-4",
-    "source": "CMS CY2025 E/M Code List (hardcoded fallback)"
+    "description": "Init pm e/m new pat 1-4 yrs",
+    "source": "CMS CY2025 E/M Code List (reference CSVs)"
   },
   {
     "cpt_code": "99383",
     "category": "primary_care",
-    "description": "Initial preventive medicine, age 5-11",
-    "source": "CMS CY2025 E/M Code List (hardcoded fallback)"
+    "description": "Prev visit new age 5-11",
+    "source": "CMS CY2025 E/M Code List (reference CSVs)"
   },
   {
     "cpt_code": "99384",
     "category": "primary_care",
-    "description": "Initial preventive medicine, age 12-17",
-    "source": "CMS CY2025 E/M Code List (hardcoded fallback)"
+    "description": "Prev visit new age 12-17",
+    "source": "CMS CY2025 E/M Code List (reference CSVs)"
   },
   {
     "cpt_code": "99385",
     "category": "primary_care",
-    "description": "Initial preventive medicine, age 18-39",
-    "source": "CMS CY2025 E/M Code List (hardcoded fallback)"
+    "description": "Prev visit new age 18-39",
+    "source": "CMS CY2025 E/M Code List (reference CSVs)"
   },
   {
     "cpt_code": "99386",
     "category": "primary_care",
-    "description": "Initial preventive medicine, age 40-64",
-    "source": "CMS CY2025 E/M Code List (hardcoded fallback)"
+    "description": "Prev visit new age 40-64",
+    "source": "CMS CY2025 E/M Code List (reference CSVs)"
   },
   {
     "cpt_code": "99387",
     "category": "primary_care",
-    "description": "Initial preventive medicine, age 65+",
-    "source": "CMS CY2025 E/M Code List (hardcoded fallback)"
+    "description": "Init pm e/m new pat 65+ yrs",
+    "source": "CMS CY2025 E/M Code List (reference CSVs)"
   },
   {
     "cpt_code": "99391",
     "category": "primary_care",
-    "description": "Periodic preventive medicine, infant",
-    "source": "CMS CY2025 E/M Code List (hardcoded fallback)"
+    "description": "Per pm reeval est pat infant",
+    "source": "CMS CY2025 E/M Code List (reference CSVs)"
   },
   {
     "cpt_code": "99392",
     "category": "primary_care",
-    "description": "Periodic preventive medicine, age 1-4",
-    "source": "CMS CY2025 E/M Code List (hardcoded fallback)"
+    "description": "Prev visit est age 1-4",
+    "source": "CMS CY2025 E/M Code List (reference CSVs)"
   },
   {
     "cpt_code": "99393",
     "category": "primary_care",
-    "description": "Periodic preventive medicine, age 5-11",
-    "source": "CMS CY2025 E/M Code List (hardcoded fallback)"
+    "description": "Prev visit est age 5-11",
+    "source": "CMS CY2025 E/M Code List (reference CSVs)"
   },
   {
     "cpt_code": "99394",
     "category": "primary_care",
-    "description": "Periodic preventive medicine, age 12-17",
-    "source": "CMS CY2025 E/M Code List (hardcoded fallback)"
+    "description": "Prev visit est age 12-17",
+    "source": "CMS CY2025 E/M Code List (reference CSVs)"
   },
   {
     "cpt_code": "99395",
     "category": "primary_care",
-    "description": "Periodic preventive medicine, age 18-39",
-    "source": "CMS CY2025 E/M Code List (hardcoded fallback)"
+    "description": "Prev visit est age 18-39",
+    "source": "CMS CY2025 E/M Code List (reference CSVs)"
   },
   {
     "cpt_code": "99396",
     "category": "primary_care",
-    "description": "Periodic preventive medicine, age 40-64",
-    "source": "CMS CY2025 E/M Code List (hardcoded fallback)"
+    "description": "Prev visit est age 40-64",
+    "source": "CMS CY2025 E/M Code List (reference CSVs)"
   },
   {
     "cpt_code": "99397",
     "category": "primary_care",
-    "description": "Periodic preventive medicine, age 65+",
-    "source": "CMS CY2025 E/M Code List (hardcoded fallback)"
+    "description": "Per pm reeval est pat 65+ yr",
+    "source": "CMS CY2025 E/M Code List (reference CSVs)"
+  },
+  {
+    "cpt_code": "99401",
+    "category": "primary_care",
+    "description": "Prev med cnsl indiv apprx 15",
+    "source": "CMS CY2025 E/M Code List (reference CSVs)"
+  },
+  {
+    "cpt_code": "99402",
+    "category": "primary_care",
+    "description": "Prev med cnsl indiv apprx 30",
+    "source": "CMS CY2025 E/M Code List (reference CSVs)"
+  },
+  {
+    "cpt_code": "99403",
+    "category": "primary_care",
+    "description": "Prev med cnsl indiv apprx 45",
+    "source": "CMS CY2025 E/M Code List (reference CSVs)"
+  },
+  {
+    "cpt_code": "99404",
+    "category": "primary_care",
+    "description": "Prev med cnsl indiv apprx 60",
+    "source": "CMS CY2025 E/M Code List (reference CSVs)"
+  },
+  {
+    "cpt_code": "99406",
+    "category": "primary_care",
+    "description": "Behav chng smoking 3-10 min",
+    "source": "CMS CY2025 E/M Code List (reference CSVs)"
+  },
+  {
+    "cpt_code": "99407",
+    "category": "primary_care",
+    "description": "Behav chng smoking > 10 min",
+    "source": "CMS CY2025 E/M Code List (reference CSVs)"
+  },
+  {
+    "cpt_code": "99408",
+    "category": "primary_care",
+    "description": "Audit/dast 15-30 min",
+    "source": "CMS CY2025 E/M Code List (reference CSVs)"
+  },
+  {
+    "cpt_code": "99409",
+    "category": "primary_care",
+    "description": "Audit/dast over 30 min",
+    "source": "CMS CY2025 E/M Code List (reference CSVs)"
+  },
+  {
+    "cpt_code": "99412",
+    "category": "primary_care",
+    "description": "Preventive counseling group",
+    "source": "CMS CY2025 E/M Code List (reference CSVs)"
+  },
+  {
+    "cpt_code": "99415",
+    "category": "primary_care",
+    "description": "Prolng clin staff svc 1st hr",
+    "source": "CMS CY2025 E/M Code List (reference CSVs)"
+  },
+  {
+    "cpt_code": "99416",
+    "category": "primary_care",
+    "description": "Prolng clin staff svc ea add",
+    "source": "CMS CY2025 E/M Code List (reference CSVs)"
+  },
+  {
+    "cpt_code": "99421",
+    "category": "primary_care",
+    "description": "Ol dig e/m svc 5-10 min",
+    "source": "CMS CY2025 E/M Code List (reference CSVs)"
+  },
+  {
+    "cpt_code": "99422",
+    "category": "primary_care",
+    "description": "Ol dig e/m svc 11-20 min",
+    "source": "CMS CY2025 E/M Code List (reference CSVs)"
+  },
+  {
+    "cpt_code": "99423",
+    "category": "primary_care",
+    "description": "Ol dig e/m svc 21+ min",
+    "source": "CMS CY2025 E/M Code List (reference CSVs)"
+  },
+  {
+    "cpt_code": "99424",
+    "category": "primary_care",
+    "description": "Prin care mgmt phys 1st 30",
+    "source": "CMS CY2025 E/M Code List (reference CSVs)"
+  },
+  {
+    "cpt_code": "99425",
+    "category": "primary_care",
+    "description": "Prin care mgmt phys ea addl",
+    "source": "CMS CY2025 E/M Code List (reference CSVs)"
+  },
+  {
+    "cpt_code": "99426",
+    "category": "primary_care",
+    "description": "Prin care mgmt staff 1st 30",
+    "source": "CMS CY2025 E/M Code List (reference CSVs)"
+  },
+  {
+    "cpt_code": "99427",
+    "category": "primary_care",
+    "description": "Prin care mgmt staff ea addl",
+    "source": "CMS CY2025 E/M Code List (reference CSVs)"
+  },
+  {
+    "cpt_code": "99437",
+    "category": "primary_care",
+    "description": "Chrnc care mgmt phys ea addl",
+    "source": "CMS CY2025 E/M Code List (reference CSVs)"
+  },
+  {
+    "cpt_code": "99439",
+    "category": "primary_care",
+    "description": "Chrnc care mgmt staf ea addl",
+    "source": "CMS CY2025 E/M Code List (reference CSVs)"
+  },
+  {
+    "cpt_code": "99446",
+    "category": "primary_care",
+    "description": "Ntrprof ph1/ntrnet/ehr 5-10",
+    "source": "CMS CY2025 E/M Code List (reference CSVs)"
+  },
+  {
+    "cpt_code": "99447",
+    "category": "primary_care",
+    "description": "Ntrprof ph1/ntrnet/ehr 11-20",
+    "source": "CMS CY2025 E/M Code List (reference CSVs)"
+  },
+  {
+    "cpt_code": "99448",
+    "category": "primary_care",
+    "description": "Ntrprof ph1/ntrnet/ehr 21-30",
+    "source": "CMS CY2025 E/M Code List (reference CSVs)"
+  },
+  {
+    "cpt_code": "99449",
+    "category": "primary_care",
+    "description": "Ntrprof ph1/ntrnet/ehr 31/>",
+    "source": "CMS CY2025 E/M Code List (reference CSVs)"
+  },
+  {
+    "cpt_code": "99451",
+    "category": "primary_care",
+    "description": "Ntrprof ph1/ntrnet/ehr 5/>",
+    "source": "CMS CY2025 E/M Code List (reference CSVs)"
+  },
+  {
+    "cpt_code": "99452",
+    "category": "primary_care",
+    "description": "Ntrprof ph1/ntrnet/ehr rfrl",
+    "source": "CMS CY2025 E/M Code List (reference CSVs)"
+  },
+  {
+    "cpt_code": "99453",
+    "category": "primary_care",
+    "description": "Rem mntr physiol param setup",
+    "source": "CMS CY2025 E/M Code List (reference CSVs)"
+  },
+  {
+    "cpt_code": "99454",
+    "category": "primary_care",
+    "description": "Rem mntr physiol param dev",
+    "source": "CMS CY2025 E/M Code List (reference CSVs)"
+  },
+  {
+    "cpt_code": "99457",
+    "category": "primary_care",
+    "description": "Rem physiol mntr 1st 20 min",
+    "source": "CMS CY2025 E/M Code List (reference CSVs)"
+  },
+  {
+    "cpt_code": "99458",
+    "category": "primary_care",
+    "description": "Rem physiol mntr ea addl 20",
+    "source": "CMS CY2025 E/M Code List (reference CSVs)"
+  },
+  {
+    "cpt_code": "99473",
+    "category": "primary_care",
+    "description": "Self-meas bp pt educaj/train",
+    "source": "CMS CY2025 E/M Code List (reference CSVs)"
+  },
+  {
+    "cpt_code": "99474",
+    "category": "primary_care",
+    "description": "Self-meas bp 2 readg bid 30d",
+    "source": "CMS CY2025 E/M Code List (reference CSVs)"
+  },
+  {
+    "cpt_code": "99483",
+    "category": "primary_care",
+    "description": "Assmt & care pln pt cog imp",
+    "source": "CMS CY2025 E/M Code List (reference CSVs)"
+  },
+  {
+    "cpt_code": "99484",
+    "category": "primary_care",
+    "description": "Care mgmt svc bhvl hlth cond",
+    "source": "CMS CY2025 E/M Code List (reference CSVs)"
+  },
+  {
+    "cpt_code": "99487",
+    "category": "primary_care",
+    "description": "Cplx chrnc care 1st 60 min",
+    "source": "CMS CY2025 E/M Code List (reference CSVs)"
+  },
+  {
+    "cpt_code": "99489",
+    "category": "primary_care",
+    "description": "Cplx chrnc care ea addl 30",
+    "source": "CMS CY2025 E/M Code List (reference CSVs)"
   },
   {
     "cpt_code": "99490",
     "category": "primary_care",
-    "description": "Chronic care management, 20+ minutes",
-    "source": "CMS CY2025 E/M Code List (hardcoded fallback)"
+    "description": "Chrnc care mgmt staff 1st 20",
+    "source": "CMS CY2025 E/M Code List (reference CSVs)"
   },
   {
     "cpt_code": "99491",
     "category": "primary_care",
-    "description": "Chronic care management, 30+ minutes, physician",
-    "source": "CMS CY2025 E/M Code List (hardcoded fallback)"
+    "description": "Chrnc care mgmt phys 1st 30",
+    "source": "CMS CY2025 E/M Code List (reference CSVs)"
+  },
+  {
+    "cpt_code": "99492",
+    "category": "primary_care",
+    "description": "1st psyc collab care mgmt",
+    "source": "CMS CY2025 E/M Code List (reference CSVs)"
+  },
+  {
+    "cpt_code": "99493",
+    "category": "primary_care",
+    "description": "Sbsq psyc collab care mgmt",
+    "source": "CMS CY2025 E/M Code List (reference CSVs)"
+  },
+  {
+    "cpt_code": "99494",
+    "category": "primary_care",
+    "description": "1st/sbsq psyc collab care",
+    "source": "CMS CY2025 E/M Code List (reference CSVs)"
   },
   {
     "cpt_code": "99495",
     "category": "primary_care",
-    "description": "Transitional care management, face-to-face within 7 days",
-    "source": "CMS CY2025 E/M Code List (hardcoded fallback)"
+    "description": "Transj care mgmt mod f2f 14d",
+    "source": "CMS CY2025 E/M Code List (reference CSVs)"
   },
   {
     "cpt_code": "99496",
     "category": "primary_care",
-    "description": "Transitional care management, face-to-face within 14 days",
-    "source": "CMS CY2025 E/M Code List (hardcoded fallback)"
+    "description": "Transj care mgmt high f2f 7d",
+    "source": "CMS CY2025 E/M Code List (reference CSVs)"
   },
   {
-    "cpt_code": "G0438",
+    "cpt_code": "99497",
     "category": "primary_care",
-    "description": "Annual wellness visit, initial",
-    "source": "CMS CY2025 E/M Code List (hardcoded fallback)"
+    "description": "Advncd care plan 30 min",
+    "source": "CMS CY2025 E/M Code List (reference CSVs)"
   },
   {
-    "cpt_code": "G0439",
+    "cpt_code": "99498",
     "category": "primary_care",
-    "description": "Annual wellness visit, subsequent",
-    "source": "CMS CY2025 E/M Code List (hardcoded fallback)"
+    "description": "Advncd care plan addl 30 min",
+    "source": "CMS CY2025 E/M Code List (reference CSVs)"
   }
 ]

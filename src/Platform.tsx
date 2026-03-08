@@ -39,6 +39,8 @@ const RateLookup = lazy(() => import("./tools/RateLookup"));
 const ComplianceReport = lazy(() => import("./tools/ComplianceReport"));
 const CpraGenerator = lazy(() => import("./tools/CpraGenerator"));
 const AheadReadiness = lazy(() => import("./tools/AheadReadiness"));
+const CaseloadForecaster = lazy(() => import("./tools/CaseloadForecaster"));
+const StateProfile = lazy(() => import("./tools/StateProfile"));
 
 // ── Hash Router ──────────────────────────────────────────────────────────
 function useRoute() {
@@ -53,6 +55,13 @@ function useRoute() {
 
 // ── Tool Registry ────────────────────────────────────────────────────────
 const TOOLS: ToolDef[] = [
+  // ── STATE PROFILE ─────────────────────────────────────────────────────
+  {
+    id: "state", group: "explore", name: "State Profile",
+    tagline: "Everything Aradune knows about a state, in one view",
+    desc: "Enrollment, rates, hospitals, quality, workforce, pharmacy, and economic context — unified from 185 fact tables.",
+    status: "live", icon: "◉", color: C.brand,
+  },
   // ── TRANSPARENCY ──────────────────────────────────────────────────────
   {
     id: "explorer", group: "explore", name: "Spending Explorer",
@@ -134,6 +143,12 @@ const TOOLS: ToolDef[] = [
     tagline: "Scored dashboard: how ready is your hospital for a global budget?",
     desc: "Enter a CCN. Aradune scores your hospital across four dimensions — financial stability, revenue concentration, supplemental exposure, and volume stability — using public HCRIS and CMS data.",
     status: "live", icon: "⬢", color: C.teal,
+  },
+  {
+    id: "forecast", group: "build", name: "Caseload Forecaster",
+    tagline: "Upload enrollment data and forecast caseload trends",
+    desc: "Upload your state's monthly enrollment by category. Aradune runs SARIMAX + ETS model competition with intervention detection, economic enrichment, and 80/95% confidence intervals.",
+    status: "live", icon: "◐", color: C.teal,
   },
   {
     id: "analyst", group: "build", name: "Policy Analyst",
@@ -326,7 +341,7 @@ function Landing() {
         display: "grid", gridTemplateColumns: `repeat(auto-fit,minmax(${isMobile ? "70px" : "130px"},1fr))`,
         gap: isMobile ? 10 : 16, padding: "20px 0 36px", borderTop: `1px solid ${C.border}`,
       }}>
-        {([["14", "analytical tools"], ["54", "states & territories"], ["89.5M", "data lake rows"], ["81", "lake tables"]] as const).map(([val, label]) => (
+        {([["16", "analytical tools"], ["54", "states & territories"], ["100M+", "data lake rows"], ["185", "fact tables"]] as const).map(([val, label]) => (
           <div key={label}>
             <div style={{ fontSize: 20, fontWeight: 700, fontFamily: FONT.mono, color: C.brand, letterSpacing: -0.5 }}>{val}</div>
             <div style={{ fontSize: 11, color: C.inkLight, marginTop: 2 }}>{label}</div>
@@ -500,7 +515,47 @@ function Landing() {
         );
       })}
 
-      {/* 5. Transparency → Adequacy → Modeling workflow */}
+      {/* 5. AHEAD dark card callout */}
+      <div style={{
+        background: C.ink, borderRadius: 14, padding: isMobile ? "20px 18px" : "28px 32px",
+        marginBottom: 32, position: "relative", overflow: "hidden",
+      }}>
+        <div style={{ position: "absolute", top: -40, right: -40, width: 140, height: 140, borderRadius: "50%", background: "rgba(46,107,74,0.12)", pointerEvents: "none" }} />
+        <div style={{ position: "relative" }}>
+          <div style={{ display: "flex", alignItems: "center", gap: 12, marginBottom: 10 }}>
+            <span style={{ fontSize: 18, width: 36, height: 36, display: "flex", alignItems: "center", justifyContent: "center", borderRadius: 8, background: "rgba(46,107,74,0.2)", color: "#7FD4A0" }}>△</span>
+            <div>
+              <div style={{ fontSize: 15, fontWeight: 600, color: C.white }}><Term term="AHEAD">AHEAD</Term> Hospital Global Budgets</div>
+              <div style={{ fontSize: 11, color: "rgba(255,255,255,0.5)" }}>Live — readiness scoring and budget modeling</div>
+            </div>
+          </div>
+          <div style={{ fontSize: 12, color: "rgba(255,255,255,0.6)", lineHeight: 1.7, maxWidth: 600 }}>
+            CMS's AHEAD model replaces <Term term="FFS">fee-for-service</Term> with fixed hospital budgets.
+            We model both the Medicare and Medicaid sides — budget projections, readiness scoring
+            from public HCRIS data, and participation decision support.
+          </div>
+          <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit,minmax(160px,1fr))", gap: 10, marginTop: 18 }}>
+            {([
+              ["Readiness Score", "4 dimensions scored from HCRIS data"],
+              ["Budget Calculator", "Revenue projection → global budget modeling"],
+              ["Peer Comparison", "CCN lookup → benchmarked against peers"],
+            ] as const).map(([title, desc]) => (
+              <a key={title} href={title === "Readiness Score" ? "#/ahead-readiness" : "#/ahead"} style={{
+                padding: "12px 14px", borderRadius: 8, background: "rgba(255,255,255,0.06)",
+                border: "1px solid rgba(255,255,255,0.08)", textDecoration: "none",
+                display: "block", transition: "background .15s",
+              }}
+                onMouseEnter={e => { e.currentTarget.style.background = "rgba(255,255,255,0.10)"; }}
+                onMouseLeave={e => { e.currentTarget.style.background = "rgba(255,255,255,0.06)"; }}>
+                <div style={{ fontSize: 11, fontWeight: 600, color: C.white }}>{title}</div>
+                <div style={{ fontSize: 10, color: "rgba(255,255,255,0.4)", marginTop: 3 }}>{desc}</div>
+              </a>
+            ))}
+          </div>
+        </div>
+      </div>
+
+      {/* 6. Explore → Analyze → Build workflow */}
       <div style={{ padding: "36px 0 40px", borderTop: `1px solid ${C.border}` }}>
         <div style={{ fontSize: 14, fontWeight: 600, color: C.ink, marginBottom: 6 }}>
           Explore → Analyze → Build
@@ -551,7 +606,7 @@ function Landing() {
         </div>
       </div>
 
-      {/* 6. Why now: CMS Ensuring Access */}
+      {/* 7. Why now: CMS Ensuring Access */}
       <div style={{
         padding: "16px 20px", background: C.surface, borderRadius: 10,
         borderLeft: `3px solid ${C.accent}`, marginBottom: 32,
@@ -572,7 +627,7 @@ function Landing() {
         </div>
       </div>
 
-      {/* 7. Why / How columns */}
+      {/* 8. Why / How columns */}
       <div style={{ padding: "0 0 40px", display: "grid", gridTemplateColumns: "repeat(auto-fit,minmax(300px,1fr))", gap: 24 }}>
         <div>
           <div style={{ fontSize: 14, fontWeight: 600, color: C.ink, marginBottom: 8 }}>Why this exists</div>
@@ -588,25 +643,27 @@ function Landing() {
         <div>
           <div style={{ fontSize: 14, fontWeight: 600, color: C.ink, marginBottom: 8 }}>How it works</div>
           <div style={{ fontSize: 12, color: C.inkLight, lineHeight: 1.75 }}>
-            Eight federal datasets: <Term>T-MSIS</Term> spending, Medicare PFS, <Term>BLS</Term> wage
-            surveys, CMS <Term>Core Set</Term> quality measures, FMAP, GPCI, NPPES, and 36
-            state fee schedules. All queryable in your browser, no server needed.
+            185 fact tables from 50+ federal sources: <Term>T-MSIS</Term> spending, Medicare PFS,
+            <Term>BLS</Term> wage surveys, CMS <Term>Core Set</Term> quality measures, HCRIS cost reports,
+            PBJ staffing, Five Star ratings, NADAC pharmacy pricing, Care Compare,
+            BRFSS, SAMHSA behavioral health, and 47 state fee schedules. Served via
+            a FastAPI backend on Fly.io with DuckDB over Parquet.
             <span style={{ display: "block", marginTop: 8, fontSize: 11, color: C.inkLight }}>
-              Technical: DuckDB-WASM queries Parquet files client-side. Monthly
-              granularity via Cloudflare R2. Code and methodology are open.
+              Technical: Hive-partitioned Parquet lake synced to Cloudflare R2.
+              In-memory DuckDB registers all tables as views on startup.
             </span>
           </div>
         </div>
       </div>
 
-      {/* 8. Data sources bar */}
+      {/* 9. Data sources bar */}
       <div style={{
         display: "flex", gap: 16, flexWrap: "wrap", padding: "16px 0 24px",
         borderTop: `1px solid ${C.border}`, borderBottom: `1px solid ${C.border}`, marginBottom: 32,
         alignItems: "center",
       }}>
         <span style={{ fontSize: 10, fontFamily: FONT.mono, color: C.inkLight, letterSpacing: 0.5, fontWeight: 600 }}>DATA:</span>
-        {["CMS T-MSIS", "Medicare PFS", "BLS OES", "CMS Core Set", "NPPES NPI", "FMAP", "State Fee Schedules", "GPCI"].map(src => (
+        {["CMS T-MSIS", "Medicare PFS", "BLS OES", "CMS Core Set", "HCRIS", "PBJ Staffing", "Five Star", "NADAC", "SDUD", "Care Compare", "BRFSS", "SAMHSA", "State Fee Schedules"].map(src => (
           <span key={src} style={{ fontSize: 10, fontFamily: FONT.mono, color: C.inkLight, letterSpacing: 0.3 }}>{src}</span>
         ))}
         <span style={{ marginLeft: "auto", fontSize: 9, fontFamily: FONT.mono, color: C.brand, letterSpacing: 0.3, fontWeight: 600 }}>Queryable via DuckDB-WASM</span>
@@ -980,6 +1037,7 @@ export default function Platform() {
 
     // Lazy-loaded tool routes (code-split)
     const toolMap: Record<string, JSX.Element> = {
+      "/state": <StateProfile />,
       "/explorer": <TmsisExplorer />,
       "/wages": <WageAdequacy />,
       "/quality": <QualityLinkage />,
@@ -994,9 +1052,10 @@ export default function Platform() {
       "/reduction": <RateReduction />,
       "/hcbs8020": <HcbsTracker />,
       "/cpra": <CpraGenerator />,
+      "/forecast": <CaseloadForecaster />,
       "/methods": <FeeScheduleDir />,
     };
-    const toolRoute = toolMap[route] ?? (route.startsWith("/ahead?") ? toolMap["/ahead"] : null);
+    const toolRoute = toolMap[route] ?? (route.startsWith("/ahead?") ? toolMap["/ahead"] : route.startsWith("/state/") ? toolMap["/state"] : null);
     if (toolRoute) return <ToolErrorBoundary><Suspense fallback={loadingFallback}>{toolRoute}</Suspense></ToolErrorBoundary>;
 
     return (

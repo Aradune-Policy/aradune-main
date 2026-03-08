@@ -3,6 +3,7 @@ import type { Methodology, ComputeContext, RateResult, RateBuilderHcpcs, RateBui
 import { useProAccess, ProBadge, ProGateModal } from "../components/ProGate";
 import { query as duckQuery } from "../lib/duckdb";
 import { API_BASE } from "../lib/api";
+import { calcRBRVS, applyConstraint, FL_CONFIG, round2 } from "../engine/StateRateEngine";
 
 // ── Design System ───────────────────────────────────────────────────────
 const A = "#0A2540";
@@ -105,6 +106,56 @@ const METHODOLOGIES: Methodology[] = [
           { label: "Set Rate", value: `$${rate.toFixed(2)}`, bold: true },
           ...(pctMcr && ctx.medicareRate ? [{ label: "% of Medicare", value: `${pctMcr.toFixed(1)}%`, note: `Medicare = $${ctx.medicareRate.toFixed(2)}` }] : []),
         ],
+      };
+    },
+  },
+  {
+    id: "state_rbrvs",
+    name: "State RBRVS Engine",
+    desc: "Full state-specific RBRVS calculation with conversion factor, FSI multiplier, GPCI, and ±% guardrails. Powered by the Aradune StateRateEngine.",
+    fields: [
+      { id: "stateCF", label: "Conversion Factor ($)", type: "number", min: 1, max: 60, default: 24.98, step: 0.01, unit: "$" },
+      { id: "fsiMult", label: "FSI Multiplier", type: "number", min: 0.80, max: 1.20, default: 1.04, step: 0.01, unit: "×" },
+      { id: "stateGPCI", label: "GPCI", type: "number", min: 0.50, max: 2.00, default: 1.00, step: 0.01, unit: "×" },
+      { id: "maxChangePct", label: "Guardrail (±%)", type: "range", min: 0, max: 30, default: 10, step: 1, unit: "%" },
+      { id: "priorRate", label: "Prior Year Rate ($)", type: "number", min: 0, max: 10000, default: 0, step: 0.01, unit: "$" },
+    ],
+    compute: (inputs: Record<string, number>, ctx: ComputeContext): RateResult | null => {
+      if (!ctx.rvu) return null;
+      const { stateCF, fsiMult, stateGPCI, maxChangePct, priorRate } = inputs;
+      const targetRate = calcRBRVS(ctx.rvu, stateCF, stateGPCI, fsiMult);
+      const maxChange = maxChangePct / 100;
+      const isNew = !priorRate || priorRate <= 0;
+      const finalRate = isNew ? round2(targetRate) : round2(applyConstraint(targetRate, priorRate, false, maxChange));
+      const constrained = !isNew && Math.abs(finalRate - round2(targetRate)) > 0.005;
+      const pctMcr = ctx.medicareRate ? (finalRate / ctx.medicareRate * 100) : null;
+
+      const components = [
+        { label: "Total RVU (Non-Facility)", value: ctx.rvu.toFixed(4), note: "From Medicare PFS" },
+        { label: "Conversion Factor", value: `$${stateCF.toFixed(4)}`, note: "State CF" },
+        ...(fsiMult !== 1.0 ? [{ label: "FSI Multiplier", value: `×${fsiMult.toFixed(2)}` }] : []),
+        ...(stateGPCI !== 1.0 ? [{ label: "GPCI", value: `×${stateGPCI.toFixed(2)}` }] : []),
+        { label: "Target Rate", value: `$${round2(targetRate).toFixed(2)}`, note: `RVU × CF${fsiMult !== 1.0 ? " × FSI" : ""}${stateGPCI !== 1.0 ? " × GPCI" : ""}` },
+      ];
+
+      if (!isNew) {
+        components.push({ label: "Prior Year Rate", value: `$${priorRate.toFixed(2)}`, note: `±${maxChangePct}% guardrail` });
+        if (constrained) {
+          const hitCeiling = finalRate > priorRate;
+          components.push({ label: "Guardrail Applied", value: hitCeiling ? `Capped at ceiling` : `Raised to floor`, note: `${hitCeiling ? "+" : "−"}${maxChangePct}% of prior` });
+        }
+      }
+
+      components.push({ label: "Calculated Rate", value: `$${finalRate.toFixed(2)}`, note: constrained ? "After guardrail" : isNew ? "New code (unconstrained)" : "Within guardrail", bold: true });
+
+      if (pctMcr && ctx.medicareRate) {
+        components.push({ label: "% of Medicare", value: `${pctMcr.toFixed(1)}%`, note: `Medicare = $${ctx.medicareRate.toFixed(2)}` });
+      }
+
+      return {
+        rate: finalRate,
+        formula: `RVU(${ctx.rvu.toFixed(4)}) × CF($${stateCF.toFixed(2)})${fsiMult !== 1.0 ? ` × ${fsiMult}` : ""}${stateGPCI !== 1.0 ? ` × GPCI(${stateGPCI})` : ""}${constrained ? " [constrained]" : ""} = $${finalRate.toFixed(2)}`,
+        components,
       };
     },
   },
@@ -422,7 +473,8 @@ export default function RateBuilder() {
           {METHODOLOGIES.map(m => {
             const disabled = (m.id === "rbrvs" && !selectedCode.medicareRate) ||
                            (m.id === "cf" && !selectedCode.rvu) ||
-                           (m.id === "peer_median" && selectedCode.stateRates.length < 3);
+                           (m.id === "peer_median" && selectedCode.stateRates.length < 3) ||
+                           (m.id === "state_rbrvs" && !selectedCode.rvu);
             return (
               <div key={m.id} onClick={()=>!disabled && setMethodology(m.id)}
                 style={{ display:"flex",alignItems:"flex-start",gap:8,padding:"8px 6px",borderRadius:6,cursor:disabled?"not-allowed":"pointer",
@@ -435,7 +487,7 @@ export default function RateBuilder() {
                 <div>
                   <div style={{ fontSize:11,fontWeight:600,color:A }}>{m.name}</div>
                   <div style={{ fontSize:10,color:AL }}>{m.desc}</div>
-                  {disabled && <div style={{ fontSize:9,color:WARN,marginTop:2 }}>{m.id==="rbrvs"?"No Medicare rate available":m.id==="cf"?"No RVU data available":"Need ≥3 states with data"}</div>}
+                  {disabled && <div style={{ fontSize:9,color:WARN,marginTop:2 }}>{m.id==="rbrvs"?"No Medicare rate available":m.id==="cf"||m.id==="state_rbrvs"?"No RVU data available":m.id==="peer_median"?"Need ≥3 states with data":""}</div>}
                 </div>
               </div>
             );
@@ -463,6 +515,43 @@ export default function RateBuilder() {
               <span style={{ fontFamily:FM,fontSize:13,fontWeight:700,color:cB,whiteSpace:"nowrap" }}>{f.unit==="$"?"$":""}{(methodInputs[f.id]??f.default)}{f.unit==="%"?"%":""}</span>
             </div>
           ))}
+          {/* State Presets for State RBRVS */}
+          {methodology === "state_rbrvs" && (
+            <div style={{ display:"flex",gap:6,padding:"2px 14px 8px",flexWrap:"wrap" }}>
+              <span style={{ fontSize:9,color:AL,fontWeight:600,lineHeight:"24px" }}>Presets:</span>
+              <button onClick={() => setInputs(prev => ({...prev, stateCF: FL_CONFIG.cf, fsiMult: FL_CONFIG.fsiMultiplier, stateGPCI: FL_CONFIG.gpci, maxChangePct: FL_CONFIG.maxChange * 100 }))}
+                style={{ padding:"3px 10px",fontSize:10,background:methodInputs.stateCF===FL_CONFIG.cf?"rgba(46,107,74,0.12)":"transparent",border:`1px solid ${BD}`,borderRadius:5,cursor:"pointer",fontWeight:600,color:methodInputs.stateCF===FL_CONFIG.cf?cB:AL }}>
+                FL ($24.98, ×1.04)
+              </button>
+              <button onClick={() => setInputs(prev => ({...prev, stateCF: 43.412, fsiMult: 1.0, stateGPCI: 1.0, maxChangePct: 0 }))}
+                style={{ padding:"3px 10px",fontSize:10,background:"transparent",border:`1px solid ${BD}`,borderRadius:5,cursor:"pointer",color:AL }}>
+                AK ($43.41)
+              </button>
+              <button onClick={() => setInputs(prev => ({...prev, stateCF: 21.30, fsiMult: 1.0, stateGPCI: 1.0, maxChangePct: 0 }))}
+                style={{ padding:"3px 10px",fontSize:10,background:"transparent",border:`1px solid ${BD}`,borderRadius:5,cursor:"pointer",color:AL }}>
+                MI ($21.30)
+              </button>
+            </div>
+          )}
+          {/* FL Legislative Override Notice */}
+          {methodology === "state_rbrvs" && selectedCode && Math.abs((methodInputs.stateCF || 0) - FL_CONFIG.cf) < 0.01 && (() => {
+            const code = selectedCode.code;
+            const overrides = FL_CONFIG.schedules.practitioner.legislativeOverrides;
+            const overrideKey = `${code}|`;
+            const override = overrides[overrideKey] || overrides[code];
+            if (!override) return null;
+            return (
+              <div style={{ margin:"0 14px 8px",padding:"8px 12px",background:"rgba(196,89,10,0.06)",border:`1px solid rgba(196,89,10,0.2)`,borderRadius:8 }}>
+                <div style={{ fontSize:10,fontWeight:700,color:cO }}>FL Legislative Override</div>
+                <div style={{ fontSize:10,color:A,marginTop:2 }}>
+                  {code}: <span style={{ fontFamily:FM,fontWeight:600 }}>${override.rates.fs?.toFixed(2)}</span>
+                  {override.rates.facility != null && <span style={{ color:AL }}> (Facility: ${override.rates.facility.toFixed(2)})</span>}
+                  <span style={{ fontSize:9,color:AL,marginLeft:6 }}>{override.statute}</span>
+                </div>
+                <div style={{ fontSize:9,color:AL,marginTop:2 }}>This code has a legislatively mandated rate in FL that overrides the RBRVS calculation.</div>
+              </div>
+            );
+          })()}
           {/* GPCI Adjustment Toggle */}
           {stateGpciFactor && (methodology === "rbrvs" || methodology === "flat") && (
             <div style={{ display:"flex",alignItems:"center",gap:8,padding:"6px 14px",background:gpciAdjust?"rgba(46,107,74,0.06)":SF,borderRadius:8,marginBottom:6,cursor:"pointer",border:`1px solid ${gpciAdjust?cB:BD}` }}

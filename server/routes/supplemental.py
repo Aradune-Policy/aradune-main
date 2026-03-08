@@ -83,6 +83,92 @@ def supplemental_fmr_totals(fiscal_year: int = Query(default=2024)):
         }
 
 
+@router.get("/api/supplemental/dsh/hospitals")
+def supplemental_dsh_hospitals(
+    state: str = Query(default=None),
+    min_dsh: float = Query(default=0),
+):
+    """Hospital-level DSH data from HCRIS cost reports."""
+    with get_cursor() as cur:
+        sql = """
+            SELECT provider_ccn, hospital_name, state_code, city, county,
+                   rural_urban, bed_count, dsh_adjustment, dsh_pct,
+                   ime_payment, medicaid_days, total_days, medicaid_day_pct,
+                   medicaid_net_revenue, uncompensated_care_cost,
+                   charity_care_cost, dsh_status, dsh_to_uc_pct
+            FROM fact_dsh_hospital
+            WHERE dsh_adjustment >= ?
+        """
+        params: list = [min_dsh]
+        if state:
+            sql += " AND state_code = ?"
+            params.append(state.upper())
+        sql += " ORDER BY dsh_adjustment DESC LIMIT 500"
+
+        rows = cur.execute(sql, params).fetchall()
+        cols = [
+            "provider_ccn", "hospital_name", "state_code", "city", "county",
+            "rural_urban", "bed_count", "dsh_adjustment", "dsh_pct",
+            "ime_payment", "medicaid_days", "total_days", "medicaid_day_pct",
+            "medicaid_net_revenue", "uncompensated_care_cost",
+            "charity_care_cost", "dsh_status", "dsh_to_uc_pct",
+        ]
+        return {
+            "rows": [dict(zip(cols, r)) for r in rows],
+            "count": len(rows),
+        }
+
+
+@router.get("/api/supplemental/dsh/summary")
+def supplemental_dsh_summary():
+    """State-level DSH summary aggregated from hospital-level HCRIS data."""
+    with get_cursor() as cur:
+        rows = cur.execute("""
+            SELECT
+                state_code,
+                COUNT(*) AS total_hospitals,
+                COUNT(*) FILTER (WHERE dsh_adjustment > 0) AS dsh_recipients,
+                ROUND(SUM(dsh_adjustment) / 1e6, 2) AS total_dsh_m,
+                ROUND(SUM(ime_payment) / 1e6, 2) AS total_ime_m,
+                ROUND(SUM(uncompensated_care_cost) / 1e6, 2) AS total_uc_m,
+                ROUND(AVG(medicaid_day_pct), 1) AS avg_medicaid_day_pct,
+                COUNT(*) FILTER (WHERE medicaid_day_pct > 25) AS high_medicaid_hospitals
+            FROM fact_dsh_hospital
+            GROUP BY state_code
+            ORDER BY total_dsh_m DESC
+        """).fetchall()
+        cols = ["state", "total_hospitals", "dsh_recipients", "total_dsh_m",
+                "total_ime_m", "total_uc_m", "avg_medicaid_day_pct", "high_medicaid_hospitals"]
+        return {
+            "rows": [dict(zip(cols, r)) for r in rows],
+            "count": len(rows),
+        }
+
+
+@router.get("/api/supplemental/sdp")
+def supplemental_sdp(state: str = Query(default=None)):
+    """CMS-approved State Directed Payment programs."""
+    with get_cursor() as cur:
+        sql = """
+            SELECT state_code, program_name, service_category,
+                   payment_type, fiscal_year, authority
+            FROM fact_sdp_preprint
+        """
+        params = []
+        if state:
+            sql += " WHERE state_code = ?"
+            params.append(state.upper())
+        sql += " ORDER BY state_code"
+
+        rows = cur.execute(sql, params).fetchall()
+        cols = ["state", "program_name", "service_category",
+                "payment_type", "fiscal_year", "authority"]
+        return {
+            "rows": [dict(zip(cols, r)) for r in rows],
+            "count": len(rows),
+        }
+
+
 @router.get("/api/supplemental/trend")
 def supplemental_trend(state: str = Query(default=None)):
     """FMR supplemental payment trends across fiscal years."""

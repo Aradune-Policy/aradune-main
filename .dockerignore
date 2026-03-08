@@ -1,0 +1,22 @@
+# Exclude large data files from Docker build context
+data/raw/
+data/lake/
+data/processed/
+data/sources/
+tools/mfs_scraper/aradune.db
+tools/mfs_scraper/aradune_cpra.duckdb
+node_modules/
+.git/
+src/
+public/
+docs/
+pipeline/
+*.parquet
+*.duckdb
+*.xlsx
+*.zip
+*.gz
+__pycache__/
+.vite/
+dist/
+.env*

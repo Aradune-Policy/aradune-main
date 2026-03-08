@@ -114,6 +114,19 @@ export default function CpraGenerator() {
   const [exporting, setExporting] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
 
+  // ── Mode: pre-computed comparison vs BYOD upload ──────────────────
+  const [mode, setMode] = useState<"comparison" | "upload">("comparison");
+
+  // ── Upload mode state ─────────────────────────────────────────────
+  const [uploadSt, setUploadSt] = useState("FL");
+  const [feeFile, setFeeFile] = useState<File | null>(null);
+  const [utilFile, setUtilFile] = useState<File | null>(null);
+  const [uploadLoading, setUploadLoading] = useState(false);
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const [uploadResult, setUploadResult] = useState<any>(null);
+  const [uploadError, setUploadError] = useState<string | null>(null);
+  const [uploadTab, setUploadTab] = useState("all");
+
   // ── Derived: code lookup from dim_447 ─────────────────────────────────
   const codeMap = useMemo(() => {
     const m = new Map<string, Dim447Entry>();
@@ -559,6 +572,64 @@ ${stateConv ? `State methodology: ${stateConv.methodology_detail || stateConv.me
       .map(r => ({ code: r.hcpcs, pct: r.pctMedicare!, flag: r.flag }));
   }, [rows]);
 
+  // ── Upload handler ─────────────────────────────────────────────────
+  const handleUploadGenerate = useCallback(async () => {
+    if (!feeFile || !utilFile) return;
+    setUploadLoading(true);
+    setUploadError(null);
+    setUploadResult(null);
+
+    const form = new FormData();
+    form.append("state", uploadSt);
+    form.append("fee_schedule", feeFile);
+    form.append("utilization", utilFile);
+
+    try {
+      const res = await fetch(`${API_BASE}/api/cpra/upload/generate`, {
+        method: "POST",
+        body: form,
+      });
+      if (!res.ok) {
+        const err = await res.json().catch(() => ({ detail: res.statusText }));
+        throw new Error(err.detail || err.errors?.[0]?.message || JSON.stringify(err));
+      }
+      const data = await res.json();
+      setUploadResult(data);
+    } catch (e: unknown) {
+      setUploadError(e instanceof Error ? e.message : String(e));
+    } finally {
+      setUploadLoading(false);
+    }
+  }, [uploadSt, feeFile, utilFile]);
+
+  const handleUploadReport = useCallback(async () => {
+    if (!feeFile || !utilFile) return;
+    setUploadLoading(true);
+
+    const form = new FormData();
+    form.append("state", uploadSt);
+    form.append("fee_schedule", feeFile);
+    form.append("utilization", utilFile);
+
+    try {
+      const res = await fetch(`${API_BASE}/api/cpra/upload/generate/report`, {
+        method: "POST",
+        body: form,
+      });
+      if (!res.ok) throw new Error("Report generation failed");
+      const blob = await res.blob();
+      const a = document.createElement("a");
+      a.href = URL.createObjectURL(blob);
+      a.download = `cpra_${uploadSt.toLowerCase()}_report.html`;
+      a.click();
+      setTimeout(() => URL.revokeObjectURL(a.href), 1000);
+    } catch (e: unknown) {
+      setUploadError(e instanceof Error ? e.message : String(e));
+    } finally {
+      setUploadLoading(false);
+    }
+  }, [uploadSt, feeFile, utilFile]);
+
   // ── Loading / error state ───────────────────────────────────────────
   if (loading) {
     return (
@@ -583,35 +654,230 @@ ${stateConv ? `State methodology: ${stateConv.methodology_detail || stateConv.me
   return (
     <div style={{ maxWidth: 1080, margin: "0 auto", padding: "0 20px 48px", fontFamily: FB }}>
       {/* Header */}
-      <div style={{ padding: "28px 0 20px", display: "flex", justifyContent: "space-between", alignItems: "flex-start", flexWrap: "wrap", gap: 12 }}>
-        <div>
-          <h2 style={{ margin: 0, fontSize: 20, fontWeight: 700, color: A, letterSpacing: -0.3 }}>
-            Comparative Payment Rate Analysis
-          </h2>
-          <p style={{ margin: "4px 0 0", fontSize: 12, color: AL }}>
-            42 CFR &sect;447.203 | CMS Ensuring Access Final Rule | Deadline: July 1, 2026
-          </p>
+      <div style={{ padding: "28px 0 12px" }}>
+        <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", flexWrap: "wrap", gap: 12 }}>
+          <div>
+            <h2 style={{ margin: 0, fontSize: 20, fontWeight: 700, color: A, letterSpacing: -0.3 }}>
+              Comparative Payment Rate Analysis
+            </h2>
+            <p style={{ margin: "4px 0 0", fontSize: 12, color: AL }}>
+              42 CFR &sect;447.203 | CMS Ensuring Access Final Rule | Deadline: July 1, 2026
+            </p>
+          </div>
         </div>
-        <div style={{ display: "flex", gap: 8, alignItems: "center", flexWrap: "wrap" }}>
-          <select value={st} onChange={e => setSt(e.target.value)} style={{
-            padding: "7px 10px", borderRadius: 6, border: `1px solid ${BD}`, fontSize: 12,
-            fontFamily: FB, color: A, background: WH, minWidth: 180,
-          }}>
-            {STATES.map(s => <option key={s} value={s}>{s} -- {STATE_NAMES[s]}</option>)}
-          </select>
-          <button onClick={handlePdfExport} disabled={!!exporting} style={{
-            padding: "7px 14px", borderRadius: 6, border: `1px solid ${BD}`,
-            background: WH, fontSize: 11, fontWeight: 600, cursor: "pointer", color: A,
-          }}>{exporting === "pdf" ? "..." : "PDF"}</button>
-          <button onClick={handleXlsxExport} disabled={!!exporting} style={{
-            padding: "7px 14px", borderRadius: 6, border: `1px solid ${BD}`,
-            background: WH, fontSize: 11, fontWeight: 600, cursor: "pointer", color: A,
-          }}>{exporting === "xlsx" ? "..." : "Excel"}</button>
-          <button onClick={handleHtmlExport} disabled={!!exporting} style={{
-            padding: "7px 14px", borderRadius: 6, border: `1px solid ${BD}`,
-            background: WH, fontSize: 11, fontWeight: 600, cursor: "pointer", color: A,
-          }}>{exporting === "html" ? "..." : "HTML"}</button>
+        {/* Mode toggle */}
+        <div style={{ display: "flex", gap: 4, marginTop: 16 }}>
+          <Pill label="Cross-State Comparison" active={mode === "comparison"} onClick={() => setMode("comparison")} />
+          <Pill label="Bring Your Own Data" active={mode === "upload"} onClick={() => setMode("upload")} color="#C4590A" />
         </div>
+      </div>
+
+      {/* ═══ UPLOAD MODE ═══ */}
+      {mode === "upload" ? (
+        <>
+          <Card accent="#C4590A">
+            <CH title="Upload Fee Schedule & Utilization Data" sub="Generate a 42 CFR 447.203 compliant CPRA from your own data. Uses 68 CMS CY2025 E/M codes, $32.3465 CF, per-locality Medicare rates." />
+            <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 16, marginTop: 12 }}>
+              <div>
+                <label style={{ display: "block", fontSize: 11, fontWeight: 600, color: A, marginBottom: 4 }}>State</label>
+                <select value={uploadSt} onChange={e => setUploadSt(e.target.value)} style={{
+                  width: "100%", padding: "7px 10px", borderRadius: 6, border: `1px solid ${BD}`,
+                  fontSize: 12, fontFamily: FB, color: A, background: WH,
+                }}>
+                  {STATES.map(s => <option key={s} value={s}>{s} -- {STATE_NAMES[s]}</option>)}
+                </select>
+              </div>
+              <div />
+              <div>
+                <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 4 }}>
+                  <label style={{ fontSize: 11, fontWeight: 600, color: A }}>Fee Schedule CSV</label>
+                  <a href={`${API_BASE}/api/cpra/upload/templates/fee-schedule`} style={{ fontSize: 10, color: cB }}>Download template</a>
+                </div>
+                <input type="file" accept=".csv" onChange={e => setFeeFile(e.target.files?.[0] || null)} style={{
+                  width: "100%", padding: "6px", borderRadius: 6, border: `1px solid ${BD}`,
+                  fontSize: 11, fontFamily: FB, background: SF,
+                }} />
+                <div style={{ fontSize: 10, color: AL, marginTop: 2 }}>Columns: hcpcs_code, medicaid_rate</div>
+              </div>
+              <div>
+                <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 4 }}>
+                  <label style={{ fontSize: 11, fontWeight: 600, color: A }}>Utilization CSV</label>
+                  <a href={`${API_BASE}/api/cpra/upload/templates/utilization`} style={{ fontSize: 10, color: cB }}>Download template</a>
+                </div>
+                <input type="file" accept=".csv" onChange={e => setUtilFile(e.target.files?.[0] || null)} style={{
+                  width: "100%", padding: "6px", borderRadius: 6, border: `1px solid ${BD}`,
+                  fontSize: 11, fontFamily: FB, background: SF,
+                }} />
+                <div style={{ fontSize: 10, color: AL, marginTop: 2 }}>Columns: hcpcs_code, category, total_claims, unique_beneficiaries</div>
+              </div>
+            </div>
+            <div style={{ display: "flex", gap: 8, marginTop: 16 }}>
+              <button
+                onClick={handleUploadGenerate}
+                disabled={!feeFile || !utilFile || uploadLoading}
+                style={{
+                  padding: "8px 20px", borderRadius: 6, border: "none",
+                  background: feeFile && utilFile ? "#C4590A" : BD, color: WH,
+                  fontSize: 12, fontWeight: 600, cursor: feeFile && utilFile ? "pointer" : "default",
+                  opacity: uploadLoading ? 0.6 : 1,
+                }}
+              >
+                {uploadLoading ? "Generating..." : "Generate CPRA"}
+              </button>
+              {uploadResult && (
+                <button
+                  onClick={handleUploadReport}
+                  disabled={uploadLoading}
+                  style={{
+                    padding: "8px 20px", borderRadius: 6, border: `1px solid ${BD}`,
+                    background: WH, color: A, fontSize: 12, fontWeight: 600, cursor: "pointer",
+                  }}
+                >
+                  Download HTML Report
+                </button>
+              )}
+            </div>
+            {uploadError && (
+              <div style={{ marginTop: 12, padding: "8px 12px", background: "#FEE2E2", borderRadius: 6, fontSize: 12, color: NEG }}>{uploadError}</div>
+            )}
+          </Card>
+
+          {/* Upload results */}
+          {uploadResult && (() => {
+            const m = uploadResult.meta;
+            const cats: Array<{ category: string; weighted_pct_medicare: number; median_pct_medicare: number; min_pct_medicare: number; max_pct_medicare: number; n_codes: number; total_claims: number }> = uploadResult.category_summary || [];
+            const statewide: Array<{ hcpcs_code: string; description: string; category: string; medicaid_rate: number; has_medicaid_rate: boolean; medicare_nf_rate_avg: number; pct_of_medicare_avg: number | null; total_claims: number; unique_beneficiaries: number; is_suppressed: boolean }> = uploadResult.statewide || [];
+            const noRate: Array<{ hcpcs_code: string; description: string; medicare_nf_rate_avg: number }> = uploadResult.codes_no_rate || [];
+            const uploadCatIds = ["Primary Care", "OB-GYN", "Outpatient MH/SUD"];
+            const filteredUpload = uploadTab === "all" ? statewide : statewide.filter(r => r.category === uploadTab);
+
+            return (
+              <>
+                {/* Summary card */}
+                <Card accent={cB}>
+                  <CH title={`CPRA Results: ${m.state_name}`} sub={`${m.n_codes} E/M codes | ${m.n_with_rate} with rates | ${m.n_without_rate} missing | CF=$${m.conversion_factor}`} />
+                  <div style={{ display: "flex", gap: 16, flexWrap: "wrap", justifyContent: "space-around", padding: "8px 0" }}>
+                    {cats.map(c => (
+                      <Met key={c.category} label={c.category}
+                        value={c.weighted_pct_medicare != null ? `${c.weighted_pct_medicare}%` : "---"}
+                        color={c.weighted_pct_medicare < 80 ? NEG : POS}
+                        sub={`${c.n_codes} codes, ${c.total_claims.toLocaleString()} claims`}
+                      />
+                    ))}
+                  </div>
+                  {m.warnings?.length > 0 && (
+                    <div style={{ marginTop: 12, padding: "8px 12px", background: "#FFFBEB", borderRadius: 6, fontSize: 11, color: WARN }}>
+                      {m.warnings.map((w: string, i: number) => <div key={i}>{w}</div>)}
+                    </div>
+                  )}
+                </Card>
+
+                {/* Category filter tabs */}
+                <div style={{ display: "flex", gap: 4, marginBottom: 16, flexWrap: "wrap" }}>
+                  <Pill label="All" active={uploadTab === "all"} onClick={() => setUploadTab("all")} />
+                  {uploadCatIds.map(cat => (
+                    <Pill key={cat} label={cat} active={uploadTab === cat} onClick={() => setUploadTab(cat)} />
+                  ))}
+                </div>
+
+                {/* Code-level table */}
+                <Card>
+                  <CH title="Code-Level Comparison" sub={`${filteredUpload.length} code-category pairs`} />
+                  <div style={{ overflowX: "auto" }}>
+                    <table style={{ width: "100%", borderCollapse: "collapse", fontSize: 12 }}>
+                      <thead>
+                        <tr style={{ borderBottom: `2px solid ${BD}` }}>
+                          {["Code", "Description", "Category", "Medicaid", "Medicare (Avg)", "% MCR", "Claims", "Bene"].map(h => (
+                            <th key={h} style={{ padding: "8px 6px", textAlign: h === "Code" || h === "Description" || h === "Category" ? "left" : "right",
+                              fontSize: 10, fontWeight: 600, color: AL, fontFamily: FM, letterSpacing: 0.3 }}>{h}</th>
+                          ))}
+                        </tr>
+                      </thead>
+                      <tbody>
+                        {filteredUpload.map((r, ri) => {
+                          const pct = r.pct_of_medicare_avg;
+                          const flag = !r.has_medicaid_rate ? "na" : pct == null ? "na" : pct < 50 ? "critical" : pct < 80 ? "warn" : "pass";
+                          return (
+                            <tr key={`${r.hcpcs_code}-${r.category}-${ri}`} style={{ background: ri % 2 === 0 ? "transparent" : `${SF}60`, borderBottom: `1px solid ${BD}40` }}>
+                              <td style={{ padding: "6px", fontFamily: FM, fontSize: 11 }}>{r.hcpcs_code}</td>
+                              <td style={{ padding: "6px", maxWidth: 220, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{r.description}</td>
+                              <td style={{ padding: "6px" }}>
+                                <Badge text={r.category} color={r.category === "Primary Care" ? cB : r.category === "OB-GYN" ? "#7B3FA0" : "#2563EB"} />
+                              </td>
+                              <td style={{ padding: "6px", textAlign: "right", fontFamily: FM, fontSize: 11 }}>
+                                {r.has_medicaid_rate ? `$${r.medicaid_rate.toFixed(2)}` : "---"}
+                              </td>
+                              <td style={{ padding: "6px", textAlign: "right", fontFamily: FM, fontSize: 11 }}>${r.medicare_nf_rate_avg.toFixed(2)}</td>
+                              <td style={{ padding: "6px", textAlign: "right", fontFamily: FM, fontSize: 11, fontWeight: 600,
+                                color: flag === "critical" ? NEG : flag === "warn" ? WARN : flag === "pass" ? POS : AL }}>
+                                {pct != null ? `${pct}%` : "---"}
+                              </td>
+                              <td style={{ padding: "6px", textAlign: "right", fontFamily: FM, fontSize: 11, color: AL }}>
+                                {r.is_suppressed ? "*" : r.total_claims > 0 ? r.total_claims.toLocaleString() : "-"}
+                              </td>
+                              <td style={{ padding: "6px", textAlign: "right", fontFamily: FM, fontSize: 11, color: AL }}>
+                                {r.is_suppressed ? "*" : r.unique_beneficiaries > 0 ? r.unique_beneficiaries.toLocaleString() : "-"}
+                              </td>
+                            </tr>
+                          );
+                        })}
+                      </tbody>
+                    </table>
+                  </div>
+                </Card>
+
+                {/* Missing codes */}
+                {noRate.length > 0 && (
+                  <Card>
+                    <CH title={`${noRate.length} E/M Codes Without Medicaid Rate`} sub="These codes do not appear on the uploaded fee schedule" />
+                    <div style={{ overflowX: "auto" }}>
+                      <table style={{ width: "100%", borderCollapse: "collapse", fontSize: 12 }}>
+                        <thead>
+                          <tr style={{ borderBottom: `2px solid ${BD}` }}>
+                            <th style={{ padding: "8px 6px", textAlign: "left", fontSize: 10, fontWeight: 600, color: AL, fontFamily: FM }}>Code</th>
+                            <th style={{ padding: "8px 6px", textAlign: "left", fontSize: 10, fontWeight: 600, color: AL, fontFamily: FM }}>Description</th>
+                            <th style={{ padding: "8px 6px", textAlign: "right", fontSize: 10, fontWeight: 600, color: AL, fontFamily: FM }}>Medicare Rate (Avg)</th>
+                          </tr>
+                        </thead>
+                        <tbody>
+                          {noRate.map((r, i) => (
+                            <tr key={r.hcpcs_code} style={{ background: i % 2 === 0 ? "transparent" : `${SF}60`, borderBottom: `1px solid ${BD}40` }}>
+                              <td style={{ padding: "6px", fontFamily: FM, fontSize: 11 }}>{r.hcpcs_code}</td>
+                              <td style={{ padding: "6px" }}>{r.description}</td>
+                              <td style={{ padding: "6px", textAlign: "right", fontFamily: FM, fontSize: 11 }}>${r.medicare_nf_rate_avg.toFixed(2)}</td>
+                            </tr>
+                          ))}
+                        </tbody>
+                      </table>
+                    </div>
+                  </Card>
+                )}
+              </>
+            );
+          })()}
+        </>
+      ) : (
+      <>
+      {/* ═══ COMPARISON MODE (original UI) ═══ */}
+      <div style={{ display: "flex", justifyContent: "flex-end", gap: 8, alignItems: "center", flexWrap: "wrap", marginBottom: 16 }}>
+        <select value={st} onChange={e => setSt(e.target.value)} style={{
+          padding: "7px 10px", borderRadius: 6, border: `1px solid ${BD}`, fontSize: 12,
+          fontFamily: FB, color: A, background: WH, minWidth: 180,
+        }}>
+          {STATES.map(s => <option key={s} value={s}>{s} -- {STATE_NAMES[s]}</option>)}
+        </select>
+        <button onClick={handlePdfExport} disabled={!!exporting} style={{
+          padding: "7px 14px", borderRadius: 6, border: `1px solid ${BD}`,
+          background: WH, fontSize: 11, fontWeight: 600, cursor: "pointer", color: A,
+        }}>{exporting === "pdf" ? "..." : "PDF"}</button>
+        <button onClick={handleXlsxExport} disabled={!!exporting} style={{
+          padding: "7px 14px", borderRadius: 6, border: `1px solid ${BD}`,
+          background: WH, fontSize: 11, fontWeight: 600, cursor: "pointer", color: A,
+        }}>{exporting === "xlsx" ? "..." : "Excel"}</button>
+        <button onClick={handleHtmlExport} disabled={!!exporting} style={{
+          padding: "7px 14px", borderRadius: 6, border: `1px solid ${BD}`,
+          background: WH, fontSize: 11, fontWeight: 600, cursor: "pointer", color: A,
+        }}>{exporting === "html" ? "..." : "HTML"}</button>
       </div>
 
       {claimsLoading && (
@@ -822,6 +1088,8 @@ ${stateConv ? `State methodology: ${stateConv.methodology_detail || stateConv.me
             Compliance deadline: July 1, 2026
           </div>
         </Card>
+      )}
+      </>
       )}
     </div>
   );

@@ -335,6 +335,34 @@ function RevenueMixChart({ m }: { m: HospitalMetrics }) {
   );
 }
 
+// ── CSV Export ──────────────────────────────────────────────────────────
+function exportCSV(hospital: HospitalData, composite: number, dims: { title: string; result: DimensionResult }[]) {
+  const rows: (string | number)[][] = [
+    ["Hospital", String(hospital.hospital_name)],
+    ["CCN", String(hospital.provider_ccn)],
+    ["State", String(hospital.state_code)],
+    ["Composite Score", composite],
+    ["Risk Level", scoreLabel(composite)],
+    [],
+  ];
+  for (const dim of dims) {
+    rows.push([dim.title, `${dim.result.score}/${dim.result.maxScore}`]);
+    for (const d of dim.result.details) {
+      rows.push(["", d.label, String(d.value ?? "N/A"), `${d.points}/${d.maxPoints}`, d.interpretation]);
+    }
+  }
+  const csv = rows.map(r => r.map(c => {
+    const s = String(c ?? "");
+    return s.includes(",") || s.includes('"') || s.includes("\n") ? `"${s.replace(/"/g, '""')}"` : s;
+  }).join(",")).join("\n");
+  const a = document.createElement("a");
+  const url = URL.createObjectURL(new Blob([csv], { type: "text/csv" }));
+  a.href = url;
+  a.download = `AHEAD_Readiness_${hospital.provider_ccn}.csv`;
+  a.click();
+  setTimeout(() => URL.revokeObjectURL(url), 1000);
+}
+
 // ── PDF Export ───────────────────────────────────────────────────────────
 async function exportPDF(hospital: HospitalData, composite: number, dims: { title: string; result: DimensionResult }[]) {
   const doc = await createAradunePDF(`AHEAD Readiness Score — ${hospital.hospital_name}`);
@@ -581,6 +609,11 @@ export default function AheadReadiness() {
             background: WH, color: C.ink, border: `1px solid ${BD}`,
             borderRadius: 6, cursor: "pointer", fontFamily: FONT.body,
           }}>← New Search</button>
+          <button onClick={() => exportCSV(hospital, comp ?? 0, dims)} style={{
+            padding: "6px 14px", fontSize: 11, fontWeight: 600,
+            background: WH, color: C.ink, border: `1px solid ${BD}`,
+            borderRadius: 6, cursor: "pointer", fontFamily: FONT.body,
+          }}>Export CSV</button>
           <button onClick={() => exportPDF(hospital, comp ?? 0, dims)} style={{
             padding: "6px 14px", fontSize: 11, fontWeight: 600,
             background: C.brand, color: WH, border: "none",

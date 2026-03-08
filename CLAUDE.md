@@ -98,12 +98,14 @@ Access:         Password gate ("mediquiad") via sessionStorage in Platform.tsx
 
 ---
 
-## 4. Live Tools (16 total)
+## 4. Live Tools (18 total)
 
 **Site is behind a password gate** (`PasswordGate` component in `Platform.tsx`). Password: `mediquiad`. Stored in `sessionStorage` — clears on tab close. All tools are lazy-loaded and code-split per route.
 
 | Group | Tool | Route | Status |
 |-------|------|-------|--------|
+| **Explore** | **Data Explorer** | **`/#/ask`** | **live — NL2SQL via Claude Sonnet** |
+| **Explore** | **Data Catalog** | **`/#/catalog`** | **live — browsable table index** |
 | **Explore** | **State Profile** | **`/#/state` or `/#/state/{code}`** | **live — 18 parallel API fetches, 7 sections** |
 | Explore | Spending Explorer | `/#/explorer` | live |
 | Explore | Medicare Comparison | `/#/decay` | live |
@@ -351,10 +353,10 @@ These are the things that would make a user say "this is a real product":
 | # | Gap | Why it matters | Effort |
 |---|-----|----------------|--------|
 | A | ~~**State Profile pages**~~ | ~~Primary entry point for 80% of users.~~ **Done.** `StateProfile.tsx` (~470 lines), 18 parallel API fetches, 7 collapsible sections (overview, enrollment, rates, hospitals, quality, workforce, pharmacy, economic). Hash routing: `/#/state/{code}`. | **Done** |
-| B | **Search / discovery** | 185 fact tables, 216 endpoints, 15 tools — no way to find anything. `UX_FEATURES_SPEC.md` has the design spec. | Medium |
-| C | **Landing page** | Behind password gate, the site is just a tool list. No value proposition, no "why Aradune". `AraduneMockup.jsx` exists. | Small-medium |
-| D | **Data catalog** | Users need to know what data is available. Something like a browsable index of all 185 tables with descriptions, row counts, freshness dates. | Small |
-| E | **Export for all tools** | Only CPRA has PDF/Excel export. Wage Adequacy, Quality Linkage, AHEAD, Forecast — no exports. | Small per tool |
+| B | ~~**Search / discovery**~~ | **Partially done.** Data Explorer (`/#/ask`) provides NL2SQL search. NavSearch exists. Full-text search across all tools still TODO. | **Partial** |
+| C | ~~**Landing page**~~ | **Updated.** Hero copy, stats, "Find a state" → State Profile, "Ask a Question" CTA. | **Done** |
+| D | ~~**Data catalog**~~ | **Done.** `DataCatalog.tsx` at `/#/catalog` — browsable index of all tables with row counts, column schemas, descriptions. | **Done** |
+| E | ~~**Export for all tools**~~ | **Done.** All tools now have CSV export buttons. CPRA also has PDF/Excel. | **Done** |
 | F | **User accounts** | Can't monetize with a shared password gate. Need at minimum email + magic link auth, saved workspaces, usage tracking. | Large |
 
 ### Tier 3 — Data expansion (standing instruction)
@@ -406,8 +408,8 @@ The data layer is the moat. Every session: add data, improve quality, or make ad
 |---|---------|--------|-------------|
 | 1 | ~~**Caseload forecasting**~~ | **Done.** Engine + API (10 endpoints) + full frontend UI with fan charts, model comparison, intervention effects. | Scenario builder (Phase 3) |
 | 2 | ~~**Expenditure modeling**~~ | **Done.** Engine (`expenditure_model.py`) + 4 API endpoints + frontend UI (summary, chart, per-category table, MC/FFS breakdown bar). Tab toggle with caseload view. | — |
-| 3 | **Scenario builder** | Not started | "What if unemployment rises 2pp?" Extend forecast engine with hypothetical intervention variables + UI sliders. |
-| 4 | **NL2SQL over the data lake** | Not started | The AI-native promise. User asks a question in English → DuckDB SQL over 185 fact tables → answer. Vanna (open-source, DuckDB native) is the likely framework. This is the single biggest feature gap vs. the vision. |
+| 3 | ~~**Scenario builder**~~ | **Done.** Third tab in CaseloadForecaster. 4 sliders (unemployment, eligibility, rate change, MC shift) with preset scenarios. Client-side adjustment of forecast with baseline vs scenario chart. | — |
+| 4 | ~~**NL2SQL over the data lake**~~ | **Done.** `DataExplorer.tsx` at `/#/ask`. Claude Sonnet generates DuckDB SQL from natural language, validates (SELECT-only, LIMIT, forbidden keywords), executes with timeout. 10 example queries. Backend: `server/routes/nl2sql.py`. | — |
 | 5 | **RAG over policy corpus** | Not started | pgvector + Voyage-3-large embeddings over SPAs, waivers, CIBs. Requires ingesting the policy documents first (Tier 3 #4). |
 | 6 | **Forecast accuracy dashboard** | Not started | Principle #15: "Log predictions. Compare to actuals. Publish accuracy." Unique credibility signal — no Medicaid analytics firm publishes their forecast accuracy. |
 | 7 | **Cross-dataset insights** | Not started | The moat's real value: "States with lowest rates AND highest uninsured AND longest HCBS waitlists." Requires cross-table joins that the current tool-per-table architecture doesn't support. State Profile pages (Tier 2b-A) are the natural home for this. |

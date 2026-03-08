@@ -41,6 +41,8 @@ const CpraGenerator = lazy(() => import("./tools/CpraGenerator"));
 const AheadReadiness = lazy(() => import("./tools/AheadReadiness"));
 const CaseloadForecaster = lazy(() => import("./tools/CaseloadForecaster"));
 const StateProfile = lazy(() => import("./tools/StateProfile"));
+const DataExplorer = lazy(() => import("./tools/DataExplorer"));
+const DataCatalog = lazy(() => import("./tools/DataCatalog"));
 
 // ── Hash Router ──────────────────────────────────────────────────────────
 function useRoute() {
@@ -149,6 +151,18 @@ const TOOLS: ToolDef[] = [
     tagline: "Upload enrollment data and forecast caseload trends",
     desc: "Upload your state's monthly enrollment by category. Aradune runs SARIMAX + ETS model competition with intervention detection, economic enrichment, and 80/95% confidence intervals.",
     status: "live", icon: "◐", color: C.teal,
+  },
+  {
+    id: "ask", group: "explore", name: "Data Explorer",
+    tagline: "Ask questions about Medicaid data in plain English",
+    desc: "Type a question. Aradune translates it to SQL, runs it against 185 tables and 101M+ rows, and returns the answer with the query.",
+    status: "live", icon: "⌗", color: C.brand,
+  },
+  {
+    id: "catalog", group: "explore", name: "Data Catalog",
+    tagline: "Browse all tables in the Aradune data lake",
+    desc: "185+ fact tables, 9 dimensions, and 5 reference tables — with row counts, column schemas, and descriptions. See what data is available.",
+    status: "live", icon: "☰", color: C.brand,
   },
   {
     id: "analyst", group: "build", name: "Policy Analyst",
@@ -310,28 +324,28 @@ function Landing() {
       {/* 1. Hero */}
       <div style={{ padding: "56px 0 44px", maxWidth: 640 }}>
         <h1 style={{ fontSize: isMobile ? 22 : 30, fontWeight: 700, color: C.ink, lineHeight: 1.25, letterSpacing: -0.5, margin: 0 }}>
-          Medicaid rate intelligence for every state. Open and free.
+          Every Medicaid dataset, one platform.
         </h1>
         <p style={{ fontSize: 14, color: C.inkLight, lineHeight: 1.7, marginTop: 14, maxWidth: 540 }}>
-          Rate transparency, adequacy measurement, and fiscal modeling across
-          all 54 jurisdictions. Built for state agencies, health plans, hospitals,
-          consultants, and researchers.
+          101 million rows of Medicaid data — rates, enrollment, hospitals, quality,
+          workforce, pharmacy, and economics — normalized, cross-referenced, and
+          queryable in plain English. Open and free.
         </p>
         <div style={{ display: "flex", gap: 10, marginTop: 22, flexWrap: "wrap" }}>
-          <a href="#/explorer" style={{
+          <a href="#/ask" style={{
             display: "inline-flex", alignItems: "center", padding: "10px 20px",
             background: C.brand, color: C.white, borderRadius: 8,
             fontSize: 13, fontWeight: 600, textDecoration: "none",
           }}>
-            Explore Rate Data
+            Ask a Question
           </a>
-          <a href="#/about" style={{
+          <a href="#/explorer" style={{
             display: "inline-flex", alignItems: "center", padding: "10px 20px",
             background: "transparent", color: C.inkLight, borderRadius: 8,
             fontSize: 13, fontWeight: 500, textDecoration: "none",
             border: `1px solid ${C.border}`,
           }}>
-            About the project
+            Explore Data
           </a>
         </div>
       </div>
@@ -341,7 +355,7 @@ function Landing() {
         display: "grid", gridTemplateColumns: `repeat(auto-fit,minmax(${isMobile ? "70px" : "130px"},1fr))`,
         gap: isMobile ? 10 : 16, padding: "20px 0 36px", borderTop: `1px solid ${C.border}`,
       }}>
-        {([["16", "analytical tools"], ["54", "states & territories"], ["100M+", "data lake rows"], ["185", "fact tables"]] as const).map(([val, label]) => (
+        {([["18", "analytical tools"], ["54", "states & territories"], ["100M+", "data lake rows"], ["185", "fact tables"]] as const).map(([val, label]) => (
           <div key={label}>
             <div style={{ fontSize: 20, fontWeight: 700, fontFamily: FONT.mono, color: C.brand, letterSpacing: -0.5 }}>{val}</div>
             <div style={{ fontSize: 11, color: C.inkLight, marginTop: 2 }}>{label}</div>
@@ -385,7 +399,7 @@ function Landing() {
               {STATES_LIST.map(s => <option key={s} value={s}>{s} — {STATE_NAMES[s]}</option>)}
             </select>
             <a
-              href={st ? `#/explorer` : undefined}
+              href={st ? `#/state/${st}` : undefined}
               onClick={e => { if (!st) e.preventDefault(); }}
               style={{
                 padding: "8px 16px", borderRadius: 6, border: "none",
@@ -394,9 +408,9 @@ function Landing() {
                 textDecoration: "none", display: "inline-block",
               }}
             >
-              View spending data →
+              View state profile →
             </a>
-            <span style={{ fontSize: 10, color: C.inkLight, marginLeft: 4 }}>Spending, rates, adequacy, methodology</span>
+            <span style={{ fontSize: 10, color: C.inkLight, marginLeft: 4 }}>Enrollment, rates, hospitals, quality, workforce</span>
           </div>
         )}
 
@@ -568,14 +582,14 @@ function Landing() {
         <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit,minmax(240px,1fr))", gap: 14 }}>
           {([
             { num: "1", label: "Explore", q: "What are we spending?",
-              desc: "Browse 227M+ claims across 54 jurisdictions. Compare rates by code, category, or state. Access fee schedules and rate-setting methodologies.",
-              tools: "Spending Explorer · Medicare Comparison · Rate Lookup · CPRA Generator", color: C.brand },
+              desc: "Ask questions in plain English or browse 101M+ rows across 54 jurisdictions. State profiles, cross-state comparisons, fee schedules, and CPRA reports.",
+              tools: "Data Explorer · State Profile · Spending Explorer · CPRA Generator", color: C.brand },
             { num: "2", label: "Analyze", q: "Are rates adequate?",
               desc: "Three lenses: compare against BLS market wages, map quality outcomes to payment levels, and track how far rates have eroded relative to Medicare.",
               tools: "Wage Adequacy · Quality Linkage · Rate Reduction · HCBS Tracker", color: C.accent },
             { num: "3", label: "Build", q: "What should we pay?",
-              desc: "Calculate defensible rates using real RVUs and conversion factors. Model hospital global budgets. Draft methodology language. Get AI-powered policy analysis.",
-              tools: "Rate Builder · AHEAD Calculator · AHEAD Readiness · Policy Analyst", color: C.teal },
+              desc: "Calculate defensible rates, forecast caseload and expenditure, model hospital global budgets, and get AI-powered policy analysis.",
+              tools: "Rate Builder · Caseload Forecaster · AHEAD Readiness · Policy Analyst", color: C.teal },
           ] as const).map(item => (
             <div key={item.num} style={{
               background: C.white, borderRadius: 12, boxShadow: SHADOW,
@@ -1053,6 +1067,8 @@ export default function Platform() {
       "/hcbs8020": <HcbsTracker />,
       "/cpra": <CpraGenerator />,
       "/forecast": <CaseloadForecaster />,
+      "/ask": <DataExplorer />,
+      "/catalog": <DataCatalog />,
       "/methods": <FeeScheduleDir />,
     };
     const toolRoute = toolMap[route] ?? (route.startsWith("/ahead?") ? toolMap["/ahead"] : route.startsWith("/state/") ? toolMap["/state"] : null);

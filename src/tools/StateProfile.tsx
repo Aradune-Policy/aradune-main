@@ -64,6 +64,20 @@ const fmtDollars = (n: number) => n >= 1e9 ? "$" + (n / 1e9).toFixed(2) + "B" : 
 const fmtPct = (n: number) => (n * 100).toFixed(1) + "%";
 const PIE_COLORS = [cB, ACC, "#3B82F6", "#8B5CF6", "#EC4899", "#F59E0B", "#6366F1", "#14B8A6"];
 
+// ── CSV Export ──────────────────────────────────────────────────────────
+function downloadCSV(headers: string[], rows: (string | number)[][], filename: string) {
+  const csv = [headers.join(","), ...rows.map(r => r.map(c => {
+    const s = String(c ?? "");
+    return s.includes(",") || s.includes('"') ? `"${s.replace(/"/g, '""')}"` : s;
+  }).join(","))].join("\n");
+  const a = document.createElement("a");
+  const url = URL.createObjectURL(new Blob([csv], { type: "text/csv" }));
+  a.href = url;
+  a.download = filename;
+  a.click();
+  setTimeout(() => URL.revokeObjectURL(url), 1000);
+}
+
 // ── Safe fetch helper ────────────────────────────────────────────────────
 async function safeFetch(url: string) {
   try {
@@ -197,12 +211,37 @@ export default function StateProfile() {
             Everything Aradune knows about a state — enrollment, rates, quality, workforce, and economy.
           </p>
         </div>
-        <select value={state} onChange={e => setState(e.target.value)} style={{
-          padding: "8px 14px", borderRadius: 8, border: `1px solid ${BD}`,
-          fontSize: 13, fontFamily: FB, color: A, background: WH, fontWeight: 600, minWidth: 220,
-        }}>
-          {STATES.map(s => <option key={s} value={s}>{s} — {STATE_NAMES[s]}</option>)}
-        </select>
+        <div style={{ display: "flex", gap: 8, alignItems: "center" }}>
+          <select value={state} onChange={e => setState(e.target.value)} style={{
+            padding: "8px 14px", borderRadius: 8, border: `1px solid ${BD}`,
+            fontSize: 13, fontFamily: FB, color: A, background: WH, fontWeight: 600, minWidth: 220,
+          }}>
+            {STATES.map(s => <option key={s} value={s}>{s} — {STATE_NAMES[s]}</option>)}
+          </select>
+          {d && <button onClick={() => {
+            const rows: (string | number)[][] = [];
+            // Rate comparison data
+            if (d.cpraRates.length > 0) {
+              for (const r of d.cpraRates) {
+                rows.push([r.cpt_hcpcs_code || r.code || "", r.description || r.desc || "", r.medicaid_rate?.toFixed(2) || "", r.medicare_nonfac_rate?.toFixed(2) || "", r.pct_of_medicare ? (r.pct_of_medicare * 100).toFixed(1) : ""]);
+              }
+            }
+            if (rows.length > 0) {
+              downloadCSV(["HCPCS Code", "Description", "Medicaid Rate", "Medicare Rate", "% of Medicare"], rows, `state_profile_rates_${state}.csv`);
+            } else {
+              // Export hospitals if no rate data
+              const hospRows = (d.hospitals || []).map((h: any) => [
+                h.hospital_name || h.provider_name || "", h.city || "", h.bed_count || h.beds || "",
+                h.medicaid_days || "", h.medicaid_day_pct ? (h.medicaid_day_pct * 100).toFixed(1) : "",
+                h.cost_to_charge_ratio?.toFixed(3) || "",
+              ]);
+              if (hospRows.length) downloadCSV(["Hospital", "City", "Beds", "Medicaid Days", "Medicaid %", "CCR"], hospRows, `state_profile_hospitals_${state}.csv`);
+            }
+          }} style={{
+            padding: "8px 14px", borderRadius: 8, border: `1px solid ${BD}`,
+            background: WH, color: AL, fontSize: 12, cursor: "pointer", fontFamily: FM,
+          }}>Export CSV</button>}
+        </div>
       </div>
 
       {loading && (

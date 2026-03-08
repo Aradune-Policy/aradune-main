@@ -49,6 +49,20 @@ const Pill = ({ label, active, onClick, color }: { label: string; active: boolea
   }}>{label}</button>
 );
 
+// ── CSV Export ──────────────────────────────────────────────────────────
+function downloadCSV(headers: string[], rows: (string | number)[][], filename: string) {
+  const csv = [headers.join(","), ...rows.map(r => r.map(c => {
+    const s = String(c ?? "");
+    return s.includes(",") || s.includes('"') ? `"${s.replace(/"/g, '""')}"` : s;
+  }).join(","))].join("\n");
+  const a = document.createElement("a");
+  const url = URL.createObjectURL(new Blob([csv], { type: "text/csv" }));
+  a.href = url;
+  a.download = filename;
+  a.click();
+  setTimeout(() => URL.revokeObjectURL(url), 1000);
+}
+
 // ── Types ────────────────────────────────────────────────────────────────
 interface TimePoint { month: string; enrollment: number }
 interface ForecastPoint { month: string; point: number; lower_80: number; upper_80: number; lower_95: number; upper_95: number }
@@ -147,7 +161,13 @@ export default function CaseloadForecaster() {
   // View state
   const [selectedCategory, setSelectedCategory] = useState("aggregate");
   const [showCI, setShowCI] = useState<"95" | "80" | "none">("80");
-  const [activeTab, setActiveTab] = useState<"caseload" | "expenditure">("caseload");
+  const [activeTab, setActiveTab] = useState<"caseload" | "expenditure" | "scenario">("caseload");
+
+  // Scenario sliders
+  const [scenUnemployment, setScenUnemployment] = useState(0);      // pp change
+  const [scenEligibility, setScenEligibility] = useState(0);        // % enrollment change
+  const [scenRateChange, setScenRateChange] = useState(0);          // % rate adjustment
+  const [scenMcShift, setScenMcShift] = useState(0);                // pp FFS→MC shift
 
   // ── Generate handler ──────────────────────────────────────────────────
   const handleGenerate = useCallback(async () => {
@@ -458,7 +478,24 @@ export default function CaseloadForecaster() {
           <>
             {/* Summary metrics */}
             <Card accent={cB}>
-              <CH title={`Forecast: ${m.state_name}`} sub={`Generated ${m.forecast_date} | ${m.total_history_months} months history | ${m.horizon_months} months forecast`} />
+              <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start" }}>
+                <CH title={`Forecast: ${m.state_name}`} sub={`Generated ${m.forecast_date} | ${m.total_history_months} months history | ${m.horizon_months} months forecast`} />
+                <button onClick={() => {
+                  const allRows: (string | number)[][] = [];
+                  for (const cat of cats) {
+                    for (const a of cat.actuals) allRows.push([cat.category, a.month, "actual", a.enrollment, "", "", "", ""]);
+                    for (const f of cat.forecasts) allRows.push([cat.category, f.month, "forecast", f.point, f.lower_80, f.upper_80, f.lower_95, f.upper_95]);
+                  }
+                  downloadCSV(
+                    ["Category", "Month", "Type", "Enrollment", "Lower 80%", "Upper 80%", "Lower 95%", "Upper 95%"],
+                    allRows,
+                    `caseload_forecast_${m.state_code}.csv`,
+                  );
+                }} style={{
+                  padding: "5px 12px", borderRadius: 6, border: `1px solid ${BD}`,
+                  background: WH, color: AL, fontSize: 11, cursor: "pointer", fontFamily: FM, whiteSpace: "nowrap",
+                }}>Export CSV</button>
+              </div>
               <div style={{ display: "flex", gap: 24, flexWrap: "wrap", justifyContent: "space-around", padding: "8px 0" }}>
                 <Met label="Categories" value={m.n_categories} mono />
                 <Met label="History" value={`${m.total_history_months} mo`} mono />
@@ -472,13 +509,12 @@ export default function CaseloadForecaster() {
               )}
             </Card>
 
-            {/* Tab bar — visible only when expenditure results exist */}
-            {expResult && (
-              <div style={{ display: "flex", gap: 4, marginBottom: 16 }}>
-                <Pill label="Caseload Forecast" active={activeTab === "caseload"} onClick={() => setActiveTab("caseload")} />
-                <Pill label="Expenditure Projection" active={activeTab === "expenditure"} onClick={() => setActiveTab("expenditure")} color="#C4590A" />
-              </div>
-            )}
+            {/* Tab bar — visible when we have results */}
+            <div style={{ display: "flex", gap: 4, marginBottom: 16 }}>
+              <Pill label="Caseload Forecast" active={activeTab === "caseload"} onClick={() => setActiveTab("caseload")} />
+              {expResult && <Pill label="Expenditure Projection" active={activeTab === "expenditure"} onClick={() => setActiveTab("expenditure")} color="#C4590A" />}
+              <Pill label="Scenario Builder" active={activeTab === "scenario"} onClick={() => setActiveTab("scenario")} color="#5B6E8A" />
+            </div>
 
             {/* ─── Caseload forecast view ────────────────────────── */}
             {(activeTab === "caseload" || !expResult) && (<>
@@ -846,6 +882,208 @@ export default function CaseloadForecaster() {
                 </Card>
               </>);
             })()}
+          </>
+        );
+      })()}
+
+      {/* ─── Scenario Builder view ─────────────────────────────── */}
+      {activeTab === "scenario" && (() => {
+        // Apply scenario adjustments to the aggregate forecast
+        const unemploymentMultiplier = 1 + (scenUnemployment * 0.02); // ~2% enrollment per 1pp unemployment
+        const eligibilityMultiplier = 1 + (scenEligibility / 100);
+        const enrollmentMultiplier = unemploymentMultiplier * eligibilityMultiplier;
+        const rateMultiplier = 1 + (scenRateChange / 100);
+
+        const agg = result!.aggregate;
+        const baselineTotal = agg.forecasts.reduce((s, f) => s + f.point, 0);
+        const scenarioTotal = baselineTotal * enrollmentMultiplier;
+        const deltaEnrollment = scenarioTotal - baselineTotal;
+
+        // Build chart data with baseline and scenario lines
+        const scenChartData = [
+          ...agg.actuals.map(a => ({ month: a.month, actual: a.enrollment })),
+          ...agg.forecasts.map(f => ({
+            month: f.month,
+            baseline: f.point,
+            scenario: Math.round(f.point * enrollmentMultiplier),
+            ci80_base: f.lower_80 * enrollmentMultiplier,
+            ci80_band: (f.upper_80 - f.lower_80) * enrollmentMultiplier,
+          })),
+        ];
+
+        // Expenditure impact
+        const hasExp = !!expResult;
+        const baseExp = hasExp ? expResult.meta.total_projected : 0;
+        const scenExp = baseExp * enrollmentMultiplier * rateMultiplier;
+
+        const SB = "#5B6E8A";
+        const SC = "#8B5CF6";
+
+        return (
+          <>
+            <Card accent={SB}>
+              <CH title="Scenario Builder" sub="Adjust parameters and see projected impact on caseload and expenditure" />
+
+              {/* Sliders */}
+              <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(240px, 1fr))", gap: 16, marginTop: 8 }}>
+                {/* Unemployment */}
+                <div>
+                  <div style={{ display: "flex", justifyContent: "space-between", marginBottom: 4 }}>
+                    <span style={{ fontSize: 11, color: A, fontWeight: 600 }}>Unemployment change</span>
+                    <span style={{ fontSize: 12, fontWeight: 700, color: scenUnemployment !== 0 ? SC : AL, fontFamily: FM }}>
+                      {scenUnemployment > 0 ? "+" : ""}{scenUnemployment} pp
+                    </span>
+                  </div>
+                  <input
+                    type="range" min={-3} max={5} step={0.5} value={scenUnemployment}
+                    onChange={e => setScenUnemployment(Number(e.target.value))}
+                    style={{ width: "100%", accentColor: SB }}
+                  />
+                  <div style={{ fontSize: 10, color: AL }}>Each +1pp ~ +2% enrollment (Medicaid elasticity)</div>
+                </div>
+
+                {/* Eligibility expansion */}
+                <div>
+                  <div style={{ display: "flex", justifyContent: "space-between", marginBottom: 4 }}>
+                    <span style={{ fontSize: 11, color: A, fontWeight: 600 }}>Eligibility expansion</span>
+                    <span style={{ fontSize: 12, fontWeight: 700, color: scenEligibility !== 0 ? SC : AL, fontFamily: FM }}>
+                      {scenEligibility > 0 ? "+" : ""}{scenEligibility}%
+                    </span>
+                  </div>
+                  <input
+                    type="range" min={-10} max={20} step={1} value={scenEligibility}
+                    onChange={e => setScenEligibility(Number(e.target.value))}
+                    style={{ width: "100%", accentColor: SB }}
+                  />
+                  <div style={{ fontSize: 10, color: AL }}>% change in eligible population (expansion, contraction)</div>
+                </div>
+
+                {/* Rate change */}
+                <div>
+                  <div style={{ display: "flex", justifyContent: "space-between", marginBottom: 4 }}>
+                    <span style={{ fontSize: 11, color: A, fontWeight: 600 }}>Rate adjustment</span>
+                    <span style={{ fontSize: 12, fontWeight: 700, color: scenRateChange !== 0 ? SC : AL, fontFamily: FM }}>
+                      {scenRateChange > 0 ? "+" : ""}{scenRateChange}%
+                    </span>
+                  </div>
+                  <input
+                    type="range" min={-20} max={30} step={1} value={scenRateChange}
+                    onChange={e => setScenRateChange(Number(e.target.value))}
+                    style={{ width: "100%", accentColor: SB }}
+                  />
+                  <div style={{ fontSize: 10, color: AL }}>Across-the-board rate change (affects expenditure only)</div>
+                </div>
+
+                {/* MC shift */}
+                <div>
+                  <div style={{ display: "flex", justifyContent: "space-between", marginBottom: 4 }}>
+                    <span style={{ fontSize: 11, color: A, fontWeight: 600 }}>FFS → MC shift</span>
+                    <span style={{ fontSize: 12, fontWeight: 700, color: scenMcShift !== 0 ? SC : AL, fontFamily: FM }}>
+                      {scenMcShift > 0 ? "+" : ""}{scenMcShift} pp
+                    </span>
+                  </div>
+                  <input
+                    type="range" min={-10} max={20} step={1} value={scenMcShift}
+                    onChange={e => setScenMcShift(Number(e.target.value))}
+                    style={{ width: "100%", accentColor: SB }}
+                  />
+                  <div style={{ fontSize: 10, color: AL }}>Shift enrollment from FFS to managed care</div>
+                </div>
+              </div>
+
+              {/* Preset scenarios */}
+              <div style={{ marginTop: 16, display: "flex", gap: 6, flexWrap: "wrap" }}>
+                <span style={{ fontSize: 10, fontWeight: 600, color: AL, alignSelf: "center" }}>PRESETS:</span>
+                {[
+                  { label: "Recession (+2pp UE)", fn: () => { setScenUnemployment(2); setScenEligibility(0); setScenRateChange(0); setScenMcShift(0); }},
+                  { label: "Expansion (+10% elig)", fn: () => { setScenUnemployment(0); setScenEligibility(10); setScenRateChange(0); setScenMcShift(0); }},
+                  { label: "Rate increase (+15%)", fn: () => { setScenUnemployment(0); setScenEligibility(0); setScenRateChange(15); setScenMcShift(0); }},
+                  { label: "MC transition (+10pp)", fn: () => { setScenUnemployment(0); setScenEligibility(0); setScenRateChange(0); setScenMcShift(10); }},
+                  { label: "Reset", fn: () => { setScenUnemployment(0); setScenEligibility(0); setScenRateChange(0); setScenMcShift(0); }},
+                ].map(p => (
+                  <button key={p.label} onClick={p.fn} style={{
+                    padding: "4px 10px", borderRadius: 12, border: `1px solid ${BD}`,
+                    background: WH, color: p.label === "Reset" ? NEG : A,
+                    fontSize: 10, fontWeight: 500, cursor: "pointer", fontFamily: FB,
+                  }}>{p.label}</button>
+                ))}
+              </div>
+            </Card>
+
+            {/* Impact summary */}
+            <Card accent={SC}>
+              <CH title="Scenario Impact" sub="Compared to baseline forecast" />
+              <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(140px, 1fr))", gap: 20, padding: "8px 0" }}>
+                <Met label="Baseline Enrollment" value={fmtNum(baselineTotal / agg.forecasts.length)} mono />
+                <Met label="Scenario Enrollment" value={fmtNum(scenarioTotal / agg.forecasts.length)} color={enrollmentMultiplier > 1 ? WARN : POS} mono />
+                <Met label="Enrollment Delta" value={(deltaEnrollment >= 0 ? "+" : "") + fmtNum(deltaEnrollment / agg.forecasts.length) + "/mo"} color={deltaEnrollment > 0 ? NEG : POS} mono />
+                {hasExp && <>
+                  <Met label="Baseline Expenditure" value={fmtDollars(baseExp)} mono />
+                  <Met label="Scenario Expenditure" value={fmtDollars(scenExp)} color={scenExp > baseExp ? WARN : POS} mono />
+                  <Met label="Expenditure Delta" value={(scenExp >= baseExp ? "+" : "") + fmtDollars(scenExp - baseExp)} color={scenExp > baseExp ? NEG : POS} mono />
+                </>}
+              </div>
+            </Card>
+
+            {/* Scenario chart */}
+            <Card>
+              <CH title="Baseline vs Scenario" sub="Purple = scenario projection, green = baseline" />
+              <div style={{ height: 340, marginTop: 8 }}>
+                <ResponsiveContainer width="100%" height="100%">
+                  <ComposedChart data={scenChartData} margin={{ top: 5, right: 10, left: 10, bottom: 5 }}>
+                    <CartesianGrid strokeDasharray="3 3" stroke={BD} />
+                    <XAxis dataKey="month" tick={{ fontSize: 10, fill: AL }} interval="preserveStartEnd" />
+                    <YAxis tickFormatter={(v: number) => fmtNum(v)} tick={{ fontSize: 10, fill: AL }} width={60} />
+                    <Tooltip content={<ForecastTooltip />} />
+                    {/* CI band for scenario */}
+                    <Area type="monotone" dataKey="ci80_base" stackId="sci" fill="transparent" stroke="none" />
+                    <Area type="monotone" dataKey="ci80_band" stackId="sci" fill={`${SC}15`} stroke="none" />
+                    {/* Lines */}
+                    <Line type="monotone" dataKey="actual" stroke={cB} strokeWidth={2} dot={false} name="Actual" />
+                    <Line type="monotone" dataKey="baseline" stroke={cB} strokeWidth={1.5} strokeDasharray="6 3" dot={false} name="Baseline" />
+                    <Line type="monotone" dataKey="scenario" stroke={SC} strokeWidth={2.5} dot={false} name="Scenario" />
+                    <Legend wrapperStyle={{ fontSize: 10 }} />
+                  </ComposedChart>
+                </ResponsiveContainer>
+              </div>
+            </Card>
+
+            {/* Per-category impact table */}
+            <Card>
+              <CH title="Category Breakdown" sub="Scenario adjustment applied uniformly across categories" />
+              <div style={{ overflowX: "auto" }}>
+                <table style={{ width: "100%", borderCollapse: "collapse", fontSize: 11, fontFamily: FM }}>
+                  <thead>
+                    <tr style={{ borderBottom: `2px solid ${BD}` }}>
+                      {["Category", "Model", "Baseline Avg/Mo", "Scenario Avg/Mo", "Delta/Mo", "Delta %"].map(h => (
+                        <th key={h} style={{ padding: "8px 10px", textAlign: h === "Category" || h === "Model" ? "left" : "right", color: AL, fontWeight: 600, fontSize: 10 }}>{h}</th>
+                      ))}
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {cats.map((c, i) => {
+                      const baseAvg = c.forecasts.reduce((s, f) => s + f.point, 0) / c.forecasts.length;
+                      const scenAvg = baseAvg * enrollmentMultiplier;
+                      const delta = scenAvg - baseAvg;
+                      return (
+                        <tr key={c.category} style={{ background: i % 2 === 0 ? WH : SF, borderBottom: `1px solid ${BD}` }}>
+                          <td style={{ padding: "8px 10px", fontWeight: 600, color: A }}>{c.category}</td>
+                          <td style={{ padding: "8px 10px", color: AL }}>{modelLabel(c.model_used)}</td>
+                          <td style={{ padding: "8px 10px", textAlign: "right" }}>{fmtNum(baseAvg)}</td>
+                          <td style={{ padding: "8px 10px", textAlign: "right", color: SC, fontWeight: 600 }}>{fmtNum(scenAvg)}</td>
+                          <td style={{ padding: "8px 10px", textAlign: "right", color: delta > 0 ? NEG : POS }}>
+                            {delta >= 0 ? "+" : ""}{fmtNum(delta)}
+                          </td>
+                          <td style={{ padding: "8px 10px", textAlign: "right", color: delta > 0 ? NEG : POS }}>
+                            {((enrollmentMultiplier - 1) * 100).toFixed(1)}%
+                          </td>
+                        </tr>
+                      );
+                    })}
+                  </tbody>
+                </table>
+              </div>
+            </Card>
           </>
         );
       })()}

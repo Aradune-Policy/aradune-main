@@ -1,4 +1,4 @@
-import { useState, useCallback } from "react";
+import { useState, useCallback, useEffect, useRef } from "react";
 import {
   BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer,
   ScatterChart, Scatter, Cell, ReferenceLine,
@@ -12,10 +12,11 @@ import {
   type HospitalMetrics, type PeerBenchmarks, type DimensionResult, type SelfReportAnswers,
 } from "../utils/aheadScoring";
 import { createAradunePDF, addSection, addFooter, loadJsPDF } from "../utils/pdfReport";
+import { API_BASE } from "../lib/api";
 
 // ── Constants ───────────────────────────────────────────────────────────
 const BD = C.border, WH = C.white, SH = SHADOW, AL = C.inkLight;
-const API = import.meta.env.VITE_API_URL || "";
+const API = API_BASE;
 
 // ── Formatting helpers ──────────────────────────────────────────────────
 const fmtD = (n: number | null | undefined): string => {
@@ -539,24 +540,134 @@ export default function AheadReadiness() {
     { title: "Volume Stability", result: d4, color: C.teal },
   ] : [];
 
+  // ── Hospital name search ──────────────────────────────────────────
+  const [searchQ, setSearchQ] = useState("");
+  const [searchResults, setSearchResults] = useState<{ ccn: string; name: string; city: string; state: string; beds: number | null }[]>([]);
+  const [searching, setSearching] = useState(false);
+  const [showResults, setShowResults] = useState(false);
+  const searchTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const searchRef = useRef<HTMLDivElement>(null);
+
+  // Debounced search
+  useEffect(() => {
+    if (searchQ.length < 2) { setSearchResults([]); return; }
+    if (searchTimer.current) clearTimeout(searchTimer.current);
+    searchTimer.current = setTimeout(async () => {
+      setSearching(true);
+      try {
+        const res = await fetch(`${API}/api/hospitals/search?q=${encodeURIComponent(searchQ)}&limit=15`);
+        if (res.ok) { setSearchResults(await res.json()); setShowResults(true); }
+      } catch { /* silent */ }
+      setSearching(false);
+    }, 250);
+    return () => { if (searchTimer.current) clearTimeout(searchTimer.current); };
+  }, [searchQ]);
+
+  // Close dropdown on outside click
+  useEffect(() => {
+    const handler = (e: MouseEvent) => {
+      if (searchRef.current && !searchRef.current.contains(e.target as Node)) setShowResults(false);
+    };
+    document.addEventListener("mousedown", handler);
+    return () => document.removeEventListener("mousedown", handler);
+  }, []);
+
   // ── Entry screen ──────────────────────────────────────────────────
   if (!hospital) {
     return (
-      <div style={{ maxWidth: 520, margin: "0 auto", padding: "80px 20px", fontFamily: FONT.body }}>
+      <div style={{ maxWidth: 560, margin: "0 auto", padding: "80px 20px", fontFamily: FONT.body }}>
         <div style={{ textAlign: "center", marginBottom: 32 }}>
           <div style={{ fontSize: 22, fontWeight: 800, color: C.ink, letterSpacing: -0.5, marginBottom: 8 }}>AHEAD Readiness Score</div>
           <div style={{ fontSize: 13, color: AL, lineHeight: 1.6 }}>
-            Enter your hospital's CCN to generate your AHEAD Readiness Score from public CMS data.
+            Search for your hospital by name, city, or CCN. Aradune scores readiness from public CMS data.
           </div>
         </div>
 
+        {/* Hospital name search */}
+        <div ref={searchRef} style={{ position: "relative", marginBottom: 16 }}>
+          <input
+            type="text"
+            value={searchQ}
+            onChange={e => { setSearchQ(e.target.value); setShowResults(true); }}
+            onFocus={() => { if (searchResults.length) setShowResults(true); }}
+            placeholder="Search hospital name, city, or CCN..."
+            autoFocus
+            style={{
+              width: "100%", padding: "12px 14px", fontSize: 14, fontFamily: FONT.body,
+              borderRadius: 8, border: `1px solid ${BD}`, outline: "none",
+              boxSizing: "border-box",
+            }}
+          />
+          {searching && (
+            <div style={{ position: "absolute", right: 12, top: 14, fontSize: 11, color: AL }}>Searching...</div>
+          )}
+          {showResults && searchResults.length > 0 && (
+            <div style={{
+              position: "absolute", top: "100%", left: 0, right: 0, zIndex: 50,
+              background: WH, border: `1px solid ${BD}`, borderRadius: 8,
+              boxShadow: SHADOW, maxHeight: 320, overflowY: "auto", marginTop: 4,
+            }}>
+              {searchResults.map(r => (
+                <div
+                  key={r.ccn}
+                  onClick={() => {
+                    setCcn(r.ccn);
+                    setSearchQ(r.name);
+                    setShowResults(false);
+                    // Auto-fetch
+                    setTimeout(() => {
+                      setLoading(true);
+                      setError(null);
+                      Promise.allSettled([
+                        fetch(`${API}/api/hospitals/ccn/${r.ccn}`),
+                        fetch(`${API}/api/hospitals/ccn/${r.ccn}/peers`),
+                      ]).then(async ([hospRes, peerRes]) => {
+                        if (hospRes.status === "fulfilled" && hospRes.value.ok) {
+                          const data = await hospRes.value.json();
+                          if (Array.isArray(data) && data.length > 0) setHospital(data[0] as HospitalData);
+                          else setError("Hospital data not available in HCRIS.");
+                        } else setError("Hospital not found in HCRIS data.");
+                        if (peerRes.status === "fulfilled" && peerRes.value.ok) setPeers(await peerRes.value.json());
+                      }).catch(() => setError("Unable to reach Aradune API."))
+                        .finally(() => setLoading(false));
+                    }, 0);
+                  }}
+                  style={{
+                    padding: "10px 14px", cursor: "pointer", borderBottom: `1px solid ${C.surface}`,
+                    transition: "background 0.1s",
+                  }}
+                  onMouseEnter={e => { e.currentTarget.style.background = C.surface; }}
+                  onMouseLeave={e => { e.currentTarget.style.background = WH; }}
+                >
+                  <div style={{ fontSize: 13, fontWeight: 600, color: C.ink }}>{r.name}</div>
+                  <div style={{ fontSize: 11, color: AL, marginTop: 2 }}>
+                    {r.city}, {r.state} · CCN {r.ccn}{r.beds ? ` · ${r.beds} beds` : ""}
+                  </div>
+                </div>
+              ))}
+            </div>
+          )}
+          {showResults && searchQ.length >= 2 && !searching && searchResults.length === 0 && (
+            <div style={{
+              position: "absolute", top: "100%", left: 0, right: 0, zIndex: 50,
+              background: WH, border: `1px solid ${BD}`, borderRadius: 8,
+              boxShadow: SHADOW, padding: "16px", marginTop: 4, textAlign: "center",
+            }}>
+              <div style={{ fontSize: 12, color: AL }}>No hospitals found. Try a different search term.</div>
+            </div>
+          )}
+        </div>
+
+        {/* CCN direct entry fallback */}
+        <div style={{ textAlign: "center", fontSize: 11, color: AL, marginBottom: 16 }}>
+          Or enter CCN directly:
+        </div>
         <form onSubmit={e => { e.preventDefault(); fetchHospital(); }} style={{ display: "flex", gap: 8, marginBottom: 12 }}>
           <input
             type="text"
             value={ccn}
             onChange={e => setCcn(e.target.value.replace(/\D/g, "").slice(0, 6))}
             placeholder="6-digit CCN"
-            autoFocus
             style={{
               flex: 1, padding: "10px 14px", fontSize: 15, fontFamily: FONT.mono,
               borderRadius: 8, border: `1px solid ${BD}`, outline: "none",
@@ -571,10 +682,6 @@ export default function AheadReadiness() {
             fontFamily: FONT.body,
           }}>{loading ? "Loading..." : "Score"}</button>
         </form>
-
-        <div style={{ textAlign: "center", fontSize: 11, color: AL }}>
-          Don't know your CCN? <a href="https://data.cms.gov/provider-data/" target="_blank" rel="noopener" style={{ color: C.brand, textDecoration: "none" }}>Look it up →</a>
-        </div>
 
         {error && (
           <div style={{ marginTop: 16, padding: "10px 14px", background: "#FEF3C7", borderRadius: 8, border: "1px solid #FCD34D", fontSize: 12, color: "#92400E" }}>

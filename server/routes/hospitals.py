@@ -6,6 +6,35 @@ from server.db import get_cursor
 router = APIRouter()
 
 
+@router.get("/api/hospitals/search")
+async def search_hospitals(
+    q: str = Query(..., min_length=2, description="Search by name, city, or CCN"),
+    state: str = Query(None, description="Optional state filter"),
+    limit: int = Query(25, le=100),
+):
+    """Search hospitals by name, city, or CCN. Returns lightweight results for autocomplete."""
+    q_like = f"%{q.strip().upper()}%"
+    with get_cursor() as cur:
+        state_filter = "AND state_code = $3" if state else ""
+        params = [q_like, limit] + ([state.upper()] if state else [])
+        rows = cur.execute(f"""
+            SELECT provider_ccn, hospital_name, city, state_code, bed_count
+            FROM fact_hospital_cost
+            WHERE (
+                UPPER(hospital_name) LIKE $1
+                OR UPPER(city) LIKE $1
+                OR provider_ccn LIKE $1
+            )
+            {state_filter}
+            ORDER BY bed_count DESC NULLS LAST
+            LIMIT $2
+        """, params).fetchall()
+        return [
+            dict(zip(["ccn", "name", "city", "state", "beds"], r))
+            for r in rows
+        ]
+
+
 @router.get("/api/hospitals/ccn/{ccn}")
 async def hospital_by_ccn(ccn: str):
     """Get all available HCRIS data for a specific hospital CCN."""

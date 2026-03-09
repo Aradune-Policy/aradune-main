@@ -75,134 +75,78 @@ function useRoute() {
   return route;
 }
 
-// ── Tool Registry ────────────────────────────────────────────────────────
+// ── Tool Registry (9 modules) ────────────────────────────────────────────
 const TOOLS: ToolDef[] = [
-  // ── STATE PROFILE ─────────────────────────────────────────────────────
+  // ── DISCOVER ──────────────────────────────────────────────────────────
   {
-    id: "state", group: "explore", name: "State Profile",
+    id: "state", group: "discover", name: "State Intelligence",
     tagline: "Everything Aradune knows about a state, in one view",
-    desc: "Enrollment, rates, hospitals, quality, workforce, pharmacy, and economic context — unified from 250 fact tables.",
+    desc: "Enrollment, rates, hospitals, quality, workforce, pharmacy, and economic context for any state, unified from 250 fact tables with cross-dataset insights.",
     status: "live", icon: "◉", color: C.brand,
   },
-  // ── TRANSPARENCY ──────────────────────────────────────────────────────
   {
-    id: "explorer", group: "explore", name: "Spending Explorer",
-    tagline: "Search and compare Medicaid spending across every state",
-    desc: "Query 190M+ FFS claims across 54 jurisdictions with cross-state rate comparisons, provider analysis, and a full SQL editor.",
-    status: "live", icon: "⌕", color: C.brand,
-  },
-  {
-    id: "decay", group: "explore", name: "Medicare Comparison",
-    navLabel: "Medicare Comparison",
-    tagline: "Medicaid rates as a percentage of Medicare, by code and state",
-    desc: "Every HCPCS code as a percentage of the Medicare PFS, by state. Identify where Medicaid has fallen furthest behind.",
-    status: "live", icon: "◧", color: C.brand,
-  },
-  {
-    id: "fees", group: "explore", name: "State Fee Schedule Directory",
-    tagline: "Fee schedules, methodologies, and access for every state",
-    desc: "Every state's Medicaid fee schedule in one place: methodology type, format, access requirements, spending context, and CMS compliance readiness.",
-    status: "live", icon: "⊞", color: C.brand,
-  },
-  {
-    id: "lookup", group: "explore", name: "Rate Lookup",
-    tagline: "Search any HCPCS code, compare fee schedule rates across states",
-    desc: "Type a HCPCS code and instantly see every state's fee schedule rate vs Medicare. 16,000+ codes across 40+ states.",
-    status: "live", icon: "⊘", color: C.brand,
-  },
-  {
-    id: "compliance", group: "explore", name: "Compliance Report",
-    tagline: "Access Rule compliance checklist and rate transparency package",
-    desc: "Unified compliance package for 42 CFR §447.203: Medicare parity, rate reduction modeling, methodology documentation, and export-ready formats.",
-    status: "live", icon: "◇", color: C.brand,
-  },
-  {
-    id: "cpra", group: "explore", name: "CPRA Generator",
-    tagline: "Comparative Payment Rate Analysis for 42 CFR 447.203 compliance",
-    desc: "Generate the Comparative Payment Rate Analysis required by July 2026. Medicaid vs Medicare rates across primary care, OB/GYN, and MH/SUD with PDF, Excel, and HTML export.",
-    status: "live", icon: "◆", color: C.brand,
-  },
-  // ── ADEQUACY ──────────────────────────────────────────────────────────
-  {
-    id: "wages", group: "analyze", name: "Rate & Wage Comparison",
-    tagline: "BLS market wages vs Medicaid reimbursement rates",
-    desc: "Medicaid reimbursement vs. BLS market wages for healthcare occupations across every state.",
-    status: "live", icon: "⊿", color: C.accent,
-  },
-  {
-    id: "quality", group: "analyze", name: "Quality Linkage",
-    tagline: "CMS Core Set outcomes mapped to payment rates",
-    desc: "55 CMS Core Set measures across 52 jurisdictions. See whether higher rates correlate with better outcomes.",
-    status: "live", icon: "◈", color: C.accent,
-  },
-  {
-    id: "reduction", group: "analyze", name: "Rate Reduction Analyzer",
-    tagline: "Analyze the impact of proposed Medicaid rate reductions",
-    desc: "Model proposed rate cuts against access thresholds and Medicare ratios, code by code.",
-    status: "live", icon: "▼", color: C.accent,
-  },
-  {
-    id: "hcbs8020", group: "analyze", name: "HCBS Compensation Tracker",
-    tagline: "How much of HCBS spending reaches direct care workers?",
-    desc: "Track HCBS payment share reaching direct care workers against the 80/20 pass-through benchmark, by state and code.",
-    status: "live", icon: "⊕", color: C.accent,
-  },
-  // ── MODELING ──────────────────────────────────────────────────────────
-  {
-    id: "builder", group: "build", name: "Rate Builder",
-    tagline: "Calculate Medicaid rates with full audit trails",
-    desc: "RBRVS rate calculations with real conversion factors, RVU components, and state-specific rules.",
-    status: "live", icon: "⬡", color: C.teal,
-  },
-  {
-    id: "ahead", group: "build", name: "AHEAD Calculator",
-    tagline: "Model hospital global budgets under CMS's AHEAD demonstration",
-    desc: "Model hospital global budgets under AHEAD parameters. Compare participation scenarios and savings targets.",
-    status: "live", icon: "△", color: C.teal,
-  },
-  {
-    id: "ahead-readiness", group: "build", name: "AHEAD Readiness Score",
-    tagline: "Scored dashboard: how ready is your hospital for a global budget?",
-    desc: "Enter a CCN. Aradune scores your hospital across four dimensions — financial stability, revenue concentration, supplemental exposure, and volume stability — using public HCRIS and CMS data.",
-    status: "live", icon: "⬢", color: C.teal,
-  },
-  {
-    id: "forecast", group: "build", name: "Caseload Forecaster",
-    tagline: "Upload enrollment data and forecast caseload trends",
-    desc: "Upload your state's monthly enrollment by category. Aradune runs SARIMAX + ETS model competition with intervention detection, economic enrichment, and 80/95% confidence intervals.",
-    status: "live", icon: "◐", color: C.teal,
-  },
-  {
-    id: "ask", group: "explore", name: "Data Explorer",
+    id: "ask", group: "discover", name: "Data Explorer",
     tagline: "Ask questions about Medicaid data in plain English",
-    desc: "Type a question. Aradune translates it to SQL, runs it against 250 tables and 115M+ rows, and returns the answer with the query.",
+    desc: "Type a question. Aradune translates it to SQL, runs it against 250 tables and 115M+ rows, and returns the answer with the query and source tables.",
     status: "live", icon: "⌗", color: C.brand,
   },
   {
-    id: "catalog", group: "explore", name: "Data Catalog",
-    tagline: "Browse all tables in the Aradune data lake",
-    desc: "250 fact tables, 9 dimensions, and 9 reference tables — with row counts, column schemas, and descriptions. See what data is available.",
-    status: "live", icon: "☰", color: C.brand,
+    id: "rates", group: "discover", name: "Rate Comparison",
+    tagline: "Every Medicaid rate compared to Medicare, by code and state",
+    desc: "16,000+ HCPCS codes across 47 states compared against the Medicare PFS. Cross-state rankings, rate erosion tracking, and impact analysis for proposed changes.",
+    status: "live", icon: "◧", color: C.brand,
+  },
+  // ── ANALYZE ───────────────────────────────────────────────────────────
+  {
+    id: "adequacy", group: "analyze", name: "Workforce & Quality",
+    tagline: "Wages, outcomes, and HCBS pass-through adequacy",
+    desc: "BLS market wages vs Medicaid reimbursement, HCBS 80/20 pass-through tracking, and CMS Core Set quality measures mapped to payment rates across every state.",
+    status: "live", icon: "⊿", color: C.accent,
   },
   {
-    id: "analyst", group: "analyze", name: "Policy Analyst",
-    tagline: "AI-powered rate analysis and SPA language drafting",
-    desc: "Ask questions in plain English. Get answers grounded in real data: rates, comparisons, fiscal impact, and draft SPA language.",
-    status: "beta", icon: "◎", color: C.accent,
+    id: "cpra", group: "analyze", name: "CPRA Generator",
+    tagline: "Comparative Payment Rate Analysis for 42 CFR 447.203",
+    desc: "Generate the Comparative Payment Rate Analysis required by July 2026. Pre-computed rates for 45 states or upload your own fee schedule for the full 68-code E/M analysis.",
+    status: "live", icon: "◆", color: C.accent,
+  },
+  {
+    id: "hospitals", group: "analyze", name: "Hospital Intelligence",
+    tagline: "AHEAD readiness, global budgets, and hospital financial data",
+    desc: "Search any hospital by name. AHEAD readiness scoring from public HCRIS data, global budget modeling, peer comparison, and supplemental payment cliff analysis.",
+    status: "live", icon: "△", color: C.accent,
+  },
+  // ── ACT ────────────────────────────────────────────────────────────────
+  {
+    id: "compliance", group: "act", name: "Compliance Center",
+    tagline: "42 CFR 447.203 requirements, fee schedules, and transparency",
+    desc: "Everything for the July 2026 Ensuring Access deadline: compliance checklists, state fee schedule directory, rate reduction modeling, and methodology documentation.",
+    status: "live", icon: "◇", color: C.teal,
+  },
+  {
+    id: "forecast", group: "act", name: "Forecasting",
+    tagline: "Caseload and expenditure projections with scenario modeling",
+    desc: "Upload monthly enrollment data. Aradune runs SARIMAX + ETS model competition, produces caseload forecasts with confidence intervals, and projects expenditure by category.",
+    status: "live", icon: "◐", color: C.teal,
+  },
+  {
+    id: "analyst", group: "act", name: "Policy Analyst",
+    tagline: "AI analysis, bill scoring, and SPA drafting",
+    desc: "AI-powered analysis grounded in 250 tables of real data. Fiscal impact estimates, bill analysis, rate adequacy assessments, and draft SPA language with cited sources.",
+    status: "live", icon: "◎", color: C.teal,
   },
 ];
 
 const NAV_GROUPS: NavGroup[] = [
-  { key: "explore", label: "Explore", tools: TOOLS.filter(t => t.group === "explore") },
+  { key: "discover", label: "Discover", tools: TOOLS.filter(t => t.group === "discover") },
   { key: "analyze", label: "Analyze", tools: TOOLS.filter(t => t.group === "analyze") },
-  { key: "build", label: "Build", tools: TOOLS.filter(t => t.group === "build") },
+  { key: "act", label: "Act", tools: TOOLS.filter(t => t.group === "act") },
 ];
 
-const GROUP_COLORS: Record<string, string> = { explore: C.brand, analyze: C.accent, build: C.teal };
+const GROUP_COLORS: Record<string, string> = { discover: C.brand, analyze: C.accent, act: C.teal };
 const GROUP_DESCS: Record<string, string> = {
-  explore: "Browse and query rate data across every state and service code.",
-  analyze: "Rate adequacy, workforce wages, health outcomes, and AI-powered policy analysis.",
-  build: "Calculate rates, model scenarios, draft policy, and build the case for change.",
+  discover: "Browse states, query data in plain English, and compare rates across every state.",
+  analyze: "Rate adequacy, CPRA compliance, hospital readiness, and workforce analysis.",
+  act: "Regulatory compliance, caseload forecasting, expenditure modeling, and AI-powered policy drafting.",
 };
 
 // ── Responsive hook ──────────────────────────────────────────────────────
@@ -300,7 +244,7 @@ function PlatformNav({ route }: { route: string }) {
           )}
           {NAV_GROUPS.map(g => (
             <div key={g.key}>
-              <div style={{ padding: "8px 20px 4px", fontSize: 9, fontWeight: 700, color: g.key === "transparency" ? C.brand : g.key === "adequacy" ? C.accent : C.teal, textTransform: "uppercase", letterSpacing: 1, fontFamily: FONT.mono }}>
+              <div style={{ padding: "8px 20px 4px", fontSize: 9, fontWeight: 700, color: GROUP_COLORS[g.key] || C.brand, textTransform: "uppercase", letterSpacing: 1, fontFamily: FONT.mono }}>
                 {g.label}
               </div>
               {g.tools.map(t => {
@@ -375,7 +319,7 @@ function Landing() {
         display: "grid", gridTemplateColumns: `repeat(auto-fit,minmax(${isMobile ? "70px" : "130px"},1fr))`,
         gap: isMobile ? 10 : 16, padding: "20px 0 36px", borderTop: `1px solid ${C.border}`,
       }}>
-        {([["18", "analytical tools"], ["54", "states & territories"], ["115M+", "data lake rows"], ["250", "fact tables"]] as const).map(([val, label]) => (
+        {([["9", "intelligence modules"], ["54", "states & territories"], ["115M+", "data lake rows"], ["250", "fact tables"]] as const).map(([val, label]) => (
           <div key={label}>
             <div style={{ fontSize: 20, fontWeight: 700, fontFamily: FONT.mono, color: C.brand, letterSpacing: -0.5 }}>{val}</div>
             <div style={{ fontSize: 11, color: C.inkLight, marginTop: 2 }}>{label}</div>
@@ -502,7 +446,7 @@ function Landing() {
             </div>
             <div style={{
               display: "grid",
-              gridTemplateColumns: groupTools.length <= 2 ? "repeat(auto-fill,minmax(min(100%,460px),1fr))" : groupTools.length === 4 ? "repeat(auto-fill,minmax(min(100%,460px),1fr))" : "repeat(auto-fill,minmax(min(100%,320px),1fr))",
+              gridTemplateColumns: "repeat(auto-fill,minmax(min(100%,320px),1fr))",
               gap: 12,
             }}>
               {groupTools.map(tool => {
@@ -589,27 +533,27 @@ function Landing() {
         </div>
       </div>
 
-      {/* 6. Explore → Analyze → Build workflow */}
+      {/* 6. Discover → Analyze → Act workflow */}
       <div style={{ padding: "36px 0 40px", borderTop: `1px solid ${C.border}` }}>
         <div style={{ fontSize: 14, fontWeight: 600, color: C.ink, marginBottom: 6 }}>
-          Explore → Analyze → Build
+          Discover → Analyze → Act
         </div>
         <div style={{ fontSize: 12, color: C.inkLight, lineHeight: 1.7, maxWidth: 560, marginBottom: 20 }}>
-          Start by understanding what your state spends and on what. Measure
-          whether those rates are adequate. Then calculate what rates should be
-          and build the case for change.
+          Start by understanding what your state spends. Analyze whether
+          rates are adequate and compare against peers. Then forecast,
+          model, and draft the policy to change it.
         </div>
         <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit,minmax(240px,1fr))", gap: 14 }}>
           {([
-            { num: "1", label: "Explore", q: "What are we spending?",
-              desc: "Ask questions in plain English or browse 101M+ rows across 54 jurisdictions. State profiles, cross-state comparisons, fee schedules, and CPRA reports.",
-              tools: "Data Explorer · State Profile · Spending Explorer · CPRA Generator", color: C.brand },
-            { num: "2", label: "Analyze", q: "Are rates adequate?",
-              desc: "Three lenses: compare against BLS market wages, map quality outcomes to payment levels, and track how far rates have eroded relative to Medicare.",
-              tools: "Wage Adequacy · Quality Linkage · Rate Reduction · HCBS Tracker", color: C.accent },
-            { num: "3", label: "Build", q: "What should we pay?",
-              desc: "Calculate defensible rates, forecast caseload and expenditure, model hospital global budgets, and get AI-powered policy analysis.",
-              tools: "Rate Builder · Caseload Forecaster · AHEAD Readiness · Policy Analyst", color: C.teal },
+            { num: "1", label: "Discover", q: "What's the data?",
+              desc: "Ask questions in plain English, browse state profiles with cross-dataset insights, and compare rates across every state and code.",
+              tools: "Data Explorer · State Intelligence · Rate Comparison", color: C.brand },
+            { num: "2", label: "Analyze", q: "What does it mean?",
+              desc: "Generate CPRA compliance reports, score hospital AHEAD readiness, and measure workforce adequacy against BLS wages and quality outcomes.",
+              tools: "CPRA Generator · Hospital Intelligence · Workforce & Quality", color: C.accent },
+            { num: "3", label: "Act", q: "What should we do?",
+              desc: "Forecast caseload and expenditure, prepare for the 447.203 deadline, and get AI-powered policy analysis grounded in real data.",
+              tools: "Compliance Center · Forecasting · Policy Analyst", color: C.teal },
           ] as const).map(item => (
             <div key={item.num} style={{
               background: C.white, borderRadius: 12, boxShadow: SHADOW,
@@ -974,24 +918,30 @@ export default function Platform() {
     if (tool && (tool.status === "coming")) return <ComingSoon tool={tool} />;
 
     // Lazy-loaded tool routes (code-split)
+    // New consolidated routes + all legacy routes still work
     const toolMap: Record<string, JSX.Element> = {
+      // ── New module routes ────────────────────────────────────
       "/state": <StateProfile />,
+      "/ask": <DataExplorer />,
+      "/rates": <RateDecay />,          // Rate Comparison (default view: Medicare parity)
+      "/adequacy": <WageAdequacy />,    // Workforce & Quality (default view: wages)
+      "/cpra": <CpraGenerator />,
+      "/hospitals": <AheadReadiness />, // Hospital Intelligence (default: search + readiness)
+      "/compliance": <ComplianceReport />,
+      "/forecast": <CaseloadForecaster />,
+      "/analyst": <PolicyAnalyst />,
+      // ── Legacy routes (still work, render original components) ──
       "/explorer": <TmsisExplorer />,
       "/wages": <WageAdequacy />,
       "/quality": <QualityLinkage />,
       "/decay": <RateDecay />,
       "/builder": <RateBuilder />,
-      "/analyst": <PolicyAnalyst />,
       "/ahead": <AheadCalculator />,
       "/ahead-readiness": <AheadReadiness />,
       "/fees": <FeeScheduleDir />,
       "/lookup": <RateLookup />,
-      "/compliance": <ComplianceReport />,
       "/reduction": <RateReduction />,
       "/hcbs8020": <HcbsTracker />,
-      "/cpra": <CpraGenerator />,
-      "/forecast": <CaseloadForecaster />,
-      "/ask": <DataExplorer />,
       "/catalog": <DataCatalog />,
       "/methods": <FeeScheduleDir />,
     };

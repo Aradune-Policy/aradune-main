@@ -406,7 +406,7 @@ export interface ToolDef {
   status: "live" | "beta" | "coming";
   icon: string;
   color: string;
-  group: "transparency" | "adequacy" | "modeling";
+  group: "transparency" | "adequacy" | "modeling" | "explore" | "analyze" | "build" | "discover" | "act";
   navLabel?: string;
 }
 

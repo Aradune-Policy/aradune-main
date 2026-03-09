@@ -243,7 +243,7 @@ class NL2SQLResponse(BaseModel):
     rows: list[dict[str, Any]]
     total_rows: int
     query_ms: int
-    model: str = "claude-sonnet-4-20250514"
+    model: str = "claude-sonnet-4-6"
 
 
 # ---------------------------------------------------------------------------
@@ -295,7 +295,7 @@ async def nl2sql(req: NL2SQLRequest):
     # Step 1: Ask Claude to generate SQL
     try:
         response = client.messages.create(
-            model="claude-sonnet-4-20250514",
+            model="claude-sonnet-4-6",
             max_tokens=1024,
             system=SCHEMA_CONTEXT,
             messages=[

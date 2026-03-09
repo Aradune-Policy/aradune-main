@@ -115,6 +115,36 @@ def init_db() -> None:
         "chip_monthly", "chip_app_elig", "performance_indicator",
         "new_adult_enrollment", "drug_rebate_products", "sdud_2024",
         "medicare_provider_enrollment",
+        "snap_enrollment", "tanf_enrollment",
+        "fair_market_rent",
+        "sdud_2025",
+        "eligibility_processing", "marketplace_unwinding", "sbm_unwinding",
+        "quality_core_set_2023", "quality_core_set_2024", "hcbs_waitlist",
+        "ltss_expenditure", "ltss_users", "ltss_rebalancing",
+        "vital_stats_monthly", "maternal_mortality_monthly",
+        "fmr_fy2024", "new_adult_spending",
+        "nsduh_prevalence_2024",
+        "mc_enrollment_summary",
+        "saipe_poverty", "places_county", "health_center_sites",
+        "marketplace_oep", "mua_designation", "workforce_projections",
+        "food_environment",
+        "medicare_telehealth", "medicare_geo_variation", "ma_geo_variation",
+        "medicaid_drug_spending", "mc_dashboard",
+        "nhe_state",
+        "mssp_aco", "mssp_participants", "aco_beneficiaries_county",
+        "aco_reach_results", "part_d_geo", "part_d_quarterly_spending",
+        "nhsc_field_strength", "fqhc_hypertension", "fqhc_quality_badges",
+        "macpac_enrollment", "macpac_spending_per_enrollee",
+        "nursing_workforce", "nursing_earnings",
+        "teds_admissions", "medicare_program_stats",
+        "hospital_service_area", "hha_cost_report",
+        "esrd_etc_results", "pac_hha_utilization",
+        "pac_irf_utilization", "pac_ltch_utilization",
+        "market_saturation_county", "medicare_physician_geo",
+        "mssp_financial_results", "nh_penalties_v2", "nh_survey_summary",
+        "dialysis_facility_v2", "cdc_overdose_deaths", "cdc_leading_causes_death",
+        "part_d_opioid_geo", "part_d_spending_by_drug",
+        "macpac_spending_by_state", "macpac_benefit_spending",
     ]
     for fact_name in fact_names:
         p = _latest_snapshot(fact_dir, fact_name)
@@ -128,6 +158,13 @@ def init_db() -> None:
         for parquet_file in ref_dir.glob("*.parquet"):
             view_name = parquet_file.stem  # ref_drug_rebate, ref_ncci_edits, etc.
             _conn.execute(f"CREATE VIEW {view_name} AS SELECT * FROM '{parquet_file}'")
+        # Also register snapshot-based reference tables
+        for ref_subdir in ref_dir.iterdir():
+            if ref_subdir.is_dir():
+                p = _latest_snapshot(ref_dir, ref_subdir.name)
+                if p:
+                    view_name = f"ref_{ref_subdir.name}"
+                    _conn.execute(f"CREATE VIEW {view_name} AS SELECT * FROM '{p}'")
 
     # Create a unified 'spending' view for backward compatibility with query_builder
     # Maps the old column names to the new lake schema

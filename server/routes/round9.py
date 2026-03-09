@@ -508,6 +508,91 @@ async def sdud_2024_top_drugs(
     return {"rows": [dict(zip(cols, r)) for r in rows], "count": len(rows)}
 
 
+# ─── SDUD 2025 ─────────────────────────────────────────────────────────
+
+
+@router.get("/api/pharmacy/sdud-2025")
+async def sdud_2025(
+    state: Optional[str] = Query(None),
+    ndc: Optional[str] = Query(None),
+    quarter: Optional[int] = Query(None),
+    limit: int = Query(100, le=1000),
+):
+    """State Drug Utilization Data — 2025 Q1-Q2 (2.64M rows)."""
+    with get_cursor() as cur:
+        sql = "SELECT * FROM fact_sdud_2025 WHERE 1=1"
+        params = []
+        if state:
+            sql += " AND state_code = ?"
+            params.append(state.upper())
+        if ndc:
+            sql += " AND ndc = ?"
+            params.append(ndc)
+        if quarter:
+            sql += " AND quarter = ?"
+            params.append(quarter)
+        sql += " ORDER BY total_amount_reimbursed DESC LIMIT ?"
+        params.append(limit)
+        cur.execute(sql, params)
+        cols = [d[0] for d in cur.description]
+        rows = cur.fetchall()
+    return {"rows": [dict(zip(cols, r)) for r in rows], "count": len(rows)}
+
+
+@router.get("/api/pharmacy/sdud-2025/top-drugs")
+async def sdud_2025_top_drugs(
+    state: Optional[str] = Query(None),
+    quarter: Optional[int] = Query(None),
+    limit: int = Query(25, le=100),
+):
+    """Top drugs by Medicaid spending from SDUD 2025."""
+    with get_cursor() as cur:
+        where = "WHERE 1=1"
+        params = []
+        if state:
+            where += " AND state_code = ?"
+            params.append(state.upper())
+        if quarter:
+            where += " AND quarter = ?"
+            params.append(quarter)
+        cur.execute(f"""
+            SELECT product_name,
+                   ndc,
+                   SUM(total_amount_reimbursed) AS total_spend,
+                   SUM(medicaid_amount_reimbursed) AS total_medicaid_spend,
+                   SUM(number_of_prescriptions) AS total_prescriptions,
+                   SUM(units_reimbursed) AS total_units,
+                   COUNT(DISTINCT state_code) AS state_count
+            FROM fact_sdud_2025
+            {where}
+            GROUP BY product_name, ndc
+            ORDER BY total_spend DESC
+            LIMIT ?
+        """, params + [limit])
+        cols = [d[0] for d in cur.description]
+        rows = cur.fetchall()
+    return {"rows": [dict(zip(cols, r)) for r in rows], "count": len(rows)}
+
+
+@router.get("/api/pharmacy/sdud-2025/state-summary")
+async def sdud_2025_state_summary():
+    """SDUD 2025 summary — total spend, Rx count, drug count by state."""
+    with get_cursor() as cur:
+        cur.execute("""
+            SELECT state_code,
+                   COUNT(DISTINCT ndc) AS drug_count,
+                   SUM(number_of_prescriptions) AS total_prescriptions,
+                   ROUND(SUM(total_amount_reimbursed), 2) AS total_reimbursed,
+                   ROUND(SUM(medicaid_amount_reimbursed), 2) AS medicaid_reimbursed
+            FROM fact_sdud_2025
+            GROUP BY state_code
+            ORDER BY total_reimbursed DESC
+        """)
+        cols = [d[0] for d in cur.description]
+        rows = cur.fetchall()
+    return {"rows": [dict(zip(cols, r)) for r in rows], "count": len(rows)}
+
+
 # ─── Medicare Provider Enrollment ──────────────────────────────────────
 
 

@@ -6,6 +6,26 @@ import { STATES_LIST, STATE_NAMES } from "./data/states";
 import Term from "./components/Term";
 import NavDrop from "./components/NavDrop";
 import NavSearch from "./components/NavSearch";
+import Lottie from "lottie-react";
+
+// ── Sword Loading Animation ──────────────────────────────────────────────
+function SwordLoader({ text = "Loading..." }: { text?: string }) {
+  const [animData, setAnimData] = useState<object | null>(null);
+  useEffect(() => {
+    fetch("/assets/sword-animation.json")
+      .then(r => r.json())
+      .then(setAnimData)
+      .catch(() => {});
+  }, []);
+  return (
+    <div style={{ maxWidth: 600, margin: "0 auto", padding: "60px 20px", textAlign: "center", display: "flex", flexDirection: "column", alignItems: "center" }}>
+      {animData ? (
+        <Lottie animationData={animData} loop style={{ width: 80, height: 140 }} />
+      ) : null}
+      <div style={{ fontSize: 12, color: C.inkLight, marginTop: 8, fontFamily: FONT.body }}>{text}</div>
+    </div>
+  );
+}
 
 // ── Error Boundary ──────────────────────────────────────────────────────
 class ToolErrorBoundary extends Component<{ children: ReactNode }, { error: string | null }> {
@@ -61,7 +81,7 @@ const TOOLS: ToolDef[] = [
   {
     id: "state", group: "explore", name: "State Profile",
     tagline: "Everything Aradune knows about a state, in one view",
-    desc: "Enrollment, rates, hospitals, quality, workforce, pharmacy, and economic context — unified from 185 fact tables.",
+    desc: "Enrollment, rates, hospitals, quality, workforce, pharmacy, and economic context — unified from 250 fact tables.",
     status: "live", icon: "◉", color: C.brand,
   },
   // ── TRANSPARENCY ──────────────────────────────────────────────────────
@@ -161,7 +181,7 @@ const TOOLS: ToolDef[] = [
   {
     id: "catalog", group: "explore", name: "Data Catalog",
     tagline: "Browse all tables in the Aradune data lake",
-    desc: "185+ fact tables, 9 dimensions, and 5 reference tables — with row counts, column schemas, and descriptions. See what data is available.",
+    desc: "250 fact tables, 9 dimensions, and 9 reference tables — with row counts, column schemas, and descriptions. See what data is available.",
     status: "live", icon: "☰", color: C.brand,
   },
   {
@@ -220,7 +240,7 @@ function PlatformNav({ route }: { route: string }) {
       }}>
         <div style={{ display: "flex", alignItems: "center", gap: 8, flexShrink: 0 }}>
           <a href="#/" style={{ textDecoration: "none", display: "flex", alignItems: "center" }}>
-            <img src="/assets/logo-full.png" alt="Aradune" style={{ height: 28 }} />
+            <img src="/assets/logo-wordmark.svg" alt="Aradune" style={{ height: 28 }} />
           </a>
           {activeTool && (
             <>
@@ -355,7 +375,7 @@ function Landing() {
         display: "grid", gridTemplateColumns: `repeat(auto-fit,minmax(${isMobile ? "70px" : "130px"},1fr))`,
         gap: isMobile ? 10 : 16, padding: "20px 0 36px", borderTop: `1px solid ${C.border}`,
       }}>
-        {([["18", "analytical tools"], ["54", "states & territories"], ["100M+", "data lake rows"], ["185", "fact tables"]] as const).map(([val, label]) => (
+        {([["18", "analytical tools"], ["54", "states & territories"], ["115M+", "data lake rows"], ["250", "fact tables"]] as const).map(([val, label]) => (
           <div key={label}>
             <div style={{ fontSize: 20, fontWeight: 700, fontFamily: FONT.mono, color: C.brand, letterSpacing: -0.5 }}>{val}</div>
             <div style={{ fontSize: 11, color: C.inkLight, marginTop: 2 }}>{label}</div>
@@ -657,11 +677,12 @@ function Landing() {
         <div>
           <div style={{ fontSize: 14, fontWeight: 600, color: C.ink, marginBottom: 8 }}>How it works</div>
           <div style={{ fontSize: 12, color: C.inkLight, lineHeight: 1.75 }}>
-            185 fact tables from 50+ federal sources: <Term>T-MSIS</Term> spending, Medicare PFS,
+            250 fact tables from 80+ federal sources: <Term>T-MSIS</Term> spending, Medicare PFS &amp; Part D,
             <Term>BLS</Term> wage surveys, CMS <Term>Core Set</Term> quality measures, HCRIS cost reports,
             PBJ staffing, Five Star ratings, NADAC pharmacy pricing, Care Compare,
-            BRFSS, SAMHSA behavioral health, and 47 state fee schedules. Served via
-            a FastAPI backend on Fly.io with DuckDB over Parquet.
+            BRFSS, SAMHSA behavioral health, MSSP/ACO data, CDC mortality,
+            MACPAC enrollment &amp; spending, HRSA workforce, and 47 state fee schedules.
+            Served via a FastAPI backend on Fly.io with DuckDB over Parquet.
             <span style={{ display: "block", marginTop: 8, fontSize: 11, color: C.inkLight }}>
               Technical: Hive-partitioned Parquet lake synced to Cloudflare R2.
               In-memory DuckDB registers all tables as views on startup.
@@ -685,9 +706,6 @@ function Landing() {
 
       {/* Footer links */}
       <div style={{ display: "flex", gap: 16, marginBottom: 40, fontSize: 12 }}>
-        <a href="#/pricing" style={{ color: C.inkLight, textDecoration: "none", fontWeight: 500 }}>
-          See pricing →
-        </a>
         <a href="#/about" style={{ color: C.inkLight, textDecoration: "none", fontWeight: 500 }}>
           About the project
         </a>
@@ -858,97 +876,7 @@ function ComingSoon({ tool }: { tool: { name: string; icon: string; desc: string
   );
 }
 
-// ── Pricing Page ──────────────────────────────────────────────────────
-function Pricing() {
-  const FREE_TOOLS = TOOLS.filter(t => t.id !== "analyst");
-
-  return (
-    <div style={{ maxWidth: 800, margin: "0 auto", padding: "48px 20px 60px", fontFamily: FONT.body }}>
-      {/* Hero */}
-      <div style={{ textAlign: "center", marginBottom: 40 }}>
-        <h1 style={{ fontSize: 26, fontWeight: 700, color: C.ink, margin: "0 0 10px", letterSpacing: -0.5 }}>
-          Simple, transparent pricing
-        </h1>
-        <p style={{ fontSize: 13, color: C.inkLight, lineHeight: 1.7, maxWidth: 480, margin: "0 auto" }}>
-          Aradune exists to make Medicaid data accessible. The tools are free.
-          A paid Professional tier is in development.
-        </p>
-      </div>
-
-      {/* Pricing cards */}
-      <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit,minmax(300px,1fr))", gap: 20, marginBottom: 36 }}>
-        {/* Free tier */}
-        <div style={{
-          background: C.white, borderRadius: 12, boxShadow: SHADOW,
-          padding: "28px 28px 24px", borderTop: `3px solid ${C.brand}`,
-        }}>
-          <div style={{ fontSize: 11, fontWeight: 700, color: C.brand, fontFamily: FONT.mono, textTransform: "uppercase", letterSpacing: 1, marginBottom: 6 }}>Free</div>
-          <div style={{ fontSize: 18, fontWeight: 600, color: C.ink, marginBottom: 4 }}>Free, always</div>
-          <div style={{ fontSize: 11, color: C.inkLight, marginBottom: 16 }}>No account needed</div>
-          <div style={{ fontSize: 11, color: C.inkLight, lineHeight: 2 }}>
-            {FREE_TOOLS.map(t => (
-              <div key={t.id}><span style={{ color: C.brand, marginRight: 6 }}>&#10003;</span>{t.name}</div>
-            ))}
-          </div>
-          <a href="#/explorer" style={{
-            display: "block", textAlign: "center", marginTop: 20,
-            padding: "10px 20px", border: `1px solid ${C.border}`, borderRadius: 8,
-            fontSize: 12, fontWeight: 600, color: C.ink, textDecoration: "none",
-          }}>
-            Start exploring &#8594;
-          </a>
-        </div>
-
-        {/* Professional Tier */}
-        <div style={{
-          background: C.white, borderRadius: 12, boxShadow: SHADOW_LG,
-          padding: "28px 28px 24px", borderTop: `3px solid ${C.accent}`,
-          position: "relative",
-        }}>
-          <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 6 }}>
-            <span style={{ fontSize: 11, fontWeight: 700, color: C.accent, fontFamily: FONT.mono, textTransform: "uppercase", letterSpacing: 1 }}>Professional</span>
-            <span style={{ fontSize: 9, fontWeight: 600, padding: "2px 8px", borderRadius: 8, background: `${C.accent}12`, color: C.accent }}>Coming Soon</span>
-          </div>
-          <div style={{ fontSize: 18, fontWeight: 600, color: C.inkLight, marginBottom: 16 }}>Paid subscription</div>
-          <div style={{ fontSize: 11, color: C.inkLight, lineHeight: 2 }}>
-            <div><span style={{ color: C.brand, marginRight: 6 }}>&#10003;</span>Everything in Free</div>
-            <div><span style={{ color: C.accent, marginRight: 6 }}>&#10003;</span>AI Policy Analyst (Claude-powered)</div>
-            <div><span style={{ color: C.accent, marginRight: 6 }}>&#10003;</span>Batch HCPCS code lookup (up to 500 codes)</div>
-            <div><span style={{ color: C.accent, marginRight: 6 }}>&#10003;</span>Branded PDF reports</div>
-            <div><span style={{ color: C.accent, marginRight: 6 }}>&#10003;</span>Formatted Excel workbooks (XLSX)</div>
-            <div><span style={{ color: C.accent, marginRight: 6 }}>&#10003;</span>Persistent saved scenarios</div>
-          </div>
-          <div style={{
-            marginTop: 20, padding: "10px 16px", background: C.surface, borderRadius: 8,
-            fontSize: 11, color: C.inkLight, textAlign: "center",
-          }}>
-            Subscription access coming soon. Existing token holders can continue using all professional features.
-          </div>
-        </div>
-      </div>
-
-      {/* Why we charge */}
-      <div style={{
-        padding: "20px 24px", background: C.surface, borderRadius: 10,
-        borderLeft: `3px solid ${C.accent}`, marginBottom: 36,
-      }}>
-        <div style={{ fontSize: 13, fontWeight: 600, color: C.ink, marginBottom: 6 }}>Why the Professional tier will be paid</div>
-        <div style={{ fontSize: 12, color: C.inkLight, lineHeight: 1.7 }}>
-          The AI Policy Analyst runs a Claude model with multiple Aradune data lookups
-          on every query, which costs real money. PDF generation and Excel formatting
-          libraries add to the bundle. A subscription covers these costs so we can keep
-          every tool and CSV export free for everyone. We're finalizing pricing and will
-          share details soon.
-        </div>
-      </div>
-
-      {/* Contact */}
-      <div style={{ textAlign: "center", fontSize: 12, color: C.inkLight }}>
-        Questions? <a href="mailto:aradune-medicaid@proton.me" style={{ color: C.brand, textDecoration: "none", fontWeight: 600 }}>aradune-medicaid@proton.me</a>
-      </div>
-    </div>
-  );
-}
+// ── Pricing Page (removed — pricing kept flexible for partnerships) ──
 
 // ── Platform Shell ───────────────────────────────────────────────────────
 // ── Password Gate ───────────────────────────────────────────────────────
@@ -1036,16 +964,12 @@ export default function Platform() {
 
   if (!authed) return <PasswordGate onAuth={() => setAuthed(true)} />;
 
-  const loadingFallback = (
-    <div style={{ maxWidth: 600, margin: "0 auto", padding: "80px 20px", textAlign: "center" }}>
-      <div style={{ fontSize: 13, color: C.inkLight }}>Loading...</div>
-    </div>
-  );
+  const loadingFallback = <SwordLoader />;
 
   const renderRoute = () => {
     if (route === "/" || route === "") return <Landing />;
     if (route === "/about") return <About />;
-    if (route === "/pricing") return <Pricing />;
+
     const tool = TOOLS.find(t => route === `/${t.id}`);
     if (tool && (tool.status === "coming")) return <ComingSoon tool={tool} />;
 

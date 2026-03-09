@@ -78,19 +78,9 @@ export function ProGateModal({
         </div>
 
         <div style={{ fontSize: 12, color: C.inkLight, lineHeight: 1.7, marginBottom: 16 }}>
-          This feature is part of the Professional tier. Pro subscribers get branded
-          PDF reports, formatted Excel workbooks, persistent saved scenarios, batch
-          HCPCS lookups, and the AI Policy Analyst.
-        </div>
-
-        <div style={{ display: "grid", gap: 8, marginBottom: 16 }}>
-          <a href="#/pricing" onClick={onClose} style={{
-            display: "block", textAlign: "center",
-            padding: "10px 20px", background: C.accent, color: C.white,
-            borderRadius: 8, fontSize: 12, fontWeight: 600, textDecoration: "none",
-          }}>
-            View Professional Tier
-          </a>
+          This feature requires an access token. Contact us to learn more about
+          full platform access including branded PDF reports, formatted Excel
+          workbooks, batch HCPCS lookups, and the AI Policy Analyst.
         </div>
 
         {!showTokenField ? (

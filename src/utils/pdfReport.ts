@@ -18,7 +18,7 @@ export async function loadAutoTable(): Promise<typeof import("jspdf-autotable")>
 
 async function loadLogoDataUrl(): Promise<string | null> {
   try {
-    const resp = await fetch("/assets/logo-wordmark.png");
+    const resp = await fetch("/assets/logo-wordmark.svg");
     const blob = await resp.blob();
     return await new Promise<string>((resolve) => {
       const reader = new FileReader();

@@ -115,9 +115,16 @@ SCHEMA_CONTEXT = """You are a DuckDB SQL expert. You have access to a Medicaid d
 ### fact_unemployment (varies) — monthly state unemployment rates
   state_code VARCHAR, period_date DATE, value DOUBLE
 
-### fact_drug_utilization (large) — State Drug Utilization Data
+### fact_drug_utilization (large) — State Drug Utilization Data (all years)
   state_code VARCHAR, ndc VARCHAR, product_name VARCHAR, year BIGINT, quarter BIGINT,
   units_reimbursed DOUBLE, total_amount_reimbursed DOUBLE, number_of_prescriptions BIGINT
+
+### fact_sdud_2025 (2,637,009 rows) — State Drug Utilization Data 2025 (Q1-Q2)
+  state_code VARCHAR, utilization_type VARCHAR, ndc VARCHAR, labeler_code VARCHAR,
+  product_code VARCHAR, product_name VARCHAR, year INTEGER, quarter INTEGER,
+  suppression_used BOOLEAN, units_reimbursed DOUBLE, number_of_prescriptions INTEGER,
+  total_amount_reimbursed DOUBLE, medicaid_amount_reimbursed DOUBLE,
+  non_medicaid_amount_reimbursed DOUBLE
 
 ### fact_maternal_health (17,968 rows) — hospital maternal health measures
   state_code VARCHAR, hospital_name VARCHAR, measure_id VARCHAR, score DOUBLE
@@ -128,6 +135,42 @@ SCHEMA_CONTEXT = """You are a DuckDB SQL expert. You have access to a Medicaid d
 ### fact_dental_services (3,180 rows) — dental services to children
   state_code VARCHAR, measure_name VARCHAR, year INTEGER, value DOUBLE
 
+### fact_snap_enrollment — SNAP (food stamps) monthly participation by state
+  state_code VARCHAR, year INTEGER, month INTEGER,
+  households INTEGER, persons INTEGER, benefit_cost DOUBLE
+
+### fact_tanf_enrollment — TANF monthly enrollment by state (7 measures)
+  state_code VARCHAR, year INTEGER, month INTEGER,
+  measure VARCHAR (total_families|total_recipients|adult_recipients|child_recipients|two_parent_families|one_parent_families|no_parent_families),
+  value INTEGER
+
+### fact_eligibility_processing (3,162 rows) — Medicaid renewal/redetermination outcomes
+  state_code VARCHAR, reporting_period VARCHAR (YYYYMM), original_or_updated VARCHAR,
+  renewals_initiated BIGINT, renewals_due BIGINT, renewals_completed BIGINT,
+  renewals_ex_parte BIGINT, renewals_form_based BIGINT,
+  disenrolled_total BIGINT, disenrolled_ineligible BIGINT, disenrolled_procedural BIGINT,
+  renewals_pending BIGINT
+
+### fact_marketplace_unwinding (59,527 rows) — Marketplace transitions during Medicaid unwinding
+  state VARCHAR, metric VARCHAR, time_period VARCHAR (YYYYMM),
+  individual_count BIGINT, individual_pct VARCHAR, cumulative_count BIGINT, cumulative_pct VARCHAR
+
+### fact_hcbs_waitlist (51 rows) — HCBS waiting lists by state (KFF 2025 survey)
+  state_code VARCHAR, state_name VARCHAR, screens_eligibility VARCHAR,
+  idd_waiting INTEGER, autism_waiting INTEGER, seniors_physical_waiting INTEGER,
+  medically_fragile_waiting INTEGER, mental_health_waiting INTEGER,
+  tbi_sci_waiting INTEGER, other_waiting INTEGER, total_waiting INTEGER, survey_year INTEGER
+
+### fact_quality_core_set_2024 (5,555 rows) — 2024 Core Set quality measures
+  state_code VARCHAR, domain VARCHAR, measure_name VARCHAR, measure_id VARCHAR,
+  core_set_year INTEGER, state_rate DOUBLE, median_rate DOUBLE,
+  bottom_quartile DOUBLE, top_quartile DOUBLE, states_reporting INTEGER
+
+### fact_fair_market_rent (4,764 rows) — HUD FMR by county
+  state_code VARCHAR, county_name VARCHAR, hud_area_name VARCHAR,
+  is_metro BOOLEAN, population_2022 INTEGER,
+  fmr_efficiency INTEGER, fmr_1br INTEGER, fmr_2br INTEGER, fmr_3br INTEGER, fmr_4br INTEGER
+
 ## Additional Useful Tables
 - fact_chip_enrollment: state_code, year, month, enrollment_count
 - fact_managed_care: state_code, year, plan_name, enrollment, plan_type
@@ -136,6 +179,35 @@ SCHEMA_CONTEXT = """You are a DuckDB SQL expert. You have access to a Medicaid d
 - fact_medicare_enrollment: state_code, year, total_enrolled, ma_enrolled
 - fact_opioid_prescribing: state_code, year, opioid_claim_count, opioid_prescribing_rate
 - fact_block_grant: state_code, allotment DOUBLE (MHBG mental health block grants)
+- fact_ltss_expenditure: state_code, year, ltss_total, institutional_total, institutional_pct, hcbs_total, hcbs_pct (LTSS spending by state, CY 2022-2023)
+- fact_ltss_users: state_code, year, ltss_total, institutional_total, hcbs_total, both_total (LTSS users by state, CY 2022-2023)
+- fact_ltss_rebalancing: state_code, year, demographic_group, subgroup, hcbs_pct (HCBS rebalancing by demographics)
+- fact_vital_stats_monthly: state_code, year, month_name, indicator, value (CDC births/deaths/infant deaths by state)
+- fact_maternal_mortality_monthly: jurisdiction, demographic_group, subgroup, year, month, maternal_deaths, live_births, maternal_mortality_rate
+- fact_fmr_fy2024: state_code, fiscal_year, report_type (MAP=services, ADM=admin), service_category, total_computable, federal_share, state_share (CMS-64 FMR FY 2024, 80+ categories including MCO, drugs, hospitals, HCBS, nursing facilities. Use "Total Net Expenditures" for state totals.)
+- fact_nsduh_prevalence_2024: state_code, measure_id, measure_name, age_group, estimate_pct, ci_lower_pct, ci_upper_pct, survey_years (NSDUH 2023-2024, 18 BH measures incl. SUD, opioid, mental illness, depression, suicidal thoughts)
+- fact_mc_enrollment_summary: state_code, year, total_enrollees, total_mc_enrollment, comprehensive_mc_enrollment, new_adults_mc_enrollment, mc_penetration_pct (2016-2024, 57 states, managed care enrollment trends. mc_penetration_pct = total_mc / total_enrollees * 100. 'US' row = national totals.)
+- fact_saipe_poverty: state_code, state_fips, county_fips, name, geo_level (state/county), year, poverty_estimate_all, poverty_pct_all, poverty_estimate_0_17, poverty_pct_0_17, poverty_estimate_5_17_families, poverty_pct_5_17_families, median_household_income, poverty_estimate_0_4, poverty_pct_0_4 (Census SAIPE 2023, 52 states + 3,144 counties. county_fips='000' for state rows.)
+- fact_places_county: year, state_code, county_name, category, measure_id, measure_name, data_value, value_unit, value_type, ci_lower, ci_upper, total_population, county_fips (CDC PLACES 2025 release. 40 health measures at county level: ACCESS2=uninsured, DIABETES=diabetes, BPHIGH=high BP, CASTHMA=asthma, OBESITY=obesity, MHLTH=poor mental health days, etc.)
+- fact_workforce_projections: year, profession_group, profession, state, rurality, supply_fte, demand_fte, pct_adequacy, region (HRSA 2023-2038 projections. 121 professions incl. physicians, NPs, RNs, psychiatry. pct_adequacy = supply/demand ratio. state='Total' for national.)
+- fact_food_environment: FIPS, State, County, Variable_Code, Value (USDA Food Environment Atlas 2025. 304 variables at county level. Key codes: PCT_LACCESS_POP19=% low food access, FOODINSEC_22_24=food insecurity rate, PCT_SNAP23=% SNAP participation, PCT_DIABETES_ADULTS13=diabetes rate, PCT_OBESE_ADULTS20=obesity rate. JOIN ref_food_environment_variables for variable descriptions.)
+- fact_medicare_telehealth: year, quarter, state_name, enrollment_status, race, sex, entitlement_status, age_group, rurality, eligible_beneficiaries, part_b_enrolled, telehealth_users, telehealth_pct (Q1 2020-Q2 2025. 56 geographic areas. Filter enrollment_status='All' for overall. quarter='Overall' for annual.)
+- fact_medicare_geo_variation: YEAR, BENE_GEO_LVL (National/State/County), BENE_GEO_DESC, BENE_GEO_CD, BENE_AGE_LVL, BENES_FFS_CNT, TOT_MDCR_STDZD_PYMT_PC (standardized per-capita), IP_MDCR_PYMT_PC, etc. (247 columns. 2014-2023. State/county/national. Per-capita standardized Medicare spending, utilization rates, chronic conditions, quality.)
+- fact_nhe_state: payer (medicaid/medicare/private_insurance/total), metric (aggregate/per_enrollee/per_capita/enrollment/population), unit, item_desc, geo_level (state/region/national), geo_name, year, value (CMS NHE 1991-2020. 30 years of health spending by state. payer='medicaid' AND metric='aggregate' for total Medicaid spending. metric='per_enrollee' for per-enrollee cost.)
+- fact_medicaid_drug_spending: Brnd_Name, Gnrc_Name, Mftr_Name, Tot_Spndng_2023, Tot_Clms_2023, Avg_Spnd_Per_Dsg_Unt_Wghtd_2023, etc. (wide format 2019-2023, brand-level drug spending, top Medicaid drugs)
+- fact_mssp_aco: ACO_ID, ACO_Name, ACO_Service_Area, Agreement_Period_Num, BASIC_Track, ENHANCED_Track, High_Revenue_ACO, Low_Revenue_ACO, ACO_Address, ACO_State, N_AB (assigned beneficiaries), etc. (511 ACOs, PY2026)
+- fact_aco_beneficiaries_county: Year, ACO_ID, State_Name, County_Name, State_ID, County_ID, AB_Psn_Yrs_ESRD, AB_Psn_Yrs_DIS, AB_Psn_Yrs_AGDU, AB_Psn_Yrs_AGND, Tot_AB_Psn_Yrs, Tot_AB (135K rows, 2024)
+- fact_part_d_geo: Prscrbr_Geo_Lvl, Prscrbr_Geo_Cd, Prscrbr_Geo_Desc, Brnd_Name, Gnrc_Name, Tot_Prscrbrs, Tot_Clms, Tot_30day_Fills, Tot_Drug_Cst, Tot_Benes, Opioid_Drug_Flag, Antpsyct_Drug_Flag (116K rows, state-level Part D drug prescribing 2023)
+- fact_part_d_quarterly_spending: Brnd_Name, Gnrc_Name, Tot_Mftr, Mftr_Name, Year, Tot_Benes, Tot_Clms, Tot_Spndng, Avg_Spnd_Per_Bene (28K rows, quarterly Part D drug spending)
+- fact_nhsc_field_strength: state_name, discipline (All/Primary Care/Mental Health), fiscal_year, total_clinicians, nhsc_lrp, nhsc_sp, non_rural, rural (222 rows, FY2025)
+- fact_macpac_enrollment: state_name, fiscal_year, total_enrollment, child, new_adult_group, other_adult, disabled, aged, dual_total, full_benefit (62 rows, FY2023)
+- fact_macpac_spending_per_enrollee: state_name, fiscal_year, total_all, total_full_benefit, child_all, new_adult_all, disabled_all, aged_all (63 rows, FY2023, dollars per FYE enrollee)
+- fact_teds_admissions: year, state_fips, total_admissions, alcohol_admissions, heroin_admissions, opioid_synth_admissions, meth_admissions, cocaine_admissions, marijuana_admissions, medicaid_insurance, no_insurance, injection_drug_use, criminal_justice_referral (49 states, 2023 SAMHSA TEDS-A. state_fips is numeric FIPS code.)
+- fact_mssp_financial_results: ACO_Num, ACO_Name, ACO_State, N_AB (assigned benes), QualScore, GenSaveLoss (generated savings/losses $), EarnSaveLoss (earned savings $), etc. (476 ACOs, PY2024)
+- fact_cdc_overdose_deaths: State, Year, Month, Period, Indicator, Data_Value, Predicted_Value (81K rows. Indicator has drug categories like 'Heroin', 'Synthetic opioids'. Monthly provisional counts.)
+- fact_macpac_spending_by_state: state_name, fiscal_year, benefits_total, benefits_federal, benefits_state, admin_total, total_medicaid_total (66 rows, FY2024. Amounts in millions.)
+- fact_macpac_benefit_spending: state_name, fiscal_year, total_benefits, ffs_hospital, ffs_physician, ffs_dental, ffs_nursing_facility, ffs_prescribed_drugs, managed_care, dsh_adjustments (72 rows, FY2024. Amounts in millions.)
+- fact_part_d_opioid_geo: Prscrbr_Geo_Lvl (State/National), Prscrbr_Geo_Desc, Tot_Opioid_Clms, Tot_LA_Opioid_Clms, Opioid_Prscrbng_Rate, LA_Opioid_Prscrbng_Rate (329K rows by state/county, 2023)
 
 ## Rules for SQL Generation
 
@@ -307,8 +379,8 @@ EXAMPLES = [
     "Compare mental health prevalence rates across all states",
     "What states have the highest FMAP rates?",
     "Show me enrollment trends — total Medicaid enrollment by year",
-    "Which hospitals have the worst cost-to-charge ratios?",
-    "What are the top behavioral health measures by state?",
+    "Which states have the most SNAP recipients relative to Medicaid enrollment?",
+    "What are the most expensive counties for 2-bedroom rent by state?",
 ]
 
 

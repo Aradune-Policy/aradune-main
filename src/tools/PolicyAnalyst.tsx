@@ -238,8 +238,8 @@ export default function PolicyAnalyst() {
           <div style={{ padding:"24px 24px 0",textAlign:"center" }}>
             <div style={{ fontSize:20,fontWeight:600,marginBottom:4 }}>AI Tier: Policy Analyst</div>
             <div style={{ fontSize:11,color:AL,lineHeight:1.6,maxWidth:340,margin:"0 auto" }}>
-              This tool uses Claude AI with Aradune's full dataset. Access is
-              currently limited while we finalize the subscription model.
+              This tool uses Claude AI with Aradune's full Medicaid dataset.
+              Enter your access token to begin.
             </div>
           </div>
 
@@ -273,10 +273,7 @@ export default function PolicyAnalyst() {
               ))}
             </div>
             <div style={{ marginTop:10,fontSize:10,color:AL }}>
-              Paid subscription coming soon.
-            </div>
-            <div style={{ marginTop:8 }}>
-              <a href="#/pricing" style={{ fontSize:11,color:cO,fontWeight:600,textDecoration:"none" }}>Learn more about the AI tier &#8594;</a>
+              Contact us for access.
             </div>
           </div>
         </div>
@@ -329,7 +326,7 @@ export default function PolicyAnalyst() {
         {messages.map((msg, i) => (
           <div key={i} style={{ marginBottom:12,display:"flex",justifyContent:msg.role==="user"?"flex-end":"flex-start",alignItems:"flex-start",gap:8 }}>
             {msg.role === "assistant" && (
-              <img src="/assets/icon-bot.png" alt="" style={{ width:32,height:32,borderRadius:"50%",objectFit:"cover",flexShrink:0,marginTop:2 }} />
+              <img src="/assets/helmet.svg" alt="" style={{ width:32,height:32,borderRadius:"50%",objectFit:"cover",flexShrink:0,marginTop:2 }} />
             )}
             <div style={{
               maxWidth:"85%",

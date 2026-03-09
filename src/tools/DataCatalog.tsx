@@ -4,6 +4,7 @@
  */
 import { useState, useEffect, useMemo } from "react";
 import { API_BASE } from "../lib/api";
+import { LoadingBar } from "../components/LoadingBar";
 
 // ── Design tokens ───────────────────────────────────────────────────────
 const A = "#0A2540", AL = "#425A70", POS = "#2E6B4A";
@@ -54,11 +55,7 @@ export default function DataCatalog() {
     reference: tables.filter(t => t.category === "reference").length,
   }), [tables]);
 
-  if (loading) return (
-    <div style={{ maxWidth: 1100, margin: "0 auto", padding: "80px 16px", textAlign: "center", color: AL, fontSize: 13 }}>
-      Loading catalog...
-    </div>
-  );
+  if (loading) return <LoadingBar text="Loading catalog" detail="Table schemas and row counts" />;
 
   return (
     <div style={{ maxWidth: 1100, margin: "0 auto", padding: "32px 16px", fontFamily: FB }}>

@@ -2,6 +2,7 @@ import React, { useState, useMemo, useEffect, useCallback } from "react";
 import { BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer, Cell, CartesianGrid, ReferenceLine, ScatterChart, Scatter, ZAxis } from "recharts";
 import type { SafeTipProps, TooltipEntry, WageCategory } from "../types";
 import { API_BASE } from "../lib/api";
+import { LoadingBar } from "../components/LoadingBar";
 
 // ── Design System (matches Aradune v14) ─────────────────────────────────
 const A = "#0A2540";
@@ -239,7 +240,7 @@ export default function WageAdequacy() {
 
   // Compute analysis for current category + state
   const analysis = useMemo(() => {
-    if (!blsData || !curCat) return null;
+    if (!blsData?.states || !curCat) return null;
 
     const stateWages = blsData.states[s1];
     const natlWages = blsData.national;
@@ -286,7 +287,7 @@ export default function WageAdequacy() {
 
   // All-state comparison for the primary code
   const allStates = useMemo((): AllStateEntry[] => {
-    if (!blsData || !curCat || !curCat.codes[0]) return [];
+    if (!blsData?.states || !curCat || !curCat.codes[0]) return [];
     const socCode = curCat.soc;
     const primaryCode = curCat.codes.find((c: CrosswalkCode) => c.units_per_hour) || curCat.codes[0];
 
@@ -299,7 +300,7 @@ export default function WageAdequacy() {
     }
 
     return Array.from(allStateKeys).map((st: string) => {
-      const wage = blsData.states[st]?.[socCode];
+      const wage = blsData.states?.[st]?.[socCode];
       const oes = oesIndex[`${st}|${socCode}`];
       const tmsisRate = getTmsisRateAlt(st, primaryCode.hcpcs);
       let impliedHourly: number | null = null;
@@ -326,11 +327,7 @@ export default function WageAdequacy() {
   }, [blsData, curCat, SL, overhead, getTmsisRateAlt, oesIndex]);
 
 
-  if (loading) return (
-    <div style={{ display:"flex",justifyContent:"center",alignItems:"center",minHeight:400,fontFamily:"Helvetica Neue,Arial,sans-serif" }}>
-      <div style={{ textAlign:"center" }}><div style={{ fontSize:16,fontWeight:600,color:A }}>Loading Wage Data...</div><div style={{ fontSize:11,color:AL,marginTop:4 }}>BLS + T-MSIS</div></div>
-    </div>
-  );
+  if (loading) return <LoadingBar text="Loading wage data" detail="BLS occupational wages + T-MSIS rates" />;
 
   if (!blsData) return (
     <div style={{ maxWidth:640,margin:"0 auto",padding:"40px 16px",fontFamily:"Helvetica Neue,Arial,sans-serif",color:A }}>

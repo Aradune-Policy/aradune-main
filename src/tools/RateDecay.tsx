@@ -2,6 +2,7 @@ import React, { useState, useMemo, useEffect, useCallback } from "react";
 import { BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer, CartesianGrid, ReferenceLine, Cell, ScatterChart, Scatter, ZAxis } from "recharts";
 import type { SafeTipProps, TooltipEntry, DecayHcpcs } from "../types";
 import { API_BASE } from "../lib/api";
+import { LoadingBar } from "../components/LoadingBar";
 
 // ── Design System ───────────────────────────────────────────────────────
 const A = "#0A2540";
@@ -242,11 +243,7 @@ export default function RateDecay() {
     }).filter((d): d is NonNullable<typeof d> => d != null).sort((a,b) => a.pct - b.pct);
   }, [compareCode, stateList, getMedicareRate, getTmsisRate, s1]);
 
-  if (loading) return (
-    <div style={{ display:"flex",justifyContent:"center",alignItems:"center",minHeight:400,fontFamily:"Helvetica Neue,Arial,sans-serif" }}>
-      <div style={{ textAlign:"center" }}><div style={{ fontSize:16,fontWeight:600,color:A }}>Loading Rate Data...</div></div>
-    </div>
-  );
+  if (loading) return <LoadingBar text="Loading rate data" detail="Medicare and Medicaid fee schedules" />;
 
   return (
     <div style={{ maxWidth:960,margin:"0 auto",padding:"10px 16px 40px",fontFamily:"Helvetica Neue,Arial,sans-serif",color:A }}>

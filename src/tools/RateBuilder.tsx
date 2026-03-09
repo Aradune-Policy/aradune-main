@@ -3,6 +3,7 @@ import type { Methodology, ComputeContext, RateResult, RateBuilderHcpcs, RateBui
 import { useProAccess, ProBadge, ProGateModal } from "../components/ProGate";
 import { query as duckQuery } from "../lib/duckdb";
 import { API_BASE } from "../lib/api";
+import { LoadingBar } from "../components/LoadingBar";
 import { calcRBRVS, applyConstraint, FL_CONFIG, round2 } from "../engine/StateRateEngine";
 
 // ── Design System ───────────────────────────────────────────────────────
@@ -406,11 +407,7 @@ export default function RateBuilder() {
     return { curRate, newSpending, impact, pctChange: (impact / codeSpending.paid) * 100 };
   }, [result, codeSpending]);
 
-  if (loading) return (
-    <div style={{ display:"flex",justifyContent:"center",alignItems:"center",minHeight:400,fontFamily:"Helvetica Neue,Arial,sans-serif" }}>
-      <div style={{ textAlign:"center" }}><div style={{ fontSize:16,fontWeight:600,color:A }}>Loading...</div></div>
-    </div>
-  );
+  if (loading) return <LoadingBar text="Loading rate data" detail="Fee schedules and RVU components" />;
 
   return (
     <div style={{ maxWidth:800,margin:"0 auto",padding:"10px 16px 40px",fontFamily:"Helvetica Neue,Arial,sans-serif",color:A }}>

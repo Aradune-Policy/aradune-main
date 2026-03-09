@@ -59,9 +59,9 @@ async def cpra_rates(
                 rc.medicare_fac_rate,
                 rc.pct_of_medicare,
                 rc.em_category,
-                COALESCE(rc.category, dp.category) AS category,
+                dp.category AS category,
                 dp.description,
-                rc.medicaid_rate_date
+                rc.rate_effective_date AS medicaid_rate_date
             FROM fact_rate_comparison rc
             LEFT JOIN dim_procedure dp ON rc.procedure_code = dp.procedure_code
             WHERE rc.state_code = $1 {em_filter}

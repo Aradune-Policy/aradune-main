@@ -513,7 +513,7 @@ export default async function handler(req, res) {
   try {
     // Initial API call with tools
     let response = await client.messages.create({
-      model: "claude-sonnet-4-5-20250514",
+      model: "claude-sonnet-4-6",
       max_tokens: 4096,
       system: getSystemPrompt(),
       tools: TOOLS,
@@ -542,7 +542,7 @@ export default async function handler(req, res) {
 
       // Continue the conversation
       response = await client.messages.create({
-        model: "claude-sonnet-4-5-20250514",
+        model: "claude-sonnet-4-6",
         max_tokens: 4096,
         system: getSystemPrompt(),
         tools: TOOLS,

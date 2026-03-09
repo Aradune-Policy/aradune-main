@@ -2,6 +2,7 @@ import React, { useState, useMemo, useEffect, useCallback } from "react";
 import { ScatterChart, Scatter, XAxis, YAxis, Tooltip, ResponsiveContainer, CartesianGrid, ReferenceLine, Cell, BarChart, Bar, Legend } from "recharts";
 import type { QualData, LinkedMeasure, MeasureHcpcsInfo, MeasureMeta, SafeTipProps, TooltipEntry, QualHcpcsRecord } from "../types";
 import { API_BASE } from "../lib/api";
+import { LoadingBar } from "../components/LoadingBar";
 
 // ── Design System (matches Aradune) ─────────────────────────────────────
 const A = "#0A2540";
@@ -228,11 +229,7 @@ export default function QualityLinkage() {
     }).filter(m => m.rate != null);
   }, [qualData, linkedMeasures, highlightState]);
 
-  if (loading) return (
-    <div style={{ display:"flex",justifyContent:"center",alignItems:"center",minHeight:400,fontFamily:"Helvetica Neue,Arial,sans-serif" }}>
-      <div style={{ textAlign:"center" }}><div style={{ fontSize:16,fontWeight:600,color:A }}>Loading Quality Data...</div></div>
-    </div>
-  );
+  if (loading) return <LoadingBar text="Loading quality data" detail="CMS Core Set measures and rate comparisons" />;
 
   if (!qualData) return (
     <div style={{ maxWidth:640,margin:"0 auto",padding:"40px 16px",fontFamily:"Helvetica Neue,Arial,sans-serif" }}>

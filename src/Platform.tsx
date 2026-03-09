@@ -175,7 +175,7 @@ const TOOLS: ToolDef[] = [
   {
     id: "ask", group: "explore", name: "Data Explorer",
     tagline: "Ask questions about Medicaid data in plain English",
-    desc: "Type a question. Aradune translates it to SQL, runs it against 185 tables and 101M+ rows, and returns the answer with the query.",
+    desc: "Type a question. Aradune translates it to SQL, runs it against 250 tables and 115M+ rows, and returns the answer with the query.",
     status: "live", icon: "⌗", color: C.brand,
   },
   {
@@ -185,10 +185,10 @@ const TOOLS: ToolDef[] = [
     status: "live", icon: "☰", color: C.brand,
   },
   {
-    id: "analyst", group: "build", name: "Policy Analyst",
+    id: "analyst", group: "analyze", name: "Policy Analyst",
     tagline: "AI-powered rate analysis and SPA language drafting",
     desc: "Ask questions in plain English. Get answers grounded in real data: rates, comparisons, fiscal impact, and draft SPA language.",
-    status: "beta", icon: "◎", color: C.teal,
+    status: "beta", icon: "◎", color: C.accent,
   },
 ];
 
@@ -201,7 +201,7 @@ const NAV_GROUPS: NavGroup[] = [
 const GROUP_COLORS: Record<string, string> = { explore: C.brand, analyze: C.accent, build: C.teal };
 const GROUP_DESCS: Record<string, string> = {
   explore: "Browse and query rate data across every state and service code.",
-  analyze: "Three lenses on rate adequacy — workforce wages, health outcomes, and Medicare benchmarking.",
+  analyze: "Rate adequacy, workforce wages, health outcomes, and AI-powered policy analysis.",
   build: "Calculate rates, model scenarios, draft policy, and build the case for change.",
 };
 
@@ -240,7 +240,7 @@ function PlatformNav({ route }: { route: string }) {
       }}>
         <div style={{ display: "flex", alignItems: "center", gap: 8, flexShrink: 0 }}>
           <a href="#/" style={{ textDecoration: "none", display: "flex", alignItems: "center" }}>
-            <img src="/assets/logo-wordmark.svg" alt="Aradune" style={{ height: 28 }} />
+            <span style={{ fontSize: 16, fontWeight: 800, color: C.brand, letterSpacing: 2, fontFamily: FONT.body }}>ARADUNE</span>
           </a>
           {activeTool && (
             <>
@@ -344,12 +344,12 @@ function Landing() {
       {/* 1. Hero */}
       <div style={{ padding: "56px 0 44px", maxWidth: 640 }}>
         <h1 style={{ fontSize: isMobile ? 22 : 30, fontWeight: 700, color: C.ink, lineHeight: 1.25, letterSpacing: -0.5, margin: 0 }}>
-          Every Medicaid dataset, one platform.
+          The one source for Medicaid data and intelligence.
         </h1>
         <p style={{ fontSize: 14, color: C.inkLight, lineHeight: 1.7, marginTop: 14, maxWidth: 540 }}>
-          101 million rows of Medicaid data — rates, enrollment, hospitals, quality,
-          workforce, pharmacy, and economics — normalized, cross-referenced, and
-          queryable in plain English. Open and free.
+          115 million rows across 250 datasets: rates, enrollment, hospitals, quality,
+          workforce, pharmacy, and economics. Normalized, cross-referenced, and
+          queryable in plain English.
         </p>
         <div style={{ display: "flex", gap: 10, marginTop: 22, flexWrap: "wrap" }}>
           <a href="#/ask" style={{

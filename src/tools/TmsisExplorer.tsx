@@ -3,6 +3,7 @@ import { BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer, Cell, Cartes
 import type { StateData, HcpcsCode, NatlTrend, SafeTipProps, CatAccumulator, TooltipEntry, RawState, RawHcpcs, RawTrend, PipelineMeta, MedicareRates, RiskAdjData, FeeScheduleData, FeeScheduleState, FeeScheduleDirectory, ProviderRecord, SpecialtyRecord, QueryRequest, QueryResponse, QueryMeta, PresetInfo } from "../types";
 import { useProAccess, ProBadge, ProGateModal } from "../components/ProGate";
 import { executeQuery, fetchMeta, fetchPresets, initEngine } from "../lib/queryEngine";
+import { LoadingBar } from "../components/LoadingBar";
 import { query as rawQuery, hasMonthlyData } from "../lib/duckdb";
 import { listPresets } from "../lib/presets";
 import { runFullCcbhcAnalysis, exportAnalysisCSV, MILLIMAN_ESTIMATES } from "../lib/ccbhcAnalysis";
@@ -1033,12 +1034,7 @@ export default function TmsisExplorer() {
     setSqlRunning(false);
   }, [sqlText, sqlRunning]);
 
-  if (loading) return (
-    <div style={{ display:"flex",justifyContent:"center",alignItems:"center",minHeight:400,fontFamily:"Helvetica Neue,Arial,sans-serif" }}>
-      <style>{`@keyframes ember{0%,100%{color:#0A2540}50%{color:#C4590A}}`}</style>
-      <div style={{ textAlign:"center" }}><div style={{ fontSize:16,fontWeight:600,animation:"ember 2.4s ease-in-out infinite" }}>Loading Spending Data...</div><div style={{ fontSize:11,color:AL,marginTop:4 }}>Preparing explorer</div></div>
-    </div>
-  );
+  if (loading) return <LoadingBar text="Loading spending data" detail="T-MSIS claims and provider records" />;
 
   const TABS = [{k:"dash",l:"Dashboard"},{k:"data",l:"Data Explorer"},{k:"rate",l:"Rate Engine"},{k:"code",l:"Code Profile"},{k:"sim",l:"Simulator"},{k:"provider",l:"Providers"},{k:"batch",l:"Batch",pro:true},{k:"about",l:"About"}];
 

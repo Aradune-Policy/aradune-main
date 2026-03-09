@@ -4,7 +4,7 @@
  * same-origin which works with static JSON in public/data/.
  */
 
-const API_BASE = import.meta.env.VITE_API_URL || "https://aradune-api.fly.dev";
+const API_BASE = (import.meta.env.VITE_API_URL || "https://aradune-api.fly.dev").trim();
 
 export async function apiFetch<T>(path: string, fallbackPath?: string): Promise<T> {
   // Try the API endpoint first

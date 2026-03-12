@@ -184,14 +184,28 @@ export default function PlatformSearch({ tools }: PlatformSearchProps) {
       }
     }
 
-    // Also match "Data Explorer" / "ask" / "NL2SQL"
-    if ("data explorer".includes(lower) || "nl2sql".includes(lower) || "ask a question".includes(lower) || "natural language".includes(lower)) {
-      if (!results.find(r => r.route === "#/ask")) {
+    // "Ask Aradune" appears for question-like queries (3+ words or ends with ?)
+    const wordCount = lower.split(/\s+/).length;
+    if (wordCount >= 3 || lower.endsWith("?")) {
+      results.unshift({
+        type: "tool",
+        label: "Ask Aradune",
+        sublabel: `"${q.trim()}"`,
+        route: `#/intelligence?q=${encodeURIComponent(q.trim())}`,
+        score: 100,
+        icon: "⌕",
+        color: C.brand,
+      });
+    }
+
+    // Also match "ask" / "intelligence" / "NL2SQL"
+    if ("ask aradune".includes(lower) || "intelligence".includes(lower) || "nl2sql".includes(lower) || "ask a question".includes(lower) || "natural language".includes(lower)) {
+      if (!results.find(r => r.route.startsWith("#/intelligence"))) {
         results.push({
           type: "tool",
-          label: "Data Explorer",
-          sublabel: "Ask questions in natural language (NL2SQL)",
-          route: "#/ask",
+          label: "Ask Aradune",
+          sublabel: "AI-powered Medicaid data analysis",
+          route: "#/intelligence",
           score: 85,
           icon: "⌕",
           color: C.brand,

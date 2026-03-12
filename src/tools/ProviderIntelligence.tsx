@@ -121,7 +121,7 @@ export default function ProviderIntelligence() {
             cursor: "pointer",
           }}
         >
-          Ask Intelligence
+          Ask Aradune
         </button>
       </div>
 

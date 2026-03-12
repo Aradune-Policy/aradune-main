@@ -234,7 +234,7 @@ export default function ImportPanel({ open, onClose }: ImportPanelProps) {
                 Cancel
               </button>
               <button style={styles.confirmBtn} onClick={handleConfirm}>
-                Make available to Intelligence
+                Make available to Aradune
               </button>
             </div>
           </div>

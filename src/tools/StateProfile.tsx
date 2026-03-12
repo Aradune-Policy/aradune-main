@@ -10,6 +10,7 @@ import {
 } from "recharts";
 import { STATE_NAMES } from "../data/states";
 import { API_BASE } from "../lib/api";
+import { useAradune } from "../context/AraduneContext";
 
 // ── Design tokens ───────────────────────────────────────────────────────
 const A = "#0A2540", AL = "#425A70", POS = "#2E6B4A", NEG = "#A4262C", WARN = "#B8860B";
@@ -963,6 +964,7 @@ function ComparisonView({ states, dataMap, loading, onChangeStates }: {
 // Main component
 // ═══════════════════════════════════════════════════════════════════════
 export default function StateProfile() {
+  const { openIntelligence } = useAradune();
   const [stateCodes, setStateCodes] = useState<string[]>(parseStatesFromHash);
   const [loading, setLoading] = useState(false);
   const [dataMap, setDataMap] = useState<Record<string, any>>({});
@@ -1062,6 +1064,10 @@ export default function StateProfile() {
             padding: "8px 14px", borderRadius: 8, border: `1px solid ${BD}`,
             background: WH, color: cB, fontSize: 12, cursor: "pointer", fontFamily: FB, fontWeight: 600,
           }}>+ Compare</button>
+          <button onClick={() => openIntelligence({ state, summary: `User is viewing State Profile for ${STATE_NAMES[state] || state}` })} style={{
+            padding: "8px 14px", borderRadius: 8, border: "none",
+            background: cB, color: WH, fontSize: 12, cursor: "pointer", fontFamily: FB, fontWeight: 600,
+          }}>Ask Aradune</button>
           {d && <button onClick={() => {
             const rows: (string | number)[][] = [];
             if (d.cpraRates.length > 0) {

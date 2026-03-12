@@ -375,7 +375,7 @@ function exportResponseCSV(content: string) {
 
 function classifyError(status: number, body: string): { message: string; retryable: boolean } {
   if (status === 503 || body.includes("missing API key") || body.includes("not configured")) {
-    return { message: "Intelligence is not configured on the server. The API key may be missing.", retryable: false };
+    return { message: "Aradune is not configured on the server. The API key may be missing.", retryable: false };
   }
   if (status === 429 || body.includes("rate limit") || body.includes("Rate limit")) {
     return { message: "Rate limit reached. Please wait a moment and try again.", retryable: true };
@@ -402,6 +402,7 @@ export default function IntelligenceChat() {
   const [messages, setMessages] = useState<ChatMessage[]>([]);
   const [input, setInput] = useState("");
   const [loading, setLoading] = useState(false);
+  const [autoSent, setAutoSent] = useState(false);
   const bottomRef = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLTextAreaElement>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
@@ -419,6 +420,21 @@ export default function IntelligenceChat() {
       inputRef.current.style.height = Math.min(inputRef.current.scrollHeight, 120) + "px";
     }
   }, [input]);
+
+  // Auto-send query from URL param (homepage → Intelligence passthrough)
+  useEffect(() => {
+    if (autoSent) return;
+    const hash = window.location.hash;
+    const match = hash.match(/[?&]q=([^&]*)/);
+    if (match) {
+      const query = decodeURIComponent(match[1]);
+      if (query) {
+        setAutoSent(true);
+        window.location.hash = "#/intelligence";
+        setTimeout(() => sendMessage(query), 100);
+      }
+    }
+  }, [autoSent]); // eslint-disable-line react-hooks/exhaustive-deps
 
   // Handle file upload for contextual data
   const handleFileUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -633,7 +649,7 @@ export default function IntelligenceChat() {
               fontSize: 13, color: C.inkLight, margin: "0 0 32px", lineHeight: 1.5,
               maxWidth: 440,
             }}>
-              Ask anything about Medicaid. Policy questions, data queries, state comparisons, or cross-dataset analysis, backed by 556+ tables and 305M+ rows.
+              Ask anything about Medicaid. Policy questions, data queries, state comparisons, or cross-dataset analysis, backed by 569+ tables and 305M+ rows.
             </p>
             <div style={{ display: "flex", flexWrap: "wrap", gap: 8, justifyContent: "center" }}>
               {STARTERS.slice(0, 3).map(s => (
@@ -876,7 +892,7 @@ export default function IntelligenceChat() {
         <div style={{
           fontSize: 10, color: C.inkLight, textAlign: "center", marginTop: 6,
         }}>
-          556+ tables &middot; 305M+ rows &middot; Shift+Enter for new line
+          569+ tables &middot; 305M+ rows &middot; Shift+Enter for new line
         </div>
       </div>
     </div>

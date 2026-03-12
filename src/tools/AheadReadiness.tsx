@@ -4,6 +4,7 @@ import {
   ScatterChart, Scatter, Cell, ReferenceLine,
 } from "recharts";
 import { C, FONT, SHADOW } from "../design";
+import { useAradune } from "../context/AraduneContext";
 import {
   scoreFinancialStability, scoreRevenueConcentration,
   scoreSupplementalExposure, scoreVolumeStability,
@@ -453,6 +454,7 @@ async function exportExcel(hospital: HospitalData, composite: number, dims: { ti
 // ═════════════════════════════════════════════════════════════════════════
 
 export default function AheadReadiness() {
+  const { openIntelligence } = useAradune();
   const [ccn, setCcn] = useState("");
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -578,9 +580,13 @@ export default function AheadReadiness() {
       <div style={{ maxWidth: 560, margin: "0 auto", padding: "80px 20px", fontFamily: FONT.body }}>
         <div style={{ textAlign: "center", marginBottom: 32 }}>
           <div style={{ fontSize: 22, fontWeight: 800, color: C.ink, letterSpacing: -0.5, marginBottom: 8 }}>AHEAD Readiness Score</div>
-          <div style={{ fontSize: 13, color: AL, lineHeight: 1.6 }}>
+          <div style={{ fontSize: 13, color: AL, lineHeight: 1.6, marginBottom: 12 }}>
             Search for your hospital by name, city, or CCN. Aradune scores readiness from public CMS data.
           </div>
+          <button onClick={() => openIntelligence({ summary: "User is viewing AHEAD Readiness scoring tool" })} style={{
+            padding: "8px 14px", borderRadius: 8, border: "none",
+            background: C.brand, color: "#fff", fontSize: 12, cursor: "pointer", fontWeight: 600,
+          }}>Ask Aradune</button>
         </div>
 
         {/* Hospital name search */}

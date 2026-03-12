@@ -3,6 +3,7 @@ import { BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer, Cell, Cartes
 import type { SafeTipProps, TooltipEntry, WageCategory } from "../types";
 import { API_BASE } from "../lib/api";
 import { LoadingBar } from "../components/LoadingBar";
+import { useAradune } from "../context/AraduneContext";
 
 // ── Design System (matches Aradune v14) ─────────────────────────────────
 const A = "#0A2540";
@@ -160,6 +161,7 @@ const ExportBtn = ({ onClick, label }: { onClick: () => void; label?: string }) 
 
 // ── Main Component ──────────────────────────────────────────────────────
 export default function WageAdequacy() {
+  const { openIntelligence } = useAradune();
   const [s1, setS1] = useState("FL");
   const [cat, setCat] = useState("hcbs");
   const [overhead, setOverhead] = useState(35);
@@ -352,6 +354,11 @@ export default function WageAdequacy() {
             <span style={{ fontSize:8,padding:"1px 6px",borderRadius:8,background:"rgba(14,98,69,0.1)",color:POS,fontWeight:600 }}>BLS May 2024</span>
             <span style={{ fontSize:9,color:AL,fontFamily:FM }}>{SL.length} states · {categories.length} categories</span>
           </div>
+          <div style={{ display: "flex", gap: 8, alignItems: "center" }}>
+          <button onClick={() => openIntelligence({ summary: "User is viewing Wage Adequacy analysis" })} style={{
+            padding: "5px 12px", borderRadius: 6, border: "none",
+            background: cB, color: "#fff", fontSize: 11, cursor: "pointer", fontWeight: 600,
+          }}>Ask Aradune</button>
           <ExportBtn label="Export Analysis" onClick={() => {
             if (!allStates.length) return;
             const pc = curCat?.codes.find((c: CrosswalkCode)=>c.units_per_hour) || curCat?.codes[0];
@@ -360,6 +367,7 @@ export default function WageAdequacy() {
               allStates.map((s: AllStateEntry)=>[s.name,s.blsMedian?.toFixed(2),s.tmsisRate?.toFixed(2),s.impliedHourly?.toFixed(2),s.gap?.toFixed(2),s.gapPct?.toFixed(1),s.minWage,s.belowMin?"YES":"",s.emp])
             );
           }}/>
+          </div>
         </div>
       </div>
 

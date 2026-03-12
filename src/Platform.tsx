@@ -377,7 +377,7 @@ function Landing() {
   ];
 
   const LANDSCAPE = [
-    { name: "Aradune", tables: "556+", rows: "305M+", states: "54", ai: true, realtime: true, compliance: true, free: true },
+    { name: "Aradune", tables: "569+", rows: "305M+", states: "54", ai: true, realtime: true, compliance: true, free: true },
     { name: "Typical consulting engagement", tables: "5-20", rows: "~1M", states: "1-5", ai: false, realtime: false, compliance: false, free: false },
     { name: "CMS Data.gov", tables: "~50", rows: "~50M", states: "54", ai: false, realtime: false, compliance: false, free: true },
     { name: "KFF / MACPAC", tables: "~30", rows: "~500K", states: "54", ai: false, realtime: false, compliance: false, free: true },
@@ -385,7 +385,7 @@ function Landing() {
 
   const handleChatSubmit = () => {
     if (!chatInput.trim()) return;
-    window.location.hash = `#/intelligence`;
+    window.location.hash = `#/intelligence?q=${encodeURIComponent(chatInput.trim())}`;
   };
 
   return (
@@ -416,7 +416,7 @@ function Landing() {
             fontSize: isMobile ? 14 : 16, color: C.inkLight, lineHeight: 1.7,
             marginTop: 18, maxWidth: 600,
           }}>
-            556 tables. 305 million rows. 18 data domains. Rates, enrollment,
+            569 tables. 305 million rows. 18 data domains. Rates, enrollment,
             hospitals, quality, workforce, pharmacy, expenditure, and more,
             cross-referenced and queryable through natural language. Built for
             the people who need to understand how a $1 trillion program works.
@@ -428,7 +428,7 @@ function Landing() {
             flexWrap: "wrap",
           }}>
             {([
-              ["556+", "fact tables"],
+              ["569+", "fact tables"],
               ["305M+", "rows"],
               ["54", "jurisdictions"],
               ["18", "data domains"],
@@ -470,7 +470,7 @@ function Landing() {
               <div>
                 <div style={{ fontSize: 18, fontWeight: 700, color: C.white, letterSpacing: -0.3 }}>Ask Aradune anything</div>
                 <div style={{ fontSize: 12, color: "rgba(255,255,255,0.5)", marginTop: 2 }}>
-                  AI analyst with direct query access to 556 tables, policy corpus, and web search
+                  AI analyst with direct query access to 569 tables, policy corpus, and web search
                 </div>
               </div>
             </div>
@@ -521,7 +521,7 @@ function Landing() {
               {STARTERS.map(s => (
                 <button
                   key={s.label}
-                  onClick={() => { setChatInput(s.prompt); window.location.hash = "#/intelligence"; }}
+                  onClick={() => { window.location.hash = `#/intelligence?q=${encodeURIComponent(s.prompt)}`; }}
                   style={{
                     padding: "6px 14px", borderRadius: 20,
                     background: "rgba(255,255,255,0.06)", border: "1px solid rgba(255,255,255,0.1)",
@@ -691,7 +691,7 @@ function Landing() {
             <div style={{ fontSize: 15, fontWeight: 700, color: C.ink, marginBottom: 10 }}>How it works</div>
             <div style={{ fontSize: 13, color: C.inkLight, lineHeight: 1.75 }}>
               82 ETL pipelines ingest data from 80+ federal sources into a
-              Hive-partitioned Parquet lake. DuckDB serves 556 fact tables via
+              Hive-partitioned Parquet lake. DuckDB serves 569 fact tables via
               FastAPI. Aradune translates natural-language questions into SQL,
               searches a 1,039-document policy corpus, and returns answers
               grounded in real data with full citation and query transparency.
@@ -994,8 +994,8 @@ function PlatformInner() {
   const renderRoute = () => {
     // Landing page is the home route
     if (route === "/" || route === "") return <Landing />;
-    // Intelligence chat available at /ask (Data Explorer / NL2SQL)
-    if (route === "/intelligence") {
+    // Intelligence chat
+    if (route === "/intelligence" || route.startsWith("/intelligence?")) {
       return <ToolErrorBoundary><Suspense fallback={loadingFallback}><IntelligenceChat /></Suspense></ToolErrorBoundary>;
     }
     if (route === "/about") return <About />;
@@ -1069,7 +1069,7 @@ function PlatformInner() {
         flexWrap: "wrap", gap: 8,
       }}>
         <span style={{ fontSize: 10, color: C.inkLight }}>Aradune · aradune.co</span>
-        <span style={{ fontSize: 10, color: C.inkLight, fontFamily: FONT.mono }}>556 tables · 305M+ rows · 80+ federal sources</span>
+        <span style={{ fontSize: 10, color: C.inkLight, fontFamily: FONT.mono }}>569 tables · 305M+ rows · 80+ federal sources</span>
       </footer>
     </div>
     </AraduneProvider>

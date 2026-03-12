@@ -114,7 +114,7 @@ export default function WorkforceQuality() {
             whiteSpace: "nowrap",
           }}
         >
-          Ask Intelligence
+          Ask Aradune
         </button>
       </div>
 

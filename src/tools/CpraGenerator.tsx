@@ -8,6 +8,7 @@ import { useState, useEffect, useMemo, useCallback, useRef } from "react";
 import { STATE_NAMES } from "../data/states";
 import { query as duckQuery } from "../lib/duckdb";
 import { API_BASE } from "../lib/api";
+import { useAradune } from "../context/AraduneContext";
 
 // ── Design tokens ───────────────────────────────────────────────────────
 const A = "#0A2540", AL = "#425A70", POS = "#2E6B4A", NEG = "#A4262C", WARN = "#B8860B";
@@ -95,6 +96,7 @@ const Badge = ({ text, color }: { text: string; color: string }) => (
 
 // ═════════════════════════════════════════════════════════════════════════
 export default function CpraGenerator() {
+  const { openIntelligence } = useAradune();
   const [st, setSt] = useState("FL");
   const [medicare, setMedicare] = useState<MedicareData | null>(null);
   const [medicaid, setMedicaid] = useState<MedicaidRatesData | null>(null);
@@ -664,6 +666,10 @@ ${stateConv ? `State methodology: ${stateConv.methodology_detail || stateConv.me
               42 CFR &sect;447.203 | CMS Ensuring Access Final Rule | Deadline: July 1, 2026
             </p>
           </div>
+          <button onClick={() => openIntelligence({ state: st, summary: `User is viewing CPRA Compliance for ${STATE_NAMES[st] || st}` })} style={{
+            padding: "8px 14px", borderRadius: 8, border: "none",
+            background: "#2E6B4A", color: "#fff", fontSize: 12, cursor: "pointer", fontFamily: FB, fontWeight: 600,
+          }}>Ask Aradune</button>
         </div>
         {/* Mode toggle */}
         <div style={{ display: "flex", gap: 4, marginTop: 16 }}>

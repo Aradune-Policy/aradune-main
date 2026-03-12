@@ -6,6 +6,7 @@
 import React, { useState, useEffect, useMemo } from "react";
 import { STATES_LIST, STATE_NAMES } from "../data/states";
 import { API_BASE } from "../lib/api";
+import { useAradune } from "../context/AraduneContext";
 
 // ── Design tokens ───────────────────────────────────────────────────────
 const A = "#0A2540", AL = "#425A70", POS = "#2E6B4A", NEG = "#A4262C", WARN = "#B8860B";
@@ -158,6 +159,7 @@ interface CfEntry {
 
 // ═════════════════════════════════════════════════════════════════════════
 export default function FeeScheduleDir() {
+  const { openIntelligence } = useAradune();
   const [directory, setDirectory] = useState<DirEntry[]>([]);
   const [statesData, setStatesData] = useState<StateSpending[]>([]);
   const [cfData, setCfData] = useState<Record<string, CfEntry>>({});
@@ -268,10 +270,18 @@ export default function FeeScheduleDir() {
 
   return (
     <div style={{ maxWidth: 1100, margin: "0 auto", padding: "24px 16px", fontFamily: FB }}>
-      <h2 style={{ fontSize: 22, fontWeight: 800, color: A, margin: "0 0 4px" }}>State Fee Schedule Directory</h2>
-      <p style={{ fontSize: 13, color: AL, margin: "0 0 20px" }}>
-        Every state's Medicaid fee schedule: methodology, format, access requirements, spending context, and compliance readiness
-      </p>
+      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", marginBottom: 20 }}>
+        <div>
+          <h2 style={{ fontSize: 22, fontWeight: 800, color: A, margin: "0 0 4px" }}>State Fee Schedule Directory</h2>
+          <p style={{ fontSize: 13, color: AL, margin: 0 }}>
+            Every state's Medicaid fee schedule: methodology, format, access requirements, spending context, and compliance readiness
+          </p>
+        </div>
+        <button onClick={() => openIntelligence({ summary: "User is viewing State Fee Schedule Directory" })} style={{
+          padding: "8px 14px", borderRadius: 8, border: "none", flexShrink: 0,
+          background: "#2E6B4A", color: "#fff", fontSize: 12, cursor: "pointer", fontWeight: 600,
+        }}>Ask Aradune</button>
+      </div>
 
       {error && (
         <Card accent={NEG}><p style={{ color: NEG, fontSize: 13, padding: 12 }}>Error loading data: {error}</p></Card>

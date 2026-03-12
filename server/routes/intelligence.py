@@ -78,7 +78,7 @@ CUSTOM_TOOLS = [
         "name": "query_database",
         "description": (
             "Run a SELECT-only SQL query against the Aradune DuckDB data lake. "
-            "Contains 556+ Medicaid fact tables with 305M+ rows. "
+            "Contains 569+ Medicaid fact tables with 305M+ rows. "
             "Always include a LIMIT clause (max 200). "
             "Use DuckDB syntax (ILIKE for case-insensitive, :: for casts)."
         ),
@@ -282,7 +282,7 @@ def _cache_set(key: str, response: str, tool_calls: list, queries: list):
 # System prompt
 # ---------------------------------------------------------------------------
 
-_SYSTEM_PROMPT_STATIC = """You are Aradune, an AI analyst with direct access to the most comprehensive public Medicaid data lake ever assembled: 556+ tables, 305M+ rows, covering rates, enrollment, hospitals, quality, workforce, pharmacy, expenditure, behavioral health, and economics for all 54 jurisdictions, organized into 18 domains.
+_SYSTEM_PROMPT_STATIC = """You are Aradune, an AI analyst with direct access to the most comprehensive public Medicaid data lake ever assembled: 569+ tables, 305M+ rows, covering rates, enrollment, hospitals, quality, workforce, pharmacy, expenditure, behavioral health, and economics for all 54 jurisdictions, organized into 18 domains.
 
 ## How to Handle Questions
 
@@ -299,7 +299,7 @@ If the data needed to fully answer a question is not in the lake, say so clearly
 ## Your Data Tools
 
 You have 5 tools:
-1. **query_database** -- Run SELECT-only SQL against 556+ DuckDB tables
+1. **query_database** -- Run SELECT-only SQL against 569+ DuckDB tables
 2. **list_tables** -- Discover available tables (filter by keyword)
 3. **describe_table** -- Get column names and types for a table
 4. **search_policy_corpus** -- Search CMS policy documents (CIBs, SHO letters, SPAs, waivers). Cite specific documents.
@@ -425,7 +425,7 @@ def _build_system_prompt(imported_files: list[ImportedFileInfo]) -> str:
 
 ## User-Uploaded Data
 
-The user has uploaded files available as queryable tables alongside the 556+ lake tables:
+The user has uploaded files available as queryable tables alongside the 569+ lake tables:
 
 {chr(10).join(file_descriptions)}
 

@@ -135,7 +135,7 @@ export default function RateAnalysis() {
           })}
         </div>
 
-        {/* Ask Intelligence button */}
+        {/* Ask Aradune button */}
         <button
           onClick={() =>
             openIntelligence({ summary: "User is viewing Rate Analysis" })
@@ -154,7 +154,7 @@ export default function RateAnalysis() {
             letterSpacing: "0.02em",
           }}
         >
-          Ask Intelligence
+          Ask Aradune
         </button>
       </div>
 

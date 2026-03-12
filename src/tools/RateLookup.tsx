@@ -5,6 +5,7 @@
  */
 import { useState, useEffect, useMemo, useCallback } from "react";
 import { API_BASE } from "../lib/api";
+import { useAradune } from "../context/AraduneContext";
 
 // ── Design tokens ───────────────────────────────────────────────────────
 const A = "#0A2540", AL = "#425A70", POS = "#2E6B4A", NEG = "#A4262C", WARN = "#B8860B";
@@ -61,6 +62,7 @@ type SortKey = "state" | "rate" | "pct";
 
 // ═════════════════════════════════════════════════════════════════════════
 export default function RateLookup() {
+  const { openIntelligence } = useAradune();
   const [data, setData] = useState<Record<string, CodeEntry> | null>(null);
   const [loading, setLoading] = useState(true);
   const [query, setQuery] = useState("");
@@ -166,10 +168,18 @@ export default function RateLookup() {
 
   return (
     <div style={{ maxWidth: 1000, margin: "0 auto", padding: "24px 16px", fontFamily: FB }}>
-      <h2 style={{ fontSize: 22, fontWeight: 800, color: A, margin: "0 0 4px" }}>Rate Lookup</h2>
-      <p style={{ fontSize: 13, color: AL, margin: "0 0 20px" }}>
-        Search any HCPCS code to compare fee schedule rates across every state with Medicare as the benchmark
-      </p>
+      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", marginBottom: 20 }}>
+        <div>
+          <h2 style={{ fontSize: 22, fontWeight: 800, color: A, margin: "0 0 4px" }}>Rate Lookup</h2>
+          <p style={{ fontSize: 13, color: AL, margin: 0 }}>
+            Search any HCPCS code to compare fee schedule rates across every state with Medicare as the benchmark
+          </p>
+        </div>
+        <button onClick={() => openIntelligence({ summary: "User is viewing Rate Lookup" })} style={{
+          padding: "8px 14px", borderRadius: 8, border: "none", flexShrink: 0,
+          background: "#2E6B4A", color: "#fff", fontSize: 12, cursor: "pointer", fontWeight: 600,
+        }}>Ask Aradune</button>
+      </div>
 
       {loading ? (
         <Card><p style={{ color: AL, fontSize: 13, textAlign: "center", padding: 40 }}>Loading fee schedule data...</p></Card>

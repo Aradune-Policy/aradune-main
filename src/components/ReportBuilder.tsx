@@ -180,7 +180,7 @@ export default function ReportBuilder() {
                   fontFamily: FONT.body,
                 }}
               >
-                No sections yet. Use "Add to Report" on any Intelligence
+                No sections yet. Use "Add to Report" on any Aradune
                 response to build your report.
               </div>
             )}

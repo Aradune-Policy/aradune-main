@@ -73,7 +73,7 @@ export default function IntelligencePanel() {
       });
 
       if (!res.ok || !res.body) {
-        setMessages(prev => [...prev, { role: "assistant", content: "Error: Could not reach Intelligence." }]);
+        setMessages(prev => [...prev, { role: "assistant", content: "Error: Could not reach Aradune." }]);
         setLoading(false);
         return;
       }
@@ -158,7 +158,7 @@ export default function IntelligencePanel() {
         display: "flex", alignItems: "center", justifyContent: "space-between",
       }}>
         <div>
-          <div style={{ fontSize: 13, fontWeight: 700, color: C.brand, fontFamily: FONT.body }}>Intelligence</div>
+          <div style={{ fontSize: 13, fontWeight: 700, color: C.brand, fontFamily: FONT.body }}>Aradune</div>
           {intelligenceContext?.state && (
             <div style={{ fontSize: 10, color: C.inkLight, marginTop: 2 }}>Context: {intelligenceContext.state}</div>
           )}
@@ -173,7 +173,7 @@ export default function IntelligencePanel() {
       <div ref={scrollRef} style={{ flex: 1, overflowY: "auto", padding: "12px 16px" }}>
         {messages.length === 0 && !streaming && (
           <div style={{ fontSize: 12, color: C.inkLight, textAlign: "center", padding: "40px 0" }}>
-            Ask Intelligence about this data.
+            Ask Aradune about this data.
           </div>
         )}
         {messages.map((m, i) => (
@@ -182,7 +182,7 @@ export default function IntelligencePanel() {
               fontSize: 9, fontWeight: 600, color: m.role === "user" ? C.brand : C.accent,
               textTransform: "uppercase", letterSpacing: 1, marginBottom: 4, fontFamily: FONT.mono,
             }}>
-              {m.role === "user" ? "You" : "Intelligence"}
+              {m.role === "user" ? "You" : "Aradune"}
             </div>
             <div style={{
               fontSize: 12, lineHeight: 1.7, color: C.ink,
@@ -206,7 +206,7 @@ export default function IntelligencePanel() {
         {(loading || streaming) && (
           <div style={{ marginBottom: 16 }}>
             <div style={{ fontSize: 9, fontWeight: 600, color: C.accent, textTransform: "uppercase", letterSpacing: 1, marginBottom: 4, fontFamily: FONT.mono }}>
-              Intelligence
+              Aradune
             </div>
             {toolStatuses.map((t, i) => (
               <div key={i} style={{

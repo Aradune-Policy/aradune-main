@@ -9,6 +9,7 @@ import {
 } from "recharts";
 import { STATES_LIST, STATE_NAMES } from "../data/states";
 import { API_BASE } from "../lib/api";
+import { useAradune } from "../context/AraduneContext";
 
 // ── Design tokens ───────────────────────────────────────────────────────
 const A = "#0A2540", AL = "#425A70", POS = "#2E6B4A", NEG = "#A4262C", WARN = "#B8860B";
@@ -96,6 +97,7 @@ const SafeTip = ({ active, payload }: { active?: boolean; payload?: TipPayload[]
 
 // ═════════════════════════════════════════════════════════════════════════
 export default function HcbsTracker() {
+  const { openIntelligence } = useAradune();
   const [st, setSt] = useState("FL");
   const [catId, setCatId] = useState("hcbs");
   const [overhead, setOverhead] = useState(35);
@@ -226,10 +228,18 @@ export default function HcbsTracker() {
   // ── Render ────────────────────────────────────────────────────────────
   return (
     <div style={{ maxWidth: 1100, margin: "0 auto", padding: "24px 16px", fontFamily: FB }}>
-      <h2 style={{ fontSize: 22, fontWeight: 800, color: A, margin: "0 0 4px" }}>HCBS Compensation Tracker</h2>
-      <p style={{ fontSize: 13, color: AL, margin: "0 0 20px" }}>
-        How much of Medicaid HCBS spending reaches direct care workers? The 80/20 pass-through standard is the benchmark.
-      </p>
+      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", marginBottom: 20 }}>
+        <div>
+          <h2 style={{ fontSize: 22, fontWeight: 800, color: A, margin: "0 0 4px" }}>HCBS Compensation Tracker</h2>
+          <p style={{ fontSize: 13, color: AL, margin: 0 }}>
+            How much of Medicaid HCBS spending reaches direct care workers? The 80/20 pass-through standard is the benchmark.
+          </p>
+        </div>
+        <button onClick={() => openIntelligence({ summary: "User is viewing HCBS Compensation Tracker" })} style={{
+          padding: "8px 14px", borderRadius: 8, border: "none", flexShrink: 0,
+          background: "#2E6B4A", color: "#fff", fontSize: 12, cursor: "pointer", fontWeight: 600,
+        }}>Ask Aradune</button>
+      </div>
 
       {loading ? (
         <Card><p style={{ color: AL, fontSize: 13, textAlign: "center", padding: 40 }}>Loading wage and rate data...</p></Card>

@@ -69,7 +69,7 @@ const STARTERS = [
   },
   {
     label: "Workforce",
-    prompt: "Which states have the most severe primary care HPSA designations and how do their Medicaid rates compare?",
+    prompt: "Which states have the most severe primary care HPSA designations?",
   },
 ];
 

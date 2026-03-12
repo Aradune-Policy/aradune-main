@@ -321,12 +321,12 @@ function Landing() {
   const [chatFocused, setChatFocused] = useState(false);
 
   const STARTERS = [
-    { label: "Rate Parity", prompt: "Which states pay primary care below 50% of Medicare?" },
+    { label: "Rate Parity", prompt: "Which states pay below 50% of Medicare for primary care E/M codes?" },
     { label: "Drug Spending", prompt: "What are the top 10 drugs by Medicaid spending in 2023?" },
-    { label: "Workforce", prompt: "Show me states with the most severe primary care shortages and how their Medicaid rates compare" },
-    { label: "State Profile", prompt: "Give me a comprehensive overview of Florida's Medicaid program" },
-    { label: "Enrollment", prompt: "How did the PHE unwinding affect enrollment in expansion vs non-expansion states?" },
-    { label: "CPRA Deadline", prompt: "What do states need to publish by July 2026 under 42 CFR 447.203?" },
+    { label: "Workforce", prompt: "Which states have the most severe primary care HPSA designations?" },
+    { label: "HCBS Waitlists", prompt: "Show me states with the longest HCBS waitlists and their FMAP rates" },
+    { label: "Enrollment", prompt: "Compare Florida's Medicaid enrollment trend to the national average" },
+    { label: "CPRA Deadline", prompt: "What is the CPRA requirement under 42 CFR 447.203 and when is it due?" },
   ];
 
   const MODULE_GROUPS = [

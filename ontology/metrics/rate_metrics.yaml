@@ -1,0 +1,42 @@
+domain: rates
+metrics:
+- name: pct_of_medicare
+  display_name: Medicaid as % of Medicare
+  description: Medicaid FFS rate divided by Medicare non-facility rate
+  formula: medicaid_rate / medicare_nonfac_rate
+  source_table: fact_rate_comparison
+  aggregation: avg
+  unit: percentage
+  caveats:
+  - Uses non-facility Medicare rate per 42 CFR 447.203
+  - Base rates only, excludes supplemental payments
+- name: cpra_pct_of_medicare
+  display_name: CPRA Medicaid-to-Medicare Ratio
+  description: Official CPRA calculation per 42 CFR 447.203
+  formula: SUM(medicaid_rate * claim_count) / SUM(medicare_nonfac_rate * claim_count)
+  source_table: fact_rate_comparison
+  aggregation: weighted_avg
+  weight_column: claim_count
+  unit: percentage
+  conversion_factor: 32.3465
+  compliance_rule: 42 CFR 447.203
+  deadline: '2026-07-01'
+- name: rate_decay_index
+  display_name: Rate Decay Index
+  description: How far Medicaid rates have fallen behind Medicare over time
+  formula: current_pct_of_medicare / baseline_pct_of_medicare
+  source_table: fact_rate_comparison
+  aggregation: avg
+  unit: ratio
+- name: implied_conversion_factor
+  display_name: Implied Conversion Factor
+  description: Reverse-engineered state CF from Medicaid rates and RVUs
+  formula: medicaid_rate / total_rvu
+  source_tables:
+  - fact_medicaid_rate
+  - dim_procedure
+  aggregation: median
+  unit: currency
+  caveats:
+  - Only valid for RBRVS-based states
+  - Excludes codes with $0 rates or missing RVUs

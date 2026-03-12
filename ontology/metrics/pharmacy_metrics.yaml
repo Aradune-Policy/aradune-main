@@ -1,0 +1,38 @@
+domain: pharmacy
+metrics:
+- name: total_drug_spending_by_state
+  display_name: Total Medicaid Drug Spending by State
+  description: Sum of total amount reimbursed for all NDCs in a state-year-quarter
+  formula: SUM(total_reimbursed) WHERE year = {year} AND state = {state}
+  source_table: fact_sdud_combined
+  aggregation: sum
+  unit: currency
+  caveats:
+    - Pre-rebate amounts. Actual net costs are lower after manufacturer rebates.
+    - Suppressed cells (Rx count < 11) included but amounts may be partial.
+    - MCO (MCOU) and FFS (FFSU) reported separately. Sum both for total.
+    - 2025 data is partial (Q1-Q2 only as of this snapshot).
+
+- name: prescriptions_per_enrollee
+  display_name: Medicaid Prescriptions per Enrollee
+  description: Total prescriptions divided by Medicaid enrollment for a state-year
+  formula: SUM(num_prescriptions) / AVG(total_enrollment)
+  source_tables:
+    - fact_sdud_combined
+    - fact_enrollment
+  aggregation: ratio
+  unit: count
+  caveats:
+    - Enrollment is monthly average; Rx count is annual total.
+    - Both FFS and MCO prescriptions included.
+
+- name: spending_per_prescription
+  display_name: Average Spending per Prescription
+  description: Total reimbursed divided by number of prescriptions
+  formula: SUM(total_reimbursed) / SUM(num_prescriptions)
+  source_table: fact_sdud_combined
+  aggregation: ratio
+  unit: currency
+  caveats:
+    - Pre-rebate amounts. Varies significantly by drug class.
+    - Specialty drugs skew this metric upward.

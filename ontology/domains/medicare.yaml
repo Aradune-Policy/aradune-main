@@ -1,0 +1,128 @@
+domain: medicare
+display_name: Medicare & ACOs
+description: Medicare enrollment, geographic variation, ACOs (MSSP/REACH), inpatient/outpatient/DME by provider and geo, CMS
+  Program Statistics, chronic conditions, MCBS, market saturation, innovation models, Part D
+entities:
+- geographic_area
+- hospital
+- provider
+- state
+primary_tables:
+- table: fact_aco_beneficiaries_county
+  row_count: 135203
+- table: fact_esrd_qip
+  row_count: 7557
+- table: fact_esrd_qip_tps
+  row_count: 7558
+- table: fact_market_saturation_county
+  row_count: 962222
+- table: fact_medicare_geo_variation
+  row_count: 33639
+- table: fact_medicare_physician_geo
+  row_count: 268634
+- table: fact_medicare_program_stats
+  row_count: 1644
+- table: fact_medicare_spending_claim
+  row_count: 63646
+- table: fact_medicare_telehealth
+  row_count: 32508
+- table: fact_mssp_participants
+  row_count: 15370
+- table: fact_medicare_physician_provider
+  row_count: 1259343
+- table: fact_medicare_provider
+  row_count: 1259343
+- table: fact_medicare_procedure_summary
+  row_count: 14377293
+- table: fact_medicare_procedure_summary_2024
+  row_count: 14369525
+- table: fact_medicare_inpatient_geo
+  row_count: 26479
+- table: fact_medicare_inpatient_provider
+  row_count: 3093
+- table: fact_medicare_inpatient_drg
+  row_count: 146427
+- table: fact_medicare_outpatient_geo
+  row_count: 19401
+- table: fact_medicare_outpatient_provider
+  row_count: 8497
+- table: fact_medicare_outpatient_by_provider
+  row_count: 116799
+- table: fact_medicare_dme_geo
+  row_count: 38675
+- table: fact_medicare_monthly_enrollment
+  row_count: 557084
+- table: fact_medicare_summary_ab
+  row_count: 2322
+- table: fact_medicare_telehealth_v2
+  row_count: 32508
+- table: fact_medicare_covid_hosp
+  row_count: 62702
+- table: fact_medicare_cert
+  row_count: 163940
+- table: fact_ma_geo_variation_v2
+  row_count: 378
+- table: fact_ma_star_ratings
+  row_count: 1558
+- table: fact_aco_reach_2026
+  row_count: 74
+- table: fact_aco_reach_providers
+  row_count: 191493
+- table: fact_aco_advance_investment
+  row_count: 202
+- table: fact_aco_snf_affiliates
+  row_count: 3196
+- table: fact_aco_beneficiaries_county_v2
+  row_count: 135203
+- table: fact_market_saturation_cbsa
+  row_count: 207651
+- table: fact_cps_dual_enrollment
+  row_count: 58
+- table: fact_cps_dual_enrollment_detail
+  row_count: 156
+- table: fact_cps_part_ab_summary
+  row_count: 56
+- table: fact_cps_premiums
+  row_count: 156
+- table: fact_cps_providers
+  row_count: 636
+- table: fact_cps_inpatient_utilization
+  row_count: 56
+- table: fact_cps_snf_utilization
+  row_count: 56
+- table: fact_cps_hha_utilization
+  row_count: 56
+- table: fact_cps_hospice_utilization
+  row_count: 56
+- table: fact_cps_ma_enrollment
+  row_count: 112
+- table: fact_cps_part_d_enrollment
+  row_count: 56
+- table: fact_cps_part_d_utilization
+  row_count: 56
+- table: fact_chronic_conditions_national
+  row_count: 186
+- table: fact_chronic_conditions_all_medicare
+  row_count: 140
+- table: fact_mcbs_cost_summary
+  row_count: 143
+- table: fact_mcbs_income_assets
+  row_count: 74
+- table: fact_county_expenditure_risk
+  row_count: 3226
+- table: fact_innovation_model_summary
+  row_count: 99
+- table: fact_innovation_participants
+  row_count: 3492
+- table: fact_esrd_etc_clinician
+  row_count: 907
+- table: fact_esrd_etc_facility
+  row_count: 433
+supporting_tables:
+- fact_aco_reach_results
+- fact_esrd_etc_results
+- fact_ma_geo_variation
+- fact_mssp_aco
+- fact_mssp_financial_results
+- fact_ipps_impact
+- fact_viii_group_expenditure

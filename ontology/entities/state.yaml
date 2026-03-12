@@ -1,0 +1,433 @@
+entity: state
+display_name: State Medicaid Program
+description: A US state or territory's Medicaid program
+canonical_table: dim_state
+primary_key: state_code
+key_type: VARCHAR(2)
+properties:
+- name: state_name
+  type: VARCHAR
+- name: methodology
+  type: VARCHAR
+- name: conversion_factor
+  type: DOUBLE
+- name: cf_effective_date
+  type: DATE
+- name: rvu_source
+  type: VARCHAR
+- name: update_frequency
+  type: VARCHAR
+- name: fee_schedule_url
+  type: VARCHAR
+- name: pct_managed_care
+  type: DOUBLE
+- name: ffs_relevance_note
+  type: VARCHAR
+- name: has_upl_supplement
+  type: BOOLEAN
+- name: has_directed_payments
+  type: BOOLEAN
+- name: dq_notes
+  type: VARCHAR
+- name: fmap
+  type: DOUBLE
+- name: efmap
+  type: DOUBLE
+- name: total_enrollment
+  type: BIGINT
+- name: ffs_enrollment
+  type: BIGINT
+- name: mc_enrollment
+  type: BIGINT
+- name: fee_index
+  type: DOUBLE
+- name: last_updated
+  type: DATE
+- name: region
+  type: VARCHAR
+fact_tables:
+- dim_medicare_locality
+- dim_state
+- fact_acs_state
+- fact_acute_care
+- fact_ahrf_county
+- fact_asc_facility
+- fact_asc_quality_facility
+- fact_asc_quality_state
+- fact_asm_participants
+- fact_bea_income_components
+- fact_bea_personal_income
+- fact_bea_transfer_receipts
+- fact_benefit_package
+- fact_benefit_package_yearly
+- fact_bh_by_condition
+- fact_bh_services
+- fact_bh_workforce_projections
+- fact_block_grant
+- fact_blood_lead_screening
+- fact_bls_medicaid_occupations
+- fact_bls_oews
+- fact_bls_wage
+- fact_bls_wage_msa
+- fact_brfss
+- fact_brfss_behavioral
+- fact_caa_fmap
+- fact_cdc_leading_causes_death
+- fact_cdc_overdose_deaths
+- fact_census_health_insurance
+- fact_census_state_finances
+- fact_chip_app_elig
+- fact_chip_eligibility
+- fact_chip_enrollment
+- fact_chip_enrollment_unwinding
+- fact_chip_monthly
+- fact_chip_program_annual
+- fact_chip_program_monthly
+- fact_chip_unwinding_separate
+- fact_claims
+- fact_claims_categories
+- fact_claims_monthly
+- fact_cms372_waiver
+- fact_cms64_ffcra
+- fact_cms64_new_adult
+- fact_complications
+- fact_complications_hosp
+- fact_continuous_eligibility
+- fact_contraceptive_care
+- fact_county_health_rankings
+- fact_covid_testing
+- fact_cps_dual_enrollment
+- fact_cps_dual_enrollment_detail
+- fact_cps_hha_utilization
+- fact_cps_hospice_utilization
+- fact_cps_inpatient_utilization
+- fact_cps_ma_enrollment
+- fact_cps_part_ab_summary
+- fact_cps_part_d_enrollment
+- fact_cps_part_d_utilization
+- fact_cps_premiums
+- fact_cps_providers
+- fact_cps_snf_utilization
+- fact_critical_access_hospitals
+- fact_dental_services
+- fact_dialysis_facility
+- fact_dialysis_facility_v2
+- fact_dialysis_state
+- fact_dmepos
+- fact_doge_state_category
+- fact_doge_state_hcpcs
+- fact_doge_state_monthly
+- fact_doge_state_taxonomy
+- fact_doge_top_providers
+- fact_dq_atlas
+- fact_dq_flag
+- fact_drug_overdose
+- fact_drug_rebate_state_contacts
+- fact_drug_utilization
+- fact_dsh_annual_v2
+- fact_dsh_hospital
+- fact_dsh_payment
+- fact_dual_status_monthly
+- fact_dual_status_yearly
+- fact_elig_group_annual
+- fact_elig_group_monthly
+- fact_eligibility
+- fact_eligibility_levels
+- fact_eligibility_processing
+- fact_enrollment
+- fact_epsdt
+- fact_epsdt_2024
+- fact_esrd_qip
+- fact_esrd_qip_tps
+- fact_expenditure
+- fact_express_lane_eligibility
+- fact_fair_market_rent
+- fact_federal_aid_share
+- fact_ffcra_fmap
+- fact_financial_mgmt
+- fact_five_star
+- fact_fmap
+- fact_fmap_historical
+- fact_fmr_fy2024
+- fact_fmr_supplemental
+- fact_food_environment
+- fact_food_environment_full
+- fact_foster_care
+- fact_fqhc_directory
+- fact_fqhc_enrollments
+- fact_fqhc_hypertension
+- fact_fqhc_quality_badges
+- fact_gme_teaching_hospitals
+- fact_hai_hospital
+- fact_hai_hospital2
+- fact_hai_state
+- fact_hcahps_hospital
+- fact_hcbs_waitlist
+- fact_hcbs_waiver_enrollment
+- fact_hcgov_transitions
+- fact_hcris_hospital
+- fact_hcris_snf
+- fact_health_center_awards
+- fact_health_screenings
+- fact_hh_quality_provider
+- fact_hha_enrollments
+- fact_hhcahps_state
+- fact_home_health_agency
+- fact_home_health_state
+- fact_home_health_state2
+- fact_home_infusion_provider
+- fact_hospice_cahps_state
+- fact_hospice_directory
+- fact_hospice_enrollments
+- fact_hospice_provider
+- fact_hospice_quality
+- fact_hospice_quality_national
+- fact_hospice_state
+- fact_hospital_cost
+- fact_hospital_directory
+- fact_hospital_enrollments
+- fact_hospital_general_info
+- fact_hospital_hrrp
+- fact_hospital_price_transparency
+- fact_hospital_price_transparency_v2
+- fact_hospital_rating
+- fact_hospital_timely_effective
+- fact_hospital_vbp
+- fact_hpsa
+- fact_hpsa_dental
+- fact_hpsa_mental_health
+- fact_imaging_hospital
+- fact_income_per_capita
+- fact_innovation_participants
+- fact_integrated_care
+- fact_ipf_facility
+- fact_ipf_quality_facility
+- fact_ipf_quality_state
+- fact_irf_provider
+- fact_kff_births_medicaid
+- fact_kff_child_participation
+- fact_kff_chip_enhanced_fmap
+- fact_kff_chip_spending
+- fact_kff_dsh_allotments
+- fact_kff_dual_eligible
+- fact_kff_dual_spending
+- fact_kff_eligibility_adults
+- fact_kff_eligibility_parents_hist
+- fact_kff_enrollees_by_group
+- fact_kff_enrollees_by_race
+- fact_kff_federal_state_share
+- fact_kff_fee_index
+- fact_kff_fmap
+- fact_kff_mc_penetration
+- fact_kff_mc_plan_type_enrollment
+- fact_kff_mco_count
+- fact_kff_mco_enrollment
+- fact_kff_mco_enrollment_by_plan
+- fact_kff_mco_spending
+- fact_kff_spending_acute_care
+- fact_kff_spending_by_enrollment_group
+- fact_kff_spending_by_service
+- fact_kff_spending_ltc
+- fact_kff_spending_per_enrollee
+- fact_kff_spending_per_full_enrollee
+- fact_kff_total_spending
+- fact_leie
+- fact_leie_v2
+- fact_ltc_facility_characteristics
+- fact_ltc_facility_characteristics_v2
+- fact_ltch_provider
+- fact_ltss_expenditure
+- fact_ltss_rebalancing
+- fact_ltss_users
+- fact_ma_enrollment_plan
+- fact_ma_geo_variation
+- fact_ma_geo_variation_v2
+- fact_macpac_benefit_spending
+- fact_macpac_benefit_spending_v2
+- fact_macpac_enrollment
+- fact_macpac_mc_enrollment_pct
+- fact_macpac_spending_by_elig
+- fact_macpac_spending_by_state
+- fact_macpac_spending_per_enrollee
+- fact_macpac_supplemental
+- fact_managed_care
+- fact_market_saturation_county
+- fact_marketplace_unwinding
+- fact_maternal_health
+- fact_mc_annual
+- fact_mc_dashboard
+- fact_mc_dashboard_v2
+- fact_mc_enrollment
+- fact_mc_enrollment_plan
+- fact_mc_enrollment_pop2
+- fact_mc_enrollment_summary
+- fact_mc_info_monthly
+- fact_mc_monthly
+- fact_mc_programs
+- fact_mc_programs_by_state
+- fact_mc_share
+- fact_mc_summary
+- fact_mco_mlr
+- fact_mco_mlr_v2
+- fact_mdpp_suppliers
+- fact_mds_facility_level
+- fact_mds_quality
+- fact_mds_quality_full
+- fact_median_income
+- fact_medicaid_applications
+- fact_medicaid_applications_v2
+- fact_medicaid_opioid_prescribing
+- fact_medicaid_rate
+- fact_medicare_enrollment
+- fact_medicare_inpatient_drg
+- fact_medicare_inpatient_provider
+- fact_medicare_outpatient_by_provider
+- fact_medicare_outpatient_provider
+- fact_medicare_physician_provider
+- fact_medicare_provider
+- fact_medicare_provider_enrollment
+- fact_medicare_rate
+- fact_medicare_rate_state
+- fact_medicare_spending_claim
+- fact_medicare_telehealth
+- fact_meps_employer_insurance
+- fact_mfcu_stats
+- fact_mh_facility
+- fact_mh_facility_survey
+- fact_mlr_market
+- fact_mltss
+- fact_mltss_enrollment2
+- fact_mortality_trend
+- fact_mspb_hospital
+- fact_mspb_hospital_detail
+- fact_mspb_state
+- fact_mua_designation
+- fact_nam_cahps
+- fact_nas_rates
+- fact_new_adult
+- fact_new_adult_enrollment
+- fact_new_adult_spending
+- fact_nh_claims_quality
+- fact_nh_deficiencies
+- fact_nh_deficiency
+- fact_nh_mds_quality
+- fact_nh_ownership
+- fact_nh_penalties
+- fact_nh_penalties_v2
+- fact_nh_provider_info
+- fact_nh_survey_summary
+- fact_nhsc_field_strength
+- fact_nhsc_scholar_pipeline
+- fact_nppes_provider
+- fact_nsduh_prevalence
+- fact_nsduh_prevalence_2024
+- fact_nsduh_sae_totals_2024
+- fact_nsduh_state_2023
+- fact_nsduh_state_2024
+- fact_nsumhss_2024
+- fact_nursing_earnings
+- fact_nursing_workforce
+- fact_oas_cahps_hospital
+- fact_oas_cahps_state
+- fact_open_payments
+- fact_open_payments_v2
+- fact_otp_provider
+- fact_otp_providers_v2
+- fact_pac_hha_casemix
+- fact_pac_hha_utilization
+- fact_pac_hospice_utilization
+- fact_pac_irf_casemix
+- fact_pac_irf_utilization
+- fact_pac_ltch_utilization
+- fact_pac_snf_casemix
+- fact_pac_snf_utilization
+- fact_pace_directory
+- fact_part_d_prescriber_provider
+- fact_pbj_daily_nonnurse
+- fact_pbj_daily_nurse
+- fact_pbj_employee
+- fact_pbj_employee_summary
+- fact_pbj_nonnurse_staffing
+- fact_pbj_nurse_staffing
+- fact_pecos_enrollment
+- fact_pension_funded_ratio
+- fact_performance_indicator
+- fact_perinatal_care
+- fact_physical_among_mh
+- fact_physical_among_sud
+- fact_physician_compare
+- fact_physician_compare_v2
+- fact_pi_performance
+- fact_places_county
+- fact_policy_chunk
+- fact_policy_document
+- fact_pos_hospital
+- fact_pos_iqies
+- fact_pos_other
+- fact_pregnancy_outcomes
+- fact_pregnant_postpartum
+- fact_prematurity_smm
+- fact_program_annual
+- fact_program_monthly
+- fact_property_tax_rate
+- fact_provider
+- fact_provider_specific
+- fact_provider_specific_v2
+- fact_psi90_hospital
+- fact_quality_core_set_2023
+- fact_quality_core_set_2024
+- fact_quality_measure
+- fact_rate_comparison
+- fact_renewal_processing
+- fact_respiratory_conditions
+- fact_revalidation_due_date
+- fact_rhc_enrollments
+- fact_risk_adjustment
+- fact_safmr_zip
+- fact_saipe_poverty
+- fact_sbm_unwinding
+- fact_scorecard
+- fact_scorecard_detail
+- fact_sdp_preprint
+- fact_sdud_2024
+- fact_sdud_2025
+- fact_smm_extended
+- fact_snap_enrollment
+- fact_snf_cost
+- fact_snf_enrollments
+- fact_snf_quality_provider
+- fact_snf_vbp
+- fact_spa
+- fact_state_debt
+- fact_state_gdp
+- fact_state_population
+- fact_state_tax_collections
+- fact_state_tax_rates
+- fact_tanf_enrollment
+- fact_tax_burden
+- fact_tax_revenue_sources
+- fact_teds_admissions_detail
+- fact_teds_discharges
+- fact_telehealth_services
+- fact_timely_effective
+- fact_timely_effective_hosp
+- fact_timely_effective_hospital
+- fact_title_v_mch
+- fact_unemployment
+- fact_unplanned_visits
+- fact_unplanned_visits_hosp
+- fact_unwinding
+- fact_vaccinations
+- fact_vha_provider
+- fact_vital_stats
+- fact_vital_stats_monthly
+- fact_wic_nutrition
+- fact_wic_participation
+- fact_workforce_projections
+- gpci_2026
+- hcbs_payment_method
+- ref_1115_waivers
+- ref_pfs_gpci
+- ref_presumptive_eligibility
+- ruca_codes
+- ruca_codes_2020

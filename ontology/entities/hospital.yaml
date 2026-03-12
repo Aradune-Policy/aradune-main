@@ -1,0 +1,136 @@
+entity: hospital
+display_name: Hospital
+description: A hospital identified by CMS Certification Number
+canonical_table: fact_hospital_cost
+primary_key: provider_ccn
+key_type: VARCHAR
+properties:
+- name: hospital_name
+  type: VARCHAR
+- name: street_address
+  type: VARCHAR
+- name: city
+  type: VARCHAR
+- name: state_code
+  type: VARCHAR
+- name: zip_code
+  type: VARCHAR
+- name: county
+  type: VARCHAR
+- name: cbsa_code
+  type: VARCHAR
+- name: rural_urban
+  type: VARCHAR
+- name: facility_type
+  type: VARCHAR
+- name: provider_type_code
+  type: BIGINT
+- name: control_type_code
+  type: BIGINT
+- name: fy_begin_date
+  type: DATE
+- name: fy_end_date
+  type: DATE
+- name: bed_count
+  type: INTEGER
+- name: bed_days_available
+  type: BIGINT
+- name: fte_employees
+  type: DOUBLE
+- name: fte_residents
+  type: DOUBLE
+- name: medicare_days
+  type: BIGINT
+- name: medicaid_days
+  type: BIGINT
+- name: total_days
+  type: BIGINT
+fact_tables:
+- fact_ahrq_psi11
+- fact_asc_facility
+- fact_asc_quality_facility
+- fact_cms_impact
+- fact_complications_hosp
+- fact_critical_access_hospitals
+- fact_dialysis_facility
+- fact_dialysis_facility_v2
+- fact_dsh_hospital
+- fact_esrd_qip
+- fact_esrd_qip_tps
+- fact_five_star
+- fact_fqhc_enrollments
+- fact_gme_teaching_hospitals
+- fact_hac_measure
+- fact_hac_measure_2025
+- fact_hac_measure_provider_2025
+- fact_hai_hospital
+- fact_hai_hospital2
+- fact_hcahps_hospital
+- fact_hcris_hospital
+- fact_hcris_snf
+- fact_hh_quality_provider
+- fact_hha_cost_report
+- fact_hha_enrollments
+- fact_hhcahps_provider
+- fact_home_health_agency
+- fact_hospice_directory
+- fact_hospice_enrollments
+- fact_hospice_provider
+- fact_hospice_quality
+- fact_hospice_quality_national
+- fact_hospital_cost
+- fact_hospital_directory
+- fact_hospital_enrollments
+- fact_hospital_general_info
+- fact_hospital_hrrp
+- fact_hospital_rating
+- fact_hospital_timely_effective
+- fact_hospital_vbp
+- fact_imaging_hospital
+- fact_ipf_facility
+- fact_ipf_quality_facility
+- fact_irf_provider
+- fact_ltch_provider
+- fact_maternal_health
+- fact_mds_facility_level
+- fact_mds_quality_full
+- fact_medicare_inpatient_drg
+- fact_medicare_inpatient_provider
+- fact_medicare_outpatient_by_provider
+- fact_medicare_outpatient_provider
+- fact_medicare_spending_claim
+- fact_mh_facility
+- fact_mh_facility_survey
+- fact_mspb_hospital
+- fact_mspb_hospital_detail
+- fact_nh_claims_quality
+- fact_nh_deficiencies
+- fact_nh_deficiency
+- fact_nh_mds_quality
+- fact_nh_ownership
+- fact_nh_penalties
+- fact_nh_penalties_v2
+- fact_nh_survey_summary
+- fact_nsumhss_2024
+- fact_oas_cahps_hospital
+- fact_pac_hospice_utilization
+- fact_pbj_daily_nonnurse
+- fact_pbj_daily_nurse
+- fact_pbj_employee
+- fact_pbj_employee_summary
+- fact_pbj_nonnurse_staffing
+- fact_pbj_nurse_staffing
+- fact_pos_hospital
+- fact_pos_iqies
+- fact_pos_other
+- fact_provider_specific
+- fact_psi90_hospital
+- fact_rhc_enrollments
+- fact_snf_cost
+- fact_snf_enrollments
+- fact_snf_quality_provider
+- fact_snf_vbp
+- fact_timely_effective_hosp
+- fact_timely_effective_hospital
+- fact_unplanned_visits_hosp
+- fact_vha_provider

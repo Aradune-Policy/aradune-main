@@ -1,0 +1,56 @@
+entity: geographic_area
+display_name: Geographic Area
+description: A county or geographic area identified by FIPS code
+canonical_table: fact_places_county
+primary_key: county_fips
+key_type: VARCHAR(5)
+properties:
+- name: year
+  type: INTEGER
+- name: state_code
+  type: VARCHAR
+- name: county_name
+  type: VARCHAR
+- name: category
+  type: VARCHAR
+- name: measure_id
+  type: VARCHAR
+- name: measure_name
+  type: VARCHAR
+- name: data_value
+  type: DOUBLE
+- name: value_unit
+  type: VARCHAR
+- name: value_type
+  type: VARCHAR
+- name: ci_lower
+  type: DOUBLE
+- name: ci_upper
+  type: DOUBLE
+- name: total_population
+  type: BIGINT
+- name: snapshot
+  type: DATE
+fact_tables:
+- fact_cms_impact
+- fact_county_health_rankings
+- fact_fair_market_rent
+- fact_food_environment
+- fact_food_environment_full
+- fact_health_center_awards
+- fact_hpsa_dental
+- fact_hpsa_mental_health
+- fact_market_saturation_county
+- fact_medicare_enrollment
+- fact_medicare_inpatient_geo
+- fact_medicare_outpatient_geo
+- fact_opioid_prescribing
+- fact_opioid_prescribing_geo
+- fact_part_d_prescriber_geo
+- fact_pbj_daily_nonnurse
+- fact_pbj_daily_nurse
+- fact_pbj_nurse_staffing
+- fact_places_county
+- fact_saipe_poverty
+- fact_teen_birth_rate
+- ruca_codes_2020

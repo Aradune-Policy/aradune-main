@@ -1061,8 +1061,8 @@ export default function CaseloadForecaster() {
                     </tr>
                   </thead>
                   <tbody>
-                    {cats.map((c, i) => {
-                      const baseAvg = c.forecasts.reduce((s, f) => s + f.point, 0) / c.forecasts.length;
+                    {result!.categories.map((c: { category: string; model_used: string; forecasts: { point: number }[] }, i: number) => {
+                      const baseAvg = c.forecasts.reduce((s: number, f: { point: number }) => s + f.point, 0) / c.forecasts.length;
                       const scenAvg = baseAvg * enrollmentMultiplier;
                       const delta = scenAvg - baseAvg;
                       return (

@@ -4,7 +4,7 @@ import { useProAccess, ProBadge, ProGateModal } from "../components/ProGate";
 import { query as duckQuery } from "../lib/duckdb";
 import { API_BASE } from "../lib/api";
 import { LoadingBar } from "../components/LoadingBar";
-import { calcRBRVS, applyConstraint, FL_CONFIG, round2 } from "../engine/StateRateEngine";
+import { calcRBRVS, applyConstraint, FL_CONFIG, round2, StateRateEngine } from "../engine/StateRateEngine";
 
 // ── Design System ───────────────────────────────────────────────────────
 const A = "#0A2540";
@@ -21,6 +21,13 @@ const FM = "'SF Mono',Menlo,monospace";
 const SH = "0 1px 3px rgba(0,0,0,.04),0 4px 12px rgba(0,0,0,.03)";
 
 const STATE_NAMES: Record<string, string> = {AL:"Alabama",AK:"Alaska",AZ:"Arizona",AR:"Arkansas",CA:"California",CO:"Colorado",CT:"Connecticut",DE:"Delaware",DC:"D.C.",FL:"Florida",GA:"Georgia",HI:"Hawaii",ID:"Idaho",IL:"Illinois",IN:"Indiana",IA:"Iowa",KS:"Kansas",KY:"Kentucky",LA:"Louisiana",ME:"Maine",MD:"Maryland",MA:"Massachusetts",MI:"Michigan",MN:"Minnesota",MS:"Mississippi",MO:"Missouri",MT:"Montana",NE:"Nebraska",NV:"Nevada",NH:"New Hampshire",NJ:"New Jersey",NM:"New Mexico",NY:"New York",NC:"N. Carolina",ND:"N. Dakota",OH:"Ohio",OK:"Oklahoma",OR:"Oregon",PA:"Pennsylvania",RI:"Rhode Island",SC:"S. Carolina",SD:"S. Dakota",TN:"Tennessee",TX:"Texas",UT:"Utah",VT:"Vermont",VA:"Virginia",WA:"Washington",WV:"W. Virginia",WI:"Wisconsin",WY:"Wyoming"};
+
+// Reference state CFs for multi-state RBRVS comparison
+const REFERENCE_CFS = [
+  { st: "FL", cf: 24.978, fsi: 1.04, tier: 3, label: "FL (Tier 3)" },
+  { st: "AK", cf: 43.412, fsi: 1.0, tier: 1, label: "AK" },
+  { st: "MI", cf: 21.30, fsi: 1.0, tier: 1, label: "MI" },
+];
 
 // Rate-setting methodologies
 const METHODOLOGIES: Methodology[] = [
@@ -147,7 +154,7 @@ const METHODOLOGIES: Methodology[] = [
         }
       }
 
-      components.push({ label: "Calculated Rate", value: `$${finalRate.toFixed(2)}`, note: constrained ? "After guardrail" : isNew ? "New code (unconstrained)" : "Within guardrail", bold: true });
+      components.push({ label: "Calculated Rate", value: `$${finalRate.toFixed(2)}`, note: constrained ? "After guardrail" : isNew ? "New code (unconstrained)" : "Within guardrail" });
 
       if (pctMcr && ctx.medicareRate) {
         components.push({ label: "% of Medicare", value: `${pctMcr.toFixed(1)}%`, note: `Medicare = $${ctx.medicareRate.toFixed(2)}` });
@@ -406,6 +413,46 @@ export default function RateBuilder() {
     const impact = newSpending - codeSpending.paid;
     return { curRate, newSpending, impact, pctChange: (impact / codeSpending.paid) * 100 };
   }, [result, codeSpending]);
+
+  // FL Tier 3 Engine analysis
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const flEngineResult: any = useMemo(() => {
+    if (!selectedCode?.rvu) return null;
+    try {
+      const engine = new StateRateEngine(FL_CONFIG);
+      return engine.priceCode({
+        procedure: selectedCode.code,
+        mod: '',
+        nonFacRVU: selectedCode.rvu,
+        facRVU: 0,
+        isNew: true,
+        priorFS: 0,
+        priorFSI: 0,
+      });
+    } catch { return null; }
+  }, [selectedCode]);
+
+  // Multi-state RBRVS preview
+  const multiStatePreview = useMemo(() => {
+    if (!selectedCode?.rvu) return null;
+    return REFERENCE_CFS.map(s => {
+      const rate = round2(calcRBRVS(selectedCode.rvu!, s.cf, 1.0, s.fsi));
+      const pctMcr = selectedCode.medicareRate ? round2(rate / selectedCode.medicareRate * 100) : null;
+      return { ...s, rate, pctMcr };
+    });
+  }, [selectedCode]);
+
+  // Implied CFs reverse-engineered from published fee schedule rates
+  const impliedCFs = useMemo(() => {
+    if (!selectedCode?.rvu || selectedCode.stateRates.length === 0) return null;
+    return selectedCode.stateRates
+      .filter((s: StateRate) => s.rate > 0 && s.rateSource === "fee_schedule")
+      .map((s: StateRate) => ({
+        ...s,
+        impliedCF: round2(s.rate / selectedCode.rvu!),
+      }))
+      .sort((a: StateRate & { impliedCF: number }, b: StateRate & { impliedCF: number }) => b.impliedCF - a.impliedCF);
+  }, [selectedCode]);
 
   if (loading) return <LoadingBar text="Loading rate data" detail="Fee schedules and RVU components" />;
 
@@ -697,6 +744,91 @@ export default function RateBuilder() {
               })}
             </tbody>
           </table>
+        </div>
+      </Card>}
+
+      {/* Engine Analysis */}
+      {result && selectedCode && selectedCode.rvu && <Card>
+        <CH t="Engine Analysis" b="StateRateEngine v2.0" r={`RVU ${selectedCode.rvu.toFixed(4)}`}/>
+        <div style={{ padding:"6px 14px 14px" }}>
+
+          {/* FL Tier 3 Engine */}
+          {flEngineResult && (
+            <div style={{ marginBottom:12 }}>
+              <div style={{ fontSize:10,fontWeight:700,color:A,marginBottom:4 }}>FL Tier 3 Engine</div>
+              <div style={{ padding:"8px 10px",background:SF,borderRadius:6,fontSize:10 }}>
+                <div style={{ display:"flex",justifyContent:"space-between",marginBottom:4,flexWrap:"wrap",gap:6 }}>
+                  <span style={{ color:AL }}>Schedule: <b style={{ color:A }}>{flEngineResult.schedule}</b></span>
+                  <span style={{ color:AL }}>SPA: <b style={{ color:A }}>{flEngineResult.spaSection}</b></span>
+                  <span style={{ color:AL }}>Method: <b style={{ color:A }}>{flEngineResult.methodology}</b></span>
+                </div>
+                {flEngineResult.rates?.fs != null && (
+                  <div style={{ fontSize:14,fontFamily:FM,fontWeight:600,color:cB,marginBottom:4 }}>
+                    FL Rate: ${flEngineResult.rates.fs.toFixed(2)}
+                    {flEngineResult.rates.facility != null && <span style={{ color:AL,fontSize:10,marginLeft:8 }}>Facility: ${flEngineResult.rates.facility.toFixed(2)}</span>}
+                    {flEngineResult.rates.pc != null && <span style={{ color:AL,fontSize:10,marginLeft:8 }}>PC: ${flEngineResult.rates.pc.toFixed(2)} TC: ${(flEngineResult.rates.tc||0).toFixed(2)}</span>}
+                  </div>
+                )}
+                {flEngineResult.audit?.map((a: string, i: number) => (
+                  <div key={i} style={{ fontSize:9,color:AL,fontFamily:FM,marginTop:2 }}>{a}</div>
+                ))}
+                {flEngineResult.flags?.length > 0 && flEngineResult.flags.map((f: string, i: number) => (
+                  <div key={i} style={{ fontSize:9,color:WARN,marginTop:2 }}>{f}</div>
+                ))}
+              </div>
+            </div>
+          )}
+
+          {/* Multi-State RBRVS Preview */}
+          {multiStatePreview && (
+            <div style={{ marginBottom:12 }}>
+              <div style={{ fontSize:10,fontWeight:700,color:A,marginBottom:4 }}>Multi-State RBRVS Comparison</div>
+              <table style={{ width:"100%",borderCollapse:"collapse",fontSize:10 }}>
+                <thead><tr style={{ borderBottom:`2px solid ${BD}` }}>
+                  {["State","CF","FSI","Rate","% Medicare","Tier"].map(h=>(
+                    <th key={h} style={{ textAlign:"left",padding:"4px",color:AL,fontWeight:600,fontSize:8,fontFamily:FM }}>{h}</th>
+                  ))}
+                </tr></thead>
+                <tbody>
+                  {multiStatePreview.map(s => (
+                    <tr key={s.st} style={{ borderBottom:`1px solid ${SF}` }}>
+                      <td style={{ padding:"3px 4px",fontWeight:500 }}>{s.label}</td>
+                      <td style={{ fontFamily:FM }}>${s.cf.toFixed(2)}</td>
+                      <td style={{ fontFamily:FM }}>{s.fsi !== 1.0 ? `x${s.fsi}` : "—"}</td>
+                      <td style={{ fontFamily:FM,fontWeight:600,color:cB }}>${s.rate.toFixed(2)}</td>
+                      <td style={{ fontFamily:FM }}>{s.pctMcr ? `${s.pctMcr.toFixed(1)}%` : "—"}</td>
+                      <td><span style={{ fontSize:7,padding:"1px 4px",borderRadius:6,background:s.tier===3?"rgba(46,107,74,0.15)":"rgba(66,90,112,0.1)",color:s.tier===3?POS:AL,fontWeight:600 }}>T{s.tier}</span></td>
+                    </tr>
+                  ))}
+                  <tr style={{ borderTop:`2px solid ${BD}`,background:"rgba(46,107,74,0.04)" }}>
+                    <td style={{ padding:"3px 4px",fontWeight:700 }}>Your Rate</td>
+                    <td colSpan={2} style={{ fontFamily:FM,fontSize:9,color:AL }}>{curMethod?.name}</td>
+                    <td style={{ fontFamily:FM,fontWeight:700,color:cB }}>${result.rate.toFixed(2)}</td>
+                    <td style={{ fontFamily:FM,fontWeight:600 }}>{selectedCode.medicareRate ? `${(result.rate/selectedCode.medicareRate*100).toFixed(1)}%` : "—"}</td>
+                    <td></td>
+                  </tr>
+                </tbody>
+              </table>
+            </div>
+          )}
+
+          {/* Implied Conversion Factors */}
+          {impliedCFs && impliedCFs.length > 0 && (
+            <div>
+              <div style={{ fontSize:10,fontWeight:700,color:A,marginBottom:4 }}>Implied Conversion Factors</div>
+              <div style={{ fontSize:9,color:AL,marginBottom:6 }}>Reverse-engineered from published rates: Rate / RVU = implied CF</div>
+              <div style={{ display:"flex",gap:4,flexWrap:"wrap" }}>
+                {impliedCFs.slice(0,15).map((s: StateRate & { impliedCF: number }) => (
+                  <div key={s.st} style={{ padding:"3px 8px",background:SF,borderRadius:6,fontSize:9,fontFamily:FM }}>
+                    <span style={{ fontWeight:600 }}>{s.st}</span>
+                    <span style={{ color:cB,marginLeft:4 }}>${s.impliedCF.toFixed(2)}</span>
+                  </div>
+                ))}
+              </div>
+              {impliedCFs.length > 15 && <div style={{ fontSize:9,color:AL,marginTop:4 }}>+ {impliedCFs.length - 15} more states</div>}
+            </div>
+          )}
+
         </div>
       </Card>}
 

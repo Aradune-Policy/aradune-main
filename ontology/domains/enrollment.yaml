@@ -1,0 +1,166 @@
+domain: enrollment
+display_name: Enrollment & Managed Care
+description: Monthly Medicaid enrollment, eligibility groups, managed care programs, CHIP, unwinding, applications, PACE,
+  dual status, marketplace transitions, KFF coverage data
+entities:
+- geographic_area
+- provider
+- state
+primary_tables:
+- table: dim_pace_organization
+  row_count: 201
+- table: dim_state
+  row_count: 51
+- table: fact_benefit_package
+  row_count: 1484
+- table: fact_chip_app_elig
+  row_count: 5567
+- table: fact_chip_enrollment
+  row_count: 10404
+- table: fact_chip_monthly
+  row_count: 1080
+- table: fact_chip_program_annual
+  row_count: 1113
+- table: fact_chip_program_monthly
+  row_count: 13356
+- table: fact_cms64_new_adult
+  row_count: 2622
+- table: fact_dental_services
+  row_count: 3180
+- table: fact_dual_status_monthly
+  row_count: 13356
+- table: fact_elig_group_annual
+  row_count: 2597
+- table: fact_elig_group_monthly
+  row_count: 31164
+- table: fact_eligibility
+  row_count: 10404
+- table: fact_eligibility_processing
+  row_count: 3162
+- table: fact_enrollment
+  row_count: 10399
+- table: fact_managed_care
+  row_count: 7107
+- table: fact_marketplace_unwinding
+  row_count: 59527
+- table: fact_mc_annual
+  row_count: 2597
+- table: fact_mc_dashboard
+  row_count: 19559
+- table: fact_mc_enrollment
+  row_count: 7804
+- table: fact_mc_enrollment_plan
+  row_count: 7804
+- table: fact_mc_info_monthly
+  row_count: 31164
+- table: fact_mc_monthly
+  row_count: 31164
+- table: fact_medicaid_applications
+  row_count: 10404
+- table: fact_medicare_enrollment
+  row_count: 557084
+- table: fact_medicare_provider_enrollment
+  row_count: 2957262
+- table: fact_new_adult
+  row_count: 7058
+- table: fact_new_adult_enrollment
+  row_count: 7854
+- table: fact_program_annual
+  row_count: 1113
+- table: fact_program_monthly
+  row_count: 13356
+- table: fact_renewal_processing
+  row_count: 3162
+- table: fact_snap_enrollment
+  row_count: 3920
+- table: fact_tanf_enrollment
+  row_count: 9072
+- table: fact_telehealth_services
+  row_count: 12720
+- table: fact_unwinding
+  row_count: 57759
+- table: fact_mc_enrollment_annual
+  row_count: 2597
+- table: fact_mc_enrollment_monthly
+  row_count: 31164
+- table: fact_mc_programs_by_state
+  row_count: 362
+- table: fact_mc_annual_v2
+  row_count: 2597
+- table: fact_mc_monthly_v2
+  row_count: 31164
+- table: fact_mc_info_monthly2
+  row_count: 31164
+- table: fact_mc_info_annual
+  row_count: 2597
+- table: fact_mc_features_population
+  row_count: 93
+- table: fact_mc_features_qa
+  row_count: 81
+- table: fact_mc_qa_features
+  row_count: 81
+- table: fact_mc_dashboard_v2
+  row_count: 2040
+- table: fact_program_info_monthly
+  row_count: 13356
+- table: fact_chip_program_type_annual
+  row_count: 1113
+- table: fact_chip_program_type_monthly
+  row_count: 13356
+- table: fact_chip_unwinding_separate
+  row_count: 780
+- table: fact_dual_status_yearly
+  row_count: 1113
+- table: fact_benefit_package_yearly
+  row_count: 1484
+- table: fact_medicaid_applications_v2
+  row_count: 10404
+- table: fact_marketplace_oep_2025
+  row_count: 54
+- table: fact_pace_directory
+  row_count: 921
+- table: fact_mltss_enrollees
+  row_count: 504
+- table: fact_express_lane_eligibility
+  row_count: 15
+- table: fact_hcgov_transitions
+  row_count: 59527
+- table: fact_pi_performance
+  row_count: 10404
+supporting_tables:
+- fact_chip_eligibility
+- fact_chip_enrollment_unwinding
+- fact_continuous_eligibility
+- fact_eligibility_levels
+- fact_hcbs_waiver_enrollment
+- fact_macpac_enrollment
+- fact_marketplace_oep
+- fact_mc_enroll_duals
+- fact_mc_enroll_pop
+- fact_mc_enrollment_pop2
+- fact_mc_enrollment_summary
+- fact_mc_programs
+- fact_mc_quality_features
+- fact_mc_share
+- fact_mc_summary
+- fact_mltss_enrollment2
+- fact_new_adult_spending
+- fact_sbm_unwinding
+- ref_presumptive_eligibility
+- fact_presumptive_eligibility
+- fact_kff_mc_penetration
+- fact_kff_mc_plan_type_enrollment
+- fact_kff_mco_count
+- fact_kff_mco_enrollment
+- fact_kff_mco_enrollment_by_plan
+- fact_kff_mco_spending
+- fact_kff_mco_parent_financials
+- fact_kff_enrollees_by_group
+- fact_kff_enrollees_by_race
+- fact_kff_dual_eligible
+- fact_kff_dual_spending
+- fact_kff_eligibility_adults
+- fact_kff_eligibility_parents_hist
+- fact_macpac_mc_enrollment_pct
+- fact_macpac_spending_by_elig
+- fact_ma_enrollment_plan

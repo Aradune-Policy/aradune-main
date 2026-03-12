@@ -1,0 +1,67 @@
+domain: behavioral_health
+display_name: Behavioral Health & Substance Use
+description: NSDUH prevalence and state estimates, TEDS admissions and discharges, MH/SUD facilities, opioid prescribing,
+  OTP providers, NSUMHSS survey, and IPF quality
+entities:
+- quality_measure
+- state
+primary_tables:
+- table: fact_bh_by_condition
+  row_count: 4240
+- table: fact_bh_services
+  row_count: 31800
+- table: fact_cdc_overdose_deaths
+  row_count: 81270
+- table: fact_drug_overdose
+  row_count: 2703
+- table: fact_ipf_facility
+  row_count: 1422
+- table: fact_ipf_quality_facility
+  row_count: 1422
+- table: fact_medicaid_opioid_prescribing
+  row_count: 539181
+- table: fact_mh_facility
+  row_count: 27957
+- table: fact_nsduh_prevalence
+  row_count: 5865
+- table: fact_nsduh_prevalence_2024
+  row_count: 4212
+- table: fact_opioid_prescribing
+  row_count: 539181
+- table: fact_otp_provider
+  row_count: 1533
+- table: fact_physical_among_mh
+  row_count: 5565
+- table: fact_physical_among_sud
+  row_count: 5565
+- table: fact_teds_admissions_detail
+  row_count: 83795
+- table: fact_teds_discharges
+  row_count: 91253
+- table: fact_nsduh_sae_totals_2024
+  row_count: 8120
+- table: fact_nsduh_state_2023
+  row_count: 29736
+- table: fact_nsduh_state_2024
+  row_count: 28112
+- table: fact_nsumhss_2024
+  row_count: 27957
+- table: fact_mh_facility_survey
+  row_count: 27957
+- table: fact_mh_sud_services
+  row_count: 216
+- table: fact_opioid_prescribing_geo
+  row_count: 539181
+- table: fact_opioid_prescribing_rates
+  row_count: 539181
+- table: fact_medicaid_opioid_geo
+  row_count: 539181
+- table: fact_otp_providers_v2
+  row_count: 1533
+- table: fact_bh_services_detail
+  row_count: 31800
+supporting_tables:
+- fact_block_grant
+- fact_ipf_quality_state
+- fact_mh_sud_recipients
+- fact_teds_admissions

@@ -1,0 +1,20 @@
+entity: occupation
+display_name: Healthcare Occupation
+description: A BLS Standard Occupational Classification for healthcare workers
+canonical_table: dim_bls_occupation
+primary_key: soc_code
+key_type: VARCHAR
+properties:
+- name: occupation_title
+  type: VARCHAR
+- name: medicaid_category
+  type: VARCHAR
+- name: data_year
+  type: INTEGER
+fact_tables:
+- dim_bls_occupation
+- fact_bls_medicaid_occupations
+- fact_bls_oews
+- fact_bls_wage
+- fact_bls_wage_msa
+- fact_bls_wage_national

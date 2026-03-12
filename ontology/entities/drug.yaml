@@ -1,0 +1,42 @@
+entity: drug
+display_name: Drug Product
+description: A drug product identified by National Drug Code
+canonical_table: fact_drug_utilization
+primary_key: ndc
+key_type: VARCHAR(11)
+properties:
+- name: state_code
+  type: VARCHAR
+- name: year
+  type: BIGINT
+- name: quarter
+  type: BIGINT
+- name: product_name
+  type: VARCHAR
+- name: units_reimbursed
+  type: DOUBLE
+- name: prescription_count
+  type: INTEGER
+- name: total_reimbursed
+  type: DOUBLE
+- name: medicaid_reimbursed
+  type: DOUBLE
+- name: source
+  type: VARCHAR
+- name: snapshot_date
+  type: DATE
+- name: snapshot
+  type: DATE
+fact_tables:
+- fact_aca_ful
+- fact_clotting_factor
+- fact_drug_amp_monthly
+- fact_drug_amp_quarterly
+- fact_drug_rebate_products
+- fact_drug_utilization
+- fact_exclusive_pediatric
+- fact_nadac
+- fact_sdud_2024
+- fact_sdud_2025
+- ref_drug_rebate
+- ref_pediatric_drugs

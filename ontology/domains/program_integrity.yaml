@@ -1,0 +1,16 @@
+domain: program_integrity
+display_name: Program Integrity
+description: OIG LEIE exclusion lists, PERM error rates, MFCU statistics, revoked and opt-out providers
+entities:
+- provider
+- state
+primary_tables:
+- table: fact_leie
+  row_count: 82749
+- table: fact_leie_v2
+  row_count: 82749
+- table: fact_perm_rates
+  row_count: 12
+- table: fact_mfcu_stats
+  row_count: 53
+supporting_tables: []

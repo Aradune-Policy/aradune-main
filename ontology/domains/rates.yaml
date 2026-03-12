@@ -1,0 +1,63 @@
+domain: rates
+display_name: Rates & Fee Schedules
+description: Medicaid provider payment rates, Medicare benchmarks, rate comparisons, PFS RVUs, fee schedules (ambulance, anesthesia,
+  CLFS, DMEPOS, OPPS), and DOGE claims data
+entities:
+- hospital
+- procedure
+- quality_measure
+- state
+primary_tables:
+- table: dim_hcpcs
+  row_count: 8623
+- table: dim_medicare_locality
+  row_count: 109
+- table: dim_procedure
+  row_count: 16978
+- table: fact_claims
+  row_count: 712793
+- table: fact_claims_categories
+  row_count: 8120
+- table: fact_claims_monthly
+  row_count: 6299376
+- table: fact_dq_atlas
+  row_count: 101565
+- table: fact_dq_flag
+  row_count: 269475
+- table: fact_medicaid_rate
+  row_count: 597483
+- table: fact_medicare_rate
+  row_count: 858593
+- table: fact_medicare_rate_state
+  row_count: 417481
+- table: fact_nh_claims_quality
+  row_count: 58840
+- table: fact_rate_comparison
+  row_count: 302332
+- table: fact_pfs_rvu
+  row_count: 19277
+- table: fact_pfs_rvu_2026
+  row_count: 18239
+- table: fact_pfs_opps_cap
+  row_count: 15260
+- table: fact_opps_cap_2026
+  row_count: 15260
+- table: fact_ambulance
+  row_count: 1308
+- table: fact_anesthesia_2026
+  row_count: 109
+- table: fact_clfs
+  row_count: 2162
+- table: fact_dmepos
+  row_count: 222076
+- table: fact_drug_spending_trend
+  row_count: 71333
+supporting_tables:
+- fact_integrated_care
+- fact_nas_rates
+- fact_doge_state_hcpcs
+- fact_doge_state_taxonomy
+- fact_doge_state_monthly
+- fact_doge_state_category
+- fact_doge_top_providers
+- fact_kff_fee_index

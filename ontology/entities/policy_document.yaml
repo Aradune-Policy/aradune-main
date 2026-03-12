@@ -1,0 +1,40 @@
+entity: policy_document
+display_name: Policy Document
+description: A CMS policy document (CIB, SHO, SPA, waiver, Federal Register)
+canonical_table: fact_policy_document
+primary_key: doc_id
+key_type: VARCHAR
+properties:
+- name: doc_type
+  type: VARCHAR
+- name: state_code
+  type: INTEGER
+- name: title
+  type: VARCHAR
+- name: doc_number
+  type: VARCHAR
+- name: effective_date
+  type: INTEGER
+- name: publication_date
+  type: VARCHAR
+- name: status
+  type: VARCHAR
+- name: source_url
+  type: VARCHAR
+- name: pdf_path
+  type: VARCHAR
+- name: page_count
+  type: BIGINT
+- name: summary
+  type: VARCHAR
+- name: topics
+  type: VARCHAR
+- name: chunk_count
+  type: BIGINT
+- name: ingested_at
+  type: VARCHAR
+- name: snapshot
+  type: DATE
+fact_tables:
+- fact_policy_chunk
+- fact_policy_document

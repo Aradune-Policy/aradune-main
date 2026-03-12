@@ -1,0 +1,36 @@
+domain: quality
+display_name: Quality & Outcomes
+description: CMS Core Set quality measures (2023-2024), Scorecard with detailed stratification, EPSDT, and performance indicators
+entities:
+- quality_measure
+- state
+primary_tables:
+- table: dim_scorecard_measure
+  row_count: 55
+- table: fact_performance_indicator
+  row_count: 10404
+- table: fact_quality_core_set_2023
+  row_count: 5555
+- table: fact_quality_core_set_2024
+  row_count: 10972
+- table: fact_quality_measure
+  row_count: 5236
+- table: fact_scorecard
+  row_count: 90165
+- table: fact_quality_measures_2024_full
+  row_count: 11100
+- table: fact_scorecard_detail
+  row_count: 90165
+- table: fact_epsdt_2024
+  row_count: 22513
+supporting_tables:
+- fact_epsdt
+planned_tables:
+- table: fact_quality_child_adult_2024
+  description: Child and adult health care quality measures 2024 — may extend or replace quality_core_set_2024. 2024-child-and-adult-health-care-quality-measures.csv (9 MB) in raw.
+  strategy: Compare columns to existing quality_core_set_2024. If new measures or states, add as separate table.
+  priority: medium
+- table: fact_mcpar
+  description: Managed Care Program Annual Reports — plan-level prior auth, grievances, appeals, quality, network adequacy. High value but PDF extraction needed.
+  strategy: Claude PDF extraction from Medicaid.gov MCPAR reports
+  priority: medium-high (deferred due to extraction complexity)

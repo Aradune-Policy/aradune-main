@@ -1,0 +1,14 @@
+domain: insurance_market
+display_name: Insurance Market & Coverage
+description: Medical loss ratios by market type, risk adjustment transfers, MA Star ratings, Census health insurance coverage,
+  and employer-sponsored insurance
+entities:
+- state
+primary_tables:
+- table: fact_mlr_market
+  row_count: 12285
+- table: fact_risk_adjustment
+  row_count: 730
+- table: fact_meps_employer_insurance
+  row_count: 415
+supporting_tables: []

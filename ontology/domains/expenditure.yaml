@@ -1,0 +1,68 @@
+domain: expenditure
+display_name: Expenditure & Fiscal
+description: CMS-64 expenditure (FY2016 + multi-year FY2018-2024 by service category, 117K rows), FMAP (current and historical),
+  supplemental payments, DSH, NHE national health expenditure, MCO medical loss ratios, MACPAC spending, KFF spending data
+entities:
+- state
+primary_tables:
+- table: fact_cms64_ffcra
+  row_count: 1197
+- table: fact_expenditure
+  row_count: 5379
+- table: fact_ffcra_fmap
+  row_count: 1197
+- table: fact_financial_mgmt
+  row_count: 15511
+- table: fact_cms64_multiyear
+  row_count: 117936
+- table: fact_fmr_fy2024
+  row_count: 19095
+- table: fact_fmr_supplemental
+  row_count: 1553
+- table: fact_nhe_state
+  row_count: 117000
+- table: fact_dsh_annual
+  row_count: 49
+- table: fact_dsh_annual_v2
+  row_count: 49
+- table: fact_macpac_benefit_spending_v2
+  row_count: 56
+- table: fact_fmap_historical
+  row_count: 612
+- table: fact_mco_mlr
+  row_count: 2282
+- table: fact_mco_mlr_v2
+  row_count: 2282
+- table: fact_nhe
+  row_count: 3393
+- table: fact_nhe_projections
+  row_count: 1334
+- table: fact_macpac_benefit_spending_fy2024
+  row_count: 56
+- table: fact_macpac_spending_by_elig_fy2023
+  row_count: 51
+- table: fact_macpac_mc_enrollment_detail
+  row_count: 52
+supporting_tables:
+- fact_caa_fmap
+- fact_financial_mgmt_national
+- fact_fmap
+- fact_macpac_benefit_spending
+- fact_macpac_spending_by_state
+- fact_macpac_spending_per_enrollee
+- fact_macpac_supplemental
+- fact_sdp_preprint
+- fact_kff_total_spending
+- fact_kff_spending_per_enrollee
+- fact_kff_spending_per_full_enrollee
+- fact_kff_spending_by_enrollment_group
+- fact_kff_spending_by_service
+- fact_kff_spending_acute_care
+- fact_kff_spending_ltc
+- fact_kff_federal_state_share
+- fact_kff_fmap
+- fact_kff_dsh_allotments
+- fact_kff_births_medicaid
+- fact_kff_chip_spending
+- fact_kff_chip_enhanced_fmap
+- fact_kff_child_participation

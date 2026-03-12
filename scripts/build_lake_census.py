@@ -68,11 +68,18 @@ def _snapshot_path(fact_name: str) -> Path:
     return FACT_DIR / fact_name / f"snapshot={SNAPSHOT_DATE}" / "data.parquet"
 
 
+_CENSUS_SENTINELS = {-888888888, -666666666, -999999999,
+                     -888888888.0, -666666666.0, -999999999.0}
+
+
 def _try_float(val):
     if val is None or val == '' or val == 'null' or val == '-':
         return None
     try:
-        return float(val)
+        f = float(val)
+        if f in _CENSUS_SENTINELS:
+            return None
+        return f
     except (ValueError, TypeError):
         return None
 

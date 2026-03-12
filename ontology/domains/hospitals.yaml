@@ -1,0 +1,99 @@
+domain: hospitals
+display_name: Hospitals & Acute Care
+description: Hospital cost reports (HCRIS), quality ratings, DSH/VBP/HRRP, AHEAD readiness, HCAHPS patient experience, price
+  transparency, critical access, teaching hospitals, ASC quality
+entities:
+- geographic_area
+- hospital
+- provider
+- quality_measure
+- state
+primary_tables:
+- table: fact_cms_impact
+  row_count: 3152
+- table: fact_complications
+  row_count: 1120
+- table: fact_complications_hosp
+  row_count: 95780
+- table: fact_dsh_hospital
+  row_count: 6103
+- table: fact_hac_measure
+  row_count: 12120
+- table: fact_hai_hospital
+  row_count: 172404
+- table: fact_hai_hospital2
+  row_count: 172404
+- table: fact_hai_state
+  row_count: 1008
+- table: fact_hhcahps_provider
+  row_count: 12251
+- table: fact_hospital_cost
+  row_count: 18220
+- table: fact_hospital_directory
+  row_count: 5426
+- table: fact_hospital_hrrp
+  row_count: 18330
+- table: fact_hospital_rating
+  row_count: 5426
+- table: fact_hospital_service_area
+  row_count: 1156701
+- table: fact_hospital_timely_effective
+  row_count: 138129
+- table: fact_hospital_vbp
+  row_count: 2455
+- table: fact_imaging_hospital
+  row_count: 18500
+- table: fact_mspb_hospital
+  row_count: 4625
+- table: fact_mspb_hospital_detail
+  row_count: 4625
+- table: fact_pos_hospital
+  row_count: 13510
+- table: fact_psi90_hospital
+  row_count: 52327
+- table: fact_snf_vbp
+  row_count: 13900
+- table: fact_timely_effective
+  row_count: 1736
+- table: fact_timely_effective_hosp
+  row_count: 138129
+- table: fact_unplanned_visits_hosp
+  row_count: 67046
+- table: fact_hcahps_hospital
+  row_count: 325652
+- table: fact_timely_effective_hospital
+  row_count: 138129
+- table: fact_oas_cahps_hospital
+  row_count: 92500
+- table: fact_hcris_hospital
+  row_count: 18220
+- table: fact_hospital_general_info
+  row_count: 5426
+- table: fact_hac_measure_2025
+  row_count: 12120
+- table: fact_hac_measure_provider_2025
+  row_count: 12120
+- table: fact_asc_quality_facility
+  row_count: 5711
+- table: fact_hh_quality_provider
+  row_count: 12251
+- table: fact_hospital_price_transparency
+  row_count: 10680
+- table: fact_hospital_price_transparency_v2
+  row_count: 10680
+- table: fact_gme_teaching_hospitals
+  row_count: 61818
+- table: fact_critical_access_hospitals
+  row_count: 1376
+- table: fact_ahrq_psi11
+  row_count: 3319
+supporting_tables:
+- fact_dsh_payment
+- fact_hcahps_state
+- fact_hhcahps_state
+- fact_mspb_state
+- fact_unplanned_visits
+- fact_hospital_chow
+- fact_hospital_chow_owners
+- fact_hospital_all_owners
+- fact_hospital_enrollments

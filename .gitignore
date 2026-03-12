@@ -24,6 +24,9 @@ public/data/medicare_rates_locality.parquet
 # Python
 server/__pycache__/
 server/.env
+.env
+.env.local
+!.env.example
 *.pyc
 
 # Working directories (local scraping, analysis, data processing)

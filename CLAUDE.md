@@ -1,67 +1,72 @@
 # CLAUDE.md — Aradune
-> **The ONE source for Medicaid data intelligence.**
+> **The operating system for Medicaid intelligence.**
 > Read this file at the start of every session. It defines what Aradune is, how it's built, and the rules for building it.
-> Last updated: 2026-03-09 · Live: https://www.aradune.co
+> Build plan: See ARADUNE_BUILD_GUIDE.md for the phased build plan, module specs, and data import architecture.
+> Last updated: 2026-03-12 · Live: https://www.aradune.co
 
 ---
 
 ## 1. What Aradune Is
 
-Aradune (aradune.co) is a **Medicaid data intelligence platform** — the Bloomberg Terminal of Medicaid. It ingests, normalizes, and cross-references every available public Medicaid dataset into a single queryable infrastructure, then layers Claude-powered analytics on top so that **anyone working with Medicaid** — state agencies, consultants, MCOs, hospitals, providers, researchers, journalists, advocates, legislators — can find answers that currently require million-dollar consulting engagements or months of manual data assembly.
+Aradune is a **Medicaid intelligence operating system**. It ingests, normalizes, and cross-references every available public Medicaid dataset into a unified data layer, then uses Claude-powered analytics to turn that data into intelligence: compliance-ready documents, fiscal impact models, early warning signals, and actionable recommendations.
 
-Aradune is **not** a CPRA compliance tool that also does other things. It is **the platform where all Medicaid data lives**, and CPRA compliance, AHEAD modeling, fee schedule comparison, caseload forecasting, fraud detection, and policy intelligence are all *applications* that sit on top of that data layer.
+Aradune is not a dashboard with AI bolted on. It is **the platform where Medicaid data becomes decisions** — for state agencies, consulting firms, MCOs, hospitals, providers, researchers, journalists, advocates, and legislators.
 
 **Core identity:**
-- **Data layer is the moat.** Curated, normalized, cross-referenced public Medicaid data no one else has assembled.
-- **AI-native from day one.** Claude is the primary interaction model for complex work — not a dashboard with AI bolted on.
-- **Anyone working with Medicaid.** The free tier should be genuinely useful; the paid tier indispensable.
-- **Bring your own data.** Users upload their own data and connect it to Aradune's normalized public layer.
+- **The data layer is the moat.** 569+ tables, 305M+ rows, 3.6 GB. Curated, normalized, cross-referenced public Medicaid data no one else has assembled.
+- **Intelligence is the interface.** Claude is the primary interaction model for complex work. Natural language in, compliance-ready analysis out.
+- **Structured tools are on-ramps.** Eight purpose-built workflows build trust, demonstrate data quality, and pull users into Intelligence naturally.
+- **Compliance automation is the adoption wedge.** Auto-generate CPRAs, rate transparency filings, MCPARs, Core Set submissions. The July 2026 CPRA deadline is less than 4 months away.
+- **Bring your own data.** Users upload files and cross-reference them against the national data layer within their session.
+- **Closed-loop operations.** Every analysis connects to an action: a rate gap finding generates a SPA template, a network gap produces a corrective action plan, a spending anomaly creates a program integrity referral.
 
-Named after Brad McQuaid's EverQuest paladin character. Domain: aradune.co.
+Named after Brad McQuaid's EverQuest paladin character. Domain: aradune.co. Florida LLC filed. Federal trademark pending (Class 42, §1(b)).
 
 ---
 
 ## 2. System Architecture
 
+Aradune has three layers. Intelligence connects everything.
+
 ```
 ┌─────────────────────────────────────────────────────────────────────────┐
-│                          INTERFACE LAYER                                │
-│   Free: Dashboards · Lookups · Rate Builder · State Profiles           │
-│   Paid: Claude Policy Analyst · Structured Reports · API Access        │
-│   Institutional: White-Label · Custom Integrations · DaaS Licensing    │
-│   [ USER DATA UPLOAD / CONNECT ]                                        │
-└─────────────────────────────────────────────────────────────────────────┘
-                                    │
-┌─────────────────────────────────────────────────────────────────────────┐
-│                     CLAUDE-NATIVE ANALYTICS ENGINE                      │
-│   NL2SQL · RAG over policy corpus · Cross-state comparisons            │
-│   Rate adequacy · Caseload & expenditure forecasting                   │
-│   AHEAD modeling · SPA impact · MCO gap · ML model tracking            │
-└─────────────────────────────────────────────────────────────────────────┘
-                                    │
-┌─────────────────────────────────────────────────────────────────────────┐
-│                        UNIFIED DATA LAYER                               │
-│   Normalized schema · Versioned · Timestamped · Source-provenant       │
-│   Hive-partitioned Parquet on S3 · pgvector for RAG corpus             │
-└─────────────────────────────────────────────────────────────────────────┘
-                                    │
-┌─────────────────────────────────────────────────────────────────────────┐
-│                     DATA INGESTION PIPELINES                            │
-│   Dagster orchestration · Per-source ETL (fetch→parse→validate→load)  │
-│   Change detection · Versioned snapshots · Rollback · Pause/resume     │
-│   PDF extraction (pdfplumber → Claude API) · Notification system       │
-└─────────────────────────────────────────────────────────────────────────┘
-                                    │
-┌─────────────────────────────────────────────────────────────────────────┐
-│                          RAW DATA UNIVERSE                              │
-│   MEDICAID: T-MSIS/TAF · Fee Schedules (51 states) · CMS-64           │
-│   MANAGED CARE: MCO contracts · Rate certifications · MLR reports      │
-│   HOSPITALS: HCRIS · DSH/UPL · Price transparency MRFs                │
-│   POLICY: SPAs · Waivers · CIBs · SHO letters · Federal Register      │
-│   ECONOMIC: BLS wages/CPI/unemployment · FRED · ACS · SNAP/TANF       │
-│   QUALITY: Medicaid Scorecard · HEDIS · Core Sets · DQ Atlas          │
-│   PHARMACY: NADAC · SDUD · State MAC prices                           │
-│   USER-UPLOADED: Any data the user brings to the platform              │
+│                       ARADUNE INTELLIGENCE                              │
+│                                                                         │
+│  Claude Sonnet/Opus + extended thinking + DuckDB query access           │
+│  + RAG over policy corpus + web search for current regulatory context   │
+│  + user-uploaded data cross-reference + structured output format        │
+│                                                                         │
+│  Available everywhere: home page chat, sidebar from any structured      │
+│  tool, "Ask about this" buttons, State Profile questions.               │
+│  Produces: narrative, tables, charts, exportable compliance documents.  │
+│                                                                         │
+│  8 STRUCTURED TOOLS (on-ramps to Intelligence):                         │
+│  State Profiles · Rate Analysis · CPRA Compliance · Forecasting         │
+│  AHEAD Readiness · Providers · Workforce & HCBS · Rate Lookup           │
+│  Every tool has: Intelligence sidebar, export, data import              │
+└────────────────────────────┬────────────────────────────────────────────┘
+                             │
+┌────────────────────────────┴────────────────────────────────────────────┐
+│                      ENTITY REGISTRY (Ontology)                         │
+│                                                                         │
+│  YAML-defined entities: State, Procedure, Provider, Hospital, MCO,     │
+│  Rate Cell, Drug, Quality Measure, Policy Document, Geographic Area    │
+│  Properties · Relationships · Named metrics · Domain groupings         │
+│  Auto-generates: Intelligence system prompt + DuckPGQ property graph   │
+│  Add a dataset = add a YAML file + run a script                        │
+└────────────────────────────┬────────────────────────────────────────────┘
+                             │
+┌────────────────────────────┴────────────────────────────────────────────┐
+│                        THE DATA LAKE                                    │
+│                                                                         │
+│  569+ tables · 305M+ rows · Hive-partitioned Parquet · DuckDB          │
+│  Medallion architecture: Bronze (raw) → Silver (normalized) → Gold     │
+│  + DuckPGQ property graph (SQL/PGQ queries over same tables)           │
+│  + User session data (uploaded files, parsed and queryable)            │
+│  + Policy corpus (1,039+ CMS docs, 6,058+ searchable chunks)          │
+│  R2 sync · Dagster orchestration · Source-provenant · Versioned        │
+│  Validated: Soda Core + dbt-expectations + Pandera + datacontract-cli  │
+│  See COMPLETE-DATA-REFERENCE-FOR-ARADUNE.md for per-dataset quality    │
 └─────────────────────────────────────────────────────────────────────────┘
 ```
 
@@ -74,997 +79,534 @@ Frontend:       React 18 + TypeScript + Vite (Vercel Pro, aradune.co)
 Visualization:  Recharts
 Routing:        Hash-based in Platform.tsx
 Data store:     DuckDB-WASM (browser-side client queries)
-Data lake:      Hive-partitioned Parquet (data/lake/) — 115M+ rows, 270 views (250 fact + 9 dim + 9 ref + 2 compat)
-                DuckDB in-memory views over Parquet files, 785MB on disk
-                S3/R2 sync (scripts/sync_lake.py, Cloudflare R2 bucket: aradune-datalake)
-Backend:        Python FastAPI (server/) — 237+ endpoints across 20 route files, DuckDB-backed
-                3 Vercel serverless functions in api/ (legacy)
-AI:             Claude API via Vercel serverless (api/chat.js)
+Data lake:      Hive-partitioned Parquet (data/lake/) — 305M+ rows, 553 views
+                DuckDB in-memory views over Parquet files, 3.6 GB on disk
+                S3/R2 sync (scripts/sync_lake_wrangler.py, Cloudflare R2 bucket: aradune-datalake)
+Backend:        Python FastAPI (server/) — 258+ endpoints across 25 route files, DuckDB-backed
+AI:             Intelligence (server/routes/intelligence.py) — Claude Sonnet 4.6 + SSE streaming
+                + extended thinking + DuckDB tools + RAG policy corpus + web search
                 Haiku for routing · Sonnet for analysis · Opus for complex reasoning
-Pipeline:       Python build scripts (scripts/build_*.py) — lake ETL
+RAG:            DuckDB FTS over policy corpus (1,039 docs, 6,058 chunks from medicaid.gov)
+                BM25 full-text search with ILIKE fallback (server/engines/rag_engine.py)
+Search:         Platform-wide Cmd+K search (PlatformSearch.tsx + /api/search)
+Auth:           Clerk integration (ClerkProvider.tsx + server/middleware/auth.py)
+                Falls back to password gate ("mediquiad") when Clerk not configured
+Pipeline:       Python build scripts (scripts/build_*.py) — 82 ETL scripts
                 Python (cpra_engine.py) — CPRA/DuckDB analytical layer
-                Python + pdfplumber — PDF fee schedule extraction
                 R (tmsis_pipeline_duckdb.R) — T-MSIS processing
 Orchestration:  Dagster (pipeline/dagster_pipeline.py) — 13 assets, 3 checks, 3 jobs, 2 schedules
-CI/CD:          GitHub Actions (.github/workflows/ci.yml) — Vercel + Fly.io deploy
+CI/CD:          GitHub Actions (.github/workflows/ci.yml) — TypeScript check + Vercel + Fly.io deploy
 Deployment:     Vercel (frontend) · Fly.io (FastAPI, server/fly.toml + Dockerfile)
-Vector store:   pgvector + Voyage-3-large embeddings (target — for RAG)
-NL2SQL:         Claude Sonnet via Anthropic SDK — schema-in-prompt, SELECT-only validation
-Design:         #0A2540 ink · #2E6B4A brand · #C4590A accent
+                Pre-baked lake in Docker image for fast cold starts
+Design:         #0A2540 ink · #2E6B4A brand · #C4590A accent · #F5F7F5 surface
                 SF Mono for numbers · Helvetica Neue for body · No Google Fonts
-Access:         Password gate ("mediquiad") via sessionStorage in Platform.tsx
-                "Coming Soon" splash — entire site hidden until code entered
+Access:         Clerk auth (when configured) OR password gate ("mediquiad")
 ```
 
 ---
 
-## 4. Live Tools (18 total)
+## 4. Navigation & Structured Tools
 
-**Site is behind a password gate** (`PasswordGate` component in `Platform.tsx`). Password: `mediquiad`. Stored in `sessionStorage` — clears on tab close. All tools are lazy-loaded and code-split per route.
-
-| Group | Tool | Route | Status |
-|-------|------|-------|--------|
-| **Explore** | **Data Explorer** | **`/#/ask`** | **live — NL2SQL via Claude Sonnet** |
-| **Explore** | **Data Catalog** | **`/#/catalog`** | **live — browsable table index** |
-| **Explore** | **State Profile** | **`/#/state` or `/#/state/{code}`** | **live — 18 parallel API fetches, 7 sections** |
-| Explore | Spending Explorer | `/#/explorer` | live |
-| Explore | Medicare Comparison | `/#/decay` | live |
-| Explore | State Fee Schedule Directory | `/#/fees` | live |
-| Explore | Rate Lookup | `/#/lookup` | live |
-| Explore | Compliance Report | `/#/compliance` | live |
-| **Explore** | **CPRA Generator** | **`/#/cpra`** | **live — wedge product** |
-| Analyze | Rate & Wage Comparison | `/#/wages` | live |
-| Analyze | Quality Linkage | `/#/quality` | live |
-| Analyze | Rate Reduction Analyzer | `/#/reduction` | live |
-| Analyze | HCBS Compensation Tracker | `/#/hcbs8020` | live |
-| Build | Rate Builder | `/#/builder` | live |
-| Build | AHEAD Calculator | `/#/ahead` | live |
-| Build | AHEAD Readiness Score | `/#/ahead-readiness` | live |
-| **Build** | **Caseload Forecaster** | **`/#/forecast`** | **live — caseload + expenditure** |
-| Build | Policy Analyst | `/#/analyst` | beta — has Bearer token auth |
-
-**Target nav structure:**
 ```
-Aradune  [⌕ search]  Explore▾  Analyze▾  Build▾  About
+ARADUNE  [⌕ Intelligence]  States  Rates  Forecast  Providers  Workforce  [↑ Import]
 ```
-See `docs/AraduneMockup.jsx` as the definitive landing page + nav reference.
+
+**Intelligence** is the home page (`/#/`). Full-page Claude-powered chat. Every question starts here. Structured tools are accessible from the nav and linked from Intelligence responses.
+
+### Structured Tools (8 on-ramps)
+
+Purpose-built workflows for recurring work. Each has "Ask Intelligence" (opens sidebar with full context), export (CSV, Excel, PDF, DOCX), and accepts imported user data.
+
+| Tool | Route | What it does | Key data |
+|------|-------|-------------|----------|
+| **State Profiles** | `/#/state/{code}` | 7-section dashboard. Comparison mode: `/#/state/FL+GA+TX`. 20 parallel API fetches. Cross-dataset insights. | dim_state, enrollment, rates, hospitals, quality, workforce, pharmacy, economic |
+| **Rate Analysis & Fee Setting** | `/#/rates` | 4 tabs: Browse & Compare, CPRA Compliance, Rate Builder (StateRateEngine), Rate Lookup & Directory | fact_medicaid_rate (597K), fact_rate_comparison (302K), dim_procedure (16,978) |
+| **CPRA Compliance** | `/#/cpra` | Pre-computed cross-state (45 states) + user-upload generator. Dual-mode. PDF/Excel. Regulatory-correct (68 codes, $32.3465 CF, many-to-many). | fact_rate_comparison, CPRA reference data |
+| **Caseload & Fiscal Forecasting** | `/#/forecast` | SARIMAX+ETS forecasting, expenditure modeling, scenario builder. Dual-mode: public data or upload. | fact_enrollment, fact_expenditure, FMAP, economic |
+| **AHEAD Readiness** | `/#/ahead` | Hospital readiness scoring + calculator. HCRIS financials, payer mix, peer benchmarks. | fact_hospital_cost, fact_dsh_hospital, fact_hospital_rating |
+| **Provider & Hospital Intelligence** | `/#/providers` | 3 tabs: Hospitals (search + CCN detail + peers), Nursing Facilities (Five-Star, PBJ, deficiencies), Directory (FQHCs, dialysis, hospice, HHA, IRF, LTCH). | HCRIS, Five-Star, PBJ (65M+), SNF cost, facility dirs |
+| **Workforce & HCBS** | `/#/workforce` | 4 tabs: Wage Adequacy, Quality Linkage, HCBS Waitlists & Compensation (80% pass-through tracking), Shortage Areas (HPSA + MUA map). | fact_bls_wage, fact_hpsa (69K), fact_hcbs_waitlist (607K), quality |
+| **Rate Lookup & Directory** | `/#/lookup` | Code-level Medicaid rate lookup across 47 states. State fee schedule directory with download links. Quick trust-building tool. | fact_medicaid_rate, fee schedule files |
+
+**Data Catalog** remains standalone at `/#/catalog` for power users browsing table schemas.
+
+### How tools connect to Intelligence
+
+Every tool view has **"Ask Intelligence about this"** → opens sidebar with current state, section, and data pre-loaded. Tools build trust (user verifies data they know); Intelligence delivers the insight they couldn't get from a spreadsheet.
+
+### Responsive behavior
+
+On screens < 1024px: collapse module links into hamburger menu.
+On screens >= 1024px: show all nav items + Import button inline.
+Intelligence search bar doubles as nav search.
+
+### Key tool API endpoints
+
+**State Profiles:** `/api/states`, `/api/enrollment/{state}`, `/api/rates/{state}`, `/api/hospitals/{state}`, `/api/quality/{state}`, `/api/wages/{state}`, `/api/pharmacy/{state}`, `/api/economic/{state}`, `/api/insights/{state}`
+
+**CPRA:** `/api/cpra/states`, `/api/cpra/rates/{state}`, `/api/cpra/dq/{state}`, `/api/cpra/compare`, `/api/cpra/upload/generate`, `/api/cpra/upload/generate/csv`, `/api/cpra/upload/generate/report`
+
+**Forecast:** `/api/forecast/templates/caseload`, `/api/forecast/templates/events`, `/api/forecast/generate`, `/api/forecast/generate/csv`, `/api/forecast/enrollment/public`, `/api/forecast/expenditure/*`
+
+**Intelligence:** `/api/intelligence` (POST, SSE streaming)
+
+**NL2SQL:** `/api/nl2sql` (POST, returns SQL + results)
 
 ---
 
-## 5. CPRA — Two Separate Systems
+## 5. Intelligence Architecture
 
-The CPRA exists as **two architecturally distinct systems** that serve different purposes:
+Intelligence is powered by the **Entity Registry** — a YAML-defined ontology that auto-generates the system prompt and DuckPGQ graph definition. See ONTOLOGY_SPEC.md for the full build specification.
 
-### 5a. CPRA Frontend (Pre-Computed Cross-State Comparison)
-
-`src/tools/CpraGenerator.tsx` (734 lines). Displays pre-computed rate comparisons from `fact_rate_comparison` (302K rows, 45 states, all HCPCS codes). This is a **general fee-to-Medicare comparison tool** — not limited to the 68 E/M codes.
-
-**Data flow (pre-computed, read-only):**
 ```
-fact_rate_comparison (lake)           → all codes, 45 states, pre-computed pct_of_medicare
-cpra_em.json (2,742 rows/34 states)  → slim E/M extract for frontend
-dim_447_codes.json (74 codes)        → old code list (⚠️ should be 68 — see 5b)
-cpra_summary.json (7KB)              → pipeline aggregates (median, national context)
-dq_flags_em.json (771 flags)         → data quality warnings per code/state
+User query (natural language, from chat or "Ask about this")
+    │
+    ├── Intelligence receives: query + conversation history
+    │   + context (if from tool: module, state, section, data summary)
+    │   + user data metadata (if imported files exist)
+    │
+    ├── System prompt includes (auto-generated from ontology/):
+    │   ├── Entity types with properties and relationships
+    │   ├── Domain groupings with table descriptions and row counts
+    │   ├── Named metrics with deterministic formulas
+    │   └── Domain-specific intelligence context and caveats
+    │
+    ├── Tools available to Intelligence:
+    │   ├── query_database    → SELECT-only DuckDB over all lake + user temp tables
+    │   ├── list_tables       → Browse tables by domain (reads from entity registry)
+    │   ├── describe_table    → Schema, row counts, sample data
+    │   ├── web_search        → Current policy/regulatory context (Anthropic built-in)
+    │   └── search_policy     → RAG over 1,039+ CMS docs (BM25 + FTS)
+    │
+    ├── Intelligence executes multi-step analysis
+    │   (for relationship-heavy queries, can use DuckPGQ graph pattern matching)
+    │
+    └── Output (streamed via SSE):
+        ├── narrative     → analysis + interpretation (token-by-token)
+        ├── tables        → clean, labeled, exportable (JSON metadata event)
+        ├── charts        → specs for frontend rendering
+        ├── queries       → SQL trace (collapsible, auditable)
+        ├── citations     → sources with vintage + caveats
+        └── web_sources   → policy/regulatory URLs
 ```
 
-**Export formats:** PDF (`src/utils/cpraPdf.ts`) · Excel (`src/utils/cpraXlsx.ts`) · HTML inline.
+### SSE event sequence
+```
+event: status\ndata: {"status": "thinking"}\n\n
+event: tool_call\ndata: {"name": "query_database", "purpose": "Looking up FL rates"}\n\n
+event: tool_result\ndata: {"name": "query_database", "rows": 45, "ms": 23}\n\n
+event: token\ndata: {"text": "Florida's"}\n\n
+...
+event: metadata\ndata: {"tables": [...], "charts": [...], "queries": [...], "citations": [...]}\n\n
+event: done\ndata: {}\n\n
+```
 
-**API endpoints (pre-computed):**
-- `GET /api/cpra/states` — states with rate comparison data
-- `GET /api/cpra/rates/{state_code}` — all rate comparisons for a state
-- `GET /api/cpra/dq/{state_code}` — data quality flags
-- `GET /api/cpra/compare` — compare specific codes across states
+### Entity Registry and Ontology
 
-### 5b. CPRA Upload Tool (42 CFR 447.203 Compliance Generator)
+Intelligence's knowledge of the data lake is auto-generated from YAML entity definitions in `data/ontology/`. See `ONTOLOGY_AND_ROUTING_SPEC.md` for the full spec. The system prompt data section is generated by `scripts/generate_ontology.py --system-prompt` and includes entity types, properties, relationships, join paths, and named metrics. When a new dataset is added, add a YAML file and regenerate. DuckPGQ property graph (SQL/PGQ, SQL:2023 standard) provides graph pattern matching over entity relationships for cross-domain questions.
 
-`server/engines/cpra_upload.py` (821 lines). A **user-upload, stateless CPRA generator** ported from the standalone `cpra-pipeline/` project. Any state uploads two CSVs and gets the full CPRA computed in <2 seconds.
+### Intelligent Query Router
 
-**This is the regulatory-correct implementation.** Key differences from the pre-computed system:
+Questions are classified into 4 tiers by a Haiku classifier (~100ms, ~$0.001). The system always errs up (borderline medium → high). See `server/engines/query_router.py`.
 
-| Aspect | Pre-Computed (5a) | Upload Tool (5b) |
+| Tier | Type | Model | Thinking | Queries | Tools | Target |
+|------|------|-------|----------|---------|-------|--------|
+| 1 | Lookup | Sonnet | No | 1-2 | DuckDB | <1s |
+| 2 | Comparison | Sonnet | No | 1-4 | DuckDB | 1-3s |
+| 3 | Analysis | Sonnet | 5K budget | 3-8 | DuckDB + RAG | 5-15s |
+| 4 | Synthesis | Sonnet/Opus | 10K budget | 5-15 | DuckDB + RAG + Web | 15-45s |
+
+Bump-up rules: user data present → minimum Tier 3. Compliance terms detected → Tier 4.
+
+### Model costs
+
+| Query type | Model | Cost/query |
+|---|---|---|
+| Classification, routing, PDF extraction | claude-haiku-4-5-20251001 | ~$0.004 |
+| NL2SQL, RAG, standard analysis | claude-sonnet-4-6 | ~$0.03-0.06 |
+| SPA drafting, CPRA narrative, AHEAD, complex reasoning | claude-opus-4-6 | ~$0.28 |
+
+Use **prompt caching** (90% input cost reduction) and **batch API** (50% discount for non-real-time).
+
+### Intelligence System Prompt
+
+The system prompt has two parts: an **auto-generated section** (produced by `scripts/generate_ontology.py` from the entity registry YAML files) and a **hand-written section** (rules, response format, behavioral instructions). The auto-generated section replaces any manual table/join documentation and stays in sync with the actual data lake automatically.
+
+**Auto-generated section** includes: entity types with properties and relationships, domain groupings with table descriptions and row counts, named metrics with formulas and caveats, domain-specific intelligence context. Regenerated by running `python scripts/generate_ontology.py`.
+
+**Hand-written section** (keep synced with server/routes/intelligence.py):
+
+```
+You are Aradune Intelligence — an AI analyst with direct query access to the most
+comprehensive normalized Medicaid data lake in existence, plus web search for current
+policy and regulatory context.
+
+## What you have access to
+
+**The Aradune Data Lake:** 556 fact tables, 9 dimension tables, 9 reference tables —
+305M+ rows of public Medicaid data across 18 domains:
+
+- Rates & Fee Schedules: Medicaid rates (47 states, 597K rows), Medicare PFS (16,978
+  codes, 858K locality rates), Medicaid-to-Medicare comparisons (45 states, 302K rows)
+- Enrollment: Monthly Medicaid (2013-2025), CHIP, managed care, eligibility groups,
+  unwinding, new adult expansion, Medicare monthly (557K)
+- Claims & Utilization: T-MSIS aggregated (712K), SDUD pharmacy (2020-2025, 28.3M rows, $1.05T pre-rebate),
+  DOGE provider spending (190M rows, 5 aggregated tables)
+- Hospital: HCRIS cost reports (6,103 hospitals), DSH, quality, VBP, HRRP, HCAHPS,
+  Care Compare quality, ownership
+- Nursing: Five-Star, PBJ staffing (65M+), SNF cost, deficiency citations, MDS (29.2M)
+- Workforce: BLS wages by state/MSA, HPSAs (69K), projections (121 professions to 2038),
+  HRSA awards, BH workforce projections, NHSC, NSSRN
+- Pharmacy: NADAC, SDUD (2020-2025, 28.3M rows, $1.05T pre-rebate), drug rebate, ACA FUL, opioid prescribing, Part B/D drug spending
+- Behavioral Health: NSDUH, TEDS (1.6M+ admissions), MH/SUD facilities, block grants,
+  SAMHSA TEDS detail, NSDUH 2024 SAE
+- LTSS/HCBS: Waitlists (607K people, 41 states), waivers (553), CMS-372, expenditure
+- Expenditure: CMS-64 (FY2018-2024, 118K rows, $5.7T total computable), MACPAC exhibits, FMAP, NHE/NHE projections
+- Quality: Core Sets 2023-2024 (57 measures, 51 states), Scorecard, EPSDT, HAC measures
+- Economic: BLS CPI/unemployment, Census ACS/state finances, FRED, SAIPE, HUD FMR/SAFMR,
+  SNAP/TANF, BEA income/GDP, Tax Foundation rankings, county health rankings
+- Medicare: Enrollment, geographic variation (2014-2023), ACOs (511, PY2026), chronic
+  conditions, MCBS, Part D prescriber, outpatient by provider, program stats
+- Post-Acute: HHA, hospice, dialysis, IRF, LTCH, PAC casemix
+- Public Health: CDC PLACES (3,144 counties), overdose deaths, vital stats, BRFSS,
+  natality, immunization, food environment
+- Maternal & Child: SMM rates, pregnancy outcomes, NAS, WIC, foster care, Title V
+- State Fiscal: Census state finances, Tax Foundation rankings, FMAP historical, NHE
+- Program Integrity: LEIE, Open Payments, MFCU stats, PERM rates, Federal Register CMS
+- Insurance Market: MLR, risk adjustment, MA stars
+- Provider Network: NPPES (9.37M), PECOS, affiliations, CAHs, GME
+- Policy: 1,039 CMS documents, 6,058 searchable chunks (CIBs, SHOs, SMDs)
+
+**Web search:** Current CMS guidance, federal register notices, state regulatory info.
+**User-uploaded data:** [DYNAMICALLY INJECTED when present]
+
+## How to join tables
+
+Universal: state_code (2-letter).
+Codes: procedure_code/cpt_hcpcs_code -> dim_procedure (RVUs, descriptions).
+Locality: locality_code -> dim_medicare_locality (GPCI).
+Workforce: soc_code -> dim_bls_occupation.
+Provider: NPI for linkage. Geography: FIPS for county-level.
+
+## Rules
+
+1. Specify data vintage. "Based on CY2022 T-MSIS claims" — never "current."
+2. Flag data quality issues. Check DQ Atlas for any state.
+3. Minimum cell size: n >= 11 for utilization counts.
+4. T-MSIS encounter amounts unreliable for MCO-to-provider rates.
+5. FL Medicaid: no facility + PC/TC split (46924, 91124, 91125).
+6. CPRA: $32.3465 CF (CY2025). General: $33.4009 (CY2026).
+7. Census sentinels (-888888888) = NULL.
+8. SELECT-only. Never modify.
+9. CHIP excluded from per-enrollee.
+10. No em-dashes. No "plain English."
+
+## How to respond
+
+1. Lead with narrative. Interpret. Include a "so what."
+2. Cross-reference multiple domains. Power is in connections.
+3. Clean markdown tables. Cite sources with vintage and caveats.
+4. When user data present, proactively compare against lake.
+5. Web search for current policy when relevant.
+6. Structure for export: narrative -> tables -> charts -> sources -> caveats.
+7. When finding implies action, state it.
+8. Extended thinking for complex multi-step analyses.
+```
+
+### Starter prompt examples (by persona)
+
+**Rate analysis:**
+- "Compare Florida's E&M rates to the Southeast average and Medicare"
+- "Which states pay primary care above 80% of Medicare?"
+- "What would it cost Florida to raise all rates below 50% of Medicare to 60%?"
+
+**State intelligence:**
+- "Give me a comprehensive profile of Ohio's Medicaid program"
+- "Which states have the longest HCBS waitlists relative to spending?"
+- "How did the PHE unwinding affect expansion vs non-expansion states?"
+
+**Hospital/provider:**
+- "Compare teaching hospitals in Florida by margin and Medicaid payer mix"
+- "Which states have the highest nursing facility staffing deficiencies?"
+
+**Fiscal:**
+- "What's driving enrollment growth in the Southeast?"
+- "How does Florida's per-enrollee spending compare to similar-FMAP states?"
+
+---
+
+## 6. Data Import Architecture
+
+Data import enhances every workflow. Not a separate tool.
+
+### Import flow
+```
+User drags file or clicks [↑ Import]
+         │
+         ▼
+┌──────────────────────────────────────────────────┐
+│  IMPORT PANEL                                     │
+│  Drop a file here or click to browse              │
+│  CSV, Excel, JSON — up to 50MB                    │
+│  Or start without data — 569+ tables ready         │
+└──────────────────────────────────────────────────┘
+         │ (after upload)
+         ▼
+┌──────────────────────────────────────────────────┐
+│  VALIDATION & PREVIEW                             │
+│  File: florida_fee_schedule_2026.csv              │
+│  Rows: 6,676  Columns: 8                         │
+│  Detected: procedure_code, rate, modifier, ...    │
+│  Preview: first 10 rows in table                  │
+│  [✓ Make available] [✎ Edit columns] [✕ Cancel]   │
+└──────────────────────────────────────────────────┘
+         │
+         ▼
+Data loaded as DuckDB temp table: user_upload_1
+Available to Intelligence and all tools for session.
+```
+
+### Backend implementation
+**Endpoint:** `POST /api/import` — multipart file upload (CSV, XLSX, JSON) → parse, validate, load as session-scoped DuckDB temp table (`user_upload_{id}`) → return table name, column schema, row count, preview rows.
+
+**Intelligence integration:** When user data imported, `query_database` can query `user_upload_{id}` alongside all lake tables. System prompt augmented: "The user has uploaded '{filename}' with {N} rows and columns: {columns}. Available as table '{tableName}'."
+
+**Module integration:** Rate Analysis: "Use my fee schedule as comparison baseline." Forecasting: "Use my enrollment data instead of public." CPRA: already has this pattern — generalize.
+
+### Session management
+- UUID `session_id` generated at upload, returned to frontend
+- Frontend stores in AraduneContext, passes with Intelligence and module API calls
+- Backend checks if temp table exists; if not, re-hydrates from in-memory session store
+- 50MB/session, 500MB total, LRU eviction, 2-hour TTL
+- Future: Redis or Fly.io persistent volumes if session volume demands it
+
+### Without imported data
+Everything works the same, minus cross-reference. Intelligence queries 560+ lake tables. Tools use standard sources. Import is enhancement, not prerequisite.
+
+### User Upload Validation (from COMPLETE-DATA-REFERENCE)
+User-uploaded files go through: schema profiling (DuckDB `SUMMARIZE`), column mapping (fuzzy match to canonical schema), validation (code format regex, date range plausibility, referential integrity), and a **quarantine pattern** routing invalid records to a `_quarantine` temp table with rejection reason codes. Users see: "{N} of {M} rows loaded. {K} rows quarantined — [View issues]."
+
+---
+
+## 7. Export Pipeline
+
+Every Intelligence response and tool view is exportable.
+
+| Export type | What it produces | Available from |
+|-------------|------------------|----------------|
+| Chat response | Inline markdown with tables and narrative | Intelligence (default) |
+| Report section | Formatted block saved to Report Builder | "Save to Report" button |
+| Table (CSV/Excel) | Raw data download | Any table anywhere |
+| Figure (PNG/SVG) | Chart download (Recharts `toDataURL()`) | Any chart |
+| Full report (DOCX/PDF) | Accumulated sections, cover page, citations, branding | Report Builder panel |
+| Compliance artifact | Submission-ready CPRA, rate transparency filing | CPRA tool + Intelligence |
+
+### Report Builder
+Not a separate module — a persistent panel accessible from the nav.
+
+**How it works:**
+1. User interacts with Intelligence or tools
+2. Any Intelligence response has "Save to Report" button
+3. Any tool view has "Add to Report" (captures current view as section)
+4. Saved sections appear in Report Builder panel
+5. User can reorder, annotate, delete sections
+6. Export as DOCX or PDF with:
+   - Cover page: "Medicaid Intelligence Report — [Topic] — Aradune — [Date]"
+   - Each section: prompt/context, analysis, tables, chart placeholders, data citations
+   - Footer: "Generated by Aradune. Data sources: [list of tables queried]"
+
+**Implementation:** Report state in AraduneContext (session-scoped). Each section stores: source (prompt + response or tool view), markdown, tables, chart specs, queries. DOCX via docx-js. PDF via HTML-to-PDF.
+
+### Shared application state
+
+```typescript
+interface AraduneContext {
+  selectedState: string | null;
+  comparisonStates: string[];
+  intelligencePanel: { open: boolean; context: IntelligenceContext | null };
+  importedData: { files: ImportedFile[]; activeFile: string | null };
+  reportSections: ReportSection[];
+  demoMode: boolean;
+}
+
+interface IntelligenceContext {
+  module: string;           // "state_profile", "rates", "forecast", etc.
+  state: string | null;
+  section: string | null;   // "rates", "enrollment", "quality", etc.
+  contextSummary: string;   // "User is viewing FL rate data. Avg E&M is 62% of Medicare."
+}
+
+interface ImportedFile {
+  id: string; name: string; type: 'csv' | 'xlsx' | 'json';
+  columns: string[]; rowCount: number;
+  preview: Record<string, any>[];
+  tableName: string;
+  uploadedAt: Date;
+}
+
+interface ReportSection {
+  id: string; prompt: string; response: string;
+  queries: string[]; tables: TableData[]; charts: ChartSpec[];
+  createdAt: Date;
+}
+```
+
+---
+
+## 8. CPRA — Two Separate Systems
+
+### 8a. CPRA Frontend (Pre-Computed Cross-State Comparison)
+`src/tools/CpraGenerator.tsx` (734 lines). Pre-computed from `fact_rate_comparison` (302K rows, 45 states).
+**Data flow:** lake → `cpra_em.json` (2,742 rows/34 states) → frontend.
+**Export:** PDF · Excel · HTML.
+**API:** `GET /api/cpra/states`, `/api/cpra/rates/{state_code}`, `/api/cpra/dq/{state_code}`, `/api/cpra/compare`
+
+### 8b. CPRA Upload Tool (42 CFR 447.203 Compliance Generator)
+`server/engines/cpra_upload.py` (821 lines). Upload two CSVs → full CPRA in <2 seconds. **Regulatory-correct.**
+
+| Aspect | Pre-Computed (8a) | Upload Tool (8b) |
 |--------|-------------------|-------------------|
-| E/M codes | 74 (old list) | **68** (official CMS CY 2025 E/M Code List) |
-| Code-category mapping | 1:1 (74 rows) | **Many-to-many** (171 pairs: all 68 in PC, 52 in OB-GYN, 51 in MH/SUD) |
-| Conversion factor | $33.4009 (CY2026) | **$32.3465** (CY2025 — correct for July 2026 deadline) |
-| Medicare rates | State-level averages | **Per-locality** (FL=3, CA=29, AL=1 localities) |
-| Data source | Pre-computed lake table | **User-uploaded fee schedule + utilization** |
-| Categories | "primary_care", "obgyn", "mhsud" | "Primary Care", "OB-GYN", "Outpatient MH/SUD" |
+| E/M codes | 74 (old list) | **68** (CMS CY 2025) |
+| Code-category mapping | 1:1 | **Many-to-many** (171 pairs) |
+| Conversion factor | $33.4009 (CY2026) | **$32.3465** (CY2025) |
+| Medicare rates | State-level averages | **Per-locality** |
 
-**Reference data** (in `data/reference/cpra/`):
-- `em_codes.csv` — 68 codes with RVUs from official CMS CY 2025 E/M Code List
-- `code_categories.csv` — 171 rows, many-to-many code→category mapping
-- `GPCI2025.csv` — 109 Medicare localities across 53 states
+**Reference data** (`data/reference/cpra/`): `em_codes.csv` (68), `code_categories.csv` (171), `GPCI2025.csv` (109 localities).
+**API:** `GET /api/cpra/upload/states`, `/upload/codes`, `/upload/templates/*`, `POST /upload/generate`, `/upload/generate/csv`, `/upload/generate/report`
 
-**API endpoints (upload):**
-- `GET /api/cpra/upload/states` — 53 states with locality counts
-- `GET /api/cpra/upload/codes` — 68 codes + 171 category mappings
-- `GET /api/cpra/upload/templates/fee-schedule` — blank CSV template (68 rows)
-- `GET /api/cpra/upload/templates/utilization` — blank CSV template (171 rows)
-- `POST /api/cpra/upload/generate` — upload 2 CSVs → full CPRA JSON
-- `POST /api/cpra/upload/generate/csv` — → CSV download
-- `POST /api/cpra/upload/generate/report` — → self-contained HTML report
-
-**FL spot-check (verified against R pipeline):**
-- 99213 PC: Medicaid $34.29 / Medicare $91.39 = **37.5%** of Medicare
-- 42 of 68 codes have FL rates; 26 are not on the AHCA fee schedule
-- Category weighted averages: PC 61.2%, OB-GYN 61.1%, MH/SUD 59.0%
-
-**Frontend:** CpraGenerator.tsx has two modes:
-- **Cross-State Comparison** (default) — pre-computed rate comparisons from `fact_rate_comparison`
-- **Bring Your Own Data** — upload fee schedule + utilization CSVs, generates full CPRA via `/api/cpra/upload/generate`
-
-**Source project:** `/Users/jamestori/Desktop/cpra-pipeline/` — contains the R pipeline (publication-quality figures/tables via Quarto), Python engine, and standalone FastAPI server. See `cpra-pipeline/CPRA_TOOL_HANDOFF.md` for full details.
+### 8c. Terminal B — CPRA Data Pipeline
+**File:** `tools/mfs_scraper/cpra_engine.py` (~968 lines)
+```bash
+python cpra_engine.py --all --cpra-em --output-dir ../../public/data/
+```
+**Steps:** `--init` → `--em-codes` → `--medicare-rates` (858K) → `--cpra` (242K) → `--dq` (258K flags) → `--export` → `--cpra-em` → `--stats`
+**DuckDB (`aradune_cpra.duckdb`):** 1.87M rows across 8 tables.
+**Summary:** Median 84.8% of Medicare. PC E/M avg 81.4%, MH/SUD 99.6%, OB/GYN 132.9%.
 
 ### CPRA Compliance Rules (always enforce)
-
-- **68 codes** from the official CMS CY 2025 E/M Code List — not 74
-- **$32.3465** CY 2025 CF (non-QPP) — not $33.4009 (that's CY2026)
-- **Many-to-many categories** — a code can appear in multiple categories
-- Base rates only — do not include supplemental payments in the % calculation
-- Non-facility Medicare rate is the benchmark (not facility), per 42 CFR 447.203
-- Medicaid rates effective July 1, 2025 vs CY2025 Medicare PFS
-- Published by July 1, 2026; updated biennially thereafter
+- **68 codes** from CMS CY 2025 E/M Code List
+- **$32.3465** CY 2025 CF (non-QPP) for CPRA; **$33.4009** CY 2026 for general comparison
+- **Many-to-many categories**; base rates only (no supplementals); non-facility Medicare benchmark
 - Small cell suppression: beneficiary counts 1-10 suppressed
+- Published by July 1, 2026; updated biennially
 
 ---
 
-## 6. Terminal B — CPRA Data Pipeline
+## 9. Known Policy Rules (Always Enforce)
 
-**Primary file:** `tools/mfs_scraper/cpra_engine.py` (~48KB, 968 lines)
-
-**Single-command pipeline:**
-```bash
-python cpra_engine.py --all --cpra-em --output-dir ../public/data/
-```
-
-**Individual steps:**
-```bash
-python cpra_engine.py --init            # DuckDB schema + ETL from SQLite
-python cpra_engine.py --em-codes        # Load 74 E/M codes
-python cpra_engine.py --medicare-rates  # Calculate 858K locality rates
-python cpra_engine.py --cpra            # Match Medicaid→Medicare (242K rows)
-python cpra_engine.py --dq              # Run 11 DQ rules (258K flags)
-python cpra_engine.py --export          # Export all 7 output files
-python cpra_engine.py --cpra-em         # Export slim E/M extract
-python cpra_engine.py --stats           # Print table counts
-```
-
-**DuckDB (`aradune_cpra.duckdb`) — 1.87M rows:**
-
-| Table | Rows | Description |
-|-------|------|-------------|
-| dim_state | 51 | State dimension |
-| dim_procedure | 16,978 | Medicare PFS codes + RVUs |
-| dim_medicare_locality | 109 | GPCI values by locality |
-| dim_em_447_codes | 74 | E/M codes per 42 CFR 447.203 |
-| xwalk_locality_to_state | 109 | Equal-weighted locality→state crosswalk |
-| fact_medicare_rate | 858,593 | Medicare rates × 109 localities |
-| fact_medicare_rate_state | 417,481 | State-level Medicare averages |
-| fact_rate_comparison | 302,332 | CPRA: Medicaid vs Medicare (45 states) |
-| fact_dq_flags | 269,475 | Data quality flags |
-
-**Output files (what the frontend reads):**
-
-| File | Size | Frontend? | Notes |
-|------|------|-----------|-------|
-| `cpra_em.json` | 495KB | ✅ Primary CPRA data | 40 states, 2,216 E/M rows |
-| `dq_flags_em.json` | 81KB | ✅ DQ warnings | 789 flags, 6 types |
-| `dim_447_codes.json` | 14KB | ✅ Code definitions | 74 E/M codes |
-| `cpra_summary.json` | 7KB | ✅ State aggregates | median, national context |
-| `cpra_all.json` | 47.5MB | ❌ gitignored/vercelignored | too large for client |
-| `dq_flags.json` | 27.2MB | ❌ gitignored/vercelignored | full 258K flags |
-| `medicare_rates_locality.parquet` | 10MB | ❌ gitignored/vercelignored | locality-level rates |
-
-**45 states in rate_comparison (40 with E/M codes in cpra_em.json):** AK, AL, AR, AZ, CA, CO, CT, DC, DE, FL, GA, HI, ID, IL, IN, KY, LA, MA, MD, ME, MI, MN, MO, MS, MT, NC, ND, NE, NH, NM, NV, NY, OH, OK, OR, PA, RI, SC, SD, TX, UT, VA, WA, WV, WY
-
-**States with limited CPRA data:**
-- IA: No FFS physician codes (HCBS-only fee schedule)
-- NY: 13 codes (HCPCS Level II only, physician services via managed care)
-- NC: 3,156 codes but only 1 E/M match
-
-**CPRA summary numbers:**
-- Median pct_of_medicare: **84.8%**
-- Primary care E/M avg: **81.4%** (below Medicare)
-- MH/SUD avg: **99.6%** (near parity)
-- OB/GYN avg: **132.9%** (above Medicare)
-- Spot-check CA 99213: Medicaid $82.02 / Medicare $104.31 = **78.6%**
-
-**DQ flag inventory:**
-
-| Flag | Count | Notes |
-|------|-------|-------|
-| BELOW_50PCT | 55,284 (214 E/M) | Most common — red |
-| STALE_RATE | 52,483 (383 E/M) | Effective dates before 2023 — amber |
-| MISSING_MEDICARE | 124,476 (23 E/M) | State-specific codes with no PFS match |
-| ABOVE_MEDICARE | 25,859 (128 E/M) | Often OB/GYN, lab — green |
-| METHODOLOGY_RISK | 10 states | Pct-of-charge pricing — amber |
-| LOW_COVERAGE | 13 states | <1000 matched codes — amber |
-| HIGH_RATE | 782 | Rates >$10K (surgical/anesthesia) |
-
-**Phase 1 CMS data (prior sessions):** 15 datasets, 9.3M rows across `cms_data.py` (8 datasets: FMAP, enrollment, NADAC, SDUD, CMS-64, managed care, quality measures, DSH) and `ncci_scraper.py` (NCCI edits 2.5M pairs, HCPCS Level II 8,623 codes, 1115 waivers 647 via Playwright, drug rebate products).
+- **FL Medicaid: no facility rate + PC/TC split.** Special codes: **46924, 91124, 91125.**
+- **FL conversion factors:** Regular `$24.9779582769` · Lab `$26.1689186096`. Ad hoc CF $24.9876 is stale.
+- **FL has 8 schedule types.**
+- **Medicare baseline:** Non-facility rate (not facility), per 42 CFR 447.203.
+- **CHIP excluded** from per-enrollee calculations.
+- **Minimum cell size:** n >= 11.
+- **No em-dashes.** No "plain English."
 
 ---
 
-## 7. Known Bugs & Issues
+## 10. T-MSIS Data Quality Rules
 
-### Critical (fix first)
+**Non-negotiable. Full detail in `COMPLETE-DATA-REFERENCE-FOR-ARADUNE.md` (Part 1: T-MSIS/TAF section) and `docs/TMSIS_DATA_GUIDE.md`.**
 
-| # | Bug | Location | Status |
-|---|-----|----------|--------|
-| 1 | ~~White page on CPRA~~ | `/#/cpra` | **Resolved** — ErrorBoundary added. |
-| 2 | ~~T-MSIS DuckDB empty~~ | | **Resolved** — T-MSIS data ingested into lake. |
-| 3 | ~~6 states missing from CPRA~~ | | **Fixed** — COALESCE in cpra_engine.py. 34→45 states (AK/MI/NM computed from RBRVS). |
-| 4 | ~~**Frontend not wired to FastAPI**~~ | All 13 tools | **Resolved** — All tools wired with JSON fallback. |
-| 5 | ~~**Policy Analyst no auth**~~ | `api/chat.js` | **Mitigated** — Has Bearer token auth (PREVIEW_TOKEN + Stripe + rate limiting at 30/hr). Set PREVIEW_TOKEN env var on Vercel to restrict beyond site password. |
-| 6 | ~~**Old CPRA uses wrong code list**~~ | `cpra_engine.py` | **Fixed** — Updated to 68 codes from reference CSVs, $32.3465 CF, many-to-many (171 pairs). Re-run `--em-codes --cpra --export` to regenerate `fact_rate_comparison`. |
-| 7 | ~~FL rates not in CPRA display~~ | `fact_rate_comparison` | **Fixed** — Re-ran cpra_engine.py. FL now in rate_comparison. Also added AK/MI/NM computed fee schedules (RBRVS). 45 states, 302K rows. |
-| 8 | ~~**CPRA upload not deployed to Fly.io**~~ | `server/Dockerfile` | **Fixed** — Dockerfile updated to COPY `data/reference/cpra/`. Deployed to Fly.io. |
-| 9 | **R2 credentials need rotation** | Infrastructure | Shared in plain text during session. |
-| 10 | **db.py fact_names must match filesystem** | `server/db.py` | Only facts listed in `fact_names` array (line 41-148) are registered as views. When adding new lake tables, always update this list. Currently 250 entries = 250 filesystem directories. |
-| 11 | **Fly.io cold start slow** | Infrastructure | S3 sync downloads 270+ files on startup (~60s). Health check fails during sync. Consider pre-baking lake into Docker image or using persistent volumes. |
-| 13 | ~~**Fly.io needs redeployment**~~ | Infrastructure | **Done** — Deployed session 8. 232 tables live, NL2SQL working. |
-| 14 | ~~**ANTHROPIC_API_KEY on Fly.io**~~ | Infrastructure | **Done** — Set on Fly.io, Vercel, and local .env. |
-| 12 | ~~**Forecast engine needs frontend**~~ | `/#/forecast` | **Done.** Full UI: upload form, caseload forecast (fan chart + model table + interventions), expenditure projection (summary, chart, category table, MC/FFS breakdown bar). Tab toggle between caseload and expenditure views. |
-
-### Data Quality — Investigated
-
-All outlier states investigated. Root causes documented in `public/data/dq_state_notes.json` (42 states, 11 flagged).
-
-| State | Root Cause | E/M Median |
-|-------|-----------|-----------|
-| SD | Per-15-minute unit rates, not per-service | 3% (needs unit conversion) |
-| CT | Non-E/M codes include bundled facility costs | 106% (E/M is reasonable) |
-| KY | Similar bundling on surgical codes | 106% (E/M is reasonable) |
-| RI | Bundled facility rates inflate averages | 278% |
-| DC | 45K+ codes from multiple fee schedule types | 28% |
-
-### Minor / Cleanup
-
-| Item | Action |
-|------|--------|
-| `scripts/build-cpra-data.mjs` | Delete — superseded by cpra_engine.py |
-| Locality weighting is equal, not population-weighted | Acceptable for v1; fix with Census CBSA data later |
-| `StateRateEngine.js` not wired | 1,153 lines, 42/42 tests passing, but not connected to Rate Builder UI |
-| Password gate is client-side only | `sessionStorage` check in Platform.tsx — not a security boundary, just a preview wall |
-| No export on most tools | Only CPRA has PDF/Excel. Other tools need CSV/PDF export buttons. |
-| `cpra_precomputed.json` still in public/data | Listed as "⚠️ DELETE" in file map — actually delete it |
-
----
-
-## 8. Immediate Next Steps
-
-### Tier 1 — Ship-blocking (before removing password gate)
-1. ~~**Wire frontend to FastAPI endpoints**~~ — **Done.** All 13 tools wired. CPRA Generator, WageAdequacy, HcbsTracker use per-endpoint API calls. RateDecay, RateBuilder, ComplianceReport, QualityLinkage, RateLookup, FeeScheduleDir use bulk API endpoints (`/api/bulk/*`) with static JSON fallback. RateReduction uses DuckDB-WASM (no API needed). New `server/routes/bulk.py` serves 7 bulk endpoints matching frontend JSON shapes.
-2. ~~**Auth on Policy Analyst**~~ — **Done.** Preview token (`mediquiad`) accepted in `api/chat.js`. Password gate auto-populates analyst token in localStorage. Three auth paths: ADMIN_KEY, PREVIEW_TOKEN, ANALYST_TOKENS (env vars).
-3. ~~**Confirm CPRA in production**~~ — **Build verified.** ErrorBoundary in place, TypeScript clean, production build succeeds. Needs visual verification on aradune.co.
-4. ~~**Reconcile conversion factor**~~ — **Done.** `medicare_pfs.py` updated from $32.3465 (QPP) to $33.4009 (non-QPP). Frontend and cpra_engine.py already used correct value.
-
-### Tier 2 — Platform completeness (done items collapsed)
-
-**Done:** ~~Nav redesign~~, ~~DQ state notes~~, ~~Bar cap~~, ~~FL methodology addendum~~, ~~CPRA upload frontend~~, ~~CPRA upload Fly.io deploy~~, ~~cpra_engine.py update~~, ~~Caseload Forecaster frontend~~, ~~Expenditure modeling engine + API + frontend~~.
-
-**Still open:**
-5. **Landing page redesign** from `docs/AraduneMockup.jsx` — password gate restyled but full post-gate landing page not built.
-7. **Wire `StateRateEngine.js` into Rate Builder** — 42/42 tests passing, not connected to UI.
-
-### Tier 2b — Critical platform gaps (what's actually blocking public launch)
-
-These are the things that would make a user say "this is a real product":
-
-| # | Gap | Why it matters | Effort |
-|---|-----|----------------|--------|
-| A | ~~**State Profile pages**~~ | ~~Primary entry point for 80% of users.~~ **Done.** `StateProfile.tsx` (~470 lines), 18 parallel API fetches, 7 collapsible sections (overview, enrollment, rates, hospitals, quality, workforce, pharmacy, economic). Hash routing: `/#/state/{code}`. | **Done** |
-| B | ~~**Search / discovery**~~ | **Partially done.** Data Explorer (`/#/ask`) provides NL2SQL search. NavSearch exists. Full-text search across all tools still TODO. | **Partial** |
-| C | ~~**Landing page**~~ | **Updated.** Hero copy, stats, "Find a state" → State Profile, "Ask a Question" CTA. | **Done** |
-| D | ~~**Data catalog**~~ | **Done.** `DataCatalog.tsx` at `/#/catalog` — browsable index of all tables with row counts, column schemas, descriptions. | **Done** |
-| E | ~~**Export for all tools**~~ | **Done.** All tools now have CSV export buttons. CPRA also has PDF/Excel. | **Done** |
-| F | **User accounts** | Can't monetize with a shared password gate. Need at minimum email + magic link auth, saved workspaces, usage tracking. | Large |
-
-### Tier 3 — Data expansion (standing instruction)
-
-The data layer is the moat. Every session: add data, improve quality, or make adding data easier.
-
-**Completed federal datasets (115M+ rows, 250 fact tables):**
-- T-MSIS claims (227M source) · CPRA rates (45 states) · CMS-64 · NADAC · SDUD + SDUD 2024 (5.2M) + SDUD 2025 (2.64M)
-- BLS wages (state/MSA/national) · HCRIS hospitals + SNFs · Hospital quality (ratings/VBP/HRRP/HAC)
-- Five-Star NF · POS · PBJ staffing (65M+) · EPSDT · Enrollment/unwinding/MC plans
-- Census ACS · BRFSS · CDC mortality/overdose · FRED economic (GDP/pop/unemployment/income)
-- HPSA · Scorecard · HAI · NH ownership/penalties/deficiencies · HCAHPS · Imaging
-- MLTSS · Financial mgmt · Eligibility levels · ACA FUL · DQ Atlas · 1115 waivers · NCCI edits
-- SAMHSA: NSDUH (5,865 + 2024 update), N-SUMHSS (27,957 MH/SUD facilities), Block Grants ($0.95B), TEDS-A (49 states, 1.6M admissions)
-- CHIP: enrollment, unwinding, monthly/annual, eligibility, continuous eligibility
-- Behavioral health: BH by condition, MH/SUD recipients, IPF quality, BRFSS behavioral
-- Managed care: enrollment by plan (7,804), MLTSS enrollment, PACE (201 orgs), MC quality features, MC enrollment summary (2016-2024), MC dashboard (AZ/MI/NV/NM)
-- Hospice: quality (331K), provider, directory, CAHPS · Maternal health · ASC quality
-- Medicare: enrollment (557K), provider enrollment, IPPS impact, opioid prescribing (539K), telehealth (32K), geo variation (state/county), MA geo variation, Part D (geo + quarterly spending + opioid geo + spending by drug), Medicare program stats, physician geo (269K), hospital service area (1.16M)
-- Drug rebate products (1.9M) · AHRF county · Physician Compare · ESRD QIP · ESRD ETC results
-- Home health agencies · IRF providers · LTCH providers · Dialysis facilities (v2 with quality measures)
-- SNF VBP · SNF quality · Nursing home state averages · NH penalties v2 · NH survey summary · FQHC directory + hypertension + quality badges
-- Vital stats (monthly) · Maternal mortality (monthly) · Pregnancy outcomes · Well-child visits
-- Telehealth services · Dental services · Contraceptive care · Respiratory conditions
-- SNAP enrollment (3,920) · TANF enrollment (9,072) · HUD Fair Market Rents (4,764)
-- HCBS waitlists (51 states, 606K people) · LTSS expenditure/users/rebalancing · Quality Core Sets 2023 & 2024
-- Eligibility processing · Marketplace unwinding (59K) · SBM unwinding · FMR FY2024 ($909B) · New adult spending
-- SAIPE poverty (3,196) · CDC PLACES county health (3,144 counties) · HRSA health center sites (8,121)
-- Marketplace OEP · MUA designations (19,645) · Workforce projections (121 professions) · Food environment (304 vars)
-- Medicaid drug spending (brand/generic, 2019-2023) · NHE by state (1991-2020, 117K)
-- ACO/MSSP: orgs (511), participants (15,370), beneficiaries by county (135K), REACH results, financial results (476 ACOs)
-- NHSC field strength · MACPAC enrollment (Exhibit 14) + spending per enrollee (Exhibit 22) + spending by state (Exhibit 16) + benefit spending (Exhibit 17)
-- Nursing workforce demographics (17.6K) + earnings (41.8K) · Post-acute care (HHA/IRF/LTCH utilization)
-- Market saturation by county (962K) · HHA cost reports (10,715) · CDC overdose deaths (81K) · CDC leading causes of death (10.8K)
-- Part D opioid geo (329K) · Part D spending by drug (14,309)
-
-**Highest-value datasets not yet ingested:**
-
-| # | Dataset | Why it matters | Source | Status |
-|---|---------|---------------|--------|--------|
-| 1 | **Hospital price transparency MRFs** | Only way to see what MCOs actually pay providers. Covers ~70% of Medicaid (MC). Unique competitive advantage — no one has assembled this for Medicaid. | CMS MRF index | Not started — massive dataset, requires targeted extraction |
-| 2 | **HCBS waitlist data** | 700K+ people waiting for HCBS services nationally. No public database aggregates this. Genuinely differentiated. | KFF / state reports | **✓** fact_hcbs_waitlist (51 states, 606,895 people, 8 population categories) |
-| 3 | **340B covered entity data** | HRSA quarterly. Drug pricing intersection with Medicaid. | hrsa.gov | Blocked — Blazor Server app, needs browser automation. JSON/Excel export available at 340bopais.hrsa.gov/Reports |
-| 4 | **SPA/waiver policy corpus** | The text of State Plan Amendments, 1115 waivers, CIBs, SHO letters. Central to "AI-native policy intelligence." | CMS MACPro / medicaid.gov | Not started (have 647 waiver metadata records, but not the actual documents) |
-| 5 | **MCO contract terms** | Rate certifications, MLR reports, network adequacy standards. ~70% of Medicaid flows through MCOs. | State portals | Not started |
-| 6 | **SNAP/TANF enrollment** | Cross-program correlation for caseload forecasting. | fns.usda.gov / ACF | **✓** fact_snap_enrollment (3,920), fact_tanf_enrollment (9,072) |
-| 7 | **More state fee schedules** | 45/51 states in CPRA. Remaining: KS (portal login), NJ (portal login), TN (MC only), WI (manual). IA/VT in medicaid_rate but not rate_comparison. | State portals | 4 remaining |
-| 8 | **UPL demonstrations** | Upper payment limit filings — key to understanding supplemental payment structure. | CMS MACPro | Not started |
-| 9 | **Full SDP preprint parsing** | Have 34 state index entries. Need actual preprint PDF content via Claude API + pdfplumber. | CMS | Index done, parsing not started |
-| 10 | **Historical HCRIS (FY2021-2022)** | Enables 3-year trend sparklines for AHEAD Readiness. | cms.gov | Not started |
-
-**Improve existing data:**
-- Add `weighted_avg_pct` to `cpra_summary.json` using CY2023 FFS claim volume weights
-- Add category-level breakdowns to `cpra_summary.json` per state
-- Build reusable ingestion pattern (fetch→parse→validate→normalize→load) to accelerate new sources
-
-### Tier 4 — Analytical features
-
-| # | Feature | Status | Next action |
-|---|---------|--------|-------------|
-| 1 | ~~**Caseload forecasting**~~ | **Done.** Engine + API (10 endpoints) + full frontend UI with fan charts, model comparison, intervention effects. | Scenario builder (Phase 3) |
-| 2 | ~~**Expenditure modeling**~~ | **Done.** Engine (`expenditure_model.py`) + 4 API endpoints + frontend UI (summary, chart, per-category table, MC/FFS breakdown bar). Tab toggle with caseload view. | — |
-| 3 | ~~**Scenario builder**~~ | **Done.** Third tab in CaseloadForecaster. 4 sliders (unemployment, eligibility, rate change, MC shift) with preset scenarios. Client-side adjustment of forecast with baseline vs scenario chart. | — |
-| 4 | ~~**NL2SQL over the data lake**~~ | **Done.** `DataExplorer.tsx` at `/#/ask`. Claude Sonnet generates DuckDB SQL from natural language, validates (SELECT-only, LIMIT, forbidden keywords), executes with timeout. 10 example queries. Backend: `server/routes/nl2sql.py`. | — |
-| 5 | **RAG over policy corpus** | Not started | pgvector + Voyage-3-large embeddings over SPAs, waivers, CIBs. Requires ingesting the policy documents first (Tier 3 #4). |
-| 6 | **Forecast accuracy dashboard** | Not started | Principle #15: "Log predictions. Compare to actuals. Publish accuracy." Unique credibility signal — no Medicaid analytics firm publishes their forecast accuracy. |
-| 7 | **Cross-dataset insights** | Not started | The moat's real value: "States with lowest rates AND highest uninsured AND longest HCBS waitlists." Requires cross-table joins that the current tool-per-table architecture doesn't support. State Profile pages (Tier 2b-A) are the natural home for this. |
-
-### Recent Changes (2026-03-09, session 8 — deploy + demo prep)
-- **Fly.io deployed** — All 250 fact tables registered in code, 232 live in production (109M rows). NL2SQL endpoint working with ANTHROPIC_API_KEY.
-- **ANTHROPIC_API_KEY set** — Fly.io (`fly secrets set`), Vercel (`vercel env add`), local `server/.env` (gitignored). NL2SQL and Policy Analyst both functional.
-- **Vercel deployed** — Frontend live at aradune.co with all changes below.
-- **Pricing removed from site** — Deleted `Pricing()` component and `/pricing` route from Platform.tsx. Removed "See pricing →" footer link. Updated ProGateModal to generic "contact us" text. Updated PolicyAnalyst auth screen to remove subscription language. Pricing kept in CLAUDE.md (Section 19) for Track B reference.
-- **Two-track strategy documented** — Track A: partnership/acquisition demo build (active). Track B: independent SaaS with freemium model (future fallback). Both use same codebase.
-- **Brand assets migrated to SVG** — Navbar: logo-wordmark.svg (was logo-full.png). Chat icon: helmet.svg (was icon-bot.png). PDF reports: logo-wordmark.svg.
-- **Lottie sword loader** — `sword-animation.json` (10.8MB) fetched at runtime via `SwordLoader` component. Used as loading fallback for lazy-loaded tools. Kept small (80x140px).
-- **Landing page stats updated** — "250 fact tables", "115M+ rows", "80+ federal sources".
-- **lottie-react** dependency added to package.json.
-
-### Recent Changes (2026-03-09, sessions 4-7 — data expansion sprint)
-- **65 new fact tables ingested** across 4 sessions, bringing total from 185 → 250 fact tables
-- **Session 4** (round 10): SNAP enrollment (3,920), TANF enrollment (9,072), HUD Fair Market Rents (4,764 counties)
-- **Session 5** (round 10-11): SDUD 2025 (2.64M rows, $108.8B), HCBS waitlists (51 states, 606K people), Quality Core Sets 2023 & 2024, eligibility processing, marketplace/SBM unwinding, LTSS expenditure/users/rebalancing, vital stats monthly, maternal mortality monthly, FMR FY2024 ($909B), new adult spending, NSDUH 2024, MC enrollment summary
-- **Session 6** (round 12): SAIPE poverty (3,196), CDC PLACES county (3,144 counties, 40 measures), HRSA health center sites (8,121), marketplace OEP, MUA designations (19,645), workforce projections (121 professions), food environment (304 variables), Medicare telehealth (32K), Medicare/MA geo variation, Medicaid drug spending, MC dashboard, NHE by state (117K)
-- **Session 7** (round 13 + inline): MSSP ACO orgs (511) + participants (15,370) + beneficiaries by county (135K), ACO REACH results, Part D geo (116K) + quarterly spending (28K) + opioid geo (329K) + spending by drug (14,309), NHSC field strength, FQHC hypertension + quality badges, MACPAC Exhibits 14/16/17/22, nursing workforce (17.6K) + earnings (41.8K), TEDS-A admissions (49 states, 1.6M), Medicare program stats, hospital service area (1.16M), HHA cost reports (10,715), ESRD ETC results, PAC utilization (HHA/IRF/LTCH), market saturation by county (962K), Medicare physician geo (269K), MSSP financial results (476 ACOs), NH penalties v2 (17.4K) + survey summary (44K), dialysis facility v2 (7,557), CDC overdose deaths (81K) + leading causes (10.8K), MACPAC spending by state + benefit spending
-- **db.py** — 250 fact_names entries, verified matching all 250 filesystem directories
-- **meta.py** — TABLE_DESCRIPTIONS updated with all 250 fact tables + 9 dims + 9 refs
-- **nl2sql.py** — Key schema entries added for MSSP, Part D, NHSC, MACPAC, TEDS, CDC, ACO tables
-- **All 65 new Parquet files synced to R2** via wrangler — ready for Fly.io deployment
-- **4 new reference tables** added: ref_pediatric_drugs (262), ref_clotting_factor (500), + 2 more
-
-### Recent Changes (2026-03-08, session 2)
-- **Expenditure Modeling Engine** — `server/engines/expenditure_model.py` (~430 lines). Takes caseload forecast output + user-uploaded expenditure parameters CSV (cap rates for MC, cost-per-eligible for FFS). Applies compound monthly trend, admin load, risk margin, policy adjustments. Returns per-category and aggregate projections with CI bands. Key classes: `ExpenditureModeler`, `CategoryExpenditure`, `ExpenditureResult`.
-- **Expenditure API routes** — 4 new endpoints added to `server/routes/forecast.py` (now 10 total): `GET /api/forecast/templates/expenditure-params`, `POST /api/forecast/expenditure` (full pipeline), `POST /api/forecast/expenditure/csv`, `POST /api/forecast/expenditure-only`.
-- **Caseload Forecaster frontend** — `src/tools/CaseloadForecaster.tsx` (~830 lines). Full upload UI: state selector, horizon dropdown, caseload/events/expenditure-params file inputs with template download links, seasonality/economic checkboxes. Caseload view: summary metrics, category pills, fan chart with 80/95% CI bands, event markers, intervention effects panel, model comparison table. Expenditure view: summary card (total/MC/FFS), expenditure fan chart (orange accent), per-category table (9 columns + totals row), MC vs FFS horizontal breakdown bar. Tab toggle between views.
-- **Platform.tsx updated** — CaseloadForecaster registered as lazy-loaded tool at `/#/forecast` in Build group. Tool count: 15.
-- **CLAUDE.md overhauled** — Sections 4, 7, 8, 9, 16 updated. Section 8 restructured with Tier 2b (critical platform gaps: State Profiles, search, landing page, data catalog, export, user accounts) and Tier 3/4 tables with clear-eyed gap analysis.
-
-### Recent Changes (2026-03-08, session 1)
-- **Caseload Forecasting Engine (Phase 1)** — `server/engines/caseload_forecast.py` (~650 lines). SARIMAX + ETS model competition per category with intervention variables (COVID PHE, unwinding, MC launches, eligibility changes). Economic covariate enrichment from Aradune's public unemployment data. Holdout MAPE validation. Template-driven CSV upload pattern (same as CPRA). Tested with synthetic FL data: 8 categories, 96 months, all SARIMAX, <1% MAPE. Key fixes: event deduplication for multicollinearity, future exog construction for step functions. Dependencies added: `statsmodels>=0.14.0`, `pmdarima>=2.0.0`, `pandas>=2.1.0`, `numpy>=1.26.0`.
-- **Forecast API routes** — `server/routes/forecast.py` (original 6 endpoints): template downloads (caseload + events CSVs), generate forecast (JSON + CSV), public enrollment time series, enrollment by eligibility group.
-- **Round 9 data ingestion** — `scripts/build_lake_round9.py` (17 datasets): Medicare Enrollment (557K), Opioid Prescribing (539K), SDUD 2024 (5.2M), Drug Rebate Products (1.9M), CMS IPPS Impact (3,152), AHRF County, Physician Compare, ESRD QIP, OTP providers, CMS-64 FFCRA, contraceptive care, respiratory conditions, program monthly, MC annual/info monthly, CHIP monthly/app-elig, performance indicator, new adult enrollment, Medicare provider enrollment. Total: ~8.3M new rows.
-- **Round 9 API routes** — `server/routes/round9.py` (22 endpoints): Medicare enrollment/duals, opioid prescribing summary, SDUD 2024 top drugs, CMS IPPS impact, Medicare provider enrollment by type, and more.
-- **Rounds 4-8 data ingestion** — Multiple build scripts ingested ~80+ additional fact tables across sessions: hospital directories, MC programs, CHIP enrollment/unwinding, medicaid applications, vaccinations, blood lead screening, dual status, benefit packages, NAS rates, SNF VBP/quality, FQHC directory, vital stats, HHCAHPS, hospice directory/CAHPS, VHA providers, pregnancy outcomes, and more.
-- **db.py expanded** — Now registers 250 fact tables (up from ~70). Fixed duplicate `imaging_hospital` entry. All 250 lake directories matched.
-- **Data lake milestone** — 115M+ rows across 250 fact tables, 9 dimensions, 9 references, 2 compat views = 270 total views. 237+ API endpoints across 20 route files. Deployed to Fly.io (needs redeployment for sessions 4-7 data).
-- **Platform.tsx updated** — Stats now show "115M+" rows and "250" fact tables.
-
-### Recent Changes (2026-03-07)
-- **3 new computed fee schedules** — AK (RBRVS CF=$43.412, 138.6% MCR), MI (RBRVS CF=$21.30, 66.7% MCR), NM (150% of Medicare, 154.9% MCR). Script: `scripts/build_lake_fee_schedules_computed.py`. Added to both Parquet lake and SQLite.
-- **CPRA coverage expanded** — 42→45 states in `fact_rate_comparison` (302,332 rows), 39→40 states with E/M data in `cpra_em.json`.
-- **cpra_engine.py regenerated** — Updated to 68 codes, $32.3465 CF, many-to-many (171 pairs) from reference CSVs. All exports refreshed.
-- **Supplemental Payments Phase 2** — `build_lake_supplemental_p2.py` created: hospital-level DSH (6,103 hospitals) + SDP preprint (34 states). 3 new API endpoints.
-- **CpraGenerator.tsx upload tab** — "Bring Your Own Data" mode added, POSTs to `/api/cpra/upload/generate`.
-- **Dockerfile updated** — `COPY data/reference/cpra/` for upload tool. Ready for `fly deploy`.
-
-### Recent Changes (2026-03-06, session 2)
-- **CPRA Upload Tool ported** — User-upload CPRA generator from `cpra-pipeline/` integrated into Aradune. Engine at `server/engines/cpra_upload.py` (821 lines), 7 new endpoints under `/api/cpra/upload/`. Uses the **correct** CMS CY 2025 E/M code list (68 codes, 171 code-category pairs, $32.3465 CF). Reference data in `data/reference/cpra/` (3 CSVs: em_codes, code_categories, GPCI2025). Existing pre-computed comparison routes unchanged — general fee-to-Medicare comparison is a separate tool from the compliance-specific CPRA upload. Tested end-to-end with FL data (99213 PC: $34.29/$91.39 = 37.5% — exact match with R pipeline).
-- **Password gate redesigned** — Replaced tiny logo PNG with large text "ARADUNE" (32px, brand green, letterspaced). Content now left-justified in a centered 400px block instead of scattered center-aligned text. Added "Access code" label above input. Deployed to Vercel.
-- **FL Practitioner Fee Schedule added** — Downloaded from AHCA, parsed 6,676 codes into `fact_medicaid_rate` (573,853 total rows). FL went from 3,773 to 10,449 rows. Handles "BR" (By Report) non-numeric values. Note: these rates are in `fact_medicaid_rate` but NOT yet in `fact_rate_comparison` (which the CPRA frontend reads). The upload tool computes FL correctly from CSVs.
-- **Supplemental payment data ingested** — CMS-64 FMR (1,553 rows, FY 2019-2024, DSH/supplemental/GME by service x state) + MACPAC Exhibit 24 (102 rows, FY 2023-2024). 4 API endpoints in `server/routes/supplemental.py`, 2 new lake tables. Synced to R2 and live on Fly.io. Key findings: TN 98.2% supplemental, TX 92.5%, VA 90.2%. TX $9.7B/yr in supplemental payments.
-- **Nav groups renamed** — Transparency→Explore, Adequacy→Analyze, Modeling→Build.
-
-### Recent Changes (2026-03-06, session 1)
-- **Frontend→API wiring (complete)** — All 13 tools use API-first with static JSON fallback. 7 bulk endpoints in `server/routes/bulk.py`.
-- **Policy Analyst auth fixed** — Preview token (`mediquiad`) in `api/chat.js`.
-- **Conversion factor reconciled** — `medicare_pfs.py` updated to $33.4009 (non-QPP) for general comparison. Note: CPRA compliance uses $32.3465 (CY2025).
-- **CPRA DQ panel enhanced** — `dq_state_notes.json` wired.
-- **Bar visualization capped** — Capped at 200%.
-- **FL methodology addendum** — Appended to Policy Analyst system prompt.
-- **AHEAD Readiness Score** — New tool at `/#/ahead-readiness`.
-- **Password gate added** — `PasswordGate` in Platform.tsx.
-- **Brand assets integrated** — navbar, favicon, chat avatar, PDF headers.
-- **.gitignore overhauled** — Prevents 45GB+ data from git.
-- **Pushed to main** — Commit `95f5a34`.
-
-### External Project: cpra-pipeline
-
-Located at `/Users/jamestori/Desktop/cpra-pipeline/`. A standalone CPRA pipeline built separately, now partially ported into Aradune. Contains:
-- **R pipeline** (`R/01-07`) — Publication-quality CPRA report via Quarto. Real Medicare rates + FL Medicaid rates + simulated utilization. Produces 6 figures, gt tables, PDF report.
-- **Python engine** (`python/cpra_generator.py`) — The engine ported into Aradune as `server/engines/cpra_upload.py`.
-- **Python API** (`python/cpra_api.py`) — Standalone FastAPI server (port 8100). Routes ported into `server/routes/cpra.py`.
-- **Reference data** (`data/raw/`) — em_codes.csv, code_categories.csv, GPCI2025.csv, PPRRVU25_JAN.csv, fl_practitioner_fee_schedule_2025.xlsx. The first 3 copied to `data/reference/cpra/`.
-- **FL test data** (`data/simulated/`) — Real FL Medicaid rates + simulated utilization CSVs. Useful for testing the upload tool.
-- **HCBS templates** (`deliverables/data_requests/`, `data/hcbs/`) — Templates for the separate HCBS disclosure required by 447.203(b)(2)(iv). Not yet built.
-- **Key regulatory notes:** Deadline July 1, 2026. CY 2025 rates. 68 codes (not 74). $32.3465 CF. Only utilization data is simulated (no FMMIS access on personal laptop). When moved to AHCA work machine, replace simulated utilization with real FMMIS extract.
-
----
-
-## 9. File Map
-
-```
-Aradune/
-├── CLAUDE.md                        ← THIS FILE (auto-loaded by Claude Code)
-├── README.md
-├── SETUP.md
-├── package.json / package-lock.json
-├── vite.config.ts / tsconfig.json
-├── vercel.json                      ← SPA fallback, cache headers, build config
-├── index.html
-│
-├── src/
-│   ├── Platform.tsx                 ← ~980 lines. Main router, tool registry,
-│   │                                   landing page, ToolErrorBoundary, PasswordGate
-│   │                                   Password: "mediquiad" (sessionStorage)
-│   ├── design.ts                    ← Design tokens (C, FONT, SHADOW)
-│   ├── tools/
-│   │   ├── TmsisExplorer.tsx        ← ~2,400 lines. Spending Explorer.
-│   │   ├── CpraGenerator.tsx        ← 734 lines. CPRA wedge product.
-│   │   ├── FeeScheduleDir.tsx       ← State fee schedule directory (#/fees)
-│   │   ├── RateLookup.tsx           ← Search any HCPCS code cross-state (#/lookup)
-│   │   ├── WageAdequacy.tsx         ← 512 lines. BLS vs Medicaid (#/wages)
-│   │   ├── QualityLinkage.tsx       ← 446 lines. Outcomes vs rates (#/quality)
-│   │   ├── RateDecay.tsx            ← 431 lines. % of Medicare (#/decay)
-│   │   ├── RateBuilder.tsx          ← 499 lines. Rate calculator (#/builder)
-│   │   ├── AheadReadiness.tsx       ← AHEAD Readiness Score (#/ahead-readiness)
-│   │   │                              CCN lookup → 4 scored dimensions → self-report → peers
-│   │   ├── CaseloadForecaster.tsx    ← ~830 lines. Caseload forecast + expenditure (#/forecast)
-│   │   │                              Upload form, fan chart, model table, expenditure projection,
-│   │   │                              MC/FFS breakdown bar. Tab toggle caseload↔expenditure.
-│   │   ├── PolicyAnalyst.tsx        ← 378 lines. AI chat (#/analyst)
-│   │   ├── ComplianceReport.tsx     ← (#/compliance)
-│   │   ├── RateReductionAnalyzer.tsx ← (#/reduction)
-│   │   ├── StateProfile.tsx          ← ~470 lines. State Profile (#/state, #/state/{code})
-│   │   │                              18 parallel API fetches, 7 collapsible sections, hash-based deep linking
-│   │   ├── HcbsCompTracker.tsx      ← (#/hcbs8020)
-│   │   └── AheadCalculator.tsx      ← (#/ahead)
-│   ├── engine/
-│   │   └── StateRateEngine.js       ← 1,153 lines. 42/42 tests passing.
-│   │                                   ⚠️ NOT YET WIRED INTO Rate Builder.
-│   ├── utils/
-│   │   ├── cpraPdf.ts               ← 239 lines. CPRA PDF export.
-│   │   ├── cpraXlsx.ts              ← 173 lines. CPRA Excel export.
-│   │   ├── pdfReport.ts             ← ~100 lines. Shared PDF utilities.
-│   │   └── aheadScoring.ts         ← AHEAD scoring functions (4 dimensions + self-report + composite)
-│   ├── lib/
-│   │   ├── api.ts                   ← Shared API client (VITE_API_URL + fallback)
-│   │   ├── duckdb.ts                ← ~110 lines. DuckDB-WASM singleton.
-│   │   └── queryEngine.ts           ← ~200 lines. resolveHcpcsCodes(), pickTable().
-│   └── data/
-│       └── states.ts                ← STATE_NAMES, STATES_LIST
-│
-├── public/data/                     ← All JSON/Parquet served to frontend
-│   ├── cpra_em.json                 ← 615KB. Primary CPRA data. (Terminal B)
-│   ├── dq_flags_em.json             ← 79KB. DQ warnings. (Terminal B)
-│   ├── dim_447_codes.json           ← 14KB. 74 E/M codes. (Terminal B)
-│   ├── cpra_summary.json            ← 7KB. State aggregates. (Terminal B)
-│   ├── cpra_precomputed.json        ← 384KB. ⚠️ DELETE — superseded by cpra_em.json
-│   ├── hcpcs.json                   ← T-MSIS claims data
-│   ├── states.json                  ← State aggregates
-│   ├── trends.json                  ← Year-over-year trends
-│   ├── medicare_rates.json          ← Medicare rates (may be incomplete)
-│   ├── providers.json               ← Provider counts
-│   ├── specialties.json             ← Specialty breakdown
-│   ├── fee_schedules.json           ← State fee schedule rates (45 states)
-│   ├── bls_wages.json               ← BLS wages
-│   ├── quality_measures.json        ← CMS Core Set
-│   ├── soc_hcpcs_crosswalk.json     ← SOC-HCPCS mapping
-│   ├── conversion_factors.json      ← State methodology metadata
-│   ├── system_prompt.md             ← AI tier system prompt
-│   ├── fl_methodology_addendum.md   ← Loaded in api/chat.js system prompt
-│   └── [external]                   ← claims_monthly.parquet (82MB) via VITE_MONTHLY_PARQUET_URL
-│
-├── api/
-│   └── chat.js                      ← 515 lines. Vercel serverless. ⚠️ NO AUTH.
-│
-├── server/                          ← FastAPI backend (DuckDB over lake Parquet)
-│   ├── main.py                      ← FastAPI app, lifespan hooks, router includes
-│   ├── db.py                        ← In-memory DuckDB, registers lake Parquet as views
-│   ├── config.py                    ← Settings (lake_dir, CORS, max_rows)
-│   ├── query_builder.py             ← Parameterized SQL builder for /api/query
-│   ├── Dockerfile                   ← Python 3.12, S3 sync on startup
-│   ├── fly.toml                     ← Fly.io deployment config
-│   ├── entrypoint.sh                ← Downloads lake from S3, starts uvicorn
-│   ├── engines/
-│   │   ├── cpra_upload.py           ← 821 lines. CPRA upload engine (68 codes, 171 pairs, DuckDB)
-│   │   ├── caseload_forecast.py     ← ~650 lines. SARIMAX+ETS forecasting engine (template-driven upload)
-│   │   └── expenditure_model.py     ← ~430 lines. Expenditure projection engine (cap rates + cost-per-eligible)
-│   └── routes/
-│       ├── query.py                 ← POST /api/query (backward-compatible spending queries)
-│       ├── meta.py                  ← GET /api/meta (dataset metadata)
-│       ├── presets.py               ← GET /api/presets
-│       ├── cpra.py                  ← CPRA: pre-computed (/api/cpra/states, rates, dq, compare)
-│       │                              + upload tool (/api/cpra/upload/generate, templates, etc.)
-│       ├── lake.py                  ← /api/states, enrollment, quality, expenditure, lake/stats
-│       ├── pharmacy.py              ← /api/pharmacy/utilization, nadac, top-drugs
-│       ├── policy.py                ← /api/policy/spas, waivers, managed-care, fmap, dsh
-│       ├── wages.py                 ← /api/wages/{state}, compare/{soc}, msa/{state}, national
-│       ├── hospitals.py             ← /api/hospitals/{state}, summary, nursing-facilities/{state},
-│       │                              ccn/{ccn}, ccn/{ccn}/peers (AHEAD Readiness)
-│       ├── enrollment.py            ← /api/enrollment/eligibility, expansion, unwinding, mc-plans
-│       ├── staffing.py              ← /api/staffing/summary, staffing/{state}
-│       ├── quality.py              ← /api/five-star/, hac/, pos/, hospital-ratings/, vbp/, hrrp/, epsdt, hpsa/
-│       ├── context.py             ← /api/demographics/, scorecard/, economic/, mortality/
-│       ├── bulk.py                ← /api/bulk/* — 7 bulk endpoints matching frontend JSON shapes
-│       ├── supplemental.py       ← /api/supplemental/* — 7 endpoints (FMR + MACPAC + DSH hospital + SDP)
-│       ├── behavioral_health.py  ← /api/behavioral-health/*, /api/gme/*, rounds 2-8 data (109 endpoints)
-│       ├── round9.py             ← /api/medicare/*, /api/opioid/*, /api/pharmacy/sdud-2024/* (22 endpoints)
-│       ├── forecast.py           ← /api/forecast/* — caseload templates + generate + expenditure pipeline (10 endpoints)
-│       └── pipeline.py              ← /api/pipeline/status
-│
-├── tools/
-│   ├── ahead/                       ← AHEAD/Meridian calculator (standalone)
-│   └── mfs_scraper/
-│       ├── cpra_engine.py           ← 968 lines. Full CPRA pipeline. (Terminal B)
-│       ├── cms_data.py              ← 8 CMS dataset scrapers
-│       ├── ncci_scraper.py          ← NCCI, HCPCS, waivers, drug rebate
-│       ├── export_data.py           ← JSON export for CMS supplemental data
-│       ├── db_import.py             ← --import-cms flag, pg_dump
-│       ├── schema.sql               ← 12 new tables for CMS data
-│       └── aradune_cpra.duckdb      ← 1.79M rows. Terminal B analytical layer.
-│
-├── pipeline/
-│   ├── dagster_pipeline.py          ← Dagster definitions: 6 assets, 3 checks, 3 jobs, 2 schedules
-│   ├── __init__.py
-│   ├── tmsis_pipeline_duckdb.R      ← 71KB. T-MSIS processing (227M rows).
-│   ├── process_data.R               ← 15KB.
-│   ├── hcpcs_reference.R            ← 16KB. HCPCS reference data processing.
-│   └── tmsis_sample_generator.R     ← 18KB. Sample/dev data generation.
-│
-├── data/
-│   ├── lake/                        ← Unified Parquet data lake (115M+ rows, 250 fact tables, 785MB)
-│   │   ├── dimension/               ← 9 tables: dim_state, dim_procedure, dim_hcpcs, dim_bls_occupation,
-│   │   │                              dim_medicare_locality, dim_time, dim_provider_taxonomy,
-│   │   │                              dim_pace_organization, dim_scorecard_measure
-│   │   ├── fact/                    ← 250 Hive-partitioned tables: fact/{name}/snapshot=YYYY-MM-DD/data.parquet
-│   │   │                              Full list: see `ls data/lake/fact/` or `server/db.py` lines 41-148
-│   │   ├── reference/               ← 9 tables: ref_drug_rebate, ref_ncci_edits, ref_1115_waivers,
-│   │   │                              ref_poverty_guidelines, ref_presumptive_eligibility,
-│   │   │                              ref_pediatric_drugs, ref_clotting_factor, + 2 more
-│   │   └── metadata/                ← manifest_*.json (pipeline run metadata, ~25 manifests)
-│   ├── reference/
-│   │   └── cpra/                    ← em_codes.csv (68), code_categories.csv (171), GPCI2025.csv (109 localities)
-│   ├── raw/
-│   │   ├── medicaid-provider-spending.duckdb   ← 17.57GB. T-MSIS DuckDB. ⚠️ EMPTY — R pipeline must run first.
-│   │   ├── medicaid-provider-spending.csv      ← 11.09GB. Source T-MSIS data.
-│   │   ├── npidata_pfile_20050523-20260208.csv ← 11.21GB. Full NPPES registry.
-│   │   ├── NPPES_Data_Dissemination_February_2026/ ← Extracted NPPES folder.
-│   │   ├── NPPES_Data_Dissemination_February_2026.zip ← 1.11GB.
-│   │   ├── PPRR VU2026_Jan_nonQPP.csv          ← 2.6MB. CY2026 Medicare PFS RVU file.
-│   │   ├── Florida_2026 Practitioner Fee Schedule.xlsx          ← 274KB.
-│   │   ├── Florida_2026 Practitioner Laboratory Fee Schedule.xlsx ← 72KB.
-│   │   ├── medicaid_fee_schedule_directory_v2.xlsx ← 14KB. State fee schedule registry.
-│   │   ├── hcpc2025_oct_anweb_v4.zip           ← 2.5MB. HCPCS Level II codes.
-│   │   ├── bls_medicaid_occupations.csv        ← 2.2MB. BLS wage data.
-│   │   ├── 2024-child-and-adult-core-quality-measures.csv ← 9.1MB.
-│   │   ├── all_data_M_2024.xlsx                ← 81.6MB. (identify and document)
-│   │   ├── data-02-25-2026-10_06am.csv         ← 33KB.
-│   │   ├── EXHIBIT-14.-Medicaid-...-Status-FY-2023.xlsx ← 29KB.
-│   │   ├── EXHIBIT-22.-Medicaid-...-Group-FY-2023.xlsx  ← 38KB.
-│   │   └── dme26a/                             ← DME fee schedule folder.
-│   ├── processed/                   ← Pipeline outputs (to build)
-│   └── sources/                     ← State YAML registry (to build)
-│
-├── scripts/
-│   ├── build_dimensions.py          ← Build dimension Parquet from SQLite + CPRA DuckDB
-│   ├── build_facts.py               ← Build CPRA fact tables (medicaid_rate, rate_comparison, etc.)
-│   ├── build_facts_tmsis.py         ← Ingest T-MSIS Parquet into the lake
-│   ├── build_lake_cms.py            ← Migrate CMS supplemental data (SDUD, NADAC, SPAs, etc.)
-│   ├── build_lake_bls.py            ← Ingest BLS OEWS wage data (16 Medicaid occupations)
-│   ├── build_lake_hcris.py          ← Ingest HCRIS hospital + SNF cost reports
-│   ├── build_lake_enrollment.py     ← Ingest Medicaid enrollment, unwinding, MC plan data
-│   ├── build_lake_pbj.py            ← Ingest PBJ nursing facility staffing (65M+ rows)
-│   ├── build_lake_quality.py        ← Ingest Five-Star, HAC, POS facility data (162K rows)
-│   ├── build_lake_hospital_quality.py ← Ingest hospital ratings, VBP, HRRP, EPSDT (26K rows)
-│   ├── build_lake_care_compare.py   ← Ingest Care Compare state-level quality (6 tables, 3.8K rows)
-│   ├── build_lake_medicaid_supplemental.py ← MLTSS, Financial Mgmt, Eligibility, ACA FUL, DQ Atlas (2.3M rows)
-│   ├── build_lake_economic.py       ← CPI, unemployment, median income, MSPB hospital (8.9K rows)
-│   ├── build_lake_hpsa.py           ← HRSA HPSA designations (69K rows, 3 disciplines)
-│   ├── build_lake_scorecard.py      ← Medicaid Scorecard + eligibility groups + HAI + MC enrollment (130K rows)
-│   ├── build_lake_hai_ownership.py  ← HAI hospital infections + NH ownership (316K rows)
-│   ├── build_lake_census.py         ← Census ACS demographics, poverty, insurance (52 states)
-│   ├── build_lake_cdc.py            ← CDC drug overdose + mortality trends (13.6K rows)
-│   ├── build_lake_supplemental.py   ← CMS-64 FMR + MACPAC Exhibit 24 supplemental payments (1,655 rows)
-│   ├── build_lake_supplemental_p2.py ← Hospital-level DSH (6,103) + SDP preprint (34 states)
-│   ├── build_lake_behavioral_health.py ← NSDUH, N-SUMHSS, IPF quality, BRFSS behavioral
-│   ├── build_lake_gme_blockgrant.py ← GME/CMS PSF (68K providers) + MHBG block grants
-│   ├── build_lake_chip_hcbs.py      ← CHIP eligibility + continuous eligibility policies
-│   ├── build_lake_fee_schedules_computed.py ← AK/MI/NM RBRVS-computed fee schedules
-│   ├── build_lake_providers_demographics.py ← Provider demographics + facility data
-│   ├── build_lake_round2.py         ← Hospice, maternal health, ASC, home health, HCBS
-│   ├── build_lake_round2b.py        ← CMS-372 waivers, MC enrollment by plan, MLTSS
-│   ├── build_lake_round2c.py        ← MC enrollment by population, PACE directory
-│   ├── build_lake_round3.py         ← BH by condition, dental, telehealth, IRF, LTCH, HHA
-│   ├── build_lake_round3b.py        ← MC share, MC monthly, dialysis facility, IPF facility
-│   ├── build_lake_round3c.py        ← Hospital directory, MC programs
-│   ├── build_lake_round4.py         ← CHIP unwinding, medicaid applications, vaccinations
-│   ├── build_lake_round5.py         ← Dual status, benefit package, NAS rates, SMM extended
-│   ├── build_lake_round6.py         ← HAI hospital2, complications/timely/unplanned hosp-level
-│   ├── build_lake_round7.py         ← SNF VBP/quality, FQHC directory, vital stats, HHCAHPS
-│   ├── build_lake_round8.py         ← Hospice directory/CAHPS, Medicare spending, VHA providers
-│   ├── build_lake_round9.py         ← Medicare enrollment, opioid, SDUD 2024, drug rebate, CMS impact
-│   ├── build_lake_round10.py        ← SDUD 2025, Core Set 2023/2024, HCBS waitlist, eligibility processing
-│   ├── build_lake_round11.py        ← LTSS, vital stats monthly, maternal mortality, FMR FY2024, NSDUH 2024
-│   ├── build_lake_round12.py        ← SAIPE poverty, CDC PLACES, health center sites, marketplace OEP, MUA, workforce, food environment, Medicare telehealth/geo variation, drug spending, NHE
-│   ├── build_lake_round13.py        ← MSSP/ACO, Part D, NHSC, FQHC hypertension/badges
-│   ├── export_frontend.py           ← Export validated lake data to public/data/ JSON
-│   ├── sync_lake.py                 ← Upload/download lake to/from S3
-│   ├── sync-fee-schedules.py
-│   ├── update-rvu.mjs
-│   ├── build_reference_data.py
-│   └── build-cpra-data.mjs          ← ⚠️ Superseded by cpra_engine.py — delete
-│
-└── docs/
-    ├── ARADUNE_MASTER.md            ← Full strategy/architecture reference
-    ├── ARADUNE_PRODUCT_STRATEGY.md
-    ├── ARADUNE_VISION.md            ← T-MSIS resource library, verified URLs
-    ├── aradune-implementation-plan.md
-    ├── aradune-market-gaps.md
-    ├── TMSIS_DATA_GUIDE.md
-    ├── UX_FEATURES_SPEC.md          ← Full implementation spec: glossary, search, state profiles
-    └── AraduneMockup.jsx            ← DEFINITIVE landing page + nav reference
-```
-
-├── .github/workflows/
-│   └── ci.yml                       ← GitHub Actions: build, lint, deploy to Vercel + Fly.io
-
-### Brand Assets
-
-All assets are transparent PNGs — green elements on transparent background. Render correctly on any surface.
-
-| File | Path | Usage |
-|------|------|-------|
-| `logo-full.png` | `public/assets/logo-full.png` | Primary logo (A lettermark + ARADUNE wordmark stacked). Navbar top-left. |
-| `logo-mark.png` | `public/assets/logo-mark.png` | A lettermark alone. Favicon, small spaces, app icon. |
-| `logo-wordmark.png` | `public/assets/logo-wordmark.png` | ARADUNE text only. PDF report headers, tight horizontal spaces. |
-| `icon-bot.png` | `public/assets/icon-bot.png` | Winged helmet. Policy Analyst AI chat avatar (32×32, border-radius 50%). |
-
-**Brand colors:** `#0A2540` ink · `#2E6B4A` brand green · `#C4590A` accent · `#F5F7F5` surface.
-
-**Files to delete:**
-- ~~`public/data/cpra_precomputed.json`~~ — **Deleted**
-- `docs/HANDOFF_CLAUDE_CODE.md` — merged into CLAUDE.md
-- `docs/TERMINAL_A_HANDOFF.md` — merged into CLAUDE.md
-- `scripts/build-cpra-data.mjs` — superseded by cpra_engine.py
-
-## 10. Known Policy Rules (Always Enforce)
-
-- **FL Medicaid: rates cannot have both a facility rate AND a PC/TC split.** Codes requiring special handling: **46924, 91124, 91125.**
-- **FL production conversion factors:** Regular `$24.9779582769` · Lab `$26.1689186096`. The ad hoc CF of $24.9876 is stale — do not use for CY2026.
-- **FL has 8 schedule types** in the fee schedule.
-- **Medicare comparison baseline:** Always use the non-facility rate (not facility), per 42 CFR 447.203.
-- **Medicare conversion factors:** `$33.4009` (CY2026, non-QPP) for general fee-to-Medicare comparison. `$32.3465` (CY2025, non-QPP) for CPRA compliance (July 2026 deadline compares CY2025 rates). Both are correct for their respective uses.
-- **CPRA base rates only:** Do not include supplemental payments in the Medicaid-to-Medicare percentage.
-- **CHIP excluded** from per-enrollee Medicaid calculations.
-- **Minimum cell size:** n ≥ 11 for any published utilization count.
-
----
-
-## 11. Data Universe
-
-### Ring 0: Public Regulatory Data (No HIPAA, no DUA — build here first)
-
-| Dataset | Source | Format | Cadence | Priority | Status |
-|---|---|---|---|---|---|
-| State Medicaid fee schedules (all 51) | State agency websites | CSV/XLSX/PDF | Annual/quarterly | **P0** | **47 states** (597K rows). 4 remaining: KS/NJ (portal login), TN (MC only), WI (manual). |
-| Medicare Physician Fee Schedule | cms.gov PFS RVU files | ZIP/CSV | Annual + quarterly | **P0** | **✓** 16,978 codes, 858K locality rates, 417K state rates |
-| T-MSIS HHS open data (227M rows) | HHS/Hugging Face | Parquet | Done (Feb 2026) | **P0** | **✓** Ingested into lake |
-| NPPES NPI Registry | download.cms.gov | CSV | Weekly | **P0** | **✓** 11.2GB raw file downloaded |
-| Medicaid Provider Enrollment Files | State portals | State portals | Annual | **P0** | Not started |
-| CMS-64 expenditure reports | medicaid.gov | Excel/CSV | Quarterly | **P1** | **✓** fact_expenditure + fact_fmr_supplemental |
-| MBES/CBES enrollment/expenditure | medicaid.gov | Excel | Quarterly | **P1** | **Partial** — enrollment data ingested |
-| HCRIS hospital cost reports | cms.gov | CSV | Quarterly (2–4yr lag) | **P1** | **✓** fact_hospital_cost + fact_dsh_hospital (6,103 hospitals) |
-| Provider of Services (POS) File | cms.gov | CSV | Quarterly | **P1** | **✓** fact_pos_hospital + fact_pos_other |
-| NADAC pharmacy pricing | medicaid.gov | CSV | Weekly | **P1** | **✓** fact_nadac |
-| State Drug Utilization Data (SDUD) | data.medicaid.gov | CSV + API | Quarterly | **P1** | **✓** fact_drug_utilization |
-| FMAP rates | medicaid.gov/kff.org | Web | Annual | **P1** | **✓** fact_fmap |
-| Adult/Child Core Set quality measures | medicaid.gov | Web/Excel | Annual | **P1** | **✓** fact_quality_measure |
-| MACStats / MACPAC Exhibits | macpac.gov | PDF/Excel | Annual | **P2** | **✓** fact_macpac_supplemental (Exhibit 24) |
-
-### AHEAD Readiness Score — HCRIS Field Map
-
-```
-Operating/total margin   → net_income / net_patient_revenue (HCRIS Worksheet G)
-Current ratio            → total_assets / total_liabilities (HCRIS Worksheet G)
-Cost-to-charge ratio     → cost_to_charge_ratio (HCRIS Worksheet D-1/D-4)
-Payer mix (days)         → medicare_days, medicaid_days, total_days (HCRIS Worksheet S-3)
-Inpatient/outpatient rev → inpatient_revenue, outpatient_revenue (HCRIS Worksheet G-3)
-Uncompensated care       → uncompensated_care_cost (HCRIS Worksheet S-10)
-Medicare DSH             → dsh_adjustment, dsh_pct (HCRIS Worksheet E)
-IME payment              → ime_payment (HCRIS Worksheet E)
-Discharges, bed count    → total_discharges, bed_count (HCRIS Worksheet S-3)
-```
-
-**AHEAD Readiness Score — Data Gaps (as of March 2026):**
-1. **Medicaid UPL/SDP** — Not available at hospital level. Only state-aggregate in CMS-64.
-2. **Maryland AHEAD peer benchmarks** — No public dataset. Static MedPAC/MACPAC benchmarks as placeholder.
-3. **Medicaid FFS vs MC split** — HCRIS S-3 reports combined Medicaid days. Estimate from MBES/CBES penetration rate.
-4. **Service line margins** — Internal data. Self-report unlock only.
-5. **3-year trends** — HCRIS only has FY2023 in lake. Multi-year would need historical HCRIS downloads.
-6. **Days cash on hand, DSCR, days AR** — Not directly in HCRIS extract. Derived from balance sheet where possible.
-
-### Supplemental Payment Programs ← PARTIALLY ADDRESSED
-
-For safety net hospitals, supplemental payments can exceed base rates by 2–5x. All Ring 0.
-
-| Dataset | Program | Source | Cadence | Priority |
-|---|---|---|---|---|
-| CMS DSH Allotment Reports | DSH | medicaid.gov | Annual | **P1** | **✓** fact_dsh_payment + fact_dsh_hospital |
-| CMS-64 Schedule A/B | UPL/DSH | medicaid.gov | Quarterly | **P1** | **✓** fact_fmr_supplemental (state-level) |
-| UPL Demonstration filings (state SPAs) | UPL/IGT/CPE | CMS MACPro | Ongoing | **P1** | Not started |
-| State Directed Payment filings (42 CFR 438.6(c)) | SDP | CMS | Annual | **P1** | **✓** fact_sdp_preprint (34 states, curated index) |
-| HRSA GME payment data | GME (direct + indirect) | hrsa.gov | Annual | **P1** | Not started |
-| 1115 waiver financial terms | LIP/DSRIP/UC pools | medicaid.gov | Ongoing | **P1** | **Partial** — ref_1115_waivers (647 waivers) |
-| MACPAC supplemental payment reports | All programs | macpac.gov | Annual | **P2** | **✓** fact_macpac_supplemental |
-| OIG DSH audit reports | DSH | oig.hhs.gov | Ongoing | **P2** | Not started |
-
-**Programs to model:** DSH (disproportionate share) · UPL/IGT/CPE (upper payment limit + intergovernmental transfers) · State Directed Payments (managed care) · LIP (Low Income Pool, FL + others) · DSRIP · GME direct + indirect · Uncompensated Care pools. The "all-in Medicaid rate" = base rate + all supplemental programs. No platform shows this today.
-
-### LTSS / HCBS ← PARTIALLY ADDRESSED (~40% of Medicaid spending)
-
-| Dataset | Source | Cadence | Priority | Status |
-|---|---|---|---|---|
-| CMS-64 Schedule B (HCBS expenditure by waiver) | medicaid.gov | Quarterly | **P1** | Not started |
-| 1915(c) Waiver Utilization & Expenditure | CMS waiver reports | Annual | **P1** | Not started |
-| HCBS Quality Measures (CMS national framework) | medicaid.gov | Annual | **P1** | Not started |
-| HCBS Waitlist Data (700K+ people waiting nationally) | KFF / state reports | Annual | **P1** | **✓** fact_hcbs_waitlist (51 states, 606K, KFF 2025) |
-| Nursing Facility Cost Reports (CMS-2540) | cms.gov | Annual | **P1** | **✓** fact_snf_cost |
-| Five-Star Quality Rating (Care Compare, NF) | cms.gov API | Monthly | **P1** | **✓** fact_five_star |
-| Payroll-Based Journal (PBJ) NF staffing | cms.gov | Quarterly | **P1** | **✓** fact_pbj_nurse/nonnurse/employee (65M+ rows) |
-| Direct Support Workforce data (wages, vacancy, turnover) | PHI / ANCOR | Annual | **P1** | Not started |
-| MDS facility-level aggregates | cms.gov | Quarterly | **P2** | **✓** fact_mds_quality (250K rows) |
-| 1915(k) Community First Choice utilization | CMS reports | Annual | **P2** | Not started |
-| PACE enrollment & spending | CMS reports | Annual | **P2** | **Partial** — dim_pace_organization (201 orgs), fact_mc_enrollment_plan has PACE |
-| CMS-372 Waiver data | CMS reports | Annual | **P2** | **✓** fact_cms372_waiver (553 programs, $55.75B) |
-| HCBS authority measures | Medicaid Scorecard | Annual | **P2** | **✓** fact_hcbs_authority (59 measures) |
-
-### Hospital Quality & Value-Based Programs ← DONE
-
-| Dataset | Source | Cadence | Priority | Status |
-|---|---|---|---|---|
-| Care Compare — hospital ratings | cms.gov API | Quarterly | **P1** | **✓** fact_hospital_rating |
-| Inpatient Quality Reporting (IQR) | cms.gov API | Quarterly | **P1** | **✓** (via Care Compare) |
-| Hospital Value-Based Purchasing (VBP) scores | cms.gov | Annual | **P1** | **✓** fact_hospital_vbp |
-| Hospital Readmissions Reduction Program (HRRP) | cms.gov | Annual | **P1** | **✓** fact_hospital_hrrp |
-| Hospital-Acquired Condition (HAC) Reduction | cms.gov | Annual | **P2** | **✓** fact_hac_measure |
-
-### Behavioral Health ← SUBSTANTIALLY ADDRESSED
-
-| Dataset | Source | Cadence | Priority | Status |
-|---|---|---|---|---|
-| SAMHSA NSDUH (MH/SUD prevalence by state) | samhsa.gov | Annual | **P1** | **✓** fact_nsduh_prevalence (5,865 rows, 2023-2024) |
-| SAMHSA Block Grant expenditure reports | samhsa.gov | Annual | **P1** | **✓** fact_block_grant (55 state allotments, $0.95B) |
-| Psychiatric bed capacity by state | samhsa.gov | Annual | **P1** | **✓** fact_mh_facility (27,957 MH/SUD treatment facilities) |
-| IPF Quality (psychiatric facility quality) | cms.gov | Annual | **P1** | **✓** fact_ipf_quality_state + fact_ipf_quality_facility (1,474 rows) |
-| BH by condition (T-MSIS) | CMS | Annual | **P1** | **✓** fact_bh_by_condition (4,240 rows, 16 conditions) |
-| MH/SUD service recipients | CMS | Annual | **P1** | **✓** fact_mh_sud_recipients (216 rows, 2020-2022) |
-| Physical conditions among BH beneficiaries | CMS | Annual | **P1** | **✓** fact_physical_among_mh + fact_physical_among_sud (11,130 rows) |
-| 1115 IMD waiver utilization | CMS reports | Annual | **P1** | Not started |
-| BH-specific HRSA HPSA designations | hrsa.gov API | Ongoing | **P1** | **✓** fact_hpsa (69K rows, 3 disciplines incl. MH) |
-
-### Children's Health / CHIP / EPSDT ← SUBSTANTIALLY ADDRESSED
-
-| Dataset | Source | Cadence | Priority | Status |
-|---|---|---|---|---|
-| CHIP enrollment & expenditure (separate from Medicaid) | CMS/MBES | Quarterly | **P1** | **✓** fact_chip_enrollment, fact_chip_monthly, fact_chip_program_monthly/annual, fact_chip_app_elig, fact_chip_enrollment_unwinding |
-| CHIP eligibility thresholds | medicaid.gov | Annual | **P1** | **✓** fact_chip_eligibility (51 states, income thresholds by age) |
-| EPSDT Participation Reports (CMS-416) | medicaid.gov | Annual | **P1** | **✓** fact_epsdt |
-| Children's Core Set measures | medicaid.gov | Annual | **P1** | **✓** fact_quality_measure |
-| Well-child visits | CMS | Annual | **P1** | **✓** fact_well_child_visits |
-| Blood lead screening | CMS | Annual | **P1** | **✓** fact_blood_lead_screening |
-| Vaccinations | CMS | Annual | **P1** | **✓** fact_vaccinations |
-
-### Eligibility & Unwinding
-
-| Dataset | Source | Cadence | Priority | Status |
-|---|---|---|---|---|
-| Medicaid unwinding / redetermination outcomes | CMS dashboard | Monthly | **P1** | **✓** fact_unwinding |
-| KFF Medicaid eligibility policy tracker | kff.org | Ongoing | **P1** | **✓** fact_eligibility_levels |
-
-### Pharmacy (Deeper)
-
-| Dataset | Source | Cadence | Priority | Status |
-|---|---|---|---|---|
-| NADAC | medicaid.gov | Weekly | **P1** | **✓** fact_nadac |
-| SDUD | data.medicaid.gov | Quarterly | **P1** | **✓** fact_drug_utilization |
-| 340B covered entity data | hrsa.gov | Quarterly | **P1** | Blocked — needs browser (Blazor app at 340bopais.hrsa.gov/Reports) |
-| State MAC prices | State portals | Varies | **P2** | Not started |
-
-### Ring 0.5: Economic & Contextual Data (Essential for Forecasting)
-
-| Dataset | Source | Use Case | Cadence |
-|---|---|---|---|
-| State unemployment rates (LAUS) | bls.gov | Primary caseload driver | Monthly |
-| BLS CPI (medical care, all items) | bls.gov | Rate decay / real-value analysis | Monthly |
-| BLS OEWS (healthcare occupation wages) | bls.gov | Wage adequacy analysis | Annual |
-| Census/ACS demographics | census.gov | Population denominators, poverty rates | Annual |
-| BEA GDP by state | bea.gov | Economic context for forecasting | Quarterly |
-| FRED economic series | fred.stlouisfed.org | Poverty, income, enrollment correlates | Monthly |
-| SNAP/TANF enrollment | fns.usda.gov / ACF | Cross-program enrollment correlation | Monthly | **✓** |
-| Federal poverty guidelines | ASPE/HHS | Eligibility threshold context | Annual |
-| Housing cost indices (HUD) | hud.gov | Cost-of-living / HCBS wage adequacy | Annual | **✓** fact_fair_market_rent (4,764 counties) |
-| Maternal/infant mortality | CDC WONDER | Outcome context for rate adequacy | Annual |
-| Opioid prescribing / overdose rates | CDC | SUD service demand forecasting | Annual |
-| State revenue/budget data | NASBO | State fiscal capacity for match | Annual |
-
-### Ring 1–3 (HIPAA sensitivity increases)
-- **Ring 1:** Aggregated/de-identified — state-published utilization counts, HHS open data
-- **Ring 2:** Provider-level data — may need BAA; build when state relationships develop
-- **Ring 3:** Claims/encounter data — full HIPAA; only when BAA + HITRUST in place
-
-
-## 12. T-MSIS Data Quality Rules
-
-**Non-negotiable for every feature, pipeline, or analysis that touches T-MSIS data. See also: `docs/TMSIS_DATA_GUIDE.md` for full field-level detail.**
-
-### What the data is and isn't
-- **227M rows ingested** = T-MSIS OT (Other Services) file only — physician, outpatient, clinic, HCBS claims
-- **Excludes inpatient (IP), long-term care (LT), pharmacy (RX)** — those files are not ingested yet
-- **No real-time data.** Preliminary TAF: ~12–18 month lag. Final TAF: ~24 months. Never describe T-MSIS as "current."
-- **2024 data is incomplete.** Sharp Nov–Dec 2024 dropoff in DOGE dataset — flag in every output using 2024
-- **T-MSIS DuckDB (17.5GB) is currently empty** — R pipeline (`tmsis_pipeline_duckdb.R`) must run to populate it
-- **10 of 20 largest "providers"** in the DOGE dataset are state/local government agencies, not healthcare providers
+### What the data is
+- **227M rows** = OT (Other Services) only. **Excludes** IP, LT, RX.
+- Preliminary TAF: ~12-18 month lag. Final: ~24 months. **2024 incomplete** (Nov-Dec dropoff).
+- **T-MSIS DuckDB (17.5GB) currently empty** — R pipeline must run first.
 
 ### 12 non-negotiable rules
+1. Always specify service year ("CY2022 T-MSIS data").
+2. Check DQ Atlas. Flag "Unusable"/"High Concern."
+3. Apply OT claims filters: `MDCD_PD_AMT > 0 AND < 50000`, exclude voided/adjusted/denied (`ADJSTMT_IND NOT IN ('1','V')`), final claims only (`CLM_STUS_CTGRY_CD IN ('F1','F2','F3')`), require procedure code and service date.
+4. Validate NPIs: 10 digits, not null/zeros. Use `SRVC_PRVDR_NPI`.
+5. Separate FFS from encounters (`CLM_TYPE_CD`). Encounter amounts unreliable.
+6. Surface MCO penetration context.
+7. Use ASPE HCBS taxonomy.
+8. T-MSIS does NOT capture MCO-to-provider payment rates.
+9. SCD Type 2 logic for fee schedule temporal joins.
+10. Document data vintage in every output.
+11. Minimum cell size: n >= 11.
+12. Never mix MAX and TAF without formal crosswalk.
+13. **Illinois claims require custom dedup logic.** IL captures adjustments as incremental credits/debits, not void/replace. Standard TAF final-action algorithm fails. See CMS "How to Use Illinois Claims Data" documentation.
+14. **DOGE T-MSIS release (Feb 2026):** OT claims only (no IP/LT/RX), no beneficiary state variable, suppresses <12 claims, Nov/Dec 2024 incomplete, high-MC states show misleadingly low paid amounts. Dataset was taken offline. Use with extreme caution if re-released.
 
-1. **Always specify the service year.** Never say "current" — say "CY2022 T-MSIS data" or "based on 2022 claims."
-2. **Check DQ Atlas before using any state.** medicaid.gov/dq-atlas. Flag states with "Unusable" or "High Concern" for the relevant topic. Do not suppress this warning.
-3. **Always apply OT claims filters:**
-   ```sql
-   WHERE MDCD_PD_AMT > 0                          -- exclude $0 / denied
-   AND MDCD_PD_AMT < 50000                         -- exclude obvious errors
-   AND ADJSTMT_IND NOT IN ('1', 'V')               -- exclude voids/adjustments
-   AND CLM_STUS_CTGRY_CD IN ('F1', 'F2', 'F3')    -- paid claims only
-   AND PRCDR_CD IS NOT NULL                         -- require procedure code
-   AND SRVC_BGNG_DT IS NOT NULL                    -- require service date
-   ```
-4. **Validate NPIs:** 10 digits, not null, not '0000000000'. Use `SRVC_PRVDR_NPI` (rendering) over `BLNG_PRVDR_NPI` (billing) for rate analysis.
-5. **Separate FFS from encounter claims** using `CLM_TYPE_CD` before any payment analysis. Encounter amounts are unreliable — many states submit $0 or capitation rate, not actual payment.
-6. **Surface MCO penetration context** alongside every utilization metric. In highly managed care states, FFS-only data systematically undercounts utilization.
-7. **Use ASPE HCBS taxonomy** for HCBS classification (procedure + revenue codes + bill type in combination). Do NOT rely on `BNFT_TYPE_CD` alone — it's sparsely populated.
-8. **Never imply T-MSIS captures MCO-to-provider payment rates.** It does not. Encounter amounts are the capitation rate, not the service-level payment.
-9. **Use SCD Type 2 logic** for fee schedule temporal joins — match service date to the rate in effect at that time.
-10. **Document data vintage in every output** — service year, TAF release (preliminary/final), and DQ Atlas rating for the topic and state.
-11. **Minimum cell size: n ≥ 11** for any published utilization count. Never publish smaller.
-12. **Do not mix MAX and TAF** in the same time series without a formal crosswalk. MAX (pre-2014) and TAF use different field names, enrollment groups, and payment definitions.
-
-### Key field-level pitfalls (OT file)
-
-| Field | Issue |
-|-------|-------|
-| `SRVC_BGNG_DT` | Missing in 5–15% of records; some states submit claim date instead |
-| `PRCDR_CD` | Missing for HCBS, transportation, dental in some states |
-| `MDCD_PD_AMT` | Includes $0 (denied), negatives (adjustments), very high values (errors) |
-| `SRVC_PLC_CD` | Needed to distinguish office vs. facility rates; sometimes missing |
-| `RNDG_PRVDR_NPI` | Preferred; sometimes missing — fall back to `BLNG_PRVDR_NPI` |
-| `BILL_TYPE_CD` | Inconsistent across states; needed to distinguish professional vs. institutional |
-| `BNFT_TYPE_CD` | States populate inconsistently — don't classify HCBS from this alone |
-
-### What T-MSIS cannot answer
-
-| Question | Better source |
-|----------|--------------|
-| What did MCOs actually pay providers? | Hospital price transparency MRFs; managed care contracts |
-| Current-year utilization trends? | State MMIS (not public) |
-| Provider charges? | HCRIS cost reports (facilities) |
-| HCBS worker wages? | BLS OES; PHI workforce data |
-| Actual Medicaid underpayment per hospital? | HCRIS Worksheet D-1/D-4 + Worksheet S-2 |
-
-### Per-source data quality gates (all sources, not just T-MSIS)
-
-**Rate validity (fee schedules):**
-- Flag $0.00 rates — distinguish non-covered from data error
-- Flag rates above $10,000 for a single E/M code
-- Flag rates unchanged for 24+ months (stale detection)
-- Cross-check: if `|medicaid_rate - (total_rvu × $33.4009)| / medicaid_rate > 2.0` → flag for review
-
-**Code coverage:**
-- Verify state covers expected E/M codes from the CMS 447.203 list
-- Identify codes in Medicare PFS but missing from state schedule
-- Track annual CPT additions/deletions against CMS PFS updates
-
-**Medicare matching:**
-- Validate locality-to-state mapping
-- Confirm conversion factor = $33.4009 (non-QPP) for comparison year
-- Flag multi-locality states where weighting methodology isn't documented
-
-**Modifier consistency:**
-- Flag states where 26/TC splits are inconsistent
-- Ensure modifier adjustments don't produce rates exceeding global rate
-- FL rule: rates cannot have both facility rate AND PC/TC split (codes: 46924, 91124, 91125)
-
-**Cross-state validation:**
-- Flag states where average primary care rates differ >3 SDs from national mean
-- Compare computed Medicaid-to-Medicare ratios against KFF/MACPAC benchmarks
-- Flag impossible patterns (all codes at exactly same %-of-Medicare may indicate uniform CF error)
-
-**CPRA-specific outlier states requiring investigation:**
-- SD: median 5.83% MCR — likely per-15-min vs per-hour unit mismatch
-- DC: avg 40.32% with 45K+ codes — possibly non-E/M codes included
-- CT/KY/RI: averages 666%/341%/418% — likely conversion factor or unit mismatch
-
-
-## 13. Data Ingestion Pipeline
-
-### Core Pattern (every source implements all five steps)
-```python
-def fetch_raw(source_config) -> bytes | Path:
-    """Use HTTP HEAD + ETag/Last-Modified for change detection."""
-
-def parse(raw) -> list[dict]:
-    """Per-source parsers. PDF → pdfplumber → Claude API normalization."""
-
-def validate(parsed) -> ValidationResult:
-    """Hard stops vs. soft flags."""
-
-def normalize(validated) -> list[dict]:
-    """Map to unified schema. URL + download date on every record."""
-
-def load(normalized, db_conn) -> LoadResult:
-    """Upsert with version tracking. Create S3 snapshot. Record hash."""
-```
-
-### Validation Gates
-**Hard stops:** Rate changed >90% · Code count dropped >20% · Schema mismatch
-**Soft flags:** Rate unchanged >24 months · New codes without description · Rate >3 SDs from national mean
-
-### Operational Controls
-```yaml
-# data/pipeline_config.yaml
-pipeline_paused: false
-sources:
-  FL_fee_schedule:
-    paused: false
-```
-- Rollback: `aradune rollback --source FL_fee_schedule --version 2026-01-15`
-- Snapshots: `s3://aradune-datalake/snapshots/{source}/{YYYY-MM-DD}/`
-- Forecasting models: **never deleted** — always append, track performance over time
-
-### Scheduling
-| Source | Frequency |
-|--------|-----------|
-| NPPES NPI Registry | Weekly |
-| NADAC Pharmacy | Weekly |
-| Federal Register / CIBs / SHOs | Continuous |
-| SPAs / Waivers | Continuous |
-| BLS Unemployment, CPI, FRED | Monthly |
-| Managed Care Enrollment | Monthly |
-| T-MSIS / SDUD / MBES-CBES | Quarterly |
-| Medicare PFS RVU | Annual + quarterly |
-| State Fee Schedules | Annual (change-detected) |
-| HCRIS Cost Reports, BLS OEWS, ACS | Annual |
+### Per-source quality gates
+**Rates:** Flag $0.00, >$10K E/M, unchanged 24+ months, >2x RVU-derived expected.
+**Codes:** Verify expected E/M, track CPT additions/deletions.
+**Medicare matching:** Validate locality, confirm CF, flag undocumented weighting.
+**Cross-state:** Flag >3 SD from national mean.
 
 ---
 
-## 14. Database Schema (Core Tables)
+## 11. Data Ingestion Pipeline
+
+**READ FIRST: `COMPLETE-DATA-REFERENCE-FOR-ARADUNE.md` documents every known quality issue across all datasets, the validation stack, adversarial testing patterns, and medallion architecture. It is required reading before any data ingestion work.**
+
+### Medallion Architecture
+
+```
+Bronze (raw, append-only)       Silver (normalized/cleaned)       Gold (analytics-ready)
+├── Parquet as received         ├── ICD: GEMs + CCSR groupings    ├── Pre-computed PMPM
+├── state/year/month partition  ├── NDC: 5-4-2 → RxNorm mapped   ├── Utilization metrics
+├── _source_file                ├── NPI: taxonomy enriched        ├── Quality indicators
+│   _ingestion_timestamp        ├── IL-specific claim dedup       ├── Pre-joined dimensions
+│   _source_state, _batch_id    ├── Void/replacement logic        ├── Medical Care CPI adjusted
+├── union_by_name=true          ├── Temporal: FFY/SFY/CY cols     └── State-level adj factors
+├── Never modify (audit trail)  ├── DQ Atlas metadata carried     
+└── ZSTD, 500K-1M row groups   └── Iceberg for schema evolution  
+```
+
+### Core Ingestion Pattern
+```python
+def fetch_raw(source_config) -> bytes | Path:    # HTTP HEAD + ETag
+def parse(raw) -> list[dict]:                     # Per-source; PDF → pdfplumber → Claude
+def validate(parsed) -> ValidationResult:         # Soda Core + Pandera checks
+def normalize(validated) -> list[dict]:            # Unified schema + URL + date
+def load(normalized, db_conn) -> LoadResult:       # Upsert + version + S3 snapshot
+```
+**Hard stops:** Rate changed >90% · Code count dropped >20% · Schema mismatch
+**Soft flags:** Rate unchanged >24 months · New codes without description · Rate >3 SDs
+
+### Validation Stack (see COMPLETE-DATA-REFERENCE for full detail)
+- **Soda Core v4** — best native DuckDB support, 50+ SodaCL checks, ML anomaly detection
+- **dbt-duckdb + dbt-expectations** — 60+ SQL-first validation macros (regex, range, cross-column)
+- **Pandera** — DataFrame validation with statistical hypothesis testing (distribution shifts)
+- **datacontract-cli** — CI/CD contract testing, `datacontract diff` for breaking changes
+
+### Adversarial Testing Layers
+```
+tests/unit/          — Hypothesis property tests, code validators
+tests/integration/   — Schema contracts, referential integrity, dbt-expectations
+tests/chaos/         — Schema drift, null injection, encoding, duplicates, volume spikes
+tests/adversarial/   — Invalid codes, outlier values, boundary conditions
+```
+Key patterns: null injection at 1/5/10/25/50%, encoding chaos (smart quotes, null bytes), date format mixing in same column, 10x volume spikes, near-duplicate injection. Use **SDV** for realistic synthetic data, **Mimesis** (12-15x faster than Faker) for volume testing.
+
+### Critical Per-Dataset Rules (summary)
+- **T-MSIS:** Illinois custom dedup (incremental credits/debits, not void/replace). MC encounters may show $0. Check DQ Atlas per state/year. Final-release TAF only (12+ month runout). Store TAF version as metadata.
+- **SDUD:** NDC 11-digit left-padding (5-4-2). Suppression <11 scripts. All amounts pre-rebate. Link via RxNorm for canonical drug ID.
+- **CMS-64 vs T-MSIS:** Will never reconcile (payment date vs service date). CMS-64 = totals authority. TAF = service detail. Maintain both, show the gap.
+- **HCRIS:** Not audited, not GAAP. Winsorize outliers. Multiple reports per provider (collapse duplicates, weight by fiscal year fraction). Two form versions need crosswalk.
+- **NPPES:** 9.37M providers ingested (28 key columns + unpivoted taxonomy detail). 8.2% updated within past year. Taxonomy self-reported, unverified. Cross-reference PECOS + state licensing.
+- **RBRVS/PFS:** CY2026 has -2.5% efficiency adjustment + separate APM CFs. Versioned annual snapshots required.
+- **Hospital MRFs:** 21% compliance. Format chaos. No standardized payer naming. Outlier rates <$1 to >$1M.
+
+### Reference Data: SCD Type 2
+All reference tables (ICD-10, CPT, NDC, RxNorm, NUCC Taxonomy, FMAP, GPCIs, CFs) stored with `effective_date` + `termination_date` for point-in-time historical joins.
+
+### Scheduling
+| Frequency | Sources |
+|-----------|---------|
+| Weekly | NPPES, NADAC, Federal Register/CIBs/SHOs, LEIE |
+| Monthly | BLS unemployment/CPI/FRED, MC enrollment, RxNorm |
+| Quarterly | T-MSIS/SDUD/MBES-CBES, MCO MLR |
+| Annual | Medicare PFS RVU, state fee schedules, HCRIS, BLS OEWS, ACS, AHRF, SVI |
+
+### DuckDB Extensions Required
+`httpfs` (S3/R2), `cache_httpfs` (local caching, 60%+ S3 cost reduction), `iceberg` (table format), `icu` (Unicode for healthcare text), `json`, `excel` (state uploads), `spatial` (geographic adjustments), `duckpgq` (property graph)
+
+---
+
+## 12. Database Schema
 
 ```sql
 CREATE TABLE dim_state (
@@ -1073,19 +615,13 @@ CREATE TABLE dim_state (
     managed_care_model VARCHAR, medicaid_agency_name VARCHAR, agency_url VARCHAR
 );
 
-CREATE TABLE dim_procedure (
-    cpt_hcpcs_code VARCHAR(10) PRIMARY KEY, description VARCHAR,
-    category_447 VARCHAR, betos_code VARCHAR, is_em_code BOOLEAN,
-    work_rvu DECIMAL(8,4), nonfac_pe_rvu DECIMAL(8,4),
-    fac_pe_rvu DECIMAL(8,4), mp_rvu DECIMAL(8,4), status_indicator VARCHAR(2)
-);
-
 CREATE TABLE fact_medicaid_rate (
     state_code VARCHAR(2), cpt_hcpcs_code VARCHAR(10), modifier VARCHAR(10),
     provider_type VARCHAR, population VARCHAR, geographic_area VARCHAR,
     effective_date DATE, medicaid_rate DECIMAL(10,2),
     source_file VARCHAR, last_updated DATE, dq_flag VARCHAR,
-    PRIMARY KEY (state_code, cpt_hcpcs_code, modifier, provider_type, population, geographic_area, effective_date)
+    PRIMARY KEY (state_code, cpt_hcpcs_code, modifier, provider_type,
+                 population, geographic_area, effective_date)
 );
 
 CREATE TABLE fact_rate_comparison (
@@ -1093,13 +629,8 @@ CREATE TABLE fact_rate_comparison (
     population VARCHAR, provider_type VARCHAR, geographic_area VARCHAR, year INTEGER,
     medicaid_rate DECIMAL(10,2), medicare_nonfac_rate DECIMAL(10,2),
     pct_of_medicare DECIMAL(6,4), claim_count INTEGER, beneficiary_count INTEGER,
-    PRIMARY KEY (state_code, cpt_hcpcs_code, category_447, population, provider_type, geographic_area, year)
-);
-
-CREATE TABLE economic_indicators (
-    state_code VARCHAR(2), indicator_name VARCHAR, reference_area VARCHAR,
-    period_date DATE, value DECIMAL(12,4), source VARCHAR,
-    PRIMARY KEY (state_code, indicator_name, reference_area, period_date)
+    PRIMARY KEY (state_code, cpt_hcpcs_code, category_447, population,
+                 provider_type, geographic_area, year)
 );
 
 CREATE TABLE forecast_enrollment (
@@ -1109,353 +640,415 @@ CREATE TABLE forecast_enrollment (
     lower_95 INTEGER, upper_95 INTEGER,
     PRIMARY KEY (state_code, eligibility_group, forecast_date, model_id)
 );
-
-CREATE TABLE model_performance (
-    model_id VARCHAR, state_code VARCHAR(2), target_variable VARCHAR,
-    forecast_horizon_months INTEGER, evaluation_date DATE,
-    mape DECIMAL(8,4), rmse DECIMAL(15,2), bias DECIMAL(15,2), n_observations INTEGER,
-    PRIMARY KEY (model_id, state_code, target_variable, forecast_horizon_months, evaluation_date)
-);
-
-CREATE TABLE ingestion_log (
-    id SERIAL PRIMARY KEY, source_id VARCHAR, run_timestamp TIMESTAMP,
-    rows_loaded INTEGER, content_hash VARCHAR, version_label VARCHAR,
-    status VARCHAR, validation_flags TEXT, snapshot_path VARCHAR
-);
-
-CREATE TABLE pipeline_alerts (
-    id SERIAL PRIMARY KEY, source_id VARCHAR,
-    alert_type VARCHAR, alert_message TEXT,
-    run_timestamp TIMESTAMP, resolved BOOLEAN
-);
 ```
 
-**DuckDB notes:** `DECIMAL(10,2)` for rates (never FLOAT) · `DATE` for dates (never string) · Skip PKs during bulk load · DuckDB-WASM for browser queries <5M rows.
+**DuckDB notes:** `DECIMAL(10,2)` for rates (never FLOAT). `DATE` for dates (never string). Skip PKs during bulk load. DuckDB-WASM for browser queries <5M rows.
 
 ---
 
-## 15. AI Interface
+## 13. Data Universe
+
+### Current Lake by Domain
+
+| Domain | Key tables | Scale |
+|--------|-----------|-------|
+| **Rates** | fact_medicaid_rate, fact_rate_comparison, dim_procedure | 597K rates (47 states), 302K comparisons, 16,978 codes |
+| **Enrollment** | fact_enrollment, fact_mc_enrollment_summary, fact_elig_group_*, fact_unwinding, fact_medicare_monthly_enrollment | Monthly 2013-2025, MC penetration %, unwinding outcomes, Medicare monthly (557K) |
+| **Claims** | fact_claims, fact_drug_utilization, fact_sdud_2020-2025, fact_sdud_combined (28.3M), fact_doge_* | 712K claims, SDUD 2020-2025 28.3M rows ($1.05T pre-rebate), DOGE 190M rows (5 aggregated tables) |
+| **Hospitals** | fact_hospital_cost, fact_hospital_rating/vbp/hrrp, fact_dsh_hospital, fact_hcahps, fact_hospital_ownership | 6,103 hospitals, financials, quality, DSH, HCAHPS, ownership |
+| **Nursing** | fact_five_star, fact_pbj_nurse/nonnurse_staffing, fact_snf_cost/vbp, fact_mds_facility_level | 65M+ PBJ, MDS 29.2M, Five-Star, deficiencies |
+| **LTSS/HCBS** | fact_hcbs_waitlist, fact_ltss_expenditure, fact_cms372_waiver | 607K waiting (41 states), waivers |
+| **Workforce** | fact_bls_wage/_msa/_national, fact_hpsa, fact_workforce_projections, fact_health_center_awards, fact_hrsa_awarded_grants (71K), fact_hrsa_active_grants (19K), fact_bh_workforce_projections | 69K HPSAs, 121 professions to 2038, HRSA grants (awarded + active), BH projections |
+| **Pharmacy** | fact_nadac, fact_sdud_2020-2025, fact_sdud_combined (28.3M rows), fact_aca_ful, fact_drug_rebate, fact_drug_spending_* | NADAC, SDUD 2020-2025 ($1.05T pre-rebate), opioid prescribing, Part B/D drug spending |
+| **BH** | fact_nsduh*, fact_teds_admissions, fact_mh_facility, fact_block_grant, fact_teds_detail, fact_nsduh_2024_sae | 1.6M+ TEDS, BH facilities, SAMHSA detail, NSDUH 2024 |
+| **Quality** | fact_quality_core_set_2023/2024, fact_scorecard, fact_epsdt, fact_hac_measures | 57 measures, 51 states, HAC |
+| **Expenditure** | fact_expenditure, fact_cms64_multiyear (FY2018-2024, 118K rows), fact_fmr_fy2024, fact_macpac_spending*, fact_nhe, fact_nhe_projections | CMS-64 multi-year ($5.7T, 7 FYs), MACPAC, NHE historical + projections |
+| **Economic** | fact_acs_state, fact_unemployment, fact_cpi, fact_saipe, fact_snap/tanf, fact_county_health_rankings, fact_bea_*, fact_census_state_finances, fact_tax_foundation_* | BLS, Census, FRED, BEA, Tax Foundation, county health, HUD FMR/SAFMR |
+| **Medicare** | fact_medicare_enrollment, fact_medicare_geo_variation, fact_mssp_*, fact_chronic_conditions_*, fact_mcbs, fact_cms_program_stats_* | Geo variation 2014-2023, 511 ACOs, chronic conditions, MCBS, program stats |
+| **Policy** | fact_policy_document, fact_policy_chunk, fact_federal_register_cms | 1,039 docs, 6,058 chunks, Federal Register rules |
+| **Post-Acute** | fact_pac_*, fact_home_health_agency, fact_hospice_*, fact_dialysis_* | HHA, hospice, dialysis, IRF, LTCH, PAC casemix |
+| **Public Health** | fact_places_county, fact_cdc_overdose_deaths, fact_vital_stats, fact_cdc_natality, fact_immunization, fact_food_environment | 3,144 counties, overdose, natality, immunization, food environment |
+| **Maternal & Child** | fact_maternal_morbidity, fact_pregnancy_outcomes, fact_nas_rates, fact_wic, fact_foster_care, fact_title_v | SMM, NAS, WIC, foster care, Title V |
+| **State Fiscal** | fact_census_state_finances, fact_tax_foundation_*, fact_fmap_historical, fact_nhe | Census finances (all 50 states), tax rankings |
+| **Program Integrity** | fact_leie, fact_open_payments, fact_mfcu_stats, fact_perm_rates, fact_federal_register_cms | LEIE exclusions, Open Payments ($13B), MFCU, PERM |
+| **Insurance Market** | fact_mlr_*, fact_risk_adjustment, fact_ma_stars | MLR reports, risk adjustment, MA star ratings |
+| **Provider Network** | fact_nppes, fact_nppes_taxonomy, fact_pecos, fact_affiliations, fact_cah, fact_gme, fact_provider_reassignment (3.5M) | NPPES 9.37M providers, PECOS, CAHs, GME, NPI reassignment |
+| **ACO/VBC** | fact_mssp_aco/participants/financial, fact_aco_reach_results/providers/beneficiaries | 511 ACOs PY2026, REACH 2026, beneficiaries |
+| **KFF Medicaid** | fact_kff_total_spending, fact_kff_spending_per_enrollee, ... (28 tables) | 28 KFF Medicaid policy/spending tables |
+| **Medicaid.gov** | fact_drug_amp, fact_mlr_summary, fact_mc_programs, ... (17 tables) | Drug AMP (5.5M), MLR, MC programs, DSH annual |
+
+**Total:** 569 registered views (556 fact + 9 dim + 4 ref), 305M+ rows, 3.6 GB Parquet. 18 ontology domains, 16 entities, 19 named metrics.
+
+### Category Completion Summary
+
+| Category | Status | Key gaps |
+|----------|--------|----------|
+| Hospital Quality & VBP | **Done** | HCAHPS, Care Compare, ownership all added |
+| Behavioral Health | **Done** | TEDS detail, NSDUH 2024, SAMHSA facilities |
+| Children's/CHIP/EPSDT | **Done** | WIC, foster care, Title V, natality, immunization added |
+| LTSS/HCBS | **Partially done** | CMS-64 Schedule B, 1915(c) utilization, HCBS quality, DSW workforce, 1915(k) |
+| Eligibility & Unwinding | **Done** | — |
+| Pharmacy | **Done** | SDUD 2020-2025 (28.3M rows), 340B blocked (Blazor app), State MAC not started |
+| Economic/Contextual | **Done** | Census state finances, BEA, Tax Foundation, county health rankings all added |
+| Rates & Fee Schedules | **Core done** | CLFS done, DMEPOS and Ambulance in raw but not ingested |
+| Medicare | **Done** | Chronic conditions, MCBS, Part D prescriber, outpatient by provider, program stats added |
+| SDOH | **Substantially done** | CDC PLACES, food environment, county health rankings, RUCA done. SVI, ADI, AHRQ SDOH blocked (WAF) |
+| Program Integrity | **Done** | LEIE, Open Payments, MFCU stats, PERM rates, Federal Register all added |
+| Provider Network | **Done** | NPPES (9.37M), PECOS, affiliations, CAHs, GME, provider reassignment (3.5M NPI mappings) |
+| Insurance Market | **Done** | MLR, risk adjustment, MA stars |
+| State Fiscal | **Done** | Census finances, Tax Foundation, FMAP historical |
+| KFF Medicaid Policy | **Done** | 28 KFF tables covering spending, enrollment, eligibility, benefits |
+| Maternal & Child Health | **Done** | Natality, immunization, WIC, foster care, Title V |
+
+### AHEAD Readiness — HCRIS Field Map
+```
+Operating/total margin   → net_income / net_patient_revenue (Worksheet G)
+Current ratio            → total_assets / total_liabilities (Worksheet G)
+Cost-to-charge ratio     → cost_to_charge_ratio (Worksheet D-1/D-4)
+Payer mix (days)         → medicare_days, medicaid_days, total_days (Worksheet S-3)
+Uncompensated care       → uncompensated_care_cost (Worksheet S-10)
+Medicare DSH / IME       → dsh_adjustment, dsh_pct, ime_payment (Worksheet E)
+Discharges, bed count    → total_discharges, bed_count (Worksheet S-3)
+```
+**Gaps:** No hospital-level UPL/SDP. No Maryland peers. No Medicaid FFS/MC split. Only FY2023.
+
+### Supplemental Payments
+**Done:** CMS DSH Allotment, CMS-64 FMR, SDP preprint (34 states), MACPAC supplemental.
+**Not started:** UPL demonstrations, HRSA GME, OIG DSH audits.
+**Partial:** 1115 waiver financials (647 waivers, metadata only).
+
+### Priority Data Additions
+
+| # | Dataset | Status | Notes |
+|---|---------|--------|-------|
+| 1 | HHS DOGE Medicaid Provider Spending (190M rows) | **DONE** | 5 aggregated tables in lake |
+| 2 | Medicare PFS RVU files (annual + quarterly) | **DONE** | CY2025 RVU, quarterly updates |
+| 3 | MCO MLR reports | **DONE** | MLR summary from Medicaid.gov |
+| 4 | AHRQ SDOH Database | **Blocked** | WAF prevents download |
+| 5 | Area Deprivation Index (block group) | **Blocked** | WAF prevents download |
+| 6 | Medicare Provider Utilization PUFs | **DONE** | Part D prescriber, outpatient by provider, procedure summary |
+| 7 | OIG LEIE exclusion list | **DONE** | In lake |
+| 8 | CMS Open Payments ($13.18B) | **DONE** | Aggregated to state x specialty x payment type |
+| 9 | CDC SVI + USDA RUCA | **Partial** | RUCA done, SVI blocked (WAF) |
+| 10 | Federal Register API | **DONE** | CMS rules via FR API |
+| 11 | CLFS + DMEPOS + Ambulance schedules | Open | Raw files in data/raw/ (clfs/, dmepos/, ambulance/), not yet ingested |
+| 12 | HRSA AHRF (6,000 variables/county) | **DONE** | Processed from raw |
+| 13 | NPPES full registry (9.37M NPIs) | **DONE** | 28 key columns + taxonomy detail |
+| 14 | KFF Medicaid data (28 tables) | **DONE** | Via Google Sheets CSV export |
+| 15 | Census state finances | **DONE** | Revenue, expenditure, debt |
+| 16 | BEA economic data | **DONE** | Personal income, transfer payments |
+| 17 | PECOS + GME + CAHs | **DONE** | Provider network tables |
+| 18 | Medicare provider reassignment (568 MB) | **DONE** | `fact_provider_reassignment` 3.49M rows |
+| 19 | HRSA awarded grants (83 MB) | **DONE** | `fact_hrsa_awarded_grants` 70,902 rows |
+| 20 | BLS OEWS full occupation x area 2024 (78 MB) | **In lake** | `fact_bls_oews` 38K rows (state-level); MSA detail incremental |
+| 21 | HRSA active grants (12 MB) | **DONE** | `fact_hrsa_active_grants` 18,641 rows |
+| 22 | Promoting Interoperability (3.8 MB) | **In raw** | `pi_dataset_feb2026.csv`, verify vs existing pi_performance |
+| 23 | ACA effectuated enrollment | **In raw** | `effectuated_enrollment.xlsx`, marketplace enrollment by state |
+| 24 | SAMHSA NSDUH 2022 | **In raw** | `samhsa_nsduh_2022.csv`, fills gap (lake has 2023+2024) |
+| 25 | HCRIS full worksheet ZIPs (260 MB) | **In raw** | Deeper cost report detail beyond flat CSVs already ingested |
+
+### Remaining Fee Schedules
+4 states: KS/NJ (portal login), TN (MC only), WI (manual).
+
+### Data Sensitivity Rings
+
+| Ring | Data | HIPAA | Status |
+|------|------|-------|--------|
+| **0** | Public regulatory: fee schedules, RVUs, SPAs | None | Here now |
+| **0.5** | Economic/contextual: BLS, FRED, Census, SDOH | None | Here now |
+| **1** | Aggregated/de-identified: T-MSIS open data, DOGE | Minimal | Here now |
+| **2** | Provider-level: billing volumes, network data | Low — BAA | Future |
+| **3** | Claims/encounter: T-MSIS/TAF, state MMIS | Full HIPAA | After BAA + HITRUST |
+
+**Stay in Ring 0/0.5/1 until BAA, SOC 2 Type II, and HITRUST in place.**
+
+---
+
+## 14. Caseload & Expenditure Forecasting
+
+### Phase 1 — DONE: Caseload
+**Engine:** `server/engines/caseload_forecast.py` (~650 lines). SARIMAX + ETS model competition, intervention variables, economic covariates, holdout MAPE.
+**Frontend:** `src/tools/CaseloadForecaster.tsx` (~830 lines) at `/#/forecast`.
+**API:** 6 endpoints — templates, generate (JSON + CSV), public enrollment.
+
+### Phase 2 — DONE: Expenditure
+**Engine:** `server/engines/expenditure_model.py` (~430 lines). Caseload forecast + params CSV. Trend, admin load, risk margin, policy adjustments.
+**API:** 4 endpoints — template, pipeline, CSV, expenditure-only.
+
+### Phase 3 — DONE: Scenario Builder
+4 sliders (unemployment, eligibility, rate change, MC shift). Presets. Baseline vs scenario chart.
+
+### Phase 4 — Target: Fiscal Impact Engine
+Adjust rate increase % → federal match at FMAP → UPL headroom → SDP cap under OBBBA → budget impact across biennium. Connects fee schedule, FMAP, CMS-64, actuarial trends.
+
+---
+
+## 15. Security & HIPAA
+
+### Controls
+- AES-256 at rest, TLS 1.2+ in transit, no plaintext secrets
+- RBAC, MFA admin, tenant isolation, expiring sessions
+- Immutable logs (6-10 year retention). Secrets via env vars only.
+- User data session-scoped, never persisted, never shared.
+
+### Certifications (priority order)
+1. **SOC 2 Type II** — $30K-80K, 6-12 months. Minimum for enterprise.
+2. **GovRAMP Ready** — $50K-125K, 6-12 months. 27 states recognize.
+3. **HITRUST i1** — $70K, 5-8 months. MCO sales differentiator.
+4. **FedRAMP** — $250K+, 12-24 months. Federal only. Deprioritize.
+
+### AI Governance (always enforce)
+- Every output: source attribution, confidence, data quality warnings
+- No beneficiary-affecting output without human confirmation
+- Bias monitoring across race, ethnicity, geography, disability
+- NIST AI RMF alignment. CMS AI Playbook v4. Full audit trail.
+
+### Never
+- Host raw PHI without DUA + HITRUST
+- Build fraud detection before BAA
+- Allow cross-provider visibility without opt-in
+- Use T-MSIS outside ResDAC terms
+- Publish counts below n=11
+- Log user query content that could reveal PHI
+
+### Regulatory deadlines driving urgency
+
+| Deadline | Requirement | Aradune capability |
+|----------|------------|-------------------|
+| **July 1, 2026** | CPRA rate transparency (§447.203) | CPRA tool — ready now |
+| **July 1, 2026** | Publish all FFS rates publicly | Rate Lookup + Directory |
+| **July 1, 2026** | HCBS hourly rate disclosure | Workforce & HCBS |
+| **January 1, 2027** | OBBBA work requirements | Forecasting + fiscal impact |
+| **~July 2027** | Appointment wait times (90% compliance) | Network adequacy (future) |
+| **~July 2028** | 80% HCBS compensation pass-through | HCBS tracking |
+| **FY 2030** | 3% eligibility error rate penalty | Program integrity (future) |
+
+---
+
+## 16. File Map
 
 ```
-User query
-    ├── Pre-computed lookup → DuckDB-WASM + CDN Parquet (sub-second)
-    ├── Analytical query   → Server-side DuckDB REST API (seconds)
-    └── Policy reasoning   → RAG + Claude pipeline (5–15 seconds)
+Aradune/
+├── CLAUDE.md                        ← THIS FILE
+├── ARADUNE_BUILD_GUIDE.md           ← Phased build plan
+├── ONTOLOGY_SPEC.md                 ← Entity registry build specification
+├── COMPLETE-DATA-REFERENCE-FOR-ARADUNE.md ← Dataset quality, validation, adversarial testing
+├── CHANGELOG.md                     ← Session history, resolved issues
+├── package.json / vite.config.ts / tsconfig.json / vercel.json / index.html
+│
+├── ontology/                        ← ENTITY REGISTRY (auto-generates system prompt + DuckPGQ)
+│   ├── schema.yaml                  ← Master schema definition
+│   ├── generated_prompt.md          ← Auto-generated system prompt (28KB, 569 tables)
+│   ├── entities/                    ← One YAML per entity type (16 files)
+│   │   ├── state.yaml, procedure.yaml, provider.yaml, hospital.yaml,
+│   │   ├── mco.yaml, rate_cell.yaml, drug.yaml, quality_measure.yaml,
+│   │   └── nursing_facility.yaml, workforce.yaml, hcbs_program.yaml, ...
+│   ├── domains/                     ← One YAML per data domain (18 files)
+│   │   ├── rates.yaml, enrollment.yaml, hospitals.yaml, quality.yaml,
+│   │   ├── state_fiscal.yaml, insurance_market.yaml, program_integrity.yaml, ...
+│   └── metrics/                     ← Named deterministic metric definitions (5 files)
+│       ├── rate_metrics.yaml, enrollment_metrics.yaml, fiscal_metrics.yaml, ...
+│
+├── src/
+│   ├── Platform.tsx                 ← ~980 lines. Router, tool registry, PasswordGate
+│   ├── design.ts                    ← Design tokens (C, FONT, SHADOW)
+│   ├── tools/
+│   │   ├── IntelligenceChat.tsx     ← ~850 lines. Intelligence home, SSE, file upload
+│   │   ├── TmsisExplorer.tsx        ← ~2,400 lines. → Rates: Browse & Compare
+│   │   ├── CpraGenerator.tsx        ← 734 lines. → CPRA Compliance
+│   │   ├── CaseloadForecaster.tsx   ← ~830 lines. → Forecast
+│   │   ├── StateProfile.tsx         ← ~1,000 lines. → States (add comparison)
+│   │   ├── AheadReadiness.tsx       ← → AHEAD (merge with Calculator)
+│   │   ├── AheadCalculator.tsx      ← → AHEAD (merge)
+│   │   ├── WageAdequacy.tsx         ← 546 lines. → Workforce: Wages
+│   │   ├── QualityLinkage.tsx       ← 445 lines. → Workforce: Quality
+│   │   ├── HcbsCompTracker.tsx      ← 414 lines. → Workforce: HCBS
+│   │   ├── FeeScheduleDir.tsx       ← 535 lines. → Rate Lookup: Directory
+│   │   ├── RateLookup.tsx           ← → Rate Lookup
+│   │   ├── RateReductionAnalyzer.tsx ← 411 lines. → Rates (integrate)
+│   │   ├── PolicyAnalyst.tsx        ← 378 lines. DEPRECATED → Intelligence
+│   │   └── DataExplorer.tsx         ← DEPRECATED → Intelligence
+│   ├── engine/
+│   │   └── StateRateEngine.js       ← 1,153 lines. 42/42 tests. → Rates: Rate Builder
+│   ├── utils/                       ← cpraPdf.ts, cpraXlsx.ts, pdfReport.ts, aheadScoring.ts
+│   ├── lib/                         ← api.ts, duckdb.ts, queryEngine.ts
+│   └── data/states.ts               ← STATE_NAMES, STATES_LIST
+│
+├── public/data/                     ← JSON/Parquet served to frontend
+│   ├── cpra_em.json (615KB), dq_flags_em.json, dim_447_codes.json, cpra_summary.json
+│   ├── hcpcs.json, states.json, trends.json, medicare_rates.json, fee_schedules.json
+│   ├── system_prompt.md, fl_methodology_addendum.md
+│   └── [external] claims_monthly.parquet (82MB) via VITE_MONTHLY_PARQUET_URL
+│
+├── public/assets/                   ← Brand: logo-full.png, logo-mark.png, logo-wordmark.png, icon-bot.png
+│
+├── api/chat.js                      ← 515 lines. LEGACY — deprecate after Intelligence verified
+│
+├── server/                          ← FastAPI backend
+│   ├── main.py / db.py / config.py / query_builder.py
+│   ├── Dockerfile / fly.toml / entrypoint.sh
+│   ├── ontology/                    ← Python registry loaded at startup
+│   │   ├── registry.py              ← Loads YAML, provides entity/metric lookup API
+│   │   └── prompt_generator.py      ← Generates Intelligence prompt section from registry
+│   ├── engines/
+│   │   ├── cpra_upload.py           ← 821 lines. CPRA upload engine
+│   │   ├── caseload_forecast.py     ← ~650 lines. SARIMAX+ETS
+│   │   ├── expenditure_model.py     ← ~430 lines. Expenditure projection
+│   │   ├── rag_engine.py            ← ~460 lines. BM25 + FTS policy search
+│   │   └── query_router.py          ← Tier 1-4 classification + resource allocation
+│   └── routes/                      ← 22 files, 258+ endpoints
+│       ├── intelligence.py          ← Claude + SSE + DuckDB + RAG
+│       ├── cpra.py                  ← Pre-computed + upload CPRA
+│       ├── lake.py                  ← /api/states, enrollment, quality, expenditure
+│       ├── nl2sql.py                ← NL2SQL for Data Explorer
+│       ├── forecast.py              ← 10 caseload + expenditure endpoints
+│       └── [17 more: query, meta, presets, pharmacy, policy, wages, hospitals,
+│            enrollment, staffing, quality, context, bulk, supplemental,
+│            behavioral_health, round9, insights, corpus]
+│
+├── tools/mfs_scraper/               ← Terminal B CPRA pipeline
+│   ├── cpra_engine.py               ← 968 lines
+│   └── aradune_cpra.duckdb          ← 1.87M rows
+│
+├── pipeline/
+│   ├── dagster_pipeline.py          ← 13 assets, 3 checks, 3 jobs, 2 schedules
+│   └── tmsis_pipeline_duckdb.R      ← 71KB. T-MSIS (227M rows).
+│
+├── data/
+│   ├── lake/                        ← 305M+ rows, 544 views, 3.0 GB
+│   ├── ontology/                    ← Entity registry (auto-generates system prompt + DuckPGQ)
+│   │   ├── entities/                ← One YAML per entity type (state, procedure, hospital, etc.)
+│   │   ├── domains/                 ← One YAML per data domain (rates, enrollment, hospitals, etc.)
+│   │   ├── metrics/                 ← Named metric definitions with canonical formulas
+│   │   └── lake_inventory.json      ← Auto-generated schema inventory of all tables
+│   ├── reference/cpra/              ← em_codes.csv, code_categories.csv, GPCI2025.csv
+│   └── raw/                         ← T-MSIS DuckDB (17.5GB), NPPES (11.2GB), DOGE DuckDB (17.5GB)
+│
+├── scripts/                         ← 77 build_lake_*.py, sync_lake_wrangler.py
+│   ├── generate_ontology.py         ← Reads YAML → generates system prompt + DuckPGQ SQL
+│   ├── introspect_lake.py           ← DuckDB introspection → raw_inventory.json
+│   ├── validate_ontology.py         ← CI: validates YAML against schema + lake
+│   ├── sync_lake_wrangler.py        ← R2 upload via wrangler (bypasses boto3 SSL)
+│   └── build_lake_*.py              ← 82 ETL scripts across all data domains
+├── .github/workflows/ci.yml        ← Build, lint, deploy Vercel + Fly.io
+└── docs/
+    ├── ARADUNE_MASTER.md / TMSIS_DATA_GUIDE.md / AraduneMockup.jsx
 ```
 
-| Query type | Model | Cost/query |
-|---|---|---|
-| Classification, routing, PDF extraction | claude-haiku-4-5-20251001 | ~$0.004 |
-| NL2SQL, RAG, standard analysis | claude-sonnet-4-6 | ~$0.03–0.06 |
-| SPA drafting, CPRA narrative, AHEAD | claude-opus-4-6 | ~$0.28 |
-
-Use **prompt caching** (90% input cost reduction) and **batch API** (50% discount for non-real-time).
+**db.py critical note:** Only facts in `fact_names` (currently 544 entries) are registered as views. Always update when adding lake tables.
 
 ---
 
-## 16. Caseload & Expenditure Forecasting
+## 17. Build Principles
 
-### Phase 1 — DONE: Template-Driven Caseload Forecasting
-
-**Engine:** `server/engines/caseload_forecast.py` (~650 lines)
-**Frontend:** `src/tools/CaseloadForecaster.tsx` (~830 lines)
-**API:** `server/routes/forecast.py` (10 endpoints total — 6 caseload + 4 expenditure)
-**Dependencies:** `statsmodels>=0.14.0`, `pmdarima>=2.0.0`, `pandas>=2.1.0`, `numpy>=1.26.0`
-
-**How it works:**
-1. User downloads CSV templates (caseload + optional events + optional expenditure params)
-2. Fills in monthly enrollment by category (e.g., SSI Aged, TANF Children, MMA Managed Care)
-3. Uploads → engine runs SARIMAX + ETS model competition per category
-4. Returns per-category forecasts with 80/95% confidence intervals, model metadata, intervention effects
-
-**Frontend UI (`/#/forecast`):**
-- Upload form: state selector, horizon (12-60 months), caseload CSV, events CSV (optional), expenditure params CSV (optional)
-- Caseload view: summary card, category pills, fan chart with CI bands, event markers, intervention effects, model comparison table
-- Expenditure view: summary card (total/MC/FFS), expenditure fan chart, per-category table (type, base rate, trend, admin, risk, total), MC vs FFS breakdown bar
-- Tab toggle between caseload and expenditure views when both exist
-
-**Key class:** `CaseloadForecaster` with methods:
-- `load_caseload_bytes(content)` — validates CSV (min 24 months, required columns)
-- `load_events_bytes(content)` — optional structural events (MC launches, eligibility changes)
-- `load_economic_data(db_cursor)` — enriches with Aradune's public unemployment data
-- `forecast(horizon_months, include_seasonality, include_economic)` — runs model competition
-
-**Model competition:**
-- Tests multiple SARIMAX orders with intervention variables (step functions for PHE, unwinding, etc.)
-- Tests ETS (exponential smoothing) as baseline
-- Picks best model per category by AIC, validates on holdout MAPE
-- Falls back to naive (last-12-month average) if all models fail
-
-**Known events (built-in):** COVID-19 PHE start (2020-03), PHE unwinding start (2023-04), unwinding peak (2023-07)
-**User events:** MC launches, eligibility changes, with affected categories and magnitude
-
-**Caseload API endpoints:**
-- `GET /api/forecast/templates/caseload` — blank CSV template (9 FL-style categories)
-- `GET /api/forecast/templates/events` — events template with examples
-- `POST /api/forecast/generate` — upload → forecast JSON
-- `POST /api/forecast/generate/csv` — upload → forecast CSV download
-- `GET /api/forecast/public-enrollment` — Aradune's public enrollment by state
-- `GET /api/forecast/public-enrollment/by-group` — enrollment by eligibility group
-
-**Tested:** Synthetic FL data (8 categories, 96 months, 2016-2024). All categories selected SARIMAX with <1% MAPE. Meaningful intervention effects detected (unwinding: MMA -248K, TANF Children -265K).
-
-### Phase 2 — DONE: Expenditure Modeling
-
-**Engine:** `server/engines/expenditure_model.py` (~430 lines)
-**Class:** `ExpenditureModeler` — takes caseload forecast output + expenditure parameters CSV
-
-**How it works:**
-1. Runs caseload forecast (Phase 1) to get per-category enrollment projections
-2. User uploads expenditure parameters CSV: cap_rate_pmpm (MC) or cost_per_eligible (FFS) per category
-3. Applies annual trend (compound monthly), admin load, risk margin, policy adjustments
-4. Returns per-category and aggregate expenditure projections with CI bands
-
-**Expenditure API endpoints:**
-- `GET /api/forecast/templates/expenditure-params` — blank params CSV template (8 FL-style categories)
-- `POST /api/forecast/expenditure` — full pipeline: caseload + params → forecast + expenditure JSON
-- `POST /api/forecast/expenditure/csv` — → expenditure CSV download
-- `POST /api/forecast/expenditure-only` — apply params to existing forecast CSV (skip re-forecasting)
-
-**Key data classes:**
-- `CategoryExpenditure`: per-category projection with base_rate, trend, admin_load, risk_margin, monthly projections with CI
-- `ExpenditureResult`: aggregate with total_projected, total_mc_projected, total_ffs_projected, per-category list
-
-**Verified:** FL with 2M MC enrollees × $850 PMPM = ~$23.4B/yr MC + 300K FFS × $1,200/eligible = ~$4.5B/yr FFS = ~$27.9B/yr total.
-
-### Phase 3 — FUTURE: Scenario Builder
-
-- "What if unemployment rises 2 percentage points?"
-- "What if we launch a new MC program covering TANF Adults?"
-- "What if we expand eligibility to 138% FPL?"
-- Hypothetical intervention variables injected into existing model
-
-### Phase 4 — FUTURE: ML Models + Ensemble
-
-- Gradient boosting / random forest with public performance tracking
-- Model leaderboard: best algorithm per state over rolling 12/24/36-month windows
-- Ensemble forecasts combining SARIMAX + ML predictions
-
-Schema tables: `forecast_enrollment`, `forecast_expenditure`, `model_performance`, `economic_indicators` — see Section 14.
+1. Always build to the unified schema.
+2. Validation is not optional.
+3. Source provenance is not optional. Every record → URL + download date.
+4. Ship ugly. 50 states working > 5 states beautiful.
+5. Coverage > polish.
+6. Federal data first (covers all states).
+7. Florida pipeline is the template.
+8. PDF parsing prompts are versioned.
+9. FL rate rule always enforced. No facility + PC/TC. Codes: 46924, 91124, 91125.
+10. Data layer is the moat. Every session: add data, improve quality, or make adding easier.
+11. Don't be CPRA-forward. Build for the platform.
+12. Economic/contextual data matters.
+13. Forecasting models are never deleted.
+14. User data never mixed with public layer.
+15. Log predictions. Compare to actuals. Publish accuracy.
+16. No em-dashes. No "plain English."
+17. Upload data in context, not standalone.
+18. Intelligence is the connective tissue. Every tool → Intelligence.
+19. Compliance artifacts are first-class outputs. Not dashboards — submission-ready documents.
+20. Closed-loop: analysis → recommendation → action template → execution.
+21. **Ontology-first data additions.** Every new dataset gets a YAML entity/domain definition before or alongside ingestion. Run `validate_ontology.py` and `generate_ontology.py` after every addition. Intelligence's system prompt and the DuckPGQ graph update automatically.
+22. **Named metrics are deterministic.** Key calculations (pct_of_medicare, per_enrollee_spending, cpra_ratio) are defined once in `ontology/metrics/` with explicit formulas, source tables, and caveats. Intelligence references these by name. Same question always produces same number.
+23. **Never trust a single source.** Expenditures: triangulate TAF + CMS-64 + supplemental. Providers: cross-reference NPPES + PECOS + HCRIS. Drugs: link SDUD + FDA NDC + RxNorm + NADAC. Build validation checks that compare sources against each other.
+24. **State-level variation is the dominant quality dimension.** Illinois needs custom dedup. Arkansas may be missing. MC encounter completeness ranges from excellent to absent. Every pipeline starts with DQ Atlas lookup and carries state-quality metadata through.
+25. **Test adversarially, not just defensively.** Soda Core/dbt catch known issues. Hypothesis + chaos engineering catch unknown ones. Generate realistic test data with SDV. Test at 10x volume. See `COMPLETE-DATA-REFERENCE-FOR-ARADUNE.md` Part 2.
 
 ---
 
-## 16b. Security & HIPAA Architecture
+## 18. Monetization
 
-**This is non-negotiable. Build it right the first time.**
+### Track A: Partnership / Acquisition (active)
+Demo pitch: "Your analysts spend thousands of hours assembling data that already exists in one place. Aradune turns that data into compliance-ready documents, fiscal impact models, and early warning signals — through a conversation, not a spreadsheet."
+Target acquirers: Gainwell/Veritas (natural fit), Nordic Capital, Merative. Valuations: 5-9x revenue.
 
-### Data sensitivity rings (always follow)
-
-| Ring | Data | HIPAA | Current Aradune |
-|------|------|-------|-----------------|
-| **Ring 0** | Public regulatory: fee schedules, RVUs, SPAs, waivers, provider directories | None | ✅ Here now |
-| **Ring 0.5** | Economic/contextual: BLS, FRED, Census — informs Medicaid, isn't Medicaid | None | ✅ Here now |
-| **Ring 1** | Aggregated/de-identified: DOGE open data, state-published utilization counts | Minimal — verify de-identification | ✅ Here now |
-| **Ring 2** | Provider-level: billing volumes, network participation (no patient info) | Low — may need BAA | When state relationships develop |
-| **Ring 3** | Claims/encounter data: T-MSIS/TAF, state claims warehouses | Full HIPAA | Only after BAA + HITRUST in place |
-
-**Stay in Ring 0/0.5/1 until BAA infrastructure, SOC 2 Type II, and HITRUST CSF certification are in place. Never enter Ring 3 without explicit authorization.**
-
-### Technical controls (apply when any HIPAA-adjacent data is handled)
-
-**Encryption:**
-- AES-256 at rest for any stored data
-- TLS 1.2+ in transit (enforce HTTPS everywhere)
-- No plaintext secrets anywhere — use environment variables, never hardcode
-
-**Access controls:**
-- Role-based access control (RBAC) — principle of least privilege
-- MFA required for any admin or data access
-- Provider A must never be able to see Provider B's data (strict tenant isolation)
-- Session tokens expire; no permanent API keys with broad access
-
-**Audit logging:**
-- Immutable logs of all data access
-- Retain per state contract requirements (typically 6–10 years)
-- Log: who accessed what, when, from where, what query was run
-- Pipeline runs logged to `ingestion_log` table
-
-**Secrets management:**
-- Required env vars in Vercel: `ANTHROPIC_API_KEY`, `VITE_MONTHLY_PARQUET_URL`
-- Never commit API keys or credentials to git
-- Rotate keys if any accidental exposure occurs
-
-**Data isolation:**
-- User-uploaded data is session-scoped by default — not persisted, not shared
-- Persistent private workspace: encrypted, user-only access
-- Aggregate benchmarks use only Aradune's public layer — never user's private data
-
-### When BAA is required
-
-A Business Associate Agreement is required before handling any Ring 2/3 data from a covered entity (state Medicaid agency, hospital, MCO).
-
-BAA template must cover:
-- Permitted uses and disclosures
-- Minimum necessary standard
-- Safeguard requirements
-- Breach notification (60 days federal HIPAA; many state contracts require **24–72 hours**)
-- Data retention and destruction
-- Right to audit
-
-### Certifications to pursue (in order)
-
-1. **SOC 2 Type II** — Minimum for enterprise sales. Covers security, availability, processing integrity, confidentiality, privacy.
-2. **HITRUST CSF** — Preferred for state contracts. Increasingly required in state RFPs.
-3. **StateRAMP** — Required for some state cloud deployments.
-4. **FedRAMP** — Only needed if pursuing federal contracts directly.
-
-### Never do these things
-
-- Never host raw PHI (patient-level claims) on Aradune infrastructure without a DUA and HITRUST certification
-- Never build fraud detection features before BAA relationships with states exist
-- Never allow Provider A to see Provider B's self-reported data without explicit opt-in
-- Never use T-MSIS data outside the ResDAC DUA terms (no re-hosting, no re-identification)
-- Never publish utilization counts below n=11
-- Never log or store user query content in a way that could reveal PHI
-
-### The de-identified public layer is always safe
-
-The February 2026 HHS/DOGE dataset, state fee schedules, Medicare PFS, NPPES, and all aggregated federal datasets are Ring 0/1 — **zero HIPAA overhead**. This is where we operate now. Build credibility and revenue here before touching Ring 2/3.
-
-
-## 17. Build Principles for Every Session
-
-1. **Always build to the unified schema.** No one-off scripts dumping to random formats.
-2. **Validation is not optional.** Every parser validates before loading.
-3. **Source provenance is not optional.** Every record traces to URL + download date.
-4. **Ship ugly.** Working data for 50 states beats beautiful UI for 5 states.
-5. **Coverage > polish.**
-6. **Federal data first.** Federal sources cover all states at once.
-7. **Florida pipeline is the template.** Abstract, parameterize, replicate.
-8. **PDF parsing prompts are versioned.** Build test suite with known-correct outputs.
-9. **FL rate rule always enforced.** No facility + PC/TC split. Special: 46924, 91124, 91125.
-10. **Data layer is the moat.** Every session: add data, improve quality, or make adding data easier.
-11. **Don't be CPRA-forward.** CPRA is one use case. Build for the platform.
-12. **Economic/contextual data matters.** Ingest data that informs Medicaid, not just from Medicaid.
-13. **Forecasting models are never deleted.** Always append; track performance over time.
-14. **User data is never mixed with Aradune's public layer** without explicit opt-in.
-15. **Log predictions. Compare to actuals. Publish accuracy.**
-
----
-
-## 18. Build & Deploy
-
-```bash
-# Development
-cd ~/Desktop/Aradune
-npm install && npm run dev       # localhost:5173
-
-# CPRA pipeline (Terminal B)
-cd tools/mfs_scraper/
-python cpra_engine.py --all --cpra-em --output-dir ../../public/data/
-
-# T-MSIS pipeline
-cd pipeline/
-Rscript tmsis_pipeline_duckdb.R medicaid-provider-spending.csv npidata_pfile_*.csv
-
-# Build & deploy
-npm run build && npx vercel --prod
-
-# Verify deploy
-curl -s -o /dev/null -w "%{http_code}" https://www.aradune.co/data/cpra_summary.json
-
-# Git
-git add . && git commit -m "describe change" && git push
-```
-
-**Required env vars in Vercel dashboard:**
-- `ANTHROPIC_API_KEY` — for Policy Analyst (api/chat.js)
-- `VITE_MONTHLY_PARQUET_URL` — external URL for claims_monthly.parquet (82MB, not deployed to Vercel)
-
----
-
-## 19. Monetization — Two Tracks
-
-Aradune has **two parallel go-to-market paths**. Both use the same codebase and data layer.
-
-### Track A: Partnership / Acquisition (active — demo build)
-A major consulting firm meeting is upcoming. The current build is optimized for this:
-- **Pricing removed from the site** — kept flexible for negotiation
-- **Password gate remains** — controlled access, "exclusive" positioning
-- **Claude features front and center** — NL2SQL Data Explorer is the demo closer
-- **Data depth is the pitch** — 250 tables, 115M rows, every public Medicaid dataset assembled
-- Goal: partnership, licensing deal, or acquisition. Could be white-label, data licensing, or full platform sale.
-
-### Track B: Independent SaaS (future — full public build)
-If Track A doesn't materialize, Aradune launches independently with a freemium model:
-
+### Track B: Independent SaaS (future)
 | Tier | Price | Who |
 |---|---|---|
-| Free (Aradune Open) | $0 | Journalists, advocates, aides, students |
-| Analyst | $99/mo | Individual analysts, small consultants |
-| Pro | $299/mo | Power users, consulting teams |
-| State Agency | $50–200K/yr | State Medicaid agencies (may qualify for 75% FFP) |
-| Enterprise | $50–500K/yr | Consulting firms, MCOs, hospital systems |
-| Data as a Service | $25–100K/yr per dataset | Firms wanting bulk normalized data |
+| Free | $0 | Journalists, advocates, students |
+| Analyst | $99/mo | Individual analysts |
+| Pro | $299/mo | Consulting teams |
+| State Agency | $50-200K/yr | State agencies (75% FFP eligible) |
+| Enterprise | $50-500K/yr | Firms, MCOs, hospitals |
 
-This requires: user accounts (Clerk recommended), usage tracking, Stripe billing, landing page redesign, removing password gate.
-
-### Do not lose either option
-- Keep pricing information in CLAUDE.md (this file) but **not on the live site**
-- ProGate component and token system remain in code but with generic "contact us" messaging
-- All tools stay fully functional behind the password gate
-- The data layer and AI features serve both tracks equally
+Pricing in CLAUDE.md, **not on live site**. Both tracks use same codebase.
 
 ---
 
-## 20. Reference Documents (docs/)
+## 19. Build & Deploy
 
-| File | Purpose | Action |
-|------|---------|--------|
-| `ARADUNE_MASTER.md` | Full strategy, data universe, analytical products, monetization | **Keep — primary strategy reference** |
-| `TMSIS_DATA_GUIDE.md` | Operational T-MSIS guide: file types, field issues, DQ rules, SQL patterns, HCBS taxonomy | **Keep — Claude Code must read before any T-MSIS work** |
-| `TMSIS_RESOURCES.md` | Verified URL library for T-MSIS docs, ResDAC, DQ Atlas, DOGE dataset, research orgs | **Keep — reference when looking up T-MSIS resources** |
-| `UX_FEATURES_SPEC.md` | Full implementation spec for 5 UX features with code: glossary tooltips, nav search, state profiles, explain buttons, data story generator | **Keep — code spec for Claude Code** |
-| `AraduneMockup.jsx` | Definitive landing page + nav design reference (React, design tokens, layout) | **Keep — UI reference for all frontend work** |
-| `ARADUNE_PRODUCT_STRATEGY.md` | ~~Strategy and data landscape~~ | **DELETE — merged into ARADUNE_MASTER.md** |
-| `aradune-implementation-plan.md` | ~~Build roadmap~~ | **DELETE — superseded by CLAUDE.md sections 13/17/18** |
-| `aradune-market-gaps.md` | ~~Market gaps, HIPAA architecture~~ | **DELETE — incorporated into ARADUNE_MASTER.md and Section 16b above** |
-| `ARADUNE_VISION.md` | ~~Vision doc~~ | **RENAME to TMSIS_RESOURCES.md** |
+```bash
+cd ~/Desktop/Aradune
+npm install && npm run dev                    # localhost:5173
+cd tools/mfs_scraper/ && python cpra_engine.py --all --cpra-em --output-dir ../../public/data/
+npm run build && npx vercel --prod
+curl -s -o /dev/null -w "%{http_code}" https://www.aradune.co/data/cpra_summary.json
+git add . && git commit -m "describe change" && git push
 
+# Ontology (run after any data lake changes)
+python scripts/validate_ontology.py           # CI check — must pass
+python scripts/generate_ontology.py           # Regenerates system prompt + DuckPGQ SQL
+```
+
+**Env vars:** Vercel: `ANTHROPIC_API_KEY`, `VITE_MONTHLY_PARQUET_URL`. Fly.io: `ANTHROPIC_API_KEY`, R2 creds.
+
+---
+
+## 20. Reference Documents
+
+| File | Purpose |
+|------|---------|
+| `ARADUNE_BUILD_GUIDE.md` | Phased build plan, tool specs, demo script |
+| `ONTOLOGY_SPEC.md` | Entity registry build spec — **hand to Claude Code for ontology generation** |
+| `COMPLETE-DATA-REFERENCE-FOR-ARADUNE.md` | **Per-dataset quality issues, validation stack, adversarial testing, medallion architecture — READ BEFORE ANY DATA WORK** |
+| `CHANGELOG.md` | Session history, resolved issues, milestones |
+| `docs/ARADUNE_MASTER.md` | Full strategy/architecture reference |
+| `docs/TMSIS_DATA_GUIDE.md` | T-MSIS operational guide — read before any T-MSIS work |
+| `docs/AraduneMockup.jsx` | Landing page + nav reference |
+
+---
+
+## 20. Known Issues
+
+| # | Issue | Status |
+|---|-------|--------|
+| 1 | R2 credentials need rotation | Open |
+| 2 | db.py fact_names must match filesystem (556 entries synced as of session 19) | Synced |
+| 3 | api/chat.js is legacy | Deprecate after Intelligence verified |
+| 4 | Password gate is client-side only | Not a security boundary |
+| 5 | GitHub CI secrets (VERCEL_TOKEN, FLY_API_TOKEN) not set | Open — deploy locally works |
+| 6 | Clerk auth needs env vars (VITE_CLERK_PUBLISHABLE_KEY, CLERK_SECRET_KEY) | Open |
+| 7 | AHRQ SDOH / CDC SVI blocked by WAF | Cannot download programmatically |
+| 8 | 4 state fee schedules missing (KS, NJ, TN, WI) | Blocked — portal/login required |
+| 9 | Remaining raw files: HCRIS full worksheets (260 MB), MACPAC exhibits (small), SAMHSA NSDUH 2022 (HTML/blocked) | Session 19 — major gaps closed |
+| 10 | 17 empty/broken raw files in data/raw/ (header-only stubs, WAF failures) | Cleanup candidate |
+| 11 | Duplicate raw files in data/raw/ (_v2 pairs, dme26a=dmepos) | Cleanup candidate |
+
+---
 
 ## 21. What Success Looks Like
 
-**Current state (March 9, 2026):**
-- 232 tables live in production (Fly.io), 109M rows queryable, NL2SQL working
-- 250 fact tables on disk (270 views total), 115M+ rows, 785MB Parquet, all synced to R2
-- 237+ API endpoints, 18 tools, 3 upload-driven engines (CPRA, Caseload Forecast, Expenditure Modeling)
-- Deployed: Fly.io (API + data) + Vercel (frontend) — both current as of session 8
-- ANTHROPIC_API_KEY set on Fly.io, Vercel, and local .env
-- Pricing removed from site (kept flexible for partnership conversations)
-- Brand assets updated: SVG logos, helmet chat icon, Lottie sword loader
-- Behind password gate ("mediquiad")
+**Now (March 2026):** 569 views (556 fact + 9 dim + 4 ref), 305M+ rows, 3.6 GB, 258+ endpoints across 25 route files, 4 engines, 18 ontology domains + 7 planned tables, Intelligence with SSE + DuckDB + RAG + web search, 8 tools behind password gate, CPRA regulatory-correct both modes. 82 ETL scripts. Deployed to Fly.io + R2.
 
-**Completed milestones:**
-- ~~State Profile pages~~ **Done**
-- ~~NL2SQL Data Explorer~~ **Done** (working in production)
-- ~~Data Catalog~~ **Done**
-- ~~All tools have CSV export~~ **Done**
-- ~~Deploy to Fly.io + set ANTHROPIC_API_KEY~~ **Done**
-- ~~Remove pricing from site~~ **Done**
+**Demo milestone:** Intelligence frontend polished. Import → cross-reference → export end-to-end. Demo mode with pre-cached responses. 3-5 killer starters.
 
-**Next milestone — Consulting firm demo (Track A):**
-- Polish NL2SQL prompts and example queries
-- Cross-dataset insights in State Profiles (the "so what" moment)
-- More data — every table strengthens the pitch
-- Dry-run the demo end-to-end
-- Prepare talking points: data depth, AI capabilities, competitive landscape
-
-**Next milestone — Public beta (Track B, if needed):**
-- User accounts (Clerk recommended — 4-8 hours integration)
-- Landing page redesign from `docs/AraduneMockup.jsx`
-- Stripe billing integration
-- At least one person outside the team has used it and given feedback
-
-**3–6 months:** SPA/waiver search live. First external citation. Revenue conversation (either track).
-
-**6–12 months:** Cited in a MACPAC report or state filing. Forecast accuracy dashboard published. Revenue covers infrastructure. Hospital price transparency MRFs ingested.
-
-**1–3 years:** Default reference for Medicaid data. CMS links to it. Firms license the data. State agencies use it for CPRA compliance. Seven-figure revenue. Aradune is where Medicaid professionals start their day.
+**3-6 months:** First external CPRA user. Revenue conversation.
+**6-12 months:** Early warning dashboard. Forecast accuracy published. Revenue covers infra.
+**1-3 years:** Default Medicaid reference. CMS links to it. Seven figures.
 
 ---
 
-*The data is the moat. Build the moat. Ship fast. Iterate in public.*
+*The data is the moat. Intelligence is the interface. Compliance is the wedge. Build in that order.*

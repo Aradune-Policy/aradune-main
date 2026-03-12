@@ -2,16 +2,19 @@
 """
 build_lake_hcris.py — Ingest HCRIS hospital cost report data into the Aradune data lake.
 
-Reads from: data/raw/hcris_2023.csv (CMS Hospital Provider Cost Report)
+Reads from: data/raw/hcris_{year}.csv (CMS Hospital Provider Cost Report)
+            data/raw/hcris_snf_{year}.csv (SNF Cost Report)
 Writes to:  data/lake/
 
 Tables built:
   Facts:
     fact_hospital_cost    — Hospital financial data: costs, revenue, Medicaid days/charges, DSH, beds
+                           Multi-year (FY2021-2023) for trend analysis
 
 Usage:
   python3 scripts/build_lake_hcris.py
   python3 scripts/build_lake_hcris.py --dry-run
+  python3 scripts/build_lake_hcris.py --years 2023     # Single year only
 """
 
 import argparse
@@ -29,7 +32,8 @@ LAKE_DIR = PROJECT_ROOT / "data" / "lake"
 FACT_DIR = LAKE_DIR / "fact"
 META_DIR = LAKE_DIR / "metadata"
 
-HCRIS_CSV = RAW_DIR / "hcris_2023.csv"
+# Multi-year support — all available years
+HCRIS_YEARS = [2021, 2022, 2023]
 SNF_CSV = RAW_DIR / "hcris_snf_2023.csv"
 
 SNAPSHOT_DATE = date.today().isoformat()
@@ -52,10 +56,9 @@ def _snapshot_path(fact_name: str) -> Path:
     return FACT_DIR / fact_name / f"snapshot={SNAPSHOT_DATE}" / "data.parquet"
 
 
-def build_fact_hospital_cost(con, dry_run: bool) -> int:
-    print("Building fact_hospital_cost...")
-    con.execute(f"""
-        CREATE OR REPLACE TABLE _fact_hospital_cost AS
+def _build_hospital_query(csv_path: str, report_year: int) -> str:
+    """Generate the SELECT query for a single HCRIS year."""
+    return f"""
         SELECT
             "Provider CCN" AS provider_ccn,
             "Hospital Name" AS hospital_name,
@@ -121,29 +124,48 @@ def build_fact_hospital_cost(con, dry_run: bool) -> int:
                      / TRY_CAST("Medicaid Charges" AS DOUBLE) * 100, 2)
             END AS medicaid_payment_to_charge_pct,
             'data.cms.gov/hcris' AS source,
-            2023 AS report_year,
+            {report_year} AS report_year,
             DATE '{SNAPSHOT_DATE}' AS snapshot_date
-        FROM read_csv_auto('{HCRIS_CSV}')
+        FROM read_csv_auto('{csv_path}')
         WHERE "State Code" IS NOT NULL
           AND LENGTH("State Code") = 2
-    """)
+    """
+
+
+def build_fact_hospital_cost(con, years: list[int], dry_run: bool) -> int:
+    print(f"Building fact_hospital_cost ({len(years)} years: {', '.join(map(str, years))})...")
+
+    union_parts = []
+    for year in years:
+        csv_path = RAW_DIR / f"hcris_{year}.csv"
+        if not csv_path.exists():
+            print(f"  SKIPPED FY{year} — {csv_path.name} not found")
+            continue
+        union_parts.append(_build_hospital_query(str(csv_path), year))
+        print(f"  Loading FY{year}...")
+
+    if not union_parts:
+        print("  ERROR: No HCRIS CSVs found")
+        return 0
+
+    full_query = " UNION ALL ".join(union_parts)
+    con.execute(f"CREATE OR REPLACE TABLE _fact_hospital_cost AS {full_query}")
+
     count = write_parquet(con, "_fact_hospital_cost", _snapshot_path("hospital_cost"), dry_run)
     states = con.execute("SELECT COUNT(DISTINCT state_code) FROM _fact_hospital_cost").fetchone()[0]
-    beds = con.execute("SELECT SUM(bed_count) FROM _fact_hospital_cost").fetchone()[0]
+    beds = con.execute("SELECT SUM(bed_count) FROM _fact_hospital_cost WHERE report_year = (SELECT MAX(report_year) FROM _fact_hospital_cost)").fetchone()[0]
     med_rev = con.execute("SELECT SUM(medicaid_net_revenue) FROM _fact_hospital_cost WHERE medicaid_net_revenue > 0").fetchone()[0]
-    print(f"  {count:,} hospitals, {states} states, {beds:,} beds, ${med_rev/1e9:.1f}B Medicaid revenue")
+    year_counts = con.execute("SELECT report_year, COUNT(*) FROM _fact_hospital_cost GROUP BY 1 ORDER BY 1").fetchall()
+    print(f"  {count:,} total rows, {states} states, {beds:,} beds (latest year), ${med_rev/1e9:.1f}B Medicaid revenue")
+    for yr, cnt in year_counts:
+        print(f"    FY{yr}: {cnt:,} hospitals")
     con.execute("DROP TABLE IF EXISTS _fact_hospital_cost")
     return count
 
 
-def build_fact_snf_cost(con, dry_run: bool) -> int:
-    print("Building fact_snf_cost...")
-    if not SNF_CSV.exists():
-        print(f"  SKIPPED — {SNF_CSV.name} not found")
-        return 0
-
-    con.execute(f"""
-        CREATE OR REPLACE TABLE _fact_snf_cost AS
+def _build_snf_query(csv_path: str, report_year: int) -> str:
+    """Generate the SELECT query for a single SNF HCRIS year."""
+    return f"""
         SELECT
             "Provider CCN" AS provider_ccn,
             "Facility Name" AS facility_name,
@@ -157,7 +179,6 @@ def build_fact_snf_cost(con, dry_run: bool) -> int:
             "Type of Control" AS control_type_code,
             TRY_CAST("Fiscal Year Begin Date" AS DATE) AS fy_begin_date,
             TRY_CAST("Fiscal Year End Date" AS DATE) AS fy_end_date,
-            -- Beds & utilization
             TRY_CAST("Number of Beds" AS INTEGER) AS total_beds,
             TRY_CAST("SNF Number of Beds" AS INTEGER) AS snf_beds,
             TRY_CAST("NF Number of Beds" AS INTEGER) AS nf_beds,
@@ -168,25 +189,20 @@ def build_fact_snf_cost(con, dry_run: bool) -> int:
             TRY_CAST("Total Discharges Title XVIII" AS INTEGER) AS medicare_discharges,
             TRY_CAST("Total Discharges Title XIX" AS INTEGER) AS medicaid_discharges,
             TRY_CAST("Total Discharges Total" AS INTEGER) AS total_discharges,
-            -- NF (Medicaid-dominant) utilization
             TRY_CAST("NF Days Title XIX" AS BIGINT) AS nf_medicaid_days,
             TRY_CAST("NF Days Total" AS BIGINT) AS nf_total_days,
             TRY_CAST("NF Discharges Title XIX" AS INTEGER) AS nf_medicaid_discharges,
             TRY_CAST("NF Discharges Total" AS INTEGER) AS nf_total_discharges,
-            -- SNF (Medicare-dominant) utilization
             TRY_CAST("SNF Days Title XVIII" AS BIGINT) AS snf_medicare_days,
             TRY_CAST("SNF Days Title XIX" AS BIGINT) AS snf_medicaid_days,
             TRY_CAST("SNF Days Total" AS BIGINT) AS snf_total_days,
-            -- Financials
             TRY_CAST("Total Costs" AS DOUBLE) AS total_costs,
             TRY_CAST("Total Salaries From Worksheet A" AS DOUBLE) AS total_salaries,
             TRY_CAST("Total Charges" AS DOUBLE) AS total_charges,
             TRY_CAST("Net Patient Revenue" AS DOUBLE) AS net_patient_revenue,
             TRY_CAST("Net Income" AS DOUBLE) AS net_income,
-            -- Balance sheet
             TRY_CAST("Total Assets" AS DOUBLE) AS total_assets,
             TRY_CAST("Total liabilities" AS DOUBLE) AS total_liabilities,
-            -- Derived
             CASE
                 WHEN TRY_CAST("Total Days Total" AS BIGINT) > 0
                 THEN ROUND(TRY_CAST("Total Days Title XIX" AS DOUBLE)
@@ -198,17 +214,41 @@ def build_fact_snf_cost(con, dry_run: bool) -> int:
                      / TRY_CAST("Total Bed Days Available" AS DOUBLE) * 100, 2)
             END AS occupancy_pct,
             'data.cms.gov/hcris-snf' AS source,
-            2023 AS report_year,
+            {report_year} AS report_year,
             DATE '{SNAPSHOT_DATE}' AS snapshot_date
-        FROM read_csv_auto('{SNF_CSV}')
+        FROM read_csv_auto('{csv_path}')
         WHERE "State Code" IS NOT NULL
           AND LENGTH("State Code") = 2
-    """)
+    """
+
+
+def build_fact_snf_cost(con, years: list[int], dry_run: bool) -> int:
+    print(f"Building fact_snf_cost ({len(years)} years)...")
+
+    union_parts = []
+    for year in years:
+        csv_path = RAW_DIR / f"hcris_snf_{year}.csv"
+        if not csv_path.exists():
+            print(f"  SKIPPED FY{year} — {csv_path.name} not found")
+            continue
+        union_parts.append(_build_snf_query(str(csv_path), year))
+        print(f"  Loading FY{year}...")
+
+    if not union_parts:
+        print("  ERROR: No SNF CSVs found")
+        return 0
+
+    full_query = " UNION ALL ".join(union_parts)
+    con.execute(f"CREATE OR REPLACE TABLE _fact_snf_cost AS {full_query}")
+
     count = write_parquet(con, "_fact_snf_cost", _snapshot_path("snf_cost"), dry_run)
     states = con.execute("SELECT COUNT(DISTINCT state_code) FROM _fact_snf_cost").fetchone()[0]
-    beds = con.execute("SELECT SUM(total_beds) FROM _fact_snf_cost WHERE total_beds > 0").fetchone()[0]
+    beds = con.execute("SELECT SUM(total_beds) FROM _fact_snf_cost WHERE report_year = (SELECT MAX(report_year) FROM _fact_snf_cost) AND total_beds > 0").fetchone()[0]
     med_days = con.execute("SELECT SUM(medicaid_days) FROM _fact_snf_cost WHERE medicaid_days > 0").fetchone()[0]
-    print(f"  {count:,} facilities, {states} states, {beds:,} beds, {med_days:,} Medicaid days")
+    year_counts = con.execute("SELECT report_year, COUNT(*) FROM _fact_snf_cost GROUP BY 1 ORDER BY 1").fetchall()
+    print(f"  {count:,} total rows, {states} states, {beds:,} beds (latest year), {med_days:,} Medicaid days")
+    for yr, cnt in year_counts:
+        print(f"    FY{yr}: {cnt:,} facilities")
     con.execute("DROP TABLE IF EXISTS _fact_snf_cost")
     return count
 
@@ -216,22 +256,32 @@ def build_fact_snf_cost(con, dry_run: bool) -> int:
 def main():
     parser = argparse.ArgumentParser(description="Ingest HCRIS hospital cost report data into Aradune lake")
     parser.add_argument("--dry-run", action="store_true")
+    parser.add_argument("--years", type=str, default=None,
+                        help="Comma-separated years to process (default: all available)")
     args = parser.parse_args()
 
-    if not HCRIS_CSV.exists():
-        print(f"ERROR: HCRIS CSV not found at {HCRIS_CSV}", file=sys.stderr)
+    years = HCRIS_YEARS
+    if args.years:
+        years = [int(y.strip()) for y in args.years.split(",")]
+
+    # Check at least one CSV exists
+    available = [y for y in years if (RAW_DIR / f"hcris_{y}.csv").exists()]
+    if not available:
+        print(f"ERROR: No HCRIS CSVs found for years {years}", file=sys.stderr)
         print("Download from: https://data.cms.gov/provider-compliance/cost-report/hospital-provider-cost-report")
         sys.exit(1)
 
     print(f"Snapshot: {SNAPSHOT_DATE}")
     print(f"Run ID:   {RUN_ID}")
+    print(f"Years:    {', '.join(map(str, available))}")
     print()
 
     con = duckdb.connect()
     totals = {}
-    totals["fact_hospital_cost"] = build_fact_hospital_cost(con, args.dry_run)
+    totals["fact_hospital_cost"] = build_fact_hospital_cost(con, available, args.dry_run)
     print()
-    totals["fact_snf_cost"] = build_fact_snf_cost(con, args.dry_run)
+    snf_available = [y for y in years if (RAW_DIR / f"hcris_snf_{y}.csv").exists()]
+    totals["fact_snf_cost"] = build_fact_snf_cost(con, snf_available, args.dry_run)
     con.close()
 
     print()
@@ -250,8 +300,8 @@ def main():
             "snapshot_date": SNAPSHOT_DATE,
             "pipeline_run_id": RUN_ID,
             "created_at": datetime.now().isoformat() + "Z",
-            "source_files": [str(HCRIS_CSV), str(SNF_CSV)],
-            "report_year": 2023,
+            "source_files": [str(RAW_DIR / f"hcris_{y}.csv") for y in available],
+            "report_years": available,
             "tables": {name: {"rows": count} for name, count in totals.items()},
             "total_rows": total_rows,
         }

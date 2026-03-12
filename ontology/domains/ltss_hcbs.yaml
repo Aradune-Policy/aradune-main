@@ -1,0 +1,20 @@
+domain: ltss_hcbs
+display_name: LTSS & HCBS
+description: HCBS waitlists, waiver enrollment, LTSS expenditure/rebalancing, 1915(c)
+  waivers, MLTSS
+entities:
+- quality_measure
+- state
+primary_tables:
+- table: fact_ltss_rebalancing
+  row_count: 1300
+supporting_tables:
+- fact_1915c_participants
+- fact_cms372_waiver
+- fact_hcbs_authority
+- fact_hcbs_waitlist
+- fact_ltss_expenditure
+- fact_ltss_users
+- fact_mltss
+- hcbs_payment_method
+- ref_1115_waivers

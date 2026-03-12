@@ -6,6 +6,39 @@ from server.db import get_cursor
 router = APIRouter()
 
 
+@router.get("/api/five-star/summary")
+async def five_star_summary():
+    """State-level summary of nursing home ratings."""
+    with get_cursor() as cur:
+        rows = cur.execute("""
+            SELECT state_code,
+                   COUNT(*) AS facility_count,
+                   ROUND(AVG(overall_rating), 2) AS avg_overall,
+                   ROUND(AVG(health_inspection_rating), 2) AS avg_health,
+                   ROUND(AVG(staffing_rating), 2) AS avg_staffing,
+                   ROUND(AVG(qm_rating), 2) AS avg_qm,
+                   ROUND(AVG(hprd_total), 2) AS avg_hprd,
+                   ROUND(AVG(hprd_rn), 2) AS avg_hprd_rn,
+                   ROUND(AVG(turnover_total_pct), 1) AS avg_turnover,
+                   SUM(certified_beds) AS total_beds,
+                   SUM(CASE WHEN overall_rating = 1 THEN 1 ELSE 0 END) AS one_star,
+                   SUM(CASE WHEN overall_rating = 5 THEN 1 ELSE 0 END) AS five_star,
+                   SUM(CASE WHEN abuse_flag THEN 1 ELSE 0 END) AS abuse_count,
+                   SUM(fine_total_dollars) AS total_fines
+            FROM fact_five_star
+            WHERE overall_rating > 0
+            GROUP BY state_code
+            ORDER BY state_code
+        """).fetchall()
+        columns = [
+            "state_code", "facility_count", "avg_overall", "avg_health",
+            "avg_staffing", "avg_qm", "avg_hprd", "avg_hprd_rn",
+            "avg_turnover", "total_beds", "one_star", "five_star",
+            "abuse_count", "total_fines",
+        ]
+        return [dict(zip(columns, r)) for r in rows]
+
+
 @router.get("/api/five-star/{state_code}")
 async def five_star_by_state(state_code: str, min_rating: int = Query(None)):
     """Get nursing home Five-Star ratings for a state."""
@@ -39,39 +72,6 @@ async def five_star_by_state(state_code: str, min_rating: int = Query(None)):
             "deficiency_count", "fine_count", "fine_total_dollars",
             "total_penalties", "abuse_flag", "special_focus_status",
             "chain_name", "chain_size",
-        ]
-        return [dict(zip(columns, r)) for r in rows]
-
-
-@router.get("/api/five-star/summary")
-async def five_star_summary():
-    """State-level summary of nursing home ratings."""
-    with get_cursor() as cur:
-        rows = cur.execute("""
-            SELECT state_code,
-                   COUNT(*) AS facility_count,
-                   ROUND(AVG(overall_rating), 2) AS avg_overall,
-                   ROUND(AVG(health_inspection_rating), 2) AS avg_health,
-                   ROUND(AVG(staffing_rating), 2) AS avg_staffing,
-                   ROUND(AVG(qm_rating), 2) AS avg_qm,
-                   ROUND(AVG(hprd_total), 2) AS avg_hprd,
-                   ROUND(AVG(hprd_rn), 2) AS avg_hprd_rn,
-                   ROUND(AVG(turnover_total_pct), 1) AS avg_turnover,
-                   SUM(certified_beds) AS total_beds,
-                   SUM(CASE WHEN overall_rating = 1 THEN 1 ELSE 0 END) AS one_star,
-                   SUM(CASE WHEN overall_rating = 5 THEN 1 ELSE 0 END) AS five_star,
-                   SUM(CASE WHEN abuse_flag THEN 1 ELSE 0 END) AS abuse_count,
-                   SUM(fine_total_dollars) AS total_fines
-            FROM fact_five_star
-            WHERE overall_rating > 0
-            GROUP BY state_code
-            ORDER BY state_code
-        """).fetchall()
-        columns = [
-            "state_code", "facility_count", "avg_overall", "avg_health",
-            "avg_staffing", "avg_qm", "avg_hprd", "avg_hprd_rn",
-            "avg_turnover", "total_beds", "one_star", "five_star",
-            "abuse_count", "total_fines",
         ]
         return [dict(zip(columns, r)) for r in rows]
 
@@ -245,6 +245,28 @@ async def epsdt_all():
         return [dict(zip(columns, r)) for r in rows]
 
 
+@router.get("/api/hpsa/summary")
+async def hpsa_summary():
+    """Get HPSA summary statistics by state and discipline."""
+    with get_cursor() as cur:
+        rows = cur.execute("""
+            SELECT state_code, discipline,
+                   COUNT(*) AS total_hpsas,
+                   AVG(hpsa_score) AS avg_score,
+                   SUM(designation_population) AS total_pop,
+                   SUM(shortage) AS total_shortage,
+                   AVG(pct_poverty) AS avg_pct_poverty
+            FROM fact_hpsa
+            GROUP BY state_code, discipline
+            ORDER BY state_code, discipline
+        """).fetchall()
+        columns = [
+            "state_code", "discipline", "total_hpsas",
+            "avg_score", "total_pop", "total_shortage", "avg_pct_poverty",
+        ]
+        return [dict(zip(columns, r)) for r in rows]
+
+
 @router.get("/api/hpsa/{state_code}")
 async def hpsa_by_state(state_code: str, discipline: str = Query(None)):
     """Get HPSA designations for a state."""
@@ -272,27 +294,5 @@ async def hpsa_by_state(state_code: str, discipline: str = Query(None)):
             "degree_of_shortage", "hpsa_fte", "designation_population",
             "pct_poverty", "population_type", "rural_status",
             "county_name", "provider_type",
-        ]
-        return [dict(zip(columns, r)) for r in rows]
-
-
-@router.get("/api/hpsa/summary")
-async def hpsa_summary():
-    """Get HPSA summary statistics by state and discipline."""
-    with get_cursor() as cur:
-        rows = cur.execute("""
-            SELECT state_code, discipline,
-                   COUNT(*) AS total_hpsas,
-                   AVG(hpsa_score) AS avg_score,
-                   SUM(designation_population) AS total_pop,
-                   SUM(shortage) AS total_shortage,
-                   AVG(pct_poverty) AS avg_pct_poverty
-            FROM fact_hpsa
-            GROUP BY state_code, discipline
-            ORDER BY state_code, discipline
-        """).fetchall()
-        columns = [
-            "state_code", "discipline", "total_hpsas",
-            "avg_score", "total_pop", "total_shortage", "avg_pct_poverty",
         ]
         return [dict(zip(columns, r)) for r in rows]

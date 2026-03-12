@@ -34,10 +34,14 @@ async def enrollment(state_code: str):
     state_code = state_code.upper()
     with get_cursor() as cur:
         rows = cur.execute("""
-            SELECT year, month, total_enrollment, chip_enrollment,
-                   ffs_enrollment, mc_enrollment
+            SELECT year, month,
+                   MAX(total_enrollment) AS total_enrollment,
+                   MAX(chip_enrollment) AS chip_enrollment,
+                   MAX(ffs_enrollment) AS ffs_enrollment,
+                   MAX(mc_enrollment) AS mc_enrollment
             FROM fact_enrollment
             WHERE state_code = $1
+            GROUP BY year, month
             ORDER BY year, month
         """, [state_code]).fetchall()
         columns = ["year", "month", "total_enrollment", "chip_enrollment",

@@ -1,0 +1,130 @@
+domain: providers
+display_name: Providers & Facilities
+description: NPPES full provider registry, PECOS enrollment, physician compare, revalidation, provider affiliations, CLIA,
+  FQHCs, dialysis, hospice, HHA, IRF, LTCH, ASC, post-acute care, QPP, and facility ownership data
+entities:
+- hospital
+- provider
+- quality_measure
+- state
+primary_tables:
+- table: dim_provider_taxonomy
+  row_count: 10
+- table: fact_asc_facility
+  row_count: 5711
+- table: fact_dialysis_facility
+  row_count: 7557
+- table: fact_dialysis_facility_v2
+  row_count: 7557
+- table: fact_fqhc_directory
+  row_count: 18808
+- table: fact_fqhc_hypertension
+  row_count: 6866
+- table: fact_fqhc_quality_badges
+  row_count: 7438
+- table: fact_health_center_sites
+  row_count: 8121
+- table: fact_hha_cost_report
+  row_count: 10715
+- table: fact_home_health_agency
+  row_count: 12251
+- table: fact_hospice_cahps_state
+  row_count: 1320
+- table: fact_hospice_directory
+  row_count: 6943
+- table: fact_hospice_provider
+  row_count: 465181
+- table: fact_hospice_quality
+  row_count: 465181
+- table: fact_hospice_state
+  row_count: 1100
+- table: fact_irf_provider
+  row_count: 79365
+- table: fact_ltch_provider
+  row_count: 24882
+- table: fact_pac_hha_utilization
+  row_count: 8519
+- table: fact_pac_irf_utilization
+  row_count: 1205
+- table: fact_physician_compare
+  row_count: 31490
+- table: fact_pos_other
+  row_count: 122013
+- table: fact_provider
+  row_count: 584080
+- table: fact_provider_specific
+  row_count: 68668
+- table: fact_nppes_provider
+  row_count: 9368082
+- table: fact_nppes_taxonomy_detail
+  row_count: 11732753
+- table: fact_nppes_endpoint
+  row_count: 593297
+- table: fact_nppes_practice_location
+  row_count: 1146558
+- table: fact_pecos_enrollment
+  row_count: 2957252
+- table: fact_provider_affiliation
+  row_count: 3493819
+- table: fact_revalidation_clinic_group
+  row_count: 3306178
+- table: fact_revalidation_due_date
+  row_count: 2890219
+- table: fact_physician_compare_v2
+  row_count: 2843762
+- table: fact_fiss_attending_rendering
+  row_count: 2039109
+- table: fact_order_referring
+  row_count: 1996162
+- table: fact_order_referring_v2
+  row_count: 1996162
+- table: fact_providers_missing_dci
+  row_count: 3822698
+- table: fact_clia
+  row_count: 671570
+- table: fact_qpp_experience
+  row_count: 524998
+- table: fact_provider_specific_v2
+  row_count: 68669
+- table: fact_home_infusion_provider
+  row_count: 1918
+- table: fact_mdpp_suppliers
+  row_count: 941
+- table: fact_asm_participants
+  row_count: 6637
+- table: fact_pos_iqies
+  row_count: 58001
+- table: fact_hospice_quality_national
+  row_count: 331500
+- table: fact_pac_hospice_utilization
+  row_count: 5824
+- table: fact_pac_hha_casemix
+  row_count: 127100
+- table: fact_pac_irf_casemix
+  row_count: 12840
+- table: fact_pac_snf_casemix
+  row_count: 14214
+- table: fact_pac_snf_utilization
+  row_count: 14214
+- table: fact_provider_reassignment
+  row_count: 3493820
+supporting_tables:
+- fact_asc_quality_state
+- fact_dialysis_state
+- fact_home_health_state
+- fact_home_health_state2
+- fact_oas_cahps_state
+- fact_pac_ltch_utilization
+- fact_vha_provider
+- fact_optout_providers
+- fact_optout_providers_v2
+- fact_revoked_providers
+- fact_revoked_providers_v2
+- fact_fqhc_all_owners
+- fact_fqhc_enrollments
+- fact_hha_all_owners
+- fact_hha_enrollments
+- fact_hospice_all_owners
+- fact_hospice_enrollments
+- fact_rhc_all_owners
+- fact_rhc_enrollments

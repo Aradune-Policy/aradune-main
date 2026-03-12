@@ -1,0 +1,133 @@
+entity: expenditure_record
+display_name: Expenditure Record
+description: CMS-64 expenditure by state and category
+canonical_table: fact_expenditure
+primary_key: state_code
+key_type: VARCHAR(2)
+properties:
+- name: fiscal_year
+  type: BIGINT
+- name: quarter
+  type: BIGINT
+- name: category
+  type: VARCHAR
+- name: subcategory
+  type: VARCHAR
+- name: federal_share
+  type: DOUBLE
+- name: total_computable
+  type: DOUBLE
+- name: source
+  type: VARCHAR
+- name: snapshot_date
+  type: DATE
+- name: snapshot
+  type: DATE
+fact_tables:
+- dim_medicare_locality
+- dim_state
+- fact_acs_state
+- fact_block_grant
+- fact_bls_wage
+- fact_bls_wage_msa
+- fact_brfss
+- fact_brfss_behavioral
+- fact_chip_enrollment
+- fact_claims
+- fact_claims_categories
+- fact_claims_monthly
+- fact_complications
+- fact_dialysis_state
+- fact_dq_atlas
+- fact_dq_flag
+- fact_drug_utilization
+- fact_dsh_hospital
+- fact_dsh_payment
+- fact_eligibility
+- fact_eligibility_levels
+- fact_eligibility_processing
+- fact_enrollment
+- fact_epsdt
+- fact_expenditure
+- fact_fair_market_rent
+- fact_financial_mgmt
+- fact_five_star
+- fact_fmap
+- fact_fmr_fy2024
+- fact_fmr_supplemental
+- fact_fqhc_directory
+- fact_hai_hospital
+- fact_hai_state
+- fact_hcbs_waitlist
+- fact_hhcahps_state
+- fact_home_health_state
+- fact_hospice_cahps_state
+- fact_hospice_directory
+- fact_hospice_quality
+- fact_hospital_cost
+- fact_hospital_hrrp
+- fact_hospital_rating
+- fact_hospital_timely_effective
+- fact_hospital_vbp
+- fact_hpsa
+- fact_ltss_expenditure
+- fact_ltss_rebalancing
+- fact_ltss_users
+- fact_macpac_supplemental
+- fact_managed_care
+- fact_mc_enrollment
+- fact_mc_enrollment_summary
+- fact_median_income
+- fact_medicaid_applications
+- fact_medicaid_opioid_prescribing
+- fact_medicaid_rate
+- fact_medicare_rate
+- fact_medicare_rate_state
+- fact_medicare_spending_claim
+- fact_mh_facility
+- fact_mltss
+- fact_mspb_hospital
+- fact_mspb_state
+- fact_new_adult
+- fact_new_adult_spending
+- fact_nh_deficiencies
+- fact_nh_deficiency
+- fact_nh_mds_quality
+- fact_nh_ownership
+- fact_nh_penalties
+- fact_nsduh_prevalence
+- fact_nsduh_prevalence_2024
+- fact_pbj_employee
+- fact_pbj_nonnurse_staffing
+- fact_pbj_nurse_staffing
+- fact_places_county
+- fact_policy_chunk
+- fact_policy_document
+- fact_pos_hospital
+- fact_pos_other
+- fact_provider
+- fact_provider_specific
+- fact_quality_core_set_2023
+- fact_quality_core_set_2024
+- fact_quality_measure
+- fact_rate_comparison
+- fact_renewal_processing
+- fact_saipe_poverty
+- fact_scorecard
+- fact_sdp_preprint
+- fact_sdud_2025
+- fact_snap_enrollment
+- fact_snf_cost
+- fact_spa
+- fact_state_gdp
+- fact_state_population
+- fact_tanf_enrollment
+- fact_timely_effective
+- fact_unemployment
+- fact_unplanned_visits
+- fact_unwinding
+- fact_vha_provider
+- fact_vital_stats
+- fact_vital_stats_monthly
+- hcbs_payment_method
+- ref_1115_waivers

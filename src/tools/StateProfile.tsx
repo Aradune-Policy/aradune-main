@@ -1,8 +1,9 @@
 /**
  * State Profile — Everything Aradune knows about a state, in one view.
  * Fetches from ~12 endpoints in parallel on state selection.
+ * Comparison mode: /#/state/FL+GA+TX renders states side-by-side.
  */
-import { useState, useEffect, useCallback } from "react";
+import { useState, useEffect, useCallback, useMemo } from "react";
 import {
   ComposedChart, Area, Line, Bar, XAxis, YAxis, CartesianGrid,
   Tooltip, ResponsiveContainer, Legend, BarChart, PieChart, Pie, Cell,
@@ -16,6 +17,9 @@ const SF = "#F5F7F5", BD = "#E4EAE4", WH = "#fff", cB = "#2E6B4A", ACC = "#C4590
 const FM = "'SF Mono',Menlo,Consolas,monospace";
 const FB = "'Helvetica Neue',Arial,sans-serif";
 const SH = "0 1px 3px rgba(0,0,0,.04),0 4px 12px rgba(0,0,0,.03)";
+
+// Comparison colors — one per state column
+const COMP_COLORS = [cB, ACC, "#3B82F6", "#8B5CF6", "#EC4899", "#F59E0B"];
 
 // ── Local UI components ─────────────────────────────────────────────────
 const Card = ({ children, accent }: { children: React.ReactNode; accent?: string }) => (
@@ -64,6 +68,311 @@ const fmtDollars = (n: number) => n >= 1e9 ? "$" + (n / 1e9).toFixed(2) + "B" : 
 const fmtPct = (n: number) => (n * 100).toFixed(1) + "%";
 const PIE_COLORS = [cB, ACC, "#3B82F6", "#8B5CF6", "#EC4899", "#F59E0B", "#6366F1", "#14B8A6"];
 
+// ── Insight types and computation ────────────────────────────────────────
+type InsightSeverity = "info" | "warning" | "alert";
+
+interface Insight {
+  icon: string;
+  title: string;
+  description: string;
+  severity: InsightSeverity;
+}
+
+const SEVERITY_COLORS: Record<InsightSeverity, { bg: string; border: string; icon: string }> = {
+  info:    { bg: "#F0F7F4", border: "#C2D9CC", icon: cB },
+  warning: { bg: "#FFF8ED", border: "#F0DDB8", icon: WARN },
+  alert:   { bg: "#FDF2F2", border: "#F0C2C2", icon: NEG },
+};
+
+const DOMAIN_ICONS: Record<string, string> = {
+  rates: "\u26A0", workforce: "\uD83D\uDC69\u200D\u2695\uFE0F", enrollment: "\uD83D\uDCC8",
+  hospitals: "\uD83C\uDFE5", quality: "\u2B50", pharmacy: "\uD83D\uDC8A", economic: "\uD83D\uDCCB",
+};
+
+/** Normalize server-side insights ({type, title, text, domains}) into client Insight format. */
+function normalizeServerInsights(serverInsights: any[]): Insight[] {
+  return (serverInsights || []).map((si: any) => ({
+    icon: DOMAIN_ICONS[si.domains?.[0]] || "\uD83D\uDD0D",
+    title: si.title,
+    description: si.text,
+    severity: (si.type === "warning" ? "warning" : "info") as InsightSeverity,
+  }));
+}
+
+/** Merge server + client insights, dedup by title similarity, cap at 7. */
+function mergeInsights(server: Insight[], client: Insight[]): Insight[] {
+  const merged = [...server];
+  const serverTitlesLower = new Set(server.map(s => s.title.toLowerCase()));
+  for (const ci of client) {
+    if (!serverTitlesLower.has(ci.title.toLowerCase())) merged.push(ci);
+  }
+  const order: Record<InsightSeverity, number> = { alert: 0, warning: 1, info: 2 };
+  merged.sort((a, b) => order[a.severity] - order[b.severity]);
+  return merged.slice(0, 7);
+}
+
+function computeInsights(d: any, state: string): Insight[] {
+  const insights: Insight[] = [];
+
+  // ── 1. Rate-to-outcome: Medicaid rate adequacy signal ──────────────
+  if (d.cpraSummary?.medianPctMcr && d.cpraSummary.medianPctMcr > 0) {
+    const pctMcr = d.cpraSummary.medianPctMcr;
+    const pctStr = (pctMcr * 100).toFixed(0);
+    const emCount = d.cpraSummary.emCount || 0;
+    const hpsaCount = d.hpsa?.length || 0;
+
+    if (pctMcr < 0.70) {
+      insights.push({
+        icon: "\u26A0",
+        title: "Low Rate Adequacy",
+        description: `${STATE_NAMES[state]} pays a median of ${pctStr}% of Medicare across ${d.cpraSummary.count} matched codes${emCount > 0 ? ` (${emCount} E/M)` : ""}. States paying below 70% of Medicare face higher provider opt-out rates and reduced appointment availability for Medicaid beneficiaries.`,
+        severity: "alert",
+      });
+    } else if (pctMcr < 0.85) {
+      insights.push({
+        icon: "\uD83D\uDCC9",
+        title: "Below-Average Rate Adequacy",
+        description: `Medicaid rates are ${pctStr}% of Medicare (national median ~85%). This gap may limit provider participation, particularly for primary care and specialty services${hpsaCount > 20 ? ` \u2014 compounded by ${hpsaCount} health professional shortage areas in the state` : ""}.`,
+        severity: "warning",
+      });
+    } else if (pctMcr >= 1.0) {
+      insights.push({
+        icon: "\u2705",
+        title: "Strong Rate Adequacy",
+        description: `Medicaid rates are at ${pctStr}% of Medicare \u2014 at or above parity. This positions ${STATE_NAMES[state]} favorably for provider recruitment and network adequacy.`,
+        severity: "info",
+      });
+    } else {
+      insights.push({
+        icon: "\uD83D\uDCCA",
+        title: "Rate Adequacy Near National Median",
+        description: `Medicaid-to-Medicare ratio of ${pctStr}% is near the national median of ~85%. Across ${d.cpraSummary.count} matched procedure codes${emCount > 0 ? ` (${emCount} E/M)` : ""}.`,
+        severity: "info",
+      });
+    }
+  }
+
+  // ── 2. Workforce gap: CNA / home health aide wage vs market ────────
+  if (d.wages?.length > 0) {
+    const cnaOccs = d.wages.filter((w: any) => {
+      const title = (w.occ_title || w.occupation_title || w.occupation || "").toLowerCase();
+      const soc = w.soc_code || "";
+      return title.includes("nursing assist") || title.includes("home health aide")
+        || soc === "31-1131" || soc === "31-1121" || title.includes("personal care aide");
+    });
+
+    if (cnaOccs.length > 0) {
+      const cna = cnaOccs[0];
+      const medianHourly = cna.h_median || cna.hourly_median || cna.median_hourly || 0;
+      const p90Hourly = cna.h_pct90 || cna.hourly_p90 || cna.pct90_hourly || 0;
+      const title = cna.occ_title || cna.occupation_title || cna.occupation || "Direct Care Worker";
+
+      if (medianHourly > 0) {
+        const retailBenchmark = 16.0;
+        const premium = ((medianHourly - retailBenchmark) / retailBenchmark * 100);
+
+        if (premium < 10) {
+          insights.push({
+            icon: "\uD83D\uDC69\u200D\u2695\uFE0F",
+            title: "Direct Care Workforce Pressure",
+            description: `${title}s earn a median of $${medianHourly.toFixed(2)}/hr in ${STATE_NAMES[state]} \u2014 only ${premium > 0 ? premium.toFixed(0) + "% above" : Math.abs(premium).toFixed(0) + "% below"} entry-level retail wages ($${retailBenchmark.toFixed(2)}/hr). This narrow gap drives turnover and vacancy in nursing facilities and HCBS programs.${p90Hourly > 0 ? ` Top earners reach $${p90Hourly.toFixed(2)}/hr.` : ""}`,
+            severity: premium < 0 ? "alert" : "warning",
+          });
+        } else {
+          insights.push({
+            icon: "\uD83D\uDC69\u200D\u2695\uFE0F",
+            title: "Direct Care Workforce",
+            description: `${title}s earn $${medianHourly.toFixed(2)}/hr median in ${STATE_NAMES[state]}, ${premium.toFixed(0)}% above entry-level retail.${p90Hourly > 0 ? ` 90th percentile: $${p90Hourly.toFixed(2)}/hr.` : ""} Higher pay helps retention, but workforce shortages persist nationally.`,
+            severity: "info",
+          });
+        }
+      }
+    }
+  }
+
+  // ── 3. Access risk: HPSAs + rate adequacy ─────────────────────────
+  if (d.hpsa?.length > 0) {
+    const hpsaCount = d.hpsa.length;
+    const pctMcr = d.cpraSummary?.medianPctMcr || 0;
+    const byDiscipline: Record<string, number> = {};
+    d.hpsa.forEach((h: any) => {
+      const disc = h.discipline_type || h.hpsa_discipline || "Unknown";
+      byDiscipline[disc] = (byDiscipline[disc] || 0) + 1;
+    });
+    const discSummary = Object.entries(byDiscipline)
+      .sort((a, b) => b[1] - a[1])
+      .map(([name, count]) => `${count} ${name}`)
+      .join(", ");
+
+    if (hpsaCount > 50 && pctMcr > 0 && pctMcr < 0.85) {
+      insights.push({
+        icon: "\uD83C\uDFE5",
+        title: "Elevated Access Risk",
+        description: `${hpsaCount} health professional shortage area designations (${discSummary}). Combined with Medicaid rates at ${(pctMcr * 100).toFixed(0)}% of Medicare, providers in underserved areas face compounding financial pressure that may limit beneficiary access.`,
+        severity: "alert",
+      });
+    } else if (hpsaCount > 30) {
+      insights.push({
+        icon: "\uD83C\uDFE5",
+        title: "Provider Shortage Areas",
+        description: `${hpsaCount} HPSA designations across the state (${discSummary}). These areas face documented shortages in primary care, dental, or mental health providers.`,
+        severity: hpsaCount > 80 ? "warning" : "info",
+      });
+    }
+  }
+
+  // ── 4. Enrollment trajectory ──────────────────────────────────────
+  if (d.enrollment?.length >= 12) {
+    const recent = d.enrollment.slice(-12);
+    const older = d.enrollment.slice(-24, -12);
+
+    if (older.length >= 6) {
+      const latestEnroll = recent[recent.length - 1]?.total_enrollment || 0;
+      const yearAgoEnroll = older[older.length - 1]?.total_enrollment || 0;
+
+      if (latestEnroll > 0 && yearAgoEnroll > 0) {
+        const yoyChange = ((latestEnroll - yearAgoEnroll) / yearAgoEnroll) * 100;
+        const direction = yoyChange > 0 ? "up" : "down";
+        const absChange = Math.abs(yoyChange);
+
+        const unwindingNote = d.unwinding?.length > 0
+          ? ` PHE unwinding is actively affecting enrollment.`
+          : "";
+
+        if (absChange > 5) {
+          insights.push({
+            icon: yoyChange > 0 ? "\uD83D\uDCC8" : "\uD83D\uDCC9",
+            title: `Enrollment ${direction === "up" ? "Growing" : "Declining"} Sharply`,
+            description: `Medicaid enrollment is ${direction} ${absChange.toFixed(1)}% year-over-year (${fmtNum(yearAgoEnroll)} \u2192 ${fmtNum(latestEnroll)}).${unwindingNote} Changes of this magnitude impact state budgets, provider networks, and managed care plan capacity.`,
+            severity: absChange > 10 ? "warning" : "info",
+          });
+        } else {
+          insights.push({
+            icon: "\uD83D\uDCCA",
+            title: "Enrollment Trend",
+            description: `Enrollment is ${direction} ${absChange.toFixed(1)}% year-over-year at ${fmtNum(latestEnroll)} total enrollees.${unwindingNote}`,
+            severity: "info",
+          });
+        }
+      }
+    }
+  }
+
+  // ── 5. Hospital financial stress + Medicaid dependency ────────────
+  if (d.hospitals?.length > 0) {
+    const highMedicaid = d.hospitals.filter((h: any) => (h.medicaid_day_pct || 0) > 0.25);
+    const totalHospitals = d.hospitals.length;
+    const highMcdPct = totalHospitals > 0 ? (highMedicaid.length / totalHospitals * 100) : 0;
+
+    const negMargin = d.hospitals.filter((h: any) => {
+      const rev = h.net_patient_revenue || 0;
+      const income = h.net_income || 0;
+      return rev > 0 && (income / rev) < 0;
+    });
+
+    if (highMedicaid.length > 3 && highMcdPct > 15) {
+      const dshTotal = d.hospitalSummary?.total_dsh || 0;
+      insights.push({
+        icon: "\uD83C\uDFE5",
+        title: "Safety Net Hospital Dependency",
+        description: `${highMedicaid.length} of ${totalHospitals} hospitals (${highMcdPct.toFixed(0)}%) have Medicaid representing >25% of patient days.${negMargin.length > 0 ? ` ${negMargin.length} hospitals operate at negative margins.` : ""}${dshTotal > 0 ? ` DSH payments total ${fmtDollars(dshTotal)}.` : ""} Rate adequacy directly impacts these safety net facilities.`,
+        severity: highMcdPct > 30 ? "warning" : "info",
+      });
+    }
+  }
+
+  // ── 6. Demographics + coverage gap ────────────────────────────────
+  if (d.demographics) {
+    const demo = d.demographics;
+    const povertyRate = demo.poverty_rate || demo.pct_poverty || 0;
+    const uninsuredRate = demo.uninsured_rate || demo.pct_uninsured || 0;
+    const pop = demo.total_population || 0;
+
+    if (povertyRate > 0.15 && uninsuredRate > 0.10) {
+      const estUninsuredPoor = Math.round(pop * povertyRate * uninsuredRate);
+      insights.push({
+        icon: "\uD83D\uDCCB",
+        title: "Coverage Gap Signal",
+        description: `${(povertyRate * 100).toFixed(1)}% poverty rate combined with ${(uninsuredRate * 100).toFixed(1)}% uninsured rate suggests a significant coverage gap. An estimated ${fmtNum(estUninsuredPoor)} residents are both below the poverty line and uninsured.`,
+        severity: "alert",
+      });
+    } else if (uninsuredRate > 0.08) {
+      insights.push({
+        icon: "\uD83D\uDCCB",
+        title: "Uninsured Population",
+        description: `${(uninsuredRate * 100).toFixed(1)}% of residents lack insurance (national avg ~8%). ${pop > 0 ? `Approximately ${fmtNum(Math.round(pop * uninsuredRate))} uninsured individuals.` : ""}`,
+        severity: "warning",
+      });
+    }
+  }
+
+  // ── 7. Nursing facility quality signal ─────────────────────────────
+  if (d.fiveStarSummary?.avg_overall_rating && d.staffingSummary?.avg_nursing_hprd) {
+    const avgRating = d.fiveStarSummary.avg_overall_rating;
+    const avgHprd = d.staffingSummary.avg_nursing_hprd;
+    const facilityCount = d.fiveStarSummary.facility_count || 0;
+
+    if (avgRating < 3.0 && avgHprd < 3.5) {
+      insights.push({
+        icon: "\u2B50",
+        title: "Nursing Facility Quality Concern",
+        description: `${facilityCount > 0 ? facilityCount + " nursing facilities average" : "Average rating is"} ${avgRating.toFixed(1)} out of 5 stars with ${avgHprd.toFixed(2)} nursing hours per resident day. Both metrics fall below national benchmarks (3.3 stars, 3.8 HPRD), indicating systemic quality pressure.`,
+        severity: "alert",
+      });
+    } else if (avgRating < 3.3) {
+      insights.push({
+        icon: "\u2B50",
+        title: "Nursing Facility Quality",
+        description: `Nursing facilities average ${avgRating.toFixed(1)} stars (${facilityCount > 0 ? facilityCount + " facilities" : ""}), below the national average of 3.3. Staffing: ${avgHprd.toFixed(2)} nursing hours per resident day.`,
+        severity: "warning",
+      });
+    }
+  }
+
+  const severityOrder: Record<InsightSeverity, number> = { alert: 0, warning: 1, info: 2 };
+  insights.sort((a, b) => severityOrder[a.severity] - severityOrder[b.severity]);
+  return insights.slice(0, 5);
+}
+
+// ── Insight Card component ───────────────────────────────────────────────
+const InsightCard = ({ insight }: { insight: Insight }) => {
+  const colors = SEVERITY_COLORS[insight.severity];
+  return (
+    <div style={{
+      background: colors.bg,
+      border: `1px solid ${colors.border}`,
+      borderRadius: 8,
+      padding: "14px 16px",
+      display: "flex",
+      gap: 12,
+      alignItems: "flex-start",
+      minHeight: 80,
+    }}>
+      <div style={{
+        fontSize: 20,
+        lineHeight: 1,
+        flexShrink: 0,
+        marginTop: 1,
+      }}>{insight.icon}</div>
+      <div style={{ flex: 1, minWidth: 0 }}>
+        <div style={{
+          fontSize: 12,
+          fontWeight: 700,
+          color: colors.icon,
+          marginBottom: 4,
+          letterSpacing: -0.1,
+        }}>{insight.title}</div>
+        <div style={{
+          fontSize: 11,
+          color: A,
+          lineHeight: 1.5,
+          opacity: 0.85,
+        }}>{insight.description}</div>
+      </div>
+    </div>
+  );
+};
+
 // ── CSV Export ──────────────────────────────────────────────────────────
 function downloadCSV(headers: string[], rows: (string | number)[][], filename: string) {
   const csv = [headers.join(","), ...rows.map(r => r.map(c => {
@@ -78,10 +387,13 @@ function downloadCSV(headers: string[], rows: (string | number)[][], filename: s
   setTimeout(() => URL.revokeObjectURL(url), 1000);
 }
 
-// ── Safe fetch helper ────────────────────────────────────────────────────
-async function safeFetch(url: string) {
+// ── Safe fetch helper with timeout ──────────────────────────────────────
+async function safeFetch(url: string, timeoutMs = 12000) {
   try {
-    const res = await fetch(url);
+    const controller = new AbortController();
+    const timer = setTimeout(() => controller.abort(), timeoutMs);
+    const res = await fetch(url, { signal: controller.signal });
+    clearTimeout(timer);
     if (!res.ok) return null;
     return await res.json();
   } catch {
@@ -89,115 +401,639 @@ async function safeFetch(url: string) {
   }
 }
 
+// ── Data loading for a single state ─────────────────────────────────────
+async function loadStateData(code: string): Promise<any> {
+  const [
+    demographics, economic, enrollment, enrollmentByGroup,
+    cpraRates, hospitalSummary, hospitals,
+    fmap, hpsa, wages, quality, scorecard,
+    fiveStarSummary, staffingSummary, topDrugs,
+    supplementalSummary, unwinding, spas, insightsData,
+    statesData,
+  ] = await Promise.all([
+    safeFetch(`${API_BASE}/api/demographics/${code}`),
+    safeFetch(`${API_BASE}/api/economic/${code}`),
+    safeFetch(`${API_BASE}/api/enrollment/${code}`),
+    safeFetch(`${API_BASE}/api/forecast/public-enrollment/by-group?state=${STATE_NAMES[code] || code}`),
+    safeFetch(`${API_BASE}/api/cpra/rates/${code}`),
+    safeFetch(`${API_BASE}/api/hospitals/summary`),
+    safeFetch(`${API_BASE}/api/hospitals/${code}`),
+    safeFetch(`${API_BASE}/api/policy/fmap`),
+    safeFetch(`${API_BASE}/api/hpsa/${code}`),
+    safeFetch(`${API_BASE}/api/wages/${code}`),
+    safeFetch(`${API_BASE}/api/quality/${code}`),
+    safeFetch(`${API_BASE}/api/scorecard/${code}`),
+    safeFetch(`${API_BASE}/api/five-star/summary`),
+    safeFetch(`${API_BASE}/api/staffing/summary`),
+    safeFetch(`${API_BASE}/api/pharmacy/top-drugs/${code}`),
+    safeFetch(`${API_BASE}/api/supplemental/summary`),
+    safeFetch(`${API_BASE}/api/enrollment/unwinding/${code}`),
+    safeFetch(`${API_BASE}/api/policy/spas/${code}`),
+    safeFetch(`${API_BASE}/api/insights/${code}`),
+    safeFetch(`${API_BASE}/api/states`),
+  ]);
+
+  const allResults = [demographics, economic, enrollment, enrollmentByGroup, cpraRates, hospitalSummary, hospitals, fmap, hpsa, wages, quality, scorecard, fiveStarSummary, staffingSummary, topDrugs, supplementalSummary, unwinding, spas, insightsData, statesData];
+  const successCount = allResults.filter(r => r !== null).length;
+  if (successCount === 0) return null;
+
+  const rows = (d: any): any[] => {
+    if (!d) return [];
+    if (Array.isArray(d)) return d;
+    if (d.rows && Array.isArray(d.rows)) return d.rows;
+    return [];
+  };
+  const first = (d: any): any => {
+    const r = rows(d);
+    return r.length > 0 ? r[0] : null;
+  };
+
+  const stateInfo = rows(statesData).find((r: any) => r.state_code === code) || null;
+  const stateFmap = rows(fmap).find((r: any) => r.state_code === code) || null;
+  const stateHospSummary = rows(hospitalSummary).find((r: any) => r.state_code === code) || null;
+  const stateFsSummary = rows(fiveStarSummary).find((r: any) => r.state_code === code) || null;
+  const stateStaffSummary = rows(staffingSummary).find((r: any) => r.state_code === code) || null;
+  const stateSuppSummary = rows(supplementalSummary).find((r: any) => r.state_code === code) || null;
+
+  const cpraRows = rows(cpraRates);
+  const emRows = cpraRows.filter((r: any) => r.is_em === true || r.is_em === 1 || r.em_category || r.category_447);
+  const allPctMcr = cpraRows.filter((r: any) => r.pct_of_medicare > 0).map((r: any) => r.pct_of_medicare);
+  const medianPctMcrRaw = allPctMcr.length > 0
+    ? allPctMcr.sort((a: number, b: number) => a - b)[Math.floor(allPctMcr.length / 2)]
+    : null;
+  const medianPctMcr = medianPctMcrRaw != null ? medianPctMcrRaw / 100 : null;
+
+  return {
+    stateInfo,
+    demographics: first(demographics),
+    economic: rows(economic),
+    enrollment: rows(enrollment),
+    enrollmentByGroup: rows(enrollmentByGroup),
+    cpraRates: cpraRows,
+    cpraEmRows: emRows,
+    cpraSummary: { count: cpraRows.length, emCount: emRows.length, medianPctMcr },
+    hospitalSummary: stateHospSummary,
+    hospitals: rows(hospitals),
+    fmap: stateFmap,
+    hpsa: rows(hpsa),
+    wages: rows(wages),
+    quality: rows(quality),
+    scorecard: rows(scorecard),
+    fiveStarSummary: stateFsSummary,
+    staffingSummary: stateStaffSummary,
+    topDrugs: rows(topDrugs),
+    supplementalSummary: stateSuppSummary,
+    unwinding: rows(unwinding),
+    spas: rows(spas),
+    insights: insightsData?.insights || [],
+  };
+}
+
+// ── Parse state codes from URL hash ─────────────────────────────────────
+function parseStatesFromHash(): string[] {
+  const hash = window.location.hash;
+  const m = hash.match(/state\/([A-Za-z+]+)/);
+  if (!m) return ["FL"];
+  const codes = m[1].toUpperCase().split("+").filter(c => STATE_NAMES[c]);
+  return codes.length > 0 ? codes.slice(0, 6) : ["FL"]; // max 6 states
+}
+
+// ═══════════════════════════════════════════════════════════════════════
+// Comparison Summary Table
+// ═══════════════════════════════════════════════════════════════════════
+function ComparisonTable({ states, dataMap }: { states: string[]; dataMap: Record<string, any> }) {
+  const metrics = [
+    {
+      label: "Population",
+      get: (d: any) => d?.demographics?.total_population ? fmtNum(d.demographics.total_population) : "\u2014",
+    },
+    {
+      label: "Medicaid Enrollment",
+      get: (d: any) => {
+        if (!d?.enrollment?.length) return "\u2014";
+        const latest = d.enrollment[d.enrollment.length - 1];
+        return fmtNum(latest.total_enrollment || 0);
+      },
+    },
+    {
+      label: "FMAP",
+      get: (d: any) => d?.fmap ? `${((d.fmap.fmap_rate || d.fmap.fmap || 0) * 100).toFixed(2)}%` : "\u2014",
+    },
+    {
+      label: "Median % of Medicare",
+      get: (d: any) => d?.cpraSummary?.medianPctMcr ? `${(d.cpraSummary.medianPctMcr * 100).toFixed(1)}%` : "\u2014",
+      color: (d: any) => {
+        const pct = d?.cpraSummary?.medianPctMcr;
+        if (!pct) return AL;
+        return pct < 0.8 ? NEG : pct > 1.0 ? POS : A;
+      },
+    },
+    {
+      label: "Matched Codes",
+      get: (d: any) => d?.cpraSummary?.count ? String(d.cpraSummary.count) : "\u2014",
+    },
+    {
+      label: "Hospitals",
+      get: (d: any) => d?.hospitals?.length ? String(d.hospitals.length) : "\u2014",
+    },
+    {
+      label: "Median CCR",
+      get: (d: any) => {
+        const ccr = d?.hospitalSummary?.median_ccr || d?.hospitalSummary?.median_cost_to_charge;
+        return ccr ? ccr.toFixed(3) : "\u2014";
+      },
+    },
+    {
+      label: "Avg NF Rating",
+      get: (d: any) => {
+        const r = d?.fiveStarSummary?.avg_overall || d?.fiveStarSummary?.avg_overall_rating;
+        return r ? `${r.toFixed(1)} / 5` : "\u2014";
+      },
+    },
+    {
+      label: "HPSAs",
+      get: (d: any) => d?.hpsa?.length ? String(d.hpsa.length) : "\u2014",
+    },
+    {
+      label: "Poverty Rate",
+      get: (d: any) => {
+        const p = d?.demographics?.pct_poverty || d?.demographics?.poverty_rate;
+        return p ? `${Number(p).toFixed(1)}%` : "\u2014";
+      },
+    },
+    {
+      label: "Uninsured Rate",
+      get: (d: any) => {
+        const u = d?.demographics?.pct_uninsured || d?.demographics?.uninsured_rate;
+        return u ? `${Number(u).toFixed(1)}%` : "\u2014";
+      },
+    },
+    {
+      label: "Region",
+      get: (d: any) => d?.stateInfo?.region || "\u2014",
+    },
+  ];
+
+  return (
+    <Card accent={cB}>
+      <CH title="State Comparison" sub={`${states.length} states side-by-side`} />
+      <div style={{ overflowX: "auto" }}>
+        <table style={{ width: "100%", borderCollapse: "collapse", fontSize: 11, fontFamily: FB }}>
+          <thead>
+            <tr style={{ borderBottom: `2px solid ${BD}` }}>
+              <th style={{ padding: "8px 10px", textAlign: "left", fontWeight: 600, color: AL, fontSize: 10, minWidth: 130 }}>Metric</th>
+              {states.map((s, i) => (
+                <th key={s} style={{
+                  padding: "8px 10px", textAlign: "right", fontWeight: 700, fontSize: 12,
+                  color: COMP_COLORS[i % COMP_COLORS.length],
+                  borderBottom: `3px solid ${COMP_COLORS[i % COMP_COLORS.length]}`,
+                }}>
+                  {s} {STATE_NAMES[s] ? `\u2014 ${STATE_NAMES[s]}` : ""}
+                </th>
+              ))}
+            </tr>
+          </thead>
+          <tbody>
+            {metrics.map((m, mi) => (
+              <tr key={m.label} style={{ background: mi % 2 === 0 ? WH : SF, borderBottom: `1px solid ${BD}` }}>
+                <td style={{ padding: "6px 10px", fontWeight: 500, color: A, fontSize: 10 }}>{m.label}</td>
+                {states.map((s, si) => {
+                  const d = dataMap[s];
+                  const col = m.color ? m.color(d) : A;
+                  return (
+                    <td key={s} style={{ padding: "6px 10px", textAlign: "right", fontFamily: FM, fontWeight: 600, color: col, fontSize: 11 }}>
+                      {m.get(d)}
+                    </td>
+                  );
+                })}
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      </div>
+    </Card>
+  );
+}
+
+// ═══════════════════════════════════════════════════════════════════════
+// Comparison Enrollment Chart — overlays enrollment trends for all states
+// ═══════════════════════════════════════════════════════════════════════
+function ComparisonEnrollmentChart({ states, dataMap }: { states: string[]; dataMap: Record<string, any> }) {
+  // Build unified timeline data — merge all states' enrollment arrays
+  const combined = useMemo(() => {
+    const byDate: Record<string, Record<string, number>> = {};
+    for (const s of states) {
+      const enroll = dataMap[s]?.enrollment || [];
+      for (const row of enroll.slice(-60)) {
+        const key = row.month || row.year || "";
+        if (!key) continue;
+        if (!byDate[key]) byDate[key] = { _date: key } as any;
+        (byDate[key] as any)._date = key;
+        byDate[key][s] = row.total_enrollment || 0;
+      }
+    }
+    return Object.values(byDate).sort((a: any, b: any) => a._date < b._date ? -1 : 1);
+  }, [states, dataMap]);
+
+  if (combined.length < 3) return null;
+
+  return (
+    <Card>
+      <CH title="Enrollment Trends" sub={`${states.join(" vs ")} — last 60 data points`} />
+      <ResponsiveContainer width="100%" height={300}>
+        <ComposedChart data={combined} margin={{ left: 10, right: 20, top: 5, bottom: 5 }}>
+          <CartesianGrid strokeDasharray="3 3" stroke={BD} vertical={false} />
+          <XAxis dataKey="_date" tick={{ fontSize: 10, fill: AL, fontFamily: FM }} interval="preserveStartEnd" />
+          <YAxis tick={{ fontSize: 10, fill: AL, fontFamily: FM }} tickFormatter={(v: number) => fmtNum(v)} width={60} />
+          {states.map((s, i) => (
+            <Line key={s} type="monotone" dataKey={s} stroke={COMP_COLORS[i % COMP_COLORS.length]}
+              strokeWidth={2} dot={false} name={`${s} — ${STATE_NAMES[s]}`} />
+          ))}
+          <Tooltip contentStyle={{ fontSize: 11, fontFamily: FM, borderRadius: 6, border: `1px solid ${BD}` }}
+            formatter={(v: number) => fmtNum(v)} />
+          <Legend wrapperStyle={{ fontSize: 10, fontFamily: FB }} />
+        </ComposedChart>
+      </ResponsiveContainer>
+    </Card>
+  );
+}
+
+// ═══════════════════════════════════════════════════════════════════════
+// Comparison Rate Distribution — bar chart per state
+// ═══════════════════════════════════════════════════════════════════════
+function ComparisonRateChart({ states, dataMap }: { states: string[]; dataMap: Record<string, any> }) {
+  const chartData = useMemo(() => {
+    const buckets = [0, 25, 50, 75, 100, 125, 150, 200, 99999];
+    const labels = ["<25%", "25-50%", "50-75%", "75-100%", "100-125%", "125-150%", "150-200%", ">200%"];
+
+    return labels.map((label, li) => {
+      const row: Record<string, any> = { range: label };
+      for (const s of states) {
+        const rates = dataMap[s]?.cpraRates || [];
+        let count = 0;
+        for (const r of rates) {
+          if (!r.pct_of_medicare || r.pct_of_medicare <= 0) continue;
+          if (r.pct_of_medicare >= buckets[li] && r.pct_of_medicare < buckets[li + 1]) count++;
+        }
+        row[s] = count;
+      }
+      return row;
+    });
+  }, [states, dataMap]);
+
+  const anyData = states.some(s => (dataMap[s]?.cpraRates?.length || 0) > 0);
+  if (!anyData) return null;
+
+  return (
+    <Card>
+      <CH title="Rate Distribution Comparison" sub="% of Medicare — code distribution by bucket" />
+      <ResponsiveContainer width="100%" height={260}>
+        <BarChart data={chartData} margin={{ left: 5, right: 5, top: 5, bottom: 5 }}>
+          <CartesianGrid strokeDasharray="3 3" stroke={BD} vertical={false} />
+          <XAxis dataKey="range" tick={{ fontSize: 9, fill: AL, fontFamily: FM }} />
+          <YAxis tick={{ fontSize: 10, fill: AL, fontFamily: FM }} width={40} />
+          {states.map((s, i) => (
+            <Bar key={s} dataKey={s} name={`${s}`} fill={COMP_COLORS[i % COMP_COLORS.length]}
+              radius={[2, 2, 0, 0]} />
+          ))}
+          <Tooltip contentStyle={{ fontSize: 11, fontFamily: FM, borderRadius: 6 }} />
+          <Legend wrapperStyle={{ fontSize: 10, fontFamily: FB }} />
+        </BarChart>
+      </ResponsiveContainer>
+      <div style={{ display: "flex", gap: 20, justifyContent: "center", marginTop: 8, fontSize: 10, color: AL }}>
+        {states.map((s, i) => {
+          const d = dataMap[s];
+          return (
+            <span key={s} style={{ color: COMP_COLORS[i % COMP_COLORS.length] }}>
+              <strong>{s}</strong>: {d?.cpraSummary?.medianPctMcr ? `${(d.cpraSummary.medianPctMcr * 100).toFixed(1)}%` : "\u2014"} median ({d?.cpraSummary?.count || 0} codes)
+            </span>
+          );
+        })}
+      </div>
+    </Card>
+  );
+}
+
+// ═══════════════════════════════════════════════════════════════════════
+// Comparison Hospital/Quality summary
+// ═══════════════════════════════════════════════════════════════════════
+function ComparisonHospitalCard({ states, dataMap }: { states: string[]; dataMap: Record<string, any> }) {
+  const anyData = states.some(s => (dataMap[s]?.hospitals?.length || 0) > 0);
+  if (!anyData) return null;
+
+  return (
+    <Card>
+      <CH title="Healthcare Infrastructure" sub="Hospitals, nursing facilities, and shortage areas" />
+      <div style={{ overflowX: "auto" }}>
+        <table style={{ width: "100%", borderCollapse: "collapse", fontSize: 10, fontFamily: FB }}>
+          <thead>
+            <tr style={{ borderBottom: `2px solid ${BD}` }}>
+              <th style={{ padding: "6px 8px", textAlign: "left", fontWeight: 600, color: AL, fontSize: 9 }}>Metric</th>
+              {states.map((s, i) => (
+                <th key={s} style={{ padding: "6px 8px", textAlign: "right", fontWeight: 700, color: COMP_COLORS[i % COMP_COLORS.length], fontSize: 10 }}>{s}</th>
+              ))}
+            </tr>
+          </thead>
+          <tbody>
+            {[
+              { label: "Hospitals", get: (d: any) => d?.hospitals?.length || 0 },
+              { label: "Total Beds", get: (d: any) => d?.hospitalSummary?.total_beds ? fmtNum(d.hospitalSummary.total_beds) : "\u2014" },
+              { label: "Median CCR", get: (d: any) => { const c = d?.hospitalSummary?.median_ccr; return c ? c.toFixed(3) : "\u2014"; } },
+              { label: "Avg NF Rating", get: (d: any) => { const r = d?.fiveStarSummary?.avg_overall || d?.fiveStarSummary?.avg_overall_rating; return r ? r.toFixed(1) : "\u2014"; } },
+              { label: "Avg NF HPRD", get: (d: any) => d?.staffingSummary?.avg_nursing_hprd ? d.staffingSummary.avg_nursing_hprd.toFixed(2) : "\u2014" },
+              { label: "HPSAs", get: (d: any) => d?.hpsa?.length || 0 },
+              { label: "High-Medicaid Hospitals (>25%)", get: (d: any) => { const h = (d?.hospitals || []).filter((h: any) => (h.medicaid_day_pct || 0) > 0.25); return h.length; } },
+            ].map((m, mi) => (
+              <tr key={m.label} style={{ background: mi % 2 === 0 ? WH : SF, borderBottom: `1px solid ${BD}` }}>
+                <td style={{ padding: "5px 8px", fontWeight: 500, color: A }}>{m.label}</td>
+                {states.map(s => (
+                  <td key={s} style={{ padding: "5px 8px", textAlign: "right", fontFamily: FM, fontWeight: 600 }}>{m.get(dataMap[s])}</td>
+                ))}
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      </div>
+    </Card>
+  );
+}
+
+// ═══════════════════════════════════════════════════════════════════════
+// Comparison Workforce summary
+// ═══════════════════════════════════════════════════════════════════════
+function ComparisonWorkforceCard({ states, dataMap }: { states: string[]; dataMap: Record<string, any> }) {
+  // Find CNA/HHA wages for each state
+  const getCnaWage = (d: any) => {
+    if (!d?.wages?.length) return null;
+    const cna = d.wages.find((w: any) => {
+      const title = (w.occ_title || w.occupation_title || "").toLowerCase();
+      const soc = w.soc_code || "";
+      return title.includes("nursing assist") || title.includes("home health aide") || soc === "31-1131" || soc === "31-1121";
+    });
+    return cna ? (cna.h_median || cna.hourly_median || cna.median_hourly || 0) : null;
+  };
+
+  const getRnWage = (d: any) => {
+    if (!d?.wages?.length) return null;
+    const rn = d.wages.find((w: any) => {
+      const title = (w.occ_title || w.occupation_title || "").toLowerCase();
+      const soc = w.soc_code || "";
+      return title.includes("registered nurse") || soc === "29-1141";
+    });
+    return rn ? (rn.h_median || rn.hourly_median || rn.median_hourly || 0) : null;
+  };
+
+  const anyData = states.some(s => (dataMap[s]?.wages?.length || 0) > 0);
+  if (!anyData) return null;
+
+  return (
+    <Card>
+      <CH title="Workforce Wages" sub="BLS median hourly wages for key healthcare occupations" />
+      <div style={{ overflowX: "auto" }}>
+        <table style={{ width: "100%", borderCollapse: "collapse", fontSize: 10, fontFamily: FB }}>
+          <thead>
+            <tr style={{ borderBottom: `2px solid ${BD}` }}>
+              <th style={{ padding: "6px 8px", textAlign: "left", fontWeight: 600, color: AL, fontSize: 9 }}>Occupation</th>
+              {states.map((s, i) => (
+                <th key={s} style={{ padding: "6px 8px", textAlign: "right", fontWeight: 700, color: COMP_COLORS[i % COMP_COLORS.length], fontSize: 10 }}>{s}</th>
+              ))}
+            </tr>
+          </thead>
+          <tbody>
+            {[
+              { label: "CNA / Home Health Aide", get: getCnaWage, fmt: (v: number | null) => v ? `$${v.toFixed(2)}/hr` : "\u2014" },
+              { label: "Registered Nurse", get: getRnWage, fmt: (v: number | null) => v ? `$${v.toFixed(2)}/hr` : "\u2014" },
+            ].map((m, mi) => (
+              <tr key={m.label} style={{ background: mi % 2 === 0 ? WH : SF, borderBottom: `1px solid ${BD}` }}>
+                <td style={{ padding: "5px 8px", fontWeight: 500, color: A }}>{m.label}</td>
+                {states.map(s => (
+                  <td key={s} style={{ padding: "5px 8px", textAlign: "right", fontFamily: FM, fontWeight: 600 }}>{m.fmt(m.get(dataMap[s]))}</td>
+                ))}
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      </div>
+    </Card>
+  );
+}
+
+// ═══════════════════════════════════════════════════════════════════════
+// Multi-State Comparison View
+// ═══════════════════════════════════════════════════════════════════════
+function ComparisonView({ states, dataMap, loading, onChangeStates }: {
+  states: string[];
+  dataMap: Record<string, any>;
+  loading: boolean;
+  onChangeStates: (states: string[]) => void;
+}) {
+  const [addState, setAddState] = useState("");
+
+  const removeState = (code: string) => {
+    const next = states.filter(s => s !== code);
+    if (next.length > 0) onChangeStates(next);
+  };
+
+  const handleAdd = () => {
+    if (addState && !states.includes(addState) && states.length < 6) {
+      onChangeStates([...states, addState]);
+      setAddState("");
+    }
+  };
+
+  return (
+    <div style={{ maxWidth: 1080, margin: "0 auto", padding: "0 20px 48px", fontFamily: FB }}>
+      {/* Header */}
+      <div style={{ padding: "28px 0 20px" }}>
+        <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", flexWrap: "wrap", gap: 12 }}>
+          <div>
+            <h2 style={{ margin: 0, fontSize: 22, fontWeight: 700, color: A, letterSpacing: -0.3 }}>
+              State Comparison
+            </h2>
+            <p style={{ margin: "4px 0 0", fontSize: 12, color: AL }}>
+              Side-by-side analysis of {states.map(s => STATE_NAMES[s] || s).join(", ")}
+            </p>
+          </div>
+          <div style={{ display: "flex", gap: 8, alignItems: "center", flexWrap: "wrap" }}>
+            {/* State pills */}
+            {states.map((s, i) => (
+              <span key={s} style={{
+                display: "inline-flex", alignItems: "center", gap: 6,
+                padding: "5px 12px", borderRadius: 20,
+                background: `${COMP_COLORS[i % COMP_COLORS.length]}12`,
+                border: `1px solid ${COMP_COLORS[i % COMP_COLORS.length]}40`,
+                fontSize: 11, fontWeight: 600, color: COMP_COLORS[i % COMP_COLORS.length],
+              }}>
+                {s}
+                {states.length > 1 && (
+                  <button onClick={() => removeState(s)} style={{
+                    background: "none", border: "none", cursor: "pointer", padding: 0,
+                    fontSize: 13, color: COMP_COLORS[i % COMP_COLORS.length], lineHeight: 1, opacity: 0.6,
+                  }} title={`Remove ${s}`}>&times;</button>
+                )}
+              </span>
+            ))}
+            {/* Add state */}
+            {states.length < 6 && (
+              <div style={{ display: "flex", gap: 4 }}>
+                <select value={addState} onChange={e => setAddState(e.target.value)} style={{
+                  padding: "5px 8px", borderRadius: 6, border: `1px solid ${BD}`,
+                  fontSize: 11, fontFamily: FB, color: addState ? A : AL, background: WH, minWidth: 100,
+                }}>
+                  <option value="">+ Add state</option>
+                  {STATES.filter(s => !states.includes(s)).map(s => (
+                    <option key={s} value={s}>{s} — {STATE_NAMES[s]}</option>
+                  ))}
+                </select>
+                {addState && (
+                  <button onClick={handleAdd} style={{
+                    padding: "5px 12px", borderRadius: 6, border: "none",
+                    background: cB, color: WH, fontSize: 11, fontWeight: 600, cursor: "pointer",
+                  }}>Add</button>
+                )}
+              </div>
+            )}
+            {/* Export */}
+            <button onClick={() => {
+              const headers = ["Metric", ...states];
+              const metrics = [
+                { label: "Population", get: (d: any) => d?.demographics?.total_population || "" },
+                { label: "Enrollment", get: (d: any) => { const e = d?.enrollment; return e?.length ? (e[e.length - 1].total_enrollment || "") : ""; } },
+                { label: "FMAP", get: (d: any) => d?.fmap ? ((d.fmap.fmap_rate || d.fmap.fmap || 0) * 100).toFixed(2) : "" },
+                { label: "Median % of Medicare", get: (d: any) => d?.cpraSummary?.medianPctMcr ? (d.cpraSummary.medianPctMcr * 100).toFixed(1) : "" },
+                { label: "Hospitals", get: (d: any) => d?.hospitals?.length || "" },
+                { label: "HPSAs", get: (d: any) => d?.hpsa?.length || "" },
+              ];
+              const csvRows = metrics.map(m => [m.label, ...states.map(s => m.get(dataMap[s]))]);
+              downloadCSV(headers, csvRows, `state_comparison_${states.join("_")}.csv`);
+            }} style={{
+              padding: "6px 12px", borderRadius: 8, border: `1px solid ${BD}`,
+              background: WH, color: AL, fontSize: 11, cursor: "pointer", fontFamily: FM,
+            }}>Export CSV</button>
+          </div>
+        </div>
+      </div>
+
+      {loading && (
+        <Card>
+          <div style={{ textAlign: "center", padding: 40 }}>
+            <div style={{ fontSize: 13, color: AL, marginBottom: 8 }}>
+              Loading data for {states.map(s => STATE_NAMES[s]).join(", ")}...
+            </div>
+            <div style={{ fontSize: 11, color: AL, opacity: 0.6 }}>
+              Querying {states.length * 18} data sources in parallel
+            </div>
+          </div>
+        </Card>
+      )}
+
+      {!loading && Object.keys(dataMap).length > 0 && (
+        <>
+          <ComparisonTable states={states} dataMap={dataMap} />
+          <ComparisonEnrollmentChart states={states} dataMap={dataMap} />
+          <ComparisonRateChart states={states} dataMap={dataMap} />
+          <ComparisonHospitalCard states={states} dataMap={dataMap} />
+          <ComparisonWorkforceCard states={states} dataMap={dataMap} />
+
+          {/* Footer links */}
+          <div style={{ display: "flex", gap: 8, flexWrap: "wrap", padding: "8px 0" }}>
+            <a href="/#/cpra" style={{ fontSize: 11, color: cB, textDecoration: "none", padding: "6px 12px", borderRadius: 6, border: `1px solid ${BD}`, background: WH }}>
+              CPRA Generator
+            </a>
+            <a href="/#/wages" style={{ fontSize: 11, color: cB, textDecoration: "none", padding: "6px 12px", borderRadius: 6, border: `1px solid ${BD}`, background: WH }}>
+              Wage Comparison
+            </a>
+            <a href="/#/forecast" style={{ fontSize: 11, color: cB, textDecoration: "none", padding: "6px 12px", borderRadius: 6, border: `1px solid ${BD}`, background: WH }}>
+              Caseload Forecaster
+            </a>
+            {/* Switch to single-state for each */}
+            {states.map(s => (
+              <a key={s} href={`/#/state/${s}`} style={{ fontSize: 11, color: cB, textDecoration: "none", padding: "6px 12px", borderRadius: 6, border: `1px solid ${BD}`, background: WH }}>
+                {s} Profile
+              </a>
+            ))}
+          </div>
+        </>
+      )}
+    </div>
+  );
+}
+
 // ═══════════════════════════════════════════════════════════════════════
 // Main component
 // ═══════════════════════════════════════════════════════════════════════
 export default function StateProfile() {
-  const [state, setState] = useState(() => {
-    const hash = window.location.hash;
-    const m = hash.match(/state\/([A-Z]{2})/i);
-    return m ? m[1].toUpperCase() : "FL";
-  });
+  const [stateCodes, setStateCodes] = useState<string[]>(parseStatesFromHash);
   const [loading, setLoading] = useState(false);
-  const [data, setData] = useState<any>(null);
+  const [dataMap, setDataMap] = useState<Record<string, any>>({});
+  const [apiError, setApiError] = useState(false);
 
-  // Section visibility
+  // Determine mode
+  const isComparison = stateCodes.length > 1;
+  const singleState = stateCodes[0];
+
+  // Section visibility (single-state only)
   const [sections, setSections] = useState<Record<string, boolean>>({
     enrollment: true, rates: true, hospitals: true,
     quality: true, workforce: false, pharmacy: false, economic: true,
   });
   const toggle = (key: string) => setSections(s => ({ ...s, [key]: !s[key] }));
 
-  // ── Fetch all data in parallel ──────────────────────────────────────
-  const loadState = useCallback(async (code: string) => {
+  // ── Fetch data for all states in parallel ─────────────────────────
+  const loadStates = useCallback(async (codes: string[]) => {
     setLoading(true);
-    setData(null);
-    window.location.hash = `#/state/${code}`;
+    setDataMap({});
+    setApiError(false);
+    window.location.hash = `#/state/${codes.join("+")}`;
 
-    const [
-      demographics, economic, enrollment, enrollmentByGroup,
-      cpraRates, hospitalSummary, hospitals,
-      fmap, hpsa, wages, quality, scorecard,
-      fiveStarSummary, staffingSummary, topDrugs,
-      supplementalSummary, unwinding, spas,
-    ] = await Promise.all([
-      safeFetch(`${API_BASE}/api/demographics/${code}`),
-      safeFetch(`${API_BASE}/api/economic/${code}`),
-      safeFetch(`${API_BASE}/api/enrollment/${code}`),
-      safeFetch(`${API_BASE}/api/forecast/public-enrollment/by-group?state=${STATE_NAMES[code] || code}`),
-      safeFetch(`${API_BASE}/api/cpra/rates/${code}`),
-      safeFetch(`${API_BASE}/api/hospitals/summary`),
-      safeFetch(`${API_BASE}/api/hospitals/${code}`),
-      safeFetch(`${API_BASE}/api/policy/fmap`),
-      safeFetch(`${API_BASE}/api/hpsa/${code}`),
-      safeFetch(`${API_BASE}/api/wages/${code}`),
-      safeFetch(`${API_BASE}/api/quality/${code}`),
-      safeFetch(`${API_BASE}/api/scorecard/${code}`),
-      safeFetch(`${API_BASE}/api/five-star/summary`),
-      safeFetch(`${API_BASE}/api/staffing/summary`),
-      safeFetch(`${API_BASE}/api/pharmacy/top-drugs/${code}`),
-      safeFetch(`${API_BASE}/api/supplemental/summary`),
-      safeFetch(`${API_BASE}/api/enrollment/unwinding/${code}`),
-      safeFetch(`${API_BASE}/api/policy/spas/${code}`),
-    ]);
-
-    // Extract FMAP for this state
-    const fmapRows = fmap?.rows || [];
-    const stateFmap = fmapRows.find((r: any) => r.state_code === code);
-
-    // Extract hospital summary for this state
-    const hospSummaryRows = hospitalSummary?.rows || [];
-    const stateHospSummary = hospSummaryRows.find((r: any) => r.state_code === code);
-
-    // Extract five-star summary for this state
-    const fsSummaryRows = fiveStarSummary?.rows || [];
-    const stateFsSummary = fsSummaryRows.find((r: any) => r.state_code === code);
-
-    // Extract staffing summary for this state
-    const staffRows = staffingSummary?.rows || [];
-    const stateStaffSummary = staffRows.find((r: any) => r.state_code === code);
-
-    // Extract supplemental summary for this state
-    const suppRows = supplementalSummary?.rows || [];
-    const stateSuppSummary = suppRows.find((r: any) => r.state_code === code);
-
-    // Compute CPRA summary from rates
-    const cpraRows = cpraRates?.rows || [];
-    const emRows = cpraRows.filter((r: any) => r.is_em === true || r.is_em === 1 || r.category_447);
-    const allPctMcr = cpraRows.filter((r: any) => r.pct_of_medicare > 0).map((r: any) => r.pct_of_medicare);
-    const medianPctMcr = allPctMcr.length > 0
-      ? allPctMcr.sort((a: number, b: number) => a - b)[Math.floor(allPctMcr.length / 2)]
-      : null;
-
-    setData({
-      demographics: demographics?.rows?.[0] || null,
-      economic: economic?.rows || [],
-      enrollment: enrollment?.rows || [],
-      enrollmentByGroup: enrollmentByGroup?.rows || [],
-      cpraRates: cpraRows,
-      cpraEmRows: emRows,
-      cpraSummary: { count: cpraRows.length, emCount: emRows.length, medianPctMcr },
-      hospitalSummary: stateHospSummary,
-      hospitals: hospitals?.rows || [],
-      fmap: stateFmap,
-      hpsa: hpsa?.rows || [],
-      wages: wages?.rows || [],
-      quality: quality?.rows || [],
-      scorecard: scorecard?.rows || [],
-      fiveStarSummary: stateFsSummary,
-      staffingSummary: stateStaffSummary,
-      topDrugs: topDrugs?.rows || [],
-      supplementalSummary: stateSuppSummary,
-      unwinding: unwinding?.rows || [],
-      spas: spas?.rows || [],
+    const results = await Promise.all(codes.map(c => loadStateData(c)));
+    const map: Record<string, any> = {};
+    let anySuccess = false;
+    codes.forEach((c, i) => {
+      if (results[i]) {
+        map[c] = results[i];
+        anySuccess = true;
+      }
     });
+
+    if (!anySuccess) {
+      setApiError(true);
+    } else {
+      setDataMap(map);
+    }
     setLoading(false);
   }, []);
 
-  useEffect(() => { loadState(state); }, [state, loadState]);
+  useEffect(() => { loadStates(stateCodes); }, [stateCodes, loadStates]);
 
-  // ═══ RENDER ═══════════════════════════════════════════════════════════
-  const d = data;
+  // Listen for hash changes (e.g., user navigates to a different state comparison)
+  useEffect(() => {
+    const handler = () => {
+      const parsed = parseStatesFromHash();
+      setStateCodes(prev => {
+        if (parsed.length === prev.length && parsed.every((c, i) => c === prev[i])) return prev;
+        return parsed;
+      });
+    };
+    window.addEventListener("hashchange", handler);
+    return () => window.removeEventListener("hashchange", handler);
+  }, []);
+
+  // ── Comparison mode ───────────────────────────────────────────────
+  if (isComparison) {
+    return (
+      <ComparisonView
+        states={stateCodes}
+        dataMap={dataMap}
+        loading={loading}
+        onChangeStates={setStateCodes}
+      />
+    );
+  }
+
+  // ═══ SINGLE-STATE VIEW ═════════════════════════════════════════════
+  const state = singleState;
+  const d = dataMap[state] || null;
 
   return (
     <div style={{ maxWidth: 1080, margin: "0 auto", padding: "0 20px 48px", fontFamily: FB }}>
@@ -208,19 +1044,26 @@ export default function StateProfile() {
             State Profile
           </h2>
           <p style={{ margin: "4px 0 0", fontSize: 12, color: AL }}>
-            Everything Aradune knows about a state — enrollment, rates, quality, workforce, and economy.
+            Everything Aradune knows about a state: enrollment, rates, quality, workforce, and economy.
           </p>
         </div>
         <div style={{ display: "flex", gap: 8, alignItems: "center" }}>
-          <select value={state} onChange={e => setState(e.target.value)} style={{
+          <select value={state} onChange={e => setStateCodes([e.target.value])} style={{
             padding: "8px 14px", borderRadius: 8, border: `1px solid ${BD}`,
             fontSize: 13, fontFamily: FB, color: A, background: WH, fontWeight: 600, minWidth: 220,
           }}>
             {STATES.map(s => <option key={s} value={s}>{s} — {STATE_NAMES[s]}</option>)}
           </select>
+          {/* Compare button */}
+          <button onClick={() => {
+            const other = STATES.filter(s => s !== state).slice(0, 2);
+            setStateCodes([state, ...other.slice(0, 1)]);
+          }} style={{
+            padding: "8px 14px", borderRadius: 8, border: `1px solid ${BD}`,
+            background: WH, color: cB, fontSize: 12, cursor: "pointer", fontFamily: FB, fontWeight: 600,
+          }}>+ Compare</button>
           {d && <button onClick={() => {
             const rows: (string | number)[][] = [];
-            // Rate comparison data
             if (d.cpraRates.length > 0) {
               for (const r of d.cpraRates) {
                 rows.push([r.cpt_hcpcs_code || r.code || "", r.description || r.desc || "", r.medicaid_rate?.toFixed(2) || "", r.medicare_nonfac_rate?.toFixed(2) || "", r.pct_of_medicare ? (r.pct_of_medicare * 100).toFixed(1) : ""]);
@@ -229,7 +1072,6 @@ export default function StateProfile() {
             if (rows.length > 0) {
               downloadCSV(["HCPCS Code", "Description", "Medicaid Rate", "Medicare Rate", "% of Medicare"], rows, `state_profile_rates_${state}.csv`);
             } else {
-              // Export hospitals if no rate data
               const hospRows = (d.hospitals || []).map((h: any) => [
                 h.hospital_name || h.provider_name || "", h.city || "", h.bed_count || h.beds || "",
                 h.medicaid_days || "", h.medicaid_day_pct ? (h.medicaid_day_pct * 100).toFixed(1) : "",
@@ -246,8 +1088,35 @@ export default function StateProfile() {
 
       {loading && (
         <Card>
-          <div style={{ textAlign: "center", padding: 40, fontSize: 13, color: AL }}>
-            Loading data for {STATE_NAMES[state]}...
+          <div style={{ textAlign: "center", padding: 40 }}>
+            <div style={{ fontSize: 13, color: AL, marginBottom: 8 }}>
+              Loading data for {STATE_NAMES[state]}...
+            </div>
+            <div style={{ fontSize: 11, color: AL, opacity: 0.6 }}>
+              Querying 18 data sources in parallel
+            </div>
+          </div>
+        </Card>
+      )}
+
+      {apiError && !loading && (
+        <Card accent={WARN}>
+          <div style={{ textAlign: "center", padding: "32px 20px" }}>
+            <div style={{ fontSize: 24, marginBottom: 12 }}>&#9201;</div>
+            <div style={{ fontSize: 15, fontWeight: 700, color: A, marginBottom: 8 }}>
+              Server is warming up
+            </div>
+            <div style={{ fontSize: 12, color: AL, lineHeight: 1.6, maxWidth: 440, margin: "0 auto 20px" }}>
+              The data server scales to zero when idle and takes about 30 seconds to load 250+ datasets from storage.
+              It's probably ready now. Try again.
+            </div>
+            <button onClick={() => loadStates(stateCodes)} style={{
+              padding: "10px 24px", borderRadius: 8, border: "none",
+              background: cB, color: WH, fontSize: 13, fontWeight: 600,
+              cursor: "pointer", fontFamily: FB,
+            }}>
+              Retry
+            </button>
           </div>
         </Card>
       )}
@@ -266,13 +1135,13 @@ export default function StateProfile() {
                     {STATE_NAMES[state]}
                   </h2>
                   <p style={{ margin: "2px 0 0", fontSize: 11, color: AL }}>
-                    {state} | {demo?.region || "—"}
+                    {state} | {d.stateInfo?.region || "\u2014"}
                   </p>
                 </div>
                 {fmapVal && (
                   <div style={{ textAlign: "right" }}>
                     <div style={{ fontSize: 10, color: AL }}>FMAP (FY{fmapVal.fiscal_year})</div>
-                    <div style={{ fontSize: 20, fontWeight: 700, color: cB, fontFamily: FM }}>{(fmapVal.fmap * 100).toFixed(2)}%</div>
+                    <div style={{ fontSize: 20, fontWeight: 700, color: cB, fontFamily: FM }}>{((fmapVal.fmap_rate || fmapVal.fmap || 0) * 100).toFixed(2)}%</div>
                   </div>
                 )}
               </div>
@@ -280,8 +1149,8 @@ export default function StateProfile() {
               <div style={{ display: "flex", gap: 16, flexWrap: "wrap", justifyContent: "space-around", padding: "16px 0 8px", borderTop: `1px solid ${BD}`, marginTop: 12 }}>
                 {demo && <>
                   <Met label="Population" value={fmtNum(demo.total_population || 0)} mono />
-                  <Met label="Poverty Rate" value={demo.poverty_rate ? `${(demo.poverty_rate * 100).toFixed(1)}%` : "—"} color={demo.poverty_rate > 0.15 ? NEG : AL} mono />
-                  <Met label="Uninsured" value={demo.uninsured_rate ? `${(demo.uninsured_rate * 100).toFixed(1)}%` : "—"} color={demo.uninsured_rate > 0.10 ? NEG : AL} mono />
+                  <Met label="Poverty Rate" value={demo.pct_poverty ? `${Number(demo.pct_poverty).toFixed(1)}%` : "\u2014"} color={demo.pct_poverty > 15 ? NEG : AL} mono />
+                  <Met label="Uninsured" value={demo.pct_uninsured ? `${Number(demo.pct_uninsured).toFixed(1)}%` : "\u2014"} color={demo.pct_uninsured > 10 ? NEG : AL} mono />
                 </>}
                 {d.enrollment.length > 0 && (() => {
                   const latest = d.enrollment[d.enrollment.length - 1];
@@ -289,21 +1158,56 @@ export default function StateProfile() {
                   const mcEnroll = latest.mc_enrollment || latest.managed_care_enrollment || 0;
                   return <>
                     <Met label="Medicaid Enrollment" value={fmtNum(totalEnroll)} color={cB} mono />
-                    <Met label="Managed Care %" value={totalEnroll > 0 ? `${((mcEnroll / totalEnroll) * 100).toFixed(0)}%` : "—"} mono />
+                    <Met label="Managed Care %" value={totalEnroll > 0 ? `${((mcEnroll / totalEnroll) * 100).toFixed(0)}%` : "\u2014"} mono />
                   </>;
                 })()}
                 {d.cpraSummary.count > 0 && (
-                  <Met label="Median % of Medicare" value={d.cpraSummary.medianPctMcr ? `${(d.cpraSummary.medianPctMcr * 100).toFixed(1)}%` : "—"}
+                  <Met label="Median % of Medicare" value={d.cpraSummary.medianPctMcr ? `${(d.cpraSummary.medianPctMcr * 100).toFixed(1)}%` : "\u2014"}
                     color={d.cpraSummary.medianPctMcr < 0.8 ? NEG : d.cpraSummary.medianPctMcr > 1.0 ? POS : AL} mono />
                 )}
                 {d.hospitalSummary && (
-                  <Met label="Hospitals" value={d.hospitalSummary.hospital_count || d.hospitals.length || "—"} mono />
+                  <Met label="Hospitals" value={d.hospitalSummary.hospital_count || d.hospitals.length || "\u2014"} mono />
                 )}
                 {d.hpsa.length > 0 && (
                   <Met label="HPSA Designations" value={d.hpsa.length} mono />
                 )}
               </div>
             </Card>
+
+            {/* ─── Cross-Dataset Insights ──────────────────────────────── */}
+            {(() => {
+              const serverInsights = normalizeServerInsights(d.insights);
+              const clientInsights = computeInsights(d, state);
+              const insights = mergeInsights(serverInsights, clientInsights);
+              if (insights.length === 0) return null;
+              return (
+                <div style={{ marginBottom: 16 }}>
+                  <div style={{
+                    display: "flex", alignItems: "center", gap: 8,
+                    padding: "12px 0 8px",
+                  }}>
+                    <span style={{ fontSize: 14, fontWeight: 700, color: A, letterSpacing: -0.2 }}>
+                      Cross-Dataset Insights
+                    </span>
+                    <span style={{
+                      fontSize: 9, fontWeight: 600, color: WH, background: cB,
+                      padding: "2px 8px", borderRadius: 10,
+                    }}>
+                      {insights.length} signal{insights.length !== 1 ? "s" : ""}
+                    </span>
+                  </div>
+                  <div style={{
+                    display: "grid",
+                    gridTemplateColumns: "1fr 1fr",
+                    gap: 10,
+                  }}>
+                    {insights.map((insight, i) => (
+                      <InsightCard key={i} insight={insight} />
+                    ))}
+                  </div>
+                </div>
+              );
+            })()}
 
             {/* ─── Enrollment ─────────────────────────────────────────── */}
             <SectionToggle label="Enrollment & Eligibility" open={sections.enrollment} onClick={() => toggle("enrollment")} />
@@ -351,8 +1255,8 @@ export default function StateProfile() {
               <Card>
                 <CH title="Medicaid-to-Medicare Rate Comparison" sub={`${d.cpraRates.length} codes matched | ${d.cpraSummary.emCount} E/M codes`} />
                 {d.cpraRates.length > 0 ? (() => {
-                  // Build distribution histogram
-                  const buckets = [0, 0.25, 0.5, 0.75, 1.0, 1.25, 1.5, 2.0, 999];
+                  // Build distribution histogram (pct_of_medicare is already percentage, e.g. 76.83)
+                  const buckets = [0, 25, 50, 75, 100, 125, 150, 200, 99999];
                   const labels = ["<25%", "25-50%", "50-75%", "75-100%", "100-125%", "125-150%", "150-200%", ">200%"];
                   const hist = labels.map(() => 0);
                   d.cpraRates.forEach((r: any) => {
@@ -379,7 +1283,7 @@ export default function StateProfile() {
                       </ResponsiveContainer>
                       <div style={{ display: "flex", gap: 20, justifyContent: "center", marginTop: 8, fontSize: 10, color: AL }}>
                         <span>Median: <strong style={{ color: A, fontFamily: FM }}>
-                          {d.cpraSummary.medianPctMcr ? `${(d.cpraSummary.medianPctMcr * 100).toFixed(1)}%` : "—"}
+                          {d.cpraSummary.medianPctMcr ? `${(d.cpraSummary.medianPctMcr * 100).toFixed(1)}%` : "\u2014"}
                         </strong></span>
                         <span>Codes matched: <strong style={{ color: A, fontFamily: FM }}>{d.cpraRates.length}</strong></span>
                         <span>E/M codes: <strong style={{ color: A, fontFamily: FM }}>{d.cpraSummary.emCount}</strong></span>
@@ -397,8 +1301,8 @@ export default function StateProfile() {
                     <div style={{ display: "flex", flexDirection: "column", gap: 4 }}>
                       {d.spas.slice(0, 5).map((spa: any, i: number) => (
                         <div key={i} style={{ display: "flex", gap: 8, fontSize: 10, color: AL, padding: "4px 0", borderBottom: i < 4 ? `1px solid ${SF}` : undefined }}>
-                          <span style={{ fontFamily: FM, minWidth: 80, color: A }}>{spa.spa_id || spa.spa_number || "—"}</span>
-                          <span style={{ flex: 1 }}>{spa.title || spa.description || "—"}</span>
+                          <span style={{ fontFamily: FM, minWidth: 80, color: A }}>{spa.spa_id || spa.spa_number || "\u2014"}</span>
+                          <span style={{ flex: 1 }}>{spa.title || spa.description || "\u2014"}</span>
                           <span style={{ fontFamily: FM, color: AL }}>{spa.effective_date || spa.approval_date || ""}</span>
                         </div>
                       ))}
@@ -435,8 +1339,8 @@ export default function StateProfile() {
                 <div style={{ display: "flex", gap: 16, flexWrap: "wrap", justifyContent: "space-around", padding: "8px 0", marginBottom: 12 }}>
                   <Met label="Hospitals" value={d.hospitals.length} mono small />
                   {d.hospitalSummary?.total_beds && <Met label="Total Beds" value={fmtNum(d.hospitalSummary.total_beds)} mono small />}
-                  {d.hospitalSummary?.median_cost_to_charge && <Met label="Median CCR" value={d.hospitalSummary.median_cost_to_charge.toFixed(3)} mono small />}
-                  {d.fiveStarSummary?.avg_overall_rating && <Met label="Avg NF Rating" value={`${d.fiveStarSummary.avg_overall_rating.toFixed(1)}★`} mono small />}
+                  {(d.hospitalSummary?.median_ccr || d.hospitalSummary?.median_cost_to_charge) && <Met label="Median CCR" value={(d.hospitalSummary.median_ccr || d.hospitalSummary.median_cost_to_charge).toFixed(3)} mono small />}
+                  {(d.fiveStarSummary?.avg_overall || d.fiveStarSummary?.avg_overall_rating) && <Met label="Avg NF Rating" value={`${(d.fiveStarSummary.avg_overall || d.fiveStarSummary.avg_overall_rating).toFixed(1)}`} mono small />}
                   {d.staffingSummary?.avg_nursing_hprd && <Met label="Avg NF HPRD" value={d.staffingSummary.avg_nursing_hprd.toFixed(2)} mono small />}
                   {d.hpsa.length > 0 && <Met label="HPSAs" value={d.hpsa.length} color={d.hpsa.length > 50 ? NEG : AL} mono small />}
                 </div>
@@ -483,14 +1387,14 @@ export default function StateProfile() {
                             .slice(0, 10)
                             .map((h: any, i: number) => (
                               <tr key={i} style={{ background: i % 2 === 0 ? WH : SF, borderBottom: `1px solid ${BD}` }}>
-                                <td style={{ padding: "5px 8px", maxWidth: 200, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{h.hospital_name || h.provider_name || "—"}</td>
-                                <td style={{ padding: "5px 8px", color: AL }}>{h.city || "—"}</td>
-                                <td style={{ padding: "5px 8px", fontFamily: FM }}>{h.bed_count || h.beds || "—"}</td>
-                                <td style={{ padding: "5px 8px", fontFamily: FM }}>{h.medicaid_days ? fmtNum(h.medicaid_days) : "—"}</td>
-                                <td style={{ padding: "5px 8px", fontFamily: FM, color: (h.medicaid_day_pct || 0) > 0.25 ? POS : AL }}>
-                                  {h.medicaid_day_pct ? `${(h.medicaid_day_pct * 100).toFixed(1)}%` : "—"}
+                                <td style={{ padding: "5px 8px", maxWidth: 200, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{h.hospital_name || h.provider_name || "\u2014"}</td>
+                                <td style={{ padding: "5px 8px", color: AL }}>{h.city || "\u2014"}</td>
+                                <td style={{ padding: "5px 8px", fontFamily: FM }}>{h.bed_count || h.beds || "\u2014"}</td>
+                                <td style={{ padding: "5px 8px", fontFamily: FM }}>{h.medicaid_days ? fmtNum(h.medicaid_days) : "\u2014"}</td>
+                                <td style={{ padding: "5px 8px", fontFamily: FM, color: (h.medicaid_day_pct || 0) > 25 ? POS : AL }}>
+                                  {h.medicaid_day_pct ? `${Number(h.medicaid_day_pct).toFixed(1)}%` : "\u2014"}
                                 </td>
-                                <td style={{ padding: "5px 8px", fontFamily: FM }}>{h.cost_to_charge_ratio?.toFixed(3) || "—"}</td>
+                                <td style={{ padding: "5px 8px", fontFamily: FM }}>{h.cost_to_charge_ratio?.toFixed(3) || "\u2014"}</td>
                               </tr>
                             ))
                           }
@@ -519,20 +1423,24 @@ export default function StateProfile() {
                         </tr>
                       </thead>
                       <tbody>
-                        {d.scorecard.slice(0, 15).map((s: any, i: number) => (
+                        {d.scorecard.slice(0, 15).map((s: any, i: number) => {
+                          const val = s.measure_value ?? s.value;
+                          const med = s.median_value ?? s.median;
+                          return (
                           <tr key={i} style={{ background: i % 2 === 0 ? WH : SF, borderBottom: `1px solid ${BD}` }}>
                             <td style={{ padding: "5px 8px", maxWidth: 300, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
-                              {s.measure_name || s.measure_id || "—"}
+                              {s.measure_name || s.measure_id || "\u2014"}
                             </td>
-                            <td style={{ padding: "5px 8px", fontFamily: FM, color: AL }}>{s.data_period || "—"}</td>
+                            <td style={{ padding: "5px 8px", fontFamily: FM, color: AL }}>{s.data_period || "\u2014"}</td>
                             <td style={{ padding: "5px 8px", fontFamily: FM, fontWeight: 600 }}>
-                              {s.value != null ? (typeof s.value === "number" ? s.value.toFixed(1) : s.value) : "—"}
+                              {val != null ? (typeof val === "number" ? val.toFixed(1) : val) : "\u2014"}
                             </td>
                             <td style={{ padding: "5px 8px", fontFamily: FM, color: AL }}>
-                              {s.median != null ? s.median.toFixed(1) : "—"}
+                              {med != null ? (typeof med === "number" ? med.toFixed(1) : med) : "\u2014"}
                             </td>
                           </tr>
-                        ))}
+                          );
+                        })}
                       </tbody>
                     </table>
                     {d.scorecard.length > 15 && (
@@ -556,10 +1464,10 @@ export default function StateProfile() {
                       <tbody>
                         {d.quality.slice(0, 15).map((q: any, i: number) => (
                           <tr key={i} style={{ background: i % 2 === 0 ? WH : SF }}>
-                            <td style={{ padding: "5px 8px" }}>{q.measure_name || q.measure_id || "—"}</td>
-                            <td style={{ padding: "5px 8px", color: AL }}>{q.domain || "—"}</td>
-                            <td style={{ padding: "5px 8px", fontFamily: FM }}>{q.year || "—"}</td>
-                            <td style={{ padding: "5px 8px", fontFamily: FM, fontWeight: 600 }}>{q.rate != null ? q.rate.toFixed(1) : "—"}</td>
+                            <td style={{ padding: "5px 8px" }}>{q.measure_name || q.measure_id || "\u2014"}</td>
+                            <td style={{ padding: "5px 8px", color: AL }}>{q.domain || "\u2014"}</td>
+                            <td style={{ padding: "5px 8px", fontFamily: FM }}>{q.year || "\u2014"}</td>
+                            <td style={{ padding: "5px 8px", fontFamily: FM, fontWeight: 600 }}>{q.rate != null ? q.rate.toFixed(1) : "\u2014"}</td>
                           </tr>
                         ))}
                       </tbody>
@@ -595,7 +1503,7 @@ export default function StateProfile() {
                           .map((w: any, i: number) => (
                             <tr key={i} style={{ background: i % 2 === 0 ? WH : SF, borderBottom: `1px solid ${BD}` }}>
                               <td style={{ padding: "5px 8px", maxWidth: 250, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
-                                {w.occ_title || w.occupation || "—"}
+                                {w.occ_title || w.occupation || "\u2014"}
                               </td>
                               <td style={{ padding: "5px 8px", fontFamily: FM }}>{fmtNum(w.tot_emp || w.employment || 0)}</td>
                               <td style={{ padding: "5px 8px", fontFamily: FM }}>${(w.h_median || w.median_hourly || 0).toFixed(2)}</td>
@@ -631,10 +1539,10 @@ export default function StateProfile() {
                       <tbody>
                         {d.topDrugs.slice(0, 15).map((drug: any, i: number) => (
                           <tr key={i} style={{ background: i % 2 === 0 ? WH : SF, borderBottom: `1px solid ${BD}` }}>
-                            <td style={{ padding: "5px 8px" }}>{drug.product_name || drug.ndc_description || "—"}</td>
+                            <td style={{ padding: "5px 8px" }}>{drug.product_name || drug.ndc_description || "\u2014"}</td>
                             <td style={{ padding: "5px 8px", fontFamily: FM, fontWeight: 600, color: ACC }}>{fmtDollars(drug.total_spending || drug.total_amount_reimbursed || 0)}</td>
                             <td style={{ padding: "5px 8px", fontFamily: FM }}>{fmtNum(drug.total_prescriptions || drug.total_rx || 0)}</td>
-                            <td style={{ padding: "5px 8px", fontFamily: FM, color: AL }}>{drug.avg_nadac ? `$${drug.avg_nadac.toFixed(2)}` : "—"}</td>
+                            <td style={{ padding: "5px 8px", fontFamily: FM, color: AL }}>{drug.avg_nadac ? `$${drug.avg_nadac.toFixed(2)}` : "\u2014"}</td>
                           </tr>
                         ))}
                       </tbody>
@@ -652,7 +1560,6 @@ export default function StateProfile() {
               <Card>
                 <CH title="Economic Indicators" sub="BLS unemployment, BEA GDP, Census income" />
                 {(() => {
-                  // Group economic data by indicator
                   const byIndicator: Record<string, any[]> = {};
                   d.economic.forEach((r: any) => {
                     const key = r.indicator_name || r.indicator || "unknown";

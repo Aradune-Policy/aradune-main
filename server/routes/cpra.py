@@ -82,13 +82,13 @@ async def cpra_dq_flags(state_code: str):
     state_code = state_code.upper()
     with get_cursor() as cur:
         rows = cur.execute("""
-            SELECT flag_type, severity, entity_type, entity_id, detail
+            SELECT state_code, procedure_code, flag, detail, created_at
             FROM fact_dq_flag
             WHERE state_code = $1
-            ORDER BY severity DESC, flag_type
+            ORDER BY flag, procedure_code
         """, [state_code]).fetchall()
 
-        columns = ["flag_type", "severity", "entity_type", "entity_id", "detail"]
+        columns = ["state_code", "procedure_code", "flag", "detail", "created_at"]
         return [dict(zip(columns, r)) for r in rows]
 
 

@@ -1,0 +1,27 @@
+domain: state_fiscal
+display_name: State Fiscal & Tax
+description: State government finances, tax burden, revenue sources, debt, pension funding, and property taxes
+entities:
+- state
+primary_tables:
+- table: fact_census_state_finances
+  row_count: 16435
+- table: fact_tax_burden
+  row_count: 50
+- table: fact_state_tax_collections
+  row_count: 271
+- table: fact_federal_aid_share
+  row_count: 49
+- table: fact_state_debt
+  row_count: 49
+- table: fact_pension_funded_ratio
+  row_count: 49
+- table: fact_state_tax_rates
+  row_count: 207
+- table: fact_tax_revenue_sources
+  row_count: 250
+- table: fact_property_tax_rate
+  row_count: 50
+- table: fact_income_per_capita
+  row_count: 50
+supporting_tables: []

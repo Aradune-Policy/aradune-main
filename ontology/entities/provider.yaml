@@ -1,0 +1,68 @@
+entity: provider
+display_name: Healthcare Provider
+description: A provider identified by National Provider Identifier
+canonical_table: fact_provider
+primary_key: npi
+key_type: VARCHAR(10)
+properties:
+- name: state_code
+  type: VARCHAR
+- name: provider_name
+  type: VARCHAR
+- name: zip3
+  type: VARCHAR
+- name: taxonomy_code
+  type: VARCHAR
+- name: total_paid
+  type: DOUBLE
+- name: total_claims
+  type: DOUBLE
+- name: total_beneficiaries
+  type: DOUBLE
+- name: code_count
+  type: BIGINT
+- name: snapshot_date
+  type: DATE
+- name: pipeline_run_id
+  type: VARCHAR
+- name: snapshot
+  type: DATE
+fact_tables:
+- fact_asc_facility
+- fact_asc_quality_facility
+- fact_asm_participants
+- fact_fiss_attending_rendering
+- fact_fqhc_directory
+- fact_fqhc_enrollments
+- fact_hha_enrollments
+- fact_hospice_enrollments
+- fact_hospital_enrollments
+- fact_leie
+- fact_leie_v2
+- fact_mdpp_suppliers
+- fact_medicare_physician_provider
+- fact_medicare_provider
+- fact_medicare_provider_enrollment
+- fact_nppes_endpoint
+- fact_nppes_practice_location
+- fact_nppes_provider
+- fact_nppes_taxonomy_detail
+- fact_optout_providers
+- fact_optout_providers_v2
+- fact_order_referring
+- fact_order_referring_v2
+- fact_otp_provider
+- fact_otp_providers_v2
+- fact_part_d_prescriber_provider
+- fact_pecos_enrollment
+- fact_physician_compare
+- fact_physician_compare_v2
+- fact_provider
+- fact_provider_specific
+- fact_providers_missing_dci
+- fact_qpp_experience
+- fact_revalidation_due_date
+- fact_revoked_providers
+- fact_revoked_providers_v2
+- fact_rhc_enrollments
+- fact_snf_enrollments

@@ -187,6 +187,36 @@ async def hospital_peers(ccn: str):
         }
 
 
+@router.get("/api/hospitals/summary")
+async def hospital_summary():
+    """Get state-level hospital financial summaries."""
+    with get_cursor() as cur:
+        rows = cur.execute("""
+            SELECT
+                state_code,
+                COUNT(*) AS hospital_count,
+                SUM(bed_count) AS total_beds,
+                SUM(medicaid_days) AS total_medicaid_days,
+                SUM(total_days) AS total_patient_days,
+                ROUND(SUM(medicaid_days)::DOUBLE / NULLIF(SUM(total_days), 0) * 100, 1)
+                    AS medicaid_day_pct,
+                SUM(medicaid_net_revenue) AS total_medicaid_revenue,
+                SUM(uncompensated_care_cost) AS total_uncompensated_care,
+                SUM(dsh_adjustment) AS total_dsh,
+                ROUND(MEDIAN(cost_to_charge_ratio), 4) AS median_ccr,
+                report_year
+            FROM fact_hospital_cost
+            WHERE state_code IS NOT NULL
+            GROUP BY state_code, report_year
+            ORDER BY state_code
+        """).fetchall()
+        columns = ["state_code", "hospital_count", "total_beds",
+                    "total_medicaid_days", "total_patient_days", "medicaid_day_pct",
+                    "total_medicaid_revenue", "total_uncompensated_care",
+                    "total_dsh", "median_ccr", "report_year"]
+        return [dict(zip(columns, r)) for r in rows]
+
+
 @router.get("/api/hospitals/{state_code}")
 async def state_hospitals(
     state_code: str,
@@ -220,36 +250,6 @@ async def state_hospitals(
                     "ime_payment", "cost_to_charge_ratio",
                     "medicaid_day_pct", "medicaid_payment_to_charge_pct",
                     "report_year"]
-        return [dict(zip(columns, r)) for r in rows]
-
-
-@router.get("/api/hospitals/summary")
-async def hospital_summary():
-    """Get state-level hospital financial summaries."""
-    with get_cursor() as cur:
-        rows = cur.execute("""
-            SELECT
-                state_code,
-                COUNT(*) AS hospital_count,
-                SUM(bed_count) AS total_beds,
-                SUM(medicaid_days) AS total_medicaid_days,
-                SUM(total_days) AS total_patient_days,
-                ROUND(SUM(medicaid_days)::DOUBLE / NULLIF(SUM(total_days), 0) * 100, 1)
-                    AS medicaid_day_pct,
-                SUM(medicaid_net_revenue) AS total_medicaid_revenue,
-                SUM(uncompensated_care_cost) AS total_uncompensated_care,
-                SUM(dsh_adjustment) AS total_dsh,
-                ROUND(MEDIAN(cost_to_charge_ratio), 4) AS median_ccr,
-                report_year
-            FROM fact_hospital_cost
-            WHERE state_code IS NOT NULL
-            GROUP BY state_code, report_year
-            ORDER BY state_code
-        """).fetchall()
-        columns = ["state_code", "hospital_count", "total_beds",
-                    "total_medicaid_days", "total_patient_days", "medicaid_day_pct",
-                    "total_medicaid_revenue", "total_uncompensated_care",
-                    "total_dsh", "median_ccr", "report_year"]
         return [dict(zip(columns, r)) for r in rows]
 
 

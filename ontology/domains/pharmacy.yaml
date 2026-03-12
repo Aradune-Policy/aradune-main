@@ -1,0 +1,80 @@
+domain: pharmacy
+display_name: Pharmacy & Drug Spending
+description: State Drug Utilization (SDUD 2020-2025, 28.3M rows, $1.05T pre-rebate), NADAC pricing, drug rebates,
+  AMP reporting, Part B/D spending, prescriber data, Open Payments, opioid prescribing, clotting factors
+entities:
+- drug
+- state
+primary_tables:
+- table: fact_aca_ful
+  row_count: 2145557
+- table: fact_drug_rebate_products
+  row_count: 1907607
+- table: fact_drug_utilization
+  row_count: 2369659
+- table: fact_medicaid_drug_spending
+  row_count: 16938
+- table: fact_nadac
+  row_count: 1882296
+- table: fact_part_d_geo
+  row_count: 115936
+- table: fact_part_d_opioid_geo
+  row_count: 328890
+- table: fact_part_d_quarterly_spending
+  row_count: 28255
+- table: fact_part_d_spending_by_drug
+  row_count: 14309
+- table: fact_sdud_2020
+  row_count: 4920264
+- table: fact_sdud_2021
+  row_count: 5053442
+- table: fact_sdud_2022
+  row_count: 5184004
+- table: fact_sdud_2023
+  row_count: 5311612
+- table: fact_sdud_2024
+  row_count: 5201667
+- table: fact_sdud_2025
+  row_count: 2637009
+- table: fact_sdud_combined
+  row_count: 28307998
+- table: ref_drug_rebate
+  row_count: 1907607
+- table: fact_drug_amp_monthly
+  row_count: 3400944
+- table: fact_drug_amp_quarterly
+  row_count: 2126520
+- table: fact_part_d_prescriber_provider
+  row_count: 1380665
+- table: fact_part_d_prescriber_geo
+  row_count: 115936
+- table: fact_part_d_prescriber_geo_v2
+  row_count: 115936
+- table: fact_part_d_opioid_geo_v2
+  row_count: 328890
+- table: fact_part_d_quarterly_spending_v2
+  row_count: 28255
+- table: fact_part_d_spending_by_drug_v2
+  row_count: 14309
+- table: fact_part_b_spending_by_drug
+  row_count: 734
+- table: fact_part_b_quarterly_spending
+  row_count: 1730
+- table: fact_part_b_discarded_drugs
+  row_count: 824
+- table: fact_part_b_discarded_drugs_v2
+  row_count: 824
+- table: fact_medicaid_drug_spending_v2
+  row_count: 16938
+- table: fact_open_payments
+  row_count: 36152
+- table: fact_open_payments_v2
+  row_count: 12224199
+- table: fact_first_time_nadac
+  row_count: 1269
+supporting_tables:
+- fact_clotting_factor
+- fact_exclusive_pediatric
+- fact_pharmacy_releases
+- fact_drug_mfr_contacts
+- fact_drug_rebate_state_contacts

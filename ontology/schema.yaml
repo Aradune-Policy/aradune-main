@@ -1,0 +1,43 @@
+version: "1.0"
+
+entity_types:
+  - state
+  - procedure
+  - provider
+  - hospital
+  - nursing_facility
+  - mco
+  - rate_cell
+  - drug
+  - quality_measure
+  - policy_document
+  - geographic_area
+  - occupation
+  - hcbs_program
+  - enrollment_record
+  - expenditure_record
+  - economic_indicator
+
+cardinalities:
+  - one_to_one
+  - one_to_many
+  - many_to_many
+
+quality_tiers:
+  - verified
+  - standard
+  - provisional
+  - raw
+  - dq_conditional
+
+aggregation_types:
+  - sum
+  - avg
+  - median
+  - count
+  - count_distinct
+  - min
+  - max
+  - weighted_avg
+  - pct_of_total
+  - ratio

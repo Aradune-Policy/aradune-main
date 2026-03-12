@@ -86,7 +86,6 @@ export async function generateCompliancePdf(input: CompliancePdfInput): Promise<
   // ── Section 1: Compliance Checklist ────────────────────────────────────
   y = addSection(doc, "Compliance Checklist", y);
 
-  (doc as unknown as Record<string, unknown>).autoTable?.call?.(doc) ||
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   (doc as any).autoTable({
     startY: y,

@@ -1,12 +1,16 @@
 import { useState, useEffect, lazy, Suspense, Component } from "react";
-import type { ReactNode, ErrorInfo } from "react";
+import type { ReactNode, ErrorInfo, ReactElement } from "react";
 import { C, FONT, SHADOW, SHADOW_LG } from "./design";
 import type { ToolDef, NavGroup } from "./types";
-import { STATES_LIST, STATE_NAMES } from "./data/states";
-import Term from "./components/Term";
+// STATES_LIST and STATE_NAMES available via lazy-loaded tools
+
 import NavDrop from "./components/NavDrop";
-import NavSearch from "./components/NavSearch";
+import PlatformSearch from "./components/PlatformSearch";
+import { AraduneProvider } from "./context/AraduneContext";
+import IntelligencePanel from "./components/IntelligencePanel";
+import ReportBuilder from "./components/ReportBuilder";
 import Lottie from "lottie-react";
+import { ClerkAuthProvider, RequireAuth, UserNav, isClerkEnabled } from "./components/ClerkProvider";
 
 // ── Sword Loading Animation ──────────────────────────────────────────────
 function SwordLoader({ text = "Loading..." }: { text?: string }) {
@@ -63,6 +67,10 @@ const CaseloadForecaster = lazy(() => import("./tools/CaseloadForecaster"));
 const StateProfile = lazy(() => import("./tools/StateProfile"));
 const DataExplorer = lazy(() => import("./tools/DataExplorer"));
 const DataCatalog = lazy(() => import("./tools/DataCatalog"));
+const IntelligenceChat = lazy(() => import("./tools/IntelligenceChat"));
+const RateAnalysis = lazy(() => import("./tools/RateAnalysis"));
+const ProviderIntelligence = lazy(() => import("./tools/ProviderIntelligence"));
+const WorkforceQuality = lazy(() => import("./tools/WorkforceQuality"));
 
 // ── Hash Router ──────────────────────────────────────────────────────────
 function useRoute() {
@@ -75,78 +83,123 @@ function useRoute() {
   return route;
 }
 
-// ── Tool Registry (9 modules) ────────────────────────────────────────────
+// ── Tool Registry (6 modules) ────────────────────────────────────────────
 const TOOLS: ToolDef[] = [
-  // ── DISCOVER ──────────────────────────────────────────────────────────
+  // ── STATES ────────────────────────────────────────────────────────────
   {
-    id: "state", group: "discover", name: "State Intelligence",
+    id: "state", group: "states", name: "State Profile",
     tagline: "Everything Aradune knows about a state, in one view",
     desc: "Enrollment, rates, hospitals, quality, workforce, pharmacy, and economic context for any state, unified from 250 fact tables with cross-dataset insights.",
     status: "live", icon: "◉", color: C.brand,
   },
+  // ── RATES ─────────────────────────────────────────────────────────────
   {
-    id: "ask", group: "discover", name: "Data Explorer",
-    tagline: "Ask questions about Medicaid data in plain English",
-    desc: "Type a question. Aradune translates it to SQL, runs it against 250 tables and 115M+ rows, and returns the answer with the query and source tables.",
+    id: "rates", group: "rates", name: "Rate Comparison",
+    tagline: "Medicaid-to-Medicare rate parity across all states",
+    desc: "16,000+ HCPCS codes across 47 states compared against the Medicare PFS. Cross-state rankings, rate erosion tracking, and impact analysis for proposed changes.",
+    status: "live", icon: "◧", color: C.brand, navLabel: "Rates",
+  },
+  {
+    id: "cpra", group: "rates", name: "CPRA Generator",
+    tagline: "42 CFR 447.203 Comparative Payment Rate Analysis",
+    desc: "Generate the Comparative Payment Rate Analysis required by July 2026. Pre-computed rates for 45 states or upload your own fee schedule.",
+    status: "live", icon: "◆", color: C.brand,
+  },
+  {
+    id: "fees", group: "rates", name: "Fee Schedule Directory",
+    tagline: "State fee schedule sources and methodology documentation",
+    desc: "Every state's Medicaid fee schedule source, effective dates, and methodology notes. Links to official state portals.",
+    status: "live", icon: "◇", color: C.brand,
+  },
+  {
+    id: "lookup", group: "rates", name: "Rate Lookup",
+    tagline: "Search any HCPCS code across all states",
+    desc: "Look up Medicaid reimbursement rates for any procedure code across all 47 states with fee schedule data.",
     status: "live", icon: "⌗", color: C.brand,
   },
   {
-    id: "rates", group: "discover", name: "Rate Comparison",
-    tagline: "Every Medicaid rate compared to Medicare, by code and state",
-    desc: "16,000+ HCPCS codes across 47 states compared against the Medicare PFS. Cross-state rankings, rate erosion tracking, and impact analysis for proposed changes.",
-    status: "live", icon: "◧", color: C.brand,
+    id: "builder", group: "rates", name: "Rate Builder",
+    tagline: "Model custom rate methodologies",
+    desc: "Build Medicaid rates using different methodologies: percent of Medicare, RBRVS, state-specific conversion factors, and peer state benchmarks.",
+    status: "live", icon: "◐", color: C.brand,
   },
-  // ── ANALYZE ───────────────────────────────────────────────────────────
+  // ── FORECAST ──────────────────────────────────────────────────────────
   {
-    id: "adequacy", group: "analyze", name: "Workforce & Quality",
-    tagline: "Wages, outcomes, and HCBS pass-through adequacy",
-    desc: "BLS market wages vs Medicaid reimbursement, HCBS 80/20 pass-through tracking, and CMS Core Set quality measures mapped to payment rates across every state.",
-    status: "live", icon: "⊿", color: C.accent,
-  },
-  {
-    id: "cpra", group: "analyze", name: "CPRA Generator",
-    tagline: "Comparative Payment Rate Analysis for 42 CFR 447.203",
-    desc: "Generate the Comparative Payment Rate Analysis required by July 2026. Pre-computed rates for 45 states or upload your own fee schedule for the full 68-code E/M analysis.",
-    status: "live", icon: "◆", color: C.accent,
-  },
-  {
-    id: "hospitals", group: "analyze", name: "Hospital Intelligence",
-    tagline: "AHEAD readiness, global budgets, and hospital financial data",
-    desc: "Search any hospital by name. AHEAD readiness scoring from public HCRIS data, global budget modeling, peer comparison, and supplemental payment cliff analysis.",
-    status: "live", icon: "△", color: C.accent,
-  },
-  // ── ACT ────────────────────────────────────────────────────────────────
-  {
-    id: "compliance", group: "act", name: "Compliance Center",
-    tagline: "42 CFR 447.203 requirements, fee schedules, and transparency",
-    desc: "Everything for the July 2026 Ensuring Access deadline: compliance checklists, state fee schedule directory, rate reduction modeling, and methodology documentation.",
-    status: "live", icon: "◇", color: C.teal,
-  },
-  {
-    id: "forecast", group: "act", name: "Forecasting",
+    id: "forecast", group: "forecast", name: "Caseload Forecaster",
     tagline: "Caseload and expenditure projections with scenario modeling",
     desc: "Upload monthly enrollment data. Aradune runs SARIMAX + ETS model competition, produces caseload forecasts with confidence intervals, and projects expenditure by category.",
     status: "live", icon: "◐", color: C.teal,
   },
+  // ── PROVIDERS ─────────────────────────────────────────────────────────
   {
-    id: "analyst", group: "act", name: "Policy Analyst",
-    tagline: "AI analysis, bill scoring, and SPA drafting",
-    desc: "AI-powered analysis grounded in 250 tables of real data. Fiscal impact estimates, bill analysis, rate adequacy assessments, and draft SPA language with cited sources.",
-    status: "live", icon: "◎", color: C.teal,
+    id: "hospitals", group: "providers", name: "Hospital Intelligence",
+    tagline: "AHEAD readiness, global budgets, and hospital financial data",
+    desc: "Search any hospital by name. AHEAD readiness scoring from public HCRIS data, global budget modeling, peer comparison.",
+    status: "live", icon: "△", color: C.accent,
+  },
+  {
+    id: "ahead", group: "providers", name: "AHEAD Calculator",
+    tagline: "AHEAD model savings and global budget projections",
+    desc: "Model hospital participation in the CMS AHEAD model. Project savings, global budgets, and readiness.",
+    status: "live", icon: "△", color: C.accent,
+  },
+  {
+    id: "explorer", group: "providers", name: "Spending Explorer",
+    tagline: "T-MSIS provider spending patterns across states",
+    desc: "Explore provider-level Medicaid spending patterns from 227M T-MSIS claims. Filter by state, category, procedure code, and provider.",
+    status: "live", icon: "◧", color: C.accent,
+  },
+  // ── WORKFORCE ─────────────────────────────────────────────────────────
+  {
+    id: "wages", group: "workforce", name: "Wage Adequacy",
+    tagline: "BLS market wages vs Medicaid reimbursement",
+    desc: "Compare Bureau of Labor Statistics market wages against Medicaid reimbursement rates for key healthcare occupations.",
+    status: "live", icon: "⊿", color: C.teal,
+  },
+  {
+    id: "quality", group: "workforce", name: "Quality Linkage",
+    tagline: "CMS Core Set quality measures mapped to payment rates",
+    desc: "Link CMS quality measures to Medicaid payment rates. Identify where low rates correlate with poor outcomes.",
+    status: "live", icon: "⊿", color: C.teal,
+  },
+  {
+    id: "hcbs8020", group: "workforce", name: "HCBS Tracker",
+    tagline: "80/20 HCBS pass-through compliance tracking",
+    desc: "Track HCBS payment pass-through rates against the 80% direct care worker compensation requirement.",
+    status: "live", icon: "⊿", color: C.teal,
+  },
+  {
+    id: "compliance", group: "workforce", name: "Compliance Center",
+    tagline: "42 CFR 447.203 requirements and transparency",
+    desc: "Everything for the July 2026 Ensuring Access deadline: compliance checklists, rate reduction modeling, methodology documentation.",
+    status: "live", icon: "◇", color: C.teal,
+  },
+  {
+    id: "reduction", group: "workforce", name: "Rate Reduction Analyzer",
+    tagline: "Model the impact of proposed Medicaid rate reductions",
+    desc: "Analyze how proposed rate reductions affect provider participation and beneficiary access.",
+    status: "live", icon: "◇", color: C.teal,
   },
 ];
 
 const NAV_GROUPS: NavGroup[] = [
-  { key: "discover", label: "Discover", tools: TOOLS.filter(t => t.group === "discover") },
-  { key: "analyze", label: "Analyze", tools: TOOLS.filter(t => t.group === "analyze") },
-  { key: "act", label: "Act", tools: TOOLS.filter(t => t.group === "act") },
+  { key: "states", label: "States", tools: TOOLS.filter(t => t.group === "states") },
+  { key: "rates", label: "Rates", tools: TOOLS.filter(t => t.group === "rates") },
+  { key: "forecast", label: "Forecast", tools: TOOLS.filter(t => t.group === "forecast") },
+  { key: "providers", label: "Providers", tools: TOOLS.filter(t => t.group === "providers") },
+  { key: "workforce", label: "Workforce", tools: TOOLS.filter(t => t.group === "workforce") },
 ];
 
-const GROUP_COLORS: Record<string, string> = { discover: C.brand, analyze: C.accent, act: C.teal };
+const GROUP_COLORS: Record<string, string> = {
+  states: C.brand, rates: C.brand, forecast: C.teal,
+  providers: C.accent, workforce: C.teal,
+};
 const GROUP_DESCS: Record<string, string> = {
-  discover: "Browse states, query data in plain English, and compare rates across every state.",
-  analyze: "Rate adequacy, CPRA compliance, hospital readiness, and workforce analysis.",
-  act: "Regulatory compliance, caseload forecasting, expenditure modeling, and AI-powered policy drafting.",
+  states: "State profiles with enrollment, rates, hospitals, quality, and economic context.",
+  rates: "Fee schedule comparison, CPRA compliance, rate lookup, and rate modeling.",
+  forecast: "Caseload and expenditure projections with scenario modeling.",
+  providers: "Hospital intelligence, AHEAD readiness, and provider spending analysis.",
+  workforce: "Wage adequacy, quality linkage, HCBS tracking, and compliance.",
 };
 
 // ── Responsive hook ──────────────────────────────────────────────────────
@@ -197,21 +250,16 @@ function PlatformNav({ route }: { route: string }) {
         {/* Desktop nav */}
         {!isMobile && (
           <div style={{ display: "flex", gap: 2, alignItems: "center", flexShrink: 1, minWidth: 0 }}>
-            <NavSearch tools={TOOLS} />
-            {route !== "/" && (
-              <a href="#/" style={{ fontSize: 11, color: C.inkLight, textDecoration: "none", padding: "4px 10px", borderRadius: 6, fontFamily: FONT.body, whiteSpace: "nowrap" }}>
-                All Tools
-              </a>
-            )}
-            {NAV_GROUPS.map(g => <NavDrop key={g.key} group={g} route={route} />)}
-            <a href="#/about" style={{
-              fontSize: 11, fontFamily: FONT.body,
-              color: route === "/about" ? C.brand : C.inkLight,
-              fontWeight: route === "/about" ? 600 : 400,
+            <a href="#/intelligence" style={{
+              fontSize: 11, fontFamily: FONT.body, fontWeight: 600,
+              color: route === "/intelligence" ? C.brand : C.inkLight,
               textDecoration: "none", padding: "4px 10px", whiteSpace: "nowrap",
             }}>
-              About
+              Ask Aradune
             </a>
+            {NAV_GROUPS.map(g => <NavDrop key={g.key} group={g} route={route} />)}
+            <PlatformSearch tools={TOOLS} />
+            <UserNav />
           </div>
         )}
 
@@ -234,14 +282,12 @@ function PlatformNav({ route }: { route: string }) {
           background: C.white, borderTop: `1px solid ${C.border}`,
           padding: "8px 0", boxShadow: SHADOW_LG,
         }}>
-          {route !== "/" && (
-            <a href="#/" onClick={() => setMobileOpen(false)} style={{
-              display: "block", padding: "10px 20px", textDecoration: "none",
-              fontSize: 13, fontWeight: 500, color: C.ink, fontFamily: FONT.body,
-            }}>
-              All Tools
-            </a>
-          )}
+          <a href="#/intelligence" onClick={() => setMobileOpen(false)} style={{
+            display: "block", padding: "10px 20px", textDecoration: "none",
+            fontSize: 13, fontWeight: 600, color: route === "/intelligence" ? C.brand : C.ink, fontFamily: FONT.body,
+          }}>
+            Ask Aradune
+          </a>
           {NAV_GROUPS.map(g => (
             <div key={g.key}>
               <div style={{ padding: "8px 20px 4px", fontSize: 9, fontWeight: 700, color: GROUP_COLORS[g.key] || C.brand, textTransform: "uppercase", letterSpacing: 1, fontFamily: FONT.mono }}>
@@ -262,13 +308,6 @@ function PlatformNav({ route }: { route: string }) {
               })}
             </div>
           ))}
-          <a href="#/about" onClick={() => setMobileOpen(false)} style={{
-            display: "block", padding: "10px 20px", textDecoration: "none",
-            fontSize: 13, fontWeight: route === "/about" ? 600 : 400, color: route === "/about" ? C.brand : C.ink, fontFamily: FONT.body,
-            borderTop: `1px solid ${C.border}`, marginTop: 4,
-          }}>
-            About
-          </a>
         </div>
       )}
     </nav>
@@ -278,381 +317,425 @@ function PlatformNav({ route }: { route: string }) {
 // ── Landing Page ─────────────────────────────────────────────────────────
 function Landing() {
   const isMobile = useIsMobile();
-  const [startTab, setStartTab] = useState("state");
-  const [st, setSt] = useState("");
-  const [serviceQ, setServiceQ] = useState("");
+  const [chatInput, setChatInput] = useState("");
+  const [chatFocused, setChatFocused] = useState(false);
+
+  const STARTERS = [
+    { label: "Rate Parity", prompt: "Which states pay primary care below 50% of Medicare?" },
+    { label: "Drug Spending", prompt: "What are the top 10 drugs by Medicaid spending in 2023?" },
+    { label: "Workforce", prompt: "Show me states with the most severe primary care shortages and how their Medicaid rates compare" },
+    { label: "State Profile", prompt: "Give me a comprehensive overview of Florida's Medicaid program" },
+    { label: "Enrollment", prompt: "How did the PHE unwinding affect enrollment in expansion vs non-expansion states?" },
+    { label: "CPRA Deadline", prompt: "What do states need to publish by July 2026 under 42 CFR 447.203?" },
+  ];
+
+  const MODULE_GROUPS = [
+    {
+      title: "States & Enrollment",
+      color: C.brand,
+      modules: [
+        { id: "state", name: "State Profiles", desc: "54-jurisdiction dashboards with enrollment, rates, hospitals, quality, workforce, and economic context", route: "#/state/FL" },
+      ],
+    },
+    {
+      title: "Rates & Compliance",
+      color: C.brand,
+      modules: [
+        { id: "rates", name: "Rate Comparison", desc: "Medicaid-to-Medicare parity across 47 states, 16,000+ procedure codes", route: "#/rates" },
+        { id: "cpra", name: "CPRA Generator", desc: "42 CFR 447.203 Comparative Payment Rate Analysis for July 2026 deadline", route: "#/cpra" },
+        { id: "lookup", name: "Rate Lookup", desc: "Search any HCPCS code across all states instantly", route: "#/lookup" },
+        { id: "fees", name: "Fee Schedule Directory", desc: "Every state's fee schedule source, methodology, and effective dates", route: "#/fees" },
+        { id: "builder", name: "Rate Builder", desc: "Model custom rate methodologies: % of Medicare, RBRVS, conversion factors", route: "#/builder" },
+      ],
+    },
+    {
+      title: "Fiscal & Forecasting",
+      color: C.teal,
+      modules: [
+        { id: "forecast", name: "Caseload Forecaster", desc: "SARIMAX + ETS model competition with scenario modeling and expenditure projections", route: "#/forecast" },
+      ],
+    },
+    {
+      title: "Providers & Hospitals",
+      color: C.accent,
+      modules: [
+        { id: "hospitals", name: "Hospital Intelligence", desc: "HCRIS financials, AHEAD readiness, global budget modeling, peer benchmarks", route: "#/hospitals" },
+        { id: "ahead", name: "AHEAD Calculator", desc: "CMS AHEAD model participation scoring and savings projections", route: "#/ahead" },
+        { id: "explorer", name: "Spending Explorer", desc: "Provider-level Medicaid spending patterns from T-MSIS claims data", route: "#/explorer" },
+      ],
+    },
+    {
+      title: "Workforce & Access",
+      color: C.teal,
+      modules: [
+        { id: "wages", name: "Wage Adequacy", desc: "BLS market wages vs Medicaid reimbursement for healthcare occupations", route: "#/wages" },
+        { id: "quality", name: "Quality Linkage", desc: "CMS Core Set quality measures correlated with payment rates", route: "#/quality" },
+        { id: "hcbs8020", name: "HCBS Tracker", desc: "80% direct care worker compensation pass-through tracking", route: "#/hcbs8020" },
+        { id: "compliance", name: "Compliance Center", desc: "Ensuring Access requirements, rate reduction modeling, methodology docs", route: "#/compliance" },
+      ],
+    },
+  ];
+
+  const LANDSCAPE = [
+    { name: "Aradune", tables: "556+", rows: "305M+", states: "54", ai: true, realtime: true, compliance: true, free: true },
+    { name: "Typical consulting engagement", tables: "5-20", rows: "~1M", states: "1-5", ai: false, realtime: false, compliance: false, free: false },
+    { name: "CMS Data.gov", tables: "~50", rows: "~50M", states: "54", ai: false, realtime: false, compliance: false, free: true },
+    { name: "KFF / MACPAC", tables: "~30", rows: "~500K", states: "54", ai: false, realtime: false, compliance: false, free: true },
+  ];
+
+  const handleChatSubmit = () => {
+    if (!chatInput.trim()) return;
+    window.location.hash = `#/intelligence`;
+  };
 
   return (
-    <div style={{ maxWidth: 1080, margin: "0 auto", padding: "0 20px", overflowX: "hidden", fontFamily: FONT.body }}>
+    <div style={{ overflowX: "hidden", fontFamily: FONT.body }}>
 
-      {/* 1. Hero */}
-      <div style={{ padding: "56px 0 44px", maxWidth: 640 }}>
-        <h1 style={{ fontSize: isMobile ? 22 : 30, fontWeight: 700, color: C.ink, lineHeight: 1.25, letterSpacing: -0.5, margin: 0 }}>
-          The one source for Medicaid data and intelligence.
-        </h1>
-        <p style={{ fontSize: 14, color: C.inkLight, lineHeight: 1.7, marginTop: 14, maxWidth: 540 }}>
-          115 million rows across 250 datasets: rates, enrollment, hospitals, quality,
-          workforce, pharmacy, and economics. Normalized, cross-referenced, and
-          queryable in plain English.
-        </p>
-        <div style={{ display: "flex", gap: 10, marginTop: 22, flexWrap: "wrap" }}>
-          <a href="#/ask" style={{
-            display: "inline-flex", alignItems: "center", padding: "10px 20px",
-            background: C.brand, color: C.white, borderRadius: 8,
-            fontSize: 13, fontWeight: 600, textDecoration: "none",
+      {/* ── HERO ────────────────────────────────────────────────── */}
+      <div style={{
+        background: `linear-gradient(180deg, ${C.bg} 0%, #EEF2EE 100%)`,
+        borderBottom: `1px solid ${C.border}`,
+      }}>
+        <div style={{ maxWidth: 1080, margin: "0 auto", padding: isMobile ? "48px 20px 40px" : "72px 20px 56px" }}>
+          <div style={{
+            fontSize: 10, fontWeight: 700, color: C.brand, fontFamily: FONT.mono,
+            letterSpacing: 2, textTransform: "uppercase", marginBottom: 16,
+            display: "flex", alignItems: "center", gap: 8,
           }}>
-            Ask a Question
-          </a>
-          <a href="#/explorer" style={{
-            display: "inline-flex", alignItems: "center", padding: "10px 20px",
-            background: "transparent", color: C.inkLight, borderRadius: 8,
-            fontSize: 13, fontWeight: 500, textDecoration: "none",
-            border: `1px solid ${C.border}`,
+            <span style={{ width: 6, height: 6, borderRadius: "50%", background: C.brand, display: "inline-block" }} />
+            THE MEDICAID INTELLIGENCE PLATFORM
+          </div>
+          <h1 style={{
+            fontSize: isMobile ? 28 : 42, fontWeight: 800, color: C.ink,
+            lineHeight: 1.15, letterSpacing: -1.2, margin: 0, maxWidth: 700,
           }}>
-            Explore Data
-          </a>
-        </div>
-      </div>
+            Every public Medicaid dataset.{" "}
+            <span style={{ color: C.brand }}>One AI-powered platform.</span>
+          </h1>
+          <p style={{
+            fontSize: isMobile ? 14 : 16, color: C.inkLight, lineHeight: 1.7,
+            marginTop: 18, maxWidth: 600,
+          }}>
+            556 tables. 305 million rows. 18 data domains. Rates, enrollment,
+            hospitals, quality, workforce, pharmacy, expenditure, and more,
+            cross-referenced and queryable through natural language. Built for
+            the people who need to understand how a $1 trillion program works.
+          </p>
 
-      {/* 2. Stats row */}
-      <div style={{
-        display: "grid", gridTemplateColumns: `repeat(auto-fit,minmax(${isMobile ? "70px" : "130px"},1fr))`,
-        gap: isMobile ? 10 : 16, padding: "20px 0 36px", borderTop: `1px solid ${C.border}`,
-      }}>
-        {([["9", "intelligence modules"], ["54", "states & territories"], ["115M+", "data lake rows"], ["250", "fact tables"]] as const).map(([val, label]) => (
-          <div key={label}>
-            <div style={{ fontSize: 20, fontWeight: 700, fontFamily: FONT.mono, color: C.brand, letterSpacing: -0.5 }}>{val}</div>
-            <div style={{ fontSize: 11, color: C.inkLight, marginTop: 2 }}>{label}</div>
-          </div>
-        ))}
-      </div>
-
-      {/* 3. Start Here tabbed card */}
-      <div style={{
-        background: C.white, borderRadius: 12, boxShadow: SHADOW,
-        padding: "16px 22px 18px", marginBottom: 32,
-        borderLeft: `3px solid ${C.brand}`,
-      }}>
-        <div style={{ display: "flex", alignItems: "center", gap: 0, marginBottom: 14 }}>
-          {([
-            { key: "state", label: "Find a state", color: C.brand },
-            { key: "service", label: "Search a service", color: C.accent },
-            { key: "adequacy", label: "Check adequacy", color: C.teal },
-          ] as const).map(tab => (
-            <button key={tab.key} onClick={() => setStartTab(tab.key)} style={{
-              background: startTab === tab.key ? `${tab.color}0D` : "none",
-              border: "none", borderRadius: 6, padding: "5px 14px",
-              fontSize: 11, fontWeight: startTab === tab.key ? 600 : 400, fontFamily: FONT.body,
-              color: startTab === tab.key ? tab.color : C.inkLight,
-              cursor: "pointer", transition: "all .15s",
-            }}>
-              {tab.label}
-            </button>
-          ))}
-        </div>
-
-        {startTab === "state" && (
-          <div style={{ display: "flex", gap: 10, alignItems: "center", flexWrap: "wrap" }}>
-            <span style={{ fontSize: 12, color: C.inkLight, flexShrink: 0 }}>State:</span>
-            <select value={st} onChange={e => setSt(e.target.value)} style={{
-              flex: 1, maxWidth: isMobile ? "100%" : 280, padding: "8px 10px", borderRadius: 6, fontSize: 12,
-              border: `1px solid ${C.border}`, fontFamily: FONT.body, color: st ? C.ink : C.inkLight,
-              background: C.white,
-            }}>
-              <option value="">Select a state...</option>
-              {STATES_LIST.map(s => <option key={s} value={s}>{s} — {STATE_NAMES[s]}</option>)}
-            </select>
-            <a
-              href={st ? `#/state/${st}` : undefined}
-              onClick={e => { if (!st) e.preventDefault(); }}
-              style={{
-                padding: "8px 16px", borderRadius: 6, border: "none",
-                background: st ? C.brand : C.border, color: C.white,
-                fontSize: 11, fontWeight: 600, cursor: st ? "pointer" : "default",
-                textDecoration: "none", display: "inline-block",
-              }}
-            >
-              View state profile →
-            </a>
-            <span style={{ fontSize: 10, color: C.inkLight, marginLeft: 4 }}>Enrollment, rates, hospitals, quality, workforce</span>
-          </div>
-        )}
-
-        {startTab === "service" && (
-          <div style={{ display: "flex", gap: 10, alignItems: "center", flexWrap: "wrap" }}>
-            <span style={{ fontSize: 12, color: C.inkLight, flexShrink: 0 }}>Service:</span>
-            <input value={serviceQ} onChange={e => setServiceQ(e.target.value)}
-              placeholder="dental, office visits, 99213, therapy..."
-              style={{
-                flex: 1, maxWidth: isMobile ? "100%" : 320, padding: "8px 10px", borderRadius: 6, fontSize: 12,
-                border: `1px solid ${C.border}`, fontFamily: FONT.body, color: C.ink,
-              }}
-            />
-            <a
-              href={serviceQ ? `#/explorer` : undefined}
-              onClick={e => { if (!serviceQ) e.preventDefault(); }}
-              style={{
-                padding: "8px 16px", borderRadius: 6, border: "none",
-                background: serviceQ ? C.accent : C.border, color: C.white,
-                fontSize: 11, fontWeight: 600, cursor: serviceQ ? "pointer" : "default",
-                textDecoration: "none", display: "inline-block",
-              }}
-            >
-              Search →
-            </a>
-            <span style={{ fontSize: 10, color: C.inkLight, marginLeft: 4 }}>Name, category, or <Term>HCPCS</Term> code</span>
-          </div>
-        )}
-
-        {startTab === "adequacy" && (
-          <div style={{ display: "flex", gap: 10, alignItems: "center", flexWrap: "wrap" }}>
-            <span style={{ fontSize: 12, color: C.inkLight, flexShrink: 0 }}>State:</span>
-            <select value={st} onChange={e => setSt(e.target.value)} style={{
-              flex: 1, maxWidth: isMobile ? "100%" : 280, padding: "8px 10px", borderRadius: 6, fontSize: 12,
-              border: `1px solid ${C.border}`, fontFamily: FONT.body, color: st ? C.ink : C.inkLight,
-              background: C.white,
-            }}>
-              <option value="">Select a state...</option>
-              {STATES_LIST.map(s => <option key={s} value={s}>{s} — {STATE_NAMES[s]}</option>)}
-            </select>
-            <a
-              href={st ? `#/wages` : undefined}
-              onClick={e => { if (!st) e.preventDefault(); }}
-              style={{
-                padding: "8px 16px", borderRadius: 6, border: "none",
-                background: st ? C.teal : C.border, color: C.white,
-                fontSize: 11, fontWeight: 600, cursor: st ? "pointer" : "default",
-                textDecoration: "none", display: "inline-block",
-              }}
-            >
-              Check adequacy →
-            </a>
-            <span style={{ fontSize: 10, color: C.inkLight, marginLeft: 4 }}>Rate adequacy, wages, and Medicare comparison</span>
-          </div>
-        )}
-      </div>
-
-      {/* 4. Grouped tool sections */}
-      {NAV_GROUPS.map(group => {
-        const groupTools = TOOLS.filter(t => t.group === group.key);
-        return (
-          <div key={group.key} style={{ paddingBottom: 32 }}>
-            <div style={{
-              display: "flex", alignItems: "baseline", gap: 12,
-              marginBottom: 12, paddingTop: 12, borderTop: `1px solid ${C.border}`,
-            }}>
-              <span style={{ fontSize: 11, fontWeight: 700, color: GROUP_COLORS[group.key], textTransform: "uppercase", letterSpacing: 1, fontFamily: FONT.mono }}>{group.label}</span>
-              <span style={{ fontSize: 12, color: C.inkLight }}>{GROUP_DESCS[group.key]}</span>
-            </div>
-            <div style={{
-              display: "grid",
-              gridTemplateColumns: "repeat(auto-fill,minmax(min(100%,320px),1fr))",
-              gap: 12,
-            }}>
-              {groupTools.map(tool => {
-                const isLive = tool.status === "live" || tool.status === "beta";
-                return (
-                  <div
-                    key={tool.id}
-                    onClick={() => { window.location.hash = `/${tool.id}`; }}
-                    style={{
-                      background: C.white, borderRadius: 12, boxShadow: SHADOW,
-                      padding: "20px 22px 18px", borderLeft: `3px solid ${tool.color}`,
-                      opacity: isLive ? 1 : 0.75,
-                      cursor: "pointer",
-                      transition: "box-shadow 0.2s, transform 0.15s",
-                    }}
-                    onMouseEnter={e => { if (isLive) { e.currentTarget.style.boxShadow = SHADOW_LG; e.currentTarget.style.transform = "translateY(-1px)"; } }}
-                    onMouseLeave={e => { e.currentTarget.style.boxShadow = SHADOW; e.currentTarget.style.transform = "translateY(0)"; }}
-                  >
-                    <div style={{ display: "flex", alignItems: "center", gap: 10, marginBottom: 6 }}>
-                      <span style={{
-                        fontSize: 16, width: 32, height: 32, display: "flex", alignItems: "center", justifyContent: "center",
-                        borderRadius: 8, background: `${tool.color}0D`, color: tool.color, flexShrink: 0,
-                      }}>
-                        {tool.icon}
-                      </span>
-                      <div style={{ minWidth: 0 }}>
-                        <div style={{ fontSize: 13, fontWeight: 600, color: C.ink, letterSpacing: -0.2 }}>{tool.name}</div>
-                        <div style={{ fontSize: 10, color: C.inkLight, marginTop: 1, whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>{tool.tagline}</div>
-                      </div>
-                    </div>
-                    <div style={{ fontSize: 11, color: C.inkLight, lineHeight: 1.6, marginTop: 6 }}>{tool.desc}</div>
-                    <div style={{ marginTop: 10 }}>
-                      {isLive ? (
-                        <span style={{ fontSize: 9, fontWeight: 600, color: tool.color, fontFamily: FONT.mono, textTransform: "uppercase", letterSpacing: 0.5 }}>→ Open tool</span>
-                      ) : (
-                        <span style={{ fontSize: 9, padding: "3px 10px", borderRadius: 10, fontWeight: 600, background: C.surface, color: C.inkLight, fontFamily: FONT.mono }}>COMING SOON</span>
-                      )}
-                    </div>
-                  </div>
-                );
-              })}
-            </div>
-          </div>
-        );
-      })}
-
-      {/* 5. AHEAD dark card callout */}
-      <div style={{
-        background: C.ink, borderRadius: 14, padding: isMobile ? "20px 18px" : "28px 32px",
-        marginBottom: 32, position: "relative", overflow: "hidden",
-      }}>
-        <div style={{ position: "absolute", top: -40, right: -40, width: 140, height: 140, borderRadius: "50%", background: "rgba(46,107,74,0.12)", pointerEvents: "none" }} />
-        <div style={{ position: "relative" }}>
-          <div style={{ display: "flex", alignItems: "center", gap: 12, marginBottom: 10 }}>
-            <span style={{ fontSize: 18, width: 36, height: 36, display: "flex", alignItems: "center", justifyContent: "center", borderRadius: 8, background: "rgba(46,107,74,0.2)", color: "#7FD4A0" }}>△</span>
-            <div>
-              <div style={{ fontSize: 15, fontWeight: 600, color: C.white }}><Term term="AHEAD">AHEAD</Term> Hospital Global Budgets</div>
-              <div style={{ fontSize: 11, color: "rgba(255,255,255,0.5)" }}>Live — readiness scoring and budget modeling</div>
-            </div>
-          </div>
-          <div style={{ fontSize: 12, color: "rgba(255,255,255,0.6)", lineHeight: 1.7, maxWidth: 600 }}>
-            CMS's AHEAD model replaces <Term term="FFS">fee-for-service</Term> with fixed hospital budgets.
-            We model both the Medicare and Medicaid sides — budget projections, readiness scoring
-            from public HCRIS data, and participation decision support.
-          </div>
-          <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit,minmax(160px,1fr))", gap: 10, marginTop: 18 }}>
+          {/* Stats row */}
+          <div style={{
+            display: "flex", gap: isMobile ? 16 : 32, marginTop: 32,
+            flexWrap: "wrap",
+          }}>
             {([
-              ["Readiness Score", "4 dimensions scored from HCRIS data"],
-              ["Budget Calculator", "Revenue projection → global budget modeling"],
-              ["Peer Comparison", "CCN lookup → benchmarked against peers"],
-            ] as const).map(([title, desc]) => (
-              <a key={title} href={title === "Readiness Score" ? "#/ahead-readiness" : "#/ahead"} style={{
-                padding: "12px 14px", borderRadius: 8, background: "rgba(255,255,255,0.06)",
-                border: "1px solid rgba(255,255,255,0.08)", textDecoration: "none",
-                display: "block", transition: "background .15s",
-              }}
-                onMouseEnter={e => { e.currentTarget.style.background = "rgba(255,255,255,0.10)"; }}
-                onMouseLeave={e => { e.currentTarget.style.background = "rgba(255,255,255,0.06)"; }}>
-                <div style={{ fontSize: 11, fontWeight: 600, color: C.white }}>{title}</div>
-                <div style={{ fontSize: 10, color: "rgba(255,255,255,0.4)", marginTop: 3 }}>{desc}</div>
-              </a>
+              ["556+", "fact tables"],
+              ["305M+", "rows"],
+              ["54", "jurisdictions"],
+              ["18", "data domains"],
+              ["82", "ETL pipelines"],
+            ] as const).map(([val, label]) => (
+              <div key={label}>
+                <div style={{ fontSize: isMobile ? 20 : 26, fontWeight: 800, fontFamily: FONT.mono, color: C.ink, letterSpacing: -0.5 }}>{val}</div>
+                <div style={{ fontSize: 11, color: C.inkLight, marginTop: 2 }}>{label}</div>
+              </div>
             ))}
           </div>
         </div>
       </div>
 
-      {/* 6. Discover → Analyze → Act workflow */}
-      <div style={{ padding: "36px 0 40px", borderTop: `1px solid ${C.border}` }}>
-        <div style={{ fontSize: 14, fontWeight: 600, color: C.ink, marginBottom: 6 }}>
-          Discover → Analyze → Act
-        </div>
-        <div style={{ fontSize: 12, color: C.inkLight, lineHeight: 1.7, maxWidth: 560, marginBottom: 20 }}>
-          Start by understanding what your state spends. Analyze whether
-          rates are adequate and compare against peers. Then forecast,
-          model, and draft the policy to change it.
-        </div>
-        <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit,minmax(240px,1fr))", gap: 14 }}>
-          {([
-            { num: "1", label: "Discover", q: "What's the data?",
-              desc: "Ask questions in plain English, browse state profiles with cross-dataset insights, and compare rates across every state and code.",
-              tools: "Data Explorer · State Intelligence · Rate Comparison", color: C.brand },
-            { num: "2", label: "Analyze", q: "What does it mean?",
-              desc: "Generate CPRA compliance reports, score hospital AHEAD readiness, and measure workforce adequacy against BLS wages and quality outcomes.",
-              tools: "CPRA Generator · Hospital Intelligence · Workforce & Quality", color: C.accent },
-            { num: "3", label: "Act", q: "What should we do?",
-              desc: "Forecast caseload and expenditure, prepare for the 447.203 deadline, and get AI-powered policy analysis grounded in real data.",
-              tools: "Compliance Center · Forecasting · Policy Analyst", color: C.teal },
-          ] as const).map(item => (
-            <div key={item.num} style={{
-              background: C.white, borderRadius: 12, boxShadow: SHADOW,
-              padding: "20px 22px 18px", borderTop: `3px solid ${item.color}`,
-              transition: "box-shadow 0.2s, transform 0.15s",
-            }}
-              onMouseEnter={e => { e.currentTarget.style.boxShadow = SHADOW_LG; e.currentTarget.style.transform = "translateY(-1px)"; }}
-              onMouseLeave={e => { e.currentTarget.style.boxShadow = SHADOW; e.currentTarget.style.transform = "translateY(0)"; }}
-            >
-              <div style={{ display: "flex", alignItems: "center", gap: 10, marginBottom: 8 }}>
-                <span style={{
-                  width: 26, height: 26, borderRadius: "50%",
-                  background: `${item.color}12`, color: item.color,
-                  fontSize: 12, fontWeight: 700, display: "flex", alignItems: "center",
-                  justifyContent: "center", fontFamily: FONT.mono, flexShrink: 0,
-                }}>
-                  {item.num}
-                </span>
-                <div>
-                  <div style={{ fontSize: 9, fontWeight: 700, color: item.color, fontFamily: FONT.mono, textTransform: "uppercase", letterSpacing: 1 }}>{item.label}</div>
-                  <div style={{ fontSize: 14, fontWeight: 600, color: C.ink, marginTop: 1 }}>{item.q}</div>
+      {/* ── ARADUNE CHAT BLOCK ─────────────────────────────────── */}
+      <div style={{ maxWidth: 1080, margin: "0 auto", padding: "0 20px" }}>
+        <div style={{
+          marginTop: -28,
+          background: C.ink, borderRadius: 16,
+          padding: isMobile ? "24px 20px" : "32px 36px",
+          position: "relative", overflow: "hidden",
+          boxShadow: "0 8px 32px rgba(10,37,64,0.18), 0 2px 8px rgba(10,37,64,0.08)",
+        }}>
+          {/* Decorative circles */}
+          <div style={{ position: "absolute", top: -80, right: -80, width: 260, height: 260, borderRadius: "50%", background: "rgba(46,107,74,0.06)", pointerEvents: "none" }} />
+          <div style={{ position: "absolute", bottom: -50, left: -50, width: 160, height: 160, borderRadius: "50%", background: "rgba(196,89,10,0.04)", pointerEvents: "none" }} />
+
+          <div style={{ position: "relative" }}>
+            {/* Header */}
+            <div style={{ display: "flex", alignItems: "center", gap: 12, marginBottom: 20 }}>
+              <div style={{
+                width: 36, height: 36, borderRadius: 10,
+                background: "rgba(46,107,74,0.2)",
+                display: "flex", alignItems: "center", justifyContent: "center",
+              }}>
+                <img src="/assets/icon-bot.png" alt="" style={{ width: 22, height: 22, borderRadius: 5 }}
+                  onError={e => { (e.target as HTMLImageElement).style.display = "none"; }} />
+              </div>
+              <div>
+                <div style={{ fontSize: 18, fontWeight: 700, color: C.white, letterSpacing: -0.3 }}>Ask Aradune anything</div>
+                <div style={{ fontSize: 12, color: "rgba(255,255,255,0.5)", marginTop: 2 }}>
+                  AI analyst with direct query access to 556 tables, policy corpus, and web search
                 </div>
               </div>
-              <div style={{ fontSize: 11, color: C.inkLight, lineHeight: 1.65 }}>{item.desc}</div>
-              <div style={{ fontSize: 9, color: C.inkLight, marginTop: 10, fontFamily: FONT.mono, letterSpacing: 0.3 }}>{item.tools}</div>
+            </div>
+
+            {/* Chat input */}
+            <div style={{
+              display: "flex", gap: 10, alignItems: "flex-end",
+              background: chatFocused ? "rgba(255,255,255,0.12)" : "rgba(255,255,255,0.07)",
+              border: `1px solid ${chatFocused ? "rgba(46,107,74,0.5)" : "rgba(255,255,255,0.1)"}`,
+              borderRadius: 12, padding: "12px 14px",
+              transition: "all .2s",
+            }}>
+              <textarea
+                value={chatInput}
+                onChange={e => setChatInput(e.target.value)}
+                onFocus={() => setChatFocused(true)}
+                onBlur={() => setChatFocused(false)}
+                onKeyDown={e => { if (e.key === "Enter" && !e.shiftKey) { e.preventDefault(); handleChatSubmit(); } }}
+                placeholder="What does Florida pay for primary care E/M codes vs Medicare?"
+                rows={1}
+                style={{
+                  flex: 1, border: "none", outline: "none", resize: "none",
+                  fontSize: 14, fontFamily: FONT.body, color: C.white,
+                  background: "transparent", lineHeight: 1.5,
+                  minHeight: 22, maxHeight: 80,
+                  caretColor: C.brand,
+                }}
+              />
+              <button
+                onClick={handleChatSubmit}
+                disabled={!chatInput.trim()}
+                style={{
+                  background: chatInput.trim() ? C.brand : "rgba(255,255,255,0.15)",
+                  color: C.white, border: "none", borderRadius: 8,
+                  padding: "8px 18px", fontSize: 13, fontWeight: 600,
+                  cursor: chatInput.trim() ? "pointer" : "default",
+                  fontFamily: FONT.body, whiteSpace: "nowrap",
+                  transition: "background .15s",
+                  flexShrink: 0,
+                }}
+              >
+                Ask
+              </button>
+            </div>
+
+            {/* Starter chips */}
+            <div style={{ display: "flex", flexWrap: "wrap", gap: 8, marginTop: 14 }}>
+              {STARTERS.map(s => (
+                <button
+                  key={s.label}
+                  onClick={() => { setChatInput(s.prompt); window.location.hash = "#/intelligence"; }}
+                  style={{
+                    padding: "6px 14px", borderRadius: 20,
+                    background: "rgba(255,255,255,0.06)", border: "1px solid rgba(255,255,255,0.1)",
+                    fontSize: 11, color: "rgba(255,255,255,0.65)", cursor: "pointer",
+                    fontFamily: FONT.body,
+                    transition: "background .15s, color .15s, border-color .15s",
+                  }}
+                  onMouseEnter={e => { e.currentTarget.style.background = "rgba(255,255,255,0.12)"; e.currentTarget.style.color = "rgba(255,255,255,0.9)"; e.currentTarget.style.borderColor = "rgba(255,255,255,0.2)"; }}
+                  onMouseLeave={e => { e.currentTarget.style.background = "rgba(255,255,255,0.06)"; e.currentTarget.style.color = "rgba(255,255,255,0.65)"; e.currentTarget.style.borderColor = "rgba(255,255,255,0.1)"; }}
+                >
+                  {s.label}
+                </button>
+              ))}
+            </div>
+
+            {/* Capability badges */}
+            <div style={{ display: "flex", gap: 16, marginTop: 18, flexWrap: "wrap" }}>
+              {[
+                "DuckDB query engine",
+                "Policy corpus (1,039 CMS docs)",
+                "Web search",
+                "File upload & cross-reference",
+              ].map(cap => (
+                <span key={cap} style={{
+                  fontSize: 10, color: "rgba(255,255,255,0.35)", fontFamily: FONT.mono,
+                  display: "flex", alignItems: "center", gap: 5,
+                }}>
+                  <span style={{ width: 4, height: 4, borderRadius: "50%", background: C.brand, display: "inline-block" }} />
+                  {cap}
+                </span>
+              ))}
+            </div>
+          </div>
+        </div>
+
+        {/* ── MODULE GRID ─────────────────────────────────────────── */}
+        <div style={{ marginTop: 48 }}>
+          <div style={{ marginBottom: 28 }}>
+            <h2 style={{ fontSize: isMobile ? 20 : 24, fontWeight: 800, color: C.ink, letterSpacing: -0.5, margin: "0 0 6px" }}>
+              Structured tools
+            </h2>
+            <p style={{ fontSize: 13, color: C.inkLight, margin: 0, maxWidth: 520, lineHeight: 1.6 }}>
+              Purpose-built workflows for recurring Medicaid analysis. Every tool connects back to Aradune for deeper investigation.
+            </p>
+          </div>
+
+          {MODULE_GROUPS.map(group => (
+            <div key={group.title} style={{ marginBottom: 28 }}>
+              <div style={{
+                fontSize: 10, fontWeight: 700, color: group.color, fontFamily: FONT.mono,
+                letterSpacing: 1.5, textTransform: "uppercase", marginBottom: 10,
+              }}>
+                {group.title}
+              </div>
+              <div style={{
+                display: "grid",
+                gridTemplateColumns: `repeat(auto-fill, minmax(${isMobile ? "260px" : "240px"}, 1fr))`,
+                gap: 10,
+              }}>
+                {group.modules.map(mod => (
+                  <a
+                    key={mod.id}
+                    href={mod.route}
+                    style={{
+                      background: C.white, borderRadius: 10, padding: "16px 18px",
+                      textDecoration: "none", borderLeft: `3px solid ${group.color}`,
+                      boxShadow: SHADOW,
+                      transition: "box-shadow .2s, transform .15s",
+                      display: "block",
+                    }}
+                    onMouseEnter={e => { e.currentTarget.style.boxShadow = SHADOW_LG; e.currentTarget.style.transform = "translateY(-1px)"; }}
+                    onMouseLeave={e => { e.currentTarget.style.boxShadow = SHADOW; e.currentTarget.style.transform = "translateY(0)"; }}
+                  >
+                    <div style={{ fontSize: 13, fontWeight: 700, color: C.ink, marginBottom: 4 }}>{mod.name}</div>
+                    <div style={{ fontSize: 11, color: C.inkLight, lineHeight: 1.55 }}>{mod.desc}</div>
+                  </a>
+                ))}
+              </div>
             </div>
           ))}
         </div>
-      </div>
 
-      {/* 7. Why now: CMS Ensuring Access */}
-      <div style={{
-        padding: "16px 20px", background: C.surface, borderRadius: 10,
-        borderLeft: `3px solid ${C.accent}`, marginBottom: 32,
-      }}>
-        <div style={{ display: "flex", alignItems: "center", gap: 10, marginBottom: 6 }}>
-          <span style={{ fontSize: 14 }}>§</span>
-          <div style={{ fontSize: 13, fontWeight: 600, color: C.ink }}>CMS Ensuring Access Final Rule</div>
-          <span style={{ fontSize: 10, color: C.inkLight, fontFamily: FONT.mono }}>42 CFR 447.203 · July 2026</span>
-        </div>
-        <div style={{ fontSize: 12, color: C.inkLight, lineHeight: 1.7, maxWidth: 600 }}>
-          The Ensuring Access rule creates the first national transparency and
-          adequacy requirements for Medicaid rate-setting. Every tool on this
-          platform supports compliance, but the analytical need is broader than
-          any single regulation.{" "}
-          <a href="#/compliance" style={{ color: C.brand, textDecoration: "none", fontWeight: 600 }}>
-            View compliance tools →
-          </a>
-        </div>
-      </div>
-
-      {/* 8. Why / How columns */}
-      <div style={{ padding: "0 0 40px", display: "grid", gridTemplateColumns: "repeat(auto-fit,minmax(300px,1fr))", gap: 24 }}>
-        <div>
-          <div style={{ fontSize: 14, fontWeight: 600, color: C.ink, marginBottom: 8 }}>Why this exists</div>
-          <div style={{ fontSize: 12, color: C.inkLight, lineHeight: 1.75 }}>
-            Medicaid rate-setting is one of the most consequential policy processes
-            in American healthcare: a $1T+ program, 50 states operating in
-            isolation, and almost nobody has the data to do it well. Cross-state
-            comparisons barely exist. Adequacy analysis is ad hoc. Fiscal modeling
-            is locked inside consulting engagements. Aradune builds the shared
-            infrastructure.
+        {/* ── ENSURING ACCESS / COMPLIANCE CALLOUT ────────────────── */}
+        <div style={{
+          padding: "20px 24px", background: C.surface, borderRadius: 12,
+          borderLeft: `3px solid ${C.accent}`, marginBottom: 40,
+        }}>
+          <div style={{ display: "flex", alignItems: "center", gap: 10, marginBottom: 6, flexWrap: "wrap" }}>
+            <span style={{ fontSize: 14, fontWeight: 700, color: C.ink }}>42 CFR 447.203: Ensuring Access</span>
+            <span style={{
+              fontSize: 10, color: C.white, background: C.accent, fontFamily: FONT.mono,
+              fontWeight: 700, padding: "2px 8px", borderRadius: 4, letterSpacing: 0.5,
+            }}>JULY 2026</span>
+          </div>
+          <div style={{ fontSize: 12, color: C.inkLight, lineHeight: 1.7, maxWidth: 700 }}>
+            The first national transparency and adequacy requirements for Medicaid rate-setting.
+            Aradune's CPRA generator, fee schedule directory, rate reduction analyzer, and HCBS tracker
+            map directly to subsections (b)(1) through (b)(5).{" "}
+            <a href="#/compliance" style={{ color: C.brand, textDecoration: "none", fontWeight: 600 }}>
+              View compliance tools
+            </a>
           </div>
         </div>
-        <div>
-          <div style={{ fontSize: 14, fontWeight: 600, color: C.ink, marginBottom: 8 }}>How it works</div>
-          <div style={{ fontSize: 12, color: C.inkLight, lineHeight: 1.75 }}>
-            250 fact tables from 80+ federal sources: <Term>T-MSIS</Term> spending, Medicare PFS &amp; Part D,
-            <Term>BLS</Term> wage surveys, CMS <Term>Core Set</Term> quality measures, HCRIS cost reports,
-            PBJ staffing, Five Star ratings, NADAC pharmacy pricing, Care Compare,
-            BRFSS, SAMHSA behavioral health, MSSP/ACO data, CDC mortality,
-            MACPAC enrollment &amp; spending, HRSA workforce, and 47 state fee schedules.
-            Served via a FastAPI backend on Fly.io with DuckDB over Parquet.
-            <span style={{ display: "block", marginTop: 8, fontSize: 11, color: C.inkLight }}>
-              Technical: Hive-partitioned Parquet lake synced to Cloudflare R2.
-              In-memory DuckDB registers all tables as views on startup.
-            </span>
+
+        {/* ── COMPETITIVE LANDSCAPE ───────────────────────────────── */}
+        <div style={{ marginBottom: 48 }}>
+          <h2 style={{ fontSize: isMobile ? 18 : 22, fontWeight: 800, color: C.ink, letterSpacing: -0.5, margin: "0 0 6px" }}>
+            How Aradune compares
+          </h2>
+          <p style={{ fontSize: 13, color: C.inkLight, margin: "0 0 20px", maxWidth: 520, lineHeight: 1.6 }}>
+            No other platform assembles, normalizes, and cross-references this breadth of Medicaid data with AI-powered query access.
+          </p>
+          <div style={{ overflowX: "auto" }}>
+            <table style={{
+              borderCollapse: "collapse", width: "100%", minWidth: 640,
+              fontSize: 12, fontFamily: FONT.body,
+            }}>
+              <thead>
+                <tr>
+                  {["", "Tables", "Rows", "States", "AI query", "Real-time", "Compliance tools", "Free tier"].map(h => (
+                    <th key={h} style={{
+                      padding: "10px 14px", borderBottom: `2px solid ${C.border}`,
+                      textAlign: "left", fontWeight: 600, color: C.ink, fontSize: 11,
+                      whiteSpace: "nowrap",
+                    }}>{h}</th>
+                  ))}
+                </tr>
+              </thead>
+              <tbody>
+                {LANDSCAPE.map((row, i) => (
+                  <tr key={row.name} style={{ background: i === 0 ? `${C.brand}08` : "transparent" }}>
+                    <td style={{
+                      padding: "10px 14px", borderBottom: `1px solid ${C.border}`,
+                      fontWeight: i === 0 ? 700 : 400, color: i === 0 ? C.brand : C.ink,
+                    }}>{row.name}</td>
+                    <td style={{ padding: "10px 14px", borderBottom: `1px solid ${C.border}`, fontFamily: FONT.mono, fontSize: 11 }}>{row.tables}</td>
+                    <td style={{ padding: "10px 14px", borderBottom: `1px solid ${C.border}`, fontFamily: FONT.mono, fontSize: 11 }}>{row.rows}</td>
+                    <td style={{ padding: "10px 14px", borderBottom: `1px solid ${C.border}`, fontFamily: FONT.mono, fontSize: 11 }}>{row.states}</td>
+                    <td style={{ padding: "10px 14px", borderBottom: `1px solid ${C.border}`, color: row.ai ? C.brand : C.inkLight }}>{row.ai ? "Yes" : "--"}</td>
+                    <td style={{ padding: "10px 14px", borderBottom: `1px solid ${C.border}`, color: row.realtime ? C.brand : C.inkLight }}>{row.realtime ? "Yes" : "--"}</td>
+                    <td style={{ padding: "10px 14px", borderBottom: `1px solid ${C.border}`, color: row.compliance ? C.brand : C.inkLight }}>{row.compliance ? "Yes" : "--"}</td>
+                    <td style={{ padding: "10px 14px", borderBottom: `1px solid ${C.border}`, color: row.free ? C.brand : C.inkLight }}>{row.free ? "Yes" : "--"}</td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
           </div>
         </div>
-      </div>
 
-      {/* 9. Data sources bar */}
-      <div style={{
-        display: "flex", gap: 16, flexWrap: "wrap", padding: "16px 0 24px",
-        borderTop: `1px solid ${C.border}`, borderBottom: `1px solid ${C.border}`, marginBottom: 32,
-        alignItems: "center",
-      }}>
-        <span style={{ fontSize: 10, fontFamily: FONT.mono, color: C.inkLight, letterSpacing: 0.5, fontWeight: 600 }}>DATA:</span>
-        {["CMS T-MSIS", "Medicare PFS", "BLS OES", "CMS Core Set", "HCRIS", "PBJ Staffing", "Five Star", "NADAC", "SDUD", "Care Compare", "BRFSS", "SAMHSA", "State Fee Schedules"].map(src => (
-          <span key={src} style={{ fontSize: 10, fontFamily: FONT.mono, color: C.inkLight, letterSpacing: 0.3 }}>{src}</span>
-        ))}
-        <span style={{ marginLeft: "auto", fontSize: 9, fontFamily: FONT.mono, color: C.brand, letterSpacing: 0.3, fontWeight: 600 }}>Queryable via DuckDB-WASM</span>
-      </div>
+        {/* ── WHY / HOW ──────────────────────────────────────────── */}
+        <div style={{
+          padding: "32px 0", borderTop: `1px solid ${C.border}`,
+          display: "grid", gridTemplateColumns: `repeat(auto-fit,minmax(${isMobile ? "280px" : "300px"},1fr))`, gap: 32,
+        }}>
+          <div>
+            <div style={{ fontSize: 15, fontWeight: 700, color: C.ink, marginBottom: 10 }}>Why this exists</div>
+            <div style={{ fontSize: 13, color: C.inkLight, lineHeight: 1.75 }}>
+              Medicaid is a $1 trillion program with 50 states operating in
+              isolation. Cross-state rate comparisons barely exist. Adequacy
+              analysis is ad hoc. Fiscal modeling is locked inside consulting
+              engagements that cost six figures per state. Aradune assembles the
+              data infrastructure that should be public and makes it queryable
+              through natural language.
+            </div>
+          </div>
+          <div>
+            <div style={{ fontSize: 15, fontWeight: 700, color: C.ink, marginBottom: 10 }}>How it works</div>
+            <div style={{ fontSize: 13, color: C.inkLight, lineHeight: 1.75 }}>
+              82 ETL pipelines ingest data from 80+ federal sources into a
+              Hive-partitioned Parquet lake. DuckDB serves 556 fact tables via
+              FastAPI. Aradune translates natural-language questions into SQL,
+              searches a 1,039-document policy corpus, and returns answers
+              grounded in real data with full citation and query transparency.
+            </div>
+          </div>
+          <div>
+            <div style={{ fontSize: 15, fontWeight: 700, color: C.ink, marginBottom: 10 }}>Who it's for</div>
+            <div style={{ fontSize: 13, color: C.inkLight, lineHeight: 1.75 }}>
+              State Medicaid agencies, health policy researchers, consulting
+              firms, MCOs, hospitals, provider associations, journalists,
+              advocates, legislative staff, and federal officials. Anyone who
+              needs to understand how Medicaid dollars move and whether rates
+              are adequate.
+            </div>
+          </div>
+        </div>
 
-      {/* Footer links */}
-      <div style={{ display: "flex", gap: 16, marginBottom: 40, fontSize: 12 }}>
-        <a href="#/about" style={{ color: C.inkLight, textDecoration: "none", fontWeight: 500 }}>
-          About the project
-        </a>
+        {/* ── DATA SOURCES ───────────────────────────────────────── */}
+        <div style={{
+          display: "flex", gap: 12, flexWrap: "wrap", padding: "16px 0 20px",
+          borderTop: `1px solid ${C.border}`, marginBottom: 32,
+          alignItems: "center",
+        }}>
+          <span style={{ fontSize: 9, fontFamily: FONT.mono, color: C.inkLight, letterSpacing: 0.5, fontWeight: 700 }}>SOURCES:</span>
+          {["T-MSIS/TAF", "Medicare PFS", "BLS OEWS", "CMS Core Set", "HCRIS", "PBJ", "Five Star", "NADAC", "SDUD", "BRFSS", "SAMHSA", "CDC PLACES", "MACPAC", "HRSA", "NPPES", "CMS-64 FMR", "DOGE Spending", "KFF", "Census/BEA", "HUD FMR", "47 State Fee Schedules"].map(src => (
+            <span key={src} style={{ fontSize: 9, fontFamily: FONT.mono, color: C.inkLight, letterSpacing: 0.2 }}>{src}</span>
+          ))}
+        </div>
+
+        {/* ── CTA ────────────────────────────────────────────────── */}
+        <div style={{
+          padding: "24px 28px", background: C.white, borderRadius: 12, boxShadow: SHADOW,
+          marginBottom: 48, display: "flex", alignItems: "center", justifyContent: "space-between",
+          flexWrap: "wrap", gap: 16,
+        }}>
+          <div>
+            <div style={{ fontSize: 14, fontWeight: 700, color: C.ink, marginBottom: 4 }}>Need a custom analysis?</div>
+            <div style={{ fontSize: 12, color: C.inkLight }}>Rate studies, AHEAD modeling, SPA methodology, fiscal impact, CPRA compliance</div>
+          </div>
+          <a href="mailto:aradune-medicaid@proton.me" style={{
+            padding: "10px 22px", background: C.brand, color: C.white, borderRadius: 8,
+            fontSize: 12, fontWeight: 600, textDecoration: "none", whiteSpace: "nowrap",
+          }}>Get in touch</a>
+        </div>
       </div>
     </div>
   );
@@ -902,48 +985,56 @@ function PasswordGate({ onAuth }: { onAuth: () => void }) {
   );
 }
 
-export default function Platform() {
-  const [authed, setAuthed] = useState(() => sessionStorage.getItem("aradune_auth") === "1");
+// ── PlatformInner — the actual app shell (used by both auth modes) ─────
+function PlatformInner() {
   const route = useRoute();
-
-  if (!authed) return <PasswordGate onAuth={() => setAuthed(true)} />;
 
   const loadingFallback = <SwordLoader />;
 
   const renderRoute = () => {
+    // Landing page is the home route
     if (route === "/" || route === "") return <Landing />;
+    // Intelligence chat available at /ask (Data Explorer / NL2SQL)
+    if (route === "/intelligence") {
+      return <ToolErrorBoundary><Suspense fallback={loadingFallback}><IntelligenceChat /></Suspense></ToolErrorBoundary>;
+    }
     if (route === "/about") return <About />;
 
     const tool = TOOLS.find(t => route === `/${t.id}`);
     if (tool && (tool.status === "coming")) return <ComingSoon tool={tool} />;
 
     // Lazy-loaded tool routes (code-split)
-    // New consolidated routes + all legacy routes still work
-    const toolMap: Record<string, JSX.Element> = {
-      // ── New module routes ────────────────────────────────────
+    // 6-module routes + all legacy routes still work
+    const toolMap: Record<string, ReactElement> = {
+      // ── Module routes (6 modules) ────────────────────────────
       "/state": <StateProfile />,
-      "/ask": <DataExplorer />,
-      "/rates": <RateDecay />,          // Rate Comparison (default view: Medicare parity)
-      "/adequacy": <WageAdequacy />,    // Workforce & Quality (default view: wages)
-      "/cpra": <CpraGenerator />,
-      "/hospitals": <AheadReadiness />, // Hospital Intelligence (default: search + readiness)
-      "/compliance": <ComplianceReport />,
+      "/rates": <RateAnalysis />,
       "/forecast": <CaseloadForecaster />,
-      "/analyst": <PolicyAnalyst />,
-      // ── Legacy routes (still work, render original components) ──
-      "/explorer": <TmsisExplorer />,
-      "/wages": <WageAdequacy />,
-      "/quality": <QualityLinkage />,
-      "/decay": <RateDecay />,
-      "/builder": <RateBuilder />,
-      "/ahead": <AheadCalculator />,
-      "/ahead-readiness": <AheadReadiness />,
-      "/fees": <FeeScheduleDir />,
-      "/lookup": <RateLookup />,
-      "/reduction": <RateReduction />,
-      "/hcbs8020": <HcbsTracker />,
+      "/providers": <ProviderIntelligence />,
+      "/workforce": <WorkforceQuality />,
+      // ── Standalone tools ─────────────────────────────────────
+      "/ask": <ToolErrorBoundary><Suspense fallback={loadingFallback}><IntelligenceChat /></Suspense></ToolErrorBoundary>,
       "/catalog": <DataCatalog />,
-      "/methods": <FeeScheduleDir />,
+      "/analyst": <PolicyAnalyst />,
+      // ── Legacy routes → module wrappers (old bookmarks work) ──
+      "/cpra": <RateAnalysis />,
+      "/fees": <RateAnalysis />,
+      "/builder": <RateAnalysis />,
+      "/explorer": <RateAnalysis />,
+      "/reduction": <RateAnalysis />,
+      // Standalone tools (no tab in module wrappers)
+      "/lookup": <RateLookup />,
+      "/decay": <RateDecay />,
+      // Provider module
+      "/hospitals": <ProviderIntelligence />,
+      "/ahead": <ProviderIntelligence />,
+      "/ahead-readiness": <ProviderIntelligence />,
+      // Workforce module
+      "/wages": <WorkforceQuality />,
+      "/quality": <WorkforceQuality />,
+      "/hcbs8020": <WorkforceQuality />,
+      "/compliance": <WorkforceQuality />,
+      "/adequacy": <WorkforceQuality />,
     };
     const toolRoute = toolMap[route] ?? (route.startsWith("/ahead?") ? toolMap["/ahead"] : route.startsWith("/state/") ? toolMap["/state"] : null);
     if (toolRoute) return <ToolErrorBoundary><Suspense fallback={loadingFallback}>{toolRoute}</Suspense></ToolErrorBoundary>;
@@ -957,6 +1048,7 @@ export default function Platform() {
   };
 
   return (
+    <AraduneProvider>
     <div style={{ fontFamily: FONT.body, background: C.bg, minHeight: "100vh", color: C.ink, overflowX: "hidden" }}>
       <a href="#main-content" style={{
         position: "absolute", left: -9999, top: "auto", width: 1, height: 1, overflow: "hidden",
@@ -968,6 +1060,8 @@ export default function Platform() {
       </a>
       <PlatformNav route={route} />
       <main id="main-content">{renderRoute()}</main>
+      <IntelligencePanel />
+      <ReportBuilder />
       <footer style={{
         maxWidth: 1080, margin: "0 auto", padding: "24px 20px 32px",
         borderTop: `1px solid ${C.border}`,
@@ -975,8 +1069,32 @@ export default function Platform() {
         flexWrap: "wrap", gap: 8,
       }}>
         <span style={{ fontSize: 10, color: C.inkLight }}>Aradune · aradune.co</span>
-        <span style={{ fontSize: 10, color: C.inkLight, fontFamily: FONT.mono }}>HHS Medicaid Provider Spending · opendata.hhs.gov</span>
+        <span style={{ fontSize: 10, color: C.inkLight, fontFamily: FONT.mono }}>556 tables · 305M+ rows · 80+ federal sources</span>
       </footer>
     </div>
+    </AraduneProvider>
   );
+}
+
+// ── Platform — top-level component with auth ────────────────────────────
+// When VITE_CLERK_PUBLISHABLE_KEY is set: Clerk handles authentication
+// When not set: falls back to the legacy password gate ("mediquiad")
+export default function Platform() {
+  const [authed, setAuthed] = useState(() => sessionStorage.getItem("aradune_auth") === "1");
+
+  // Clerk mode — Clerk handles everything
+  if (isClerkEnabled) {
+    return (
+      <ClerkAuthProvider>
+        <RequireAuth>
+          <PlatformInner />
+        </RequireAuth>
+      </ClerkAuthProvider>
+    );
+  }
+
+  // Legacy password gate mode (fallback when Clerk is not configured)
+  if (!authed) return <PasswordGate onAuth={() => setAuthed(true)} />;
+
+  return <PlatformInner />;
 }

@@ -1,0 +1,23 @@
+domain: enrollment
+metrics:
+- name: enrollment_change_pct
+  display_name: Enrollment Change %
+  description: Month-over-month or year-over-year enrollment change
+  formula: (current_enrollment - prior_enrollment) / prior_enrollment
+  source_table: fact_enrollment
+  aggregation: pct_of_total
+  unit: percentage
+- name: managed_care_penetration
+  display_name: Managed Care Penetration
+  description: Percent of Medicaid enrollees in managed care
+  formula: mc_enrollment / total_enrollment
+  source_table: fact_mc_enrollment_summary
+  aggregation: ratio
+  unit: percentage
+- name: unwinding_disenrollment_rate
+  display_name: Unwinding Disenrollment Rate
+  description: Percent of renewals resulting in disenrollment during PHE unwinding
+  formula: disenrollments / total_renewals
+  source_table: fact_unwinding
+  aggregation: ratio
+  unit: percentage

@@ -1,0 +1,101 @@
+domain: public_health
+display_name: Public Health & Maternal
+description: CDC PLACES, BRFSS, vital statistics, maternal health/mortality, natality, infant mortality, child/adolescent
+  vaccinations, WIC, foster care, Title V MCH, prematurity/SMM, CAHPS surveys, COVID testing
+entities:
+- geographic_area
+- quality_measure
+- state
+primary_tables:
+- table: fact_acute_care
+  row_count: 25440
+- table: fact_blood_lead_screening
+  row_count: 3180
+- table: fact_brfss
+  row_count: 1168981
+- table: fact_brfss_behavioral
+  row_count: 86141
+- table: fact_cdc_leading_causes_death
+  row_count: 10868
+- table: fact_contraceptive_care
+  row_count: 6360
+- table: fact_health_screenings
+  row_count: 3180
+- table: fact_maternal_health
+  row_count: 17968
+- table: fact_mortality_trend
+  row_count: 10868
+- table: fact_perinatal_care
+  row_count: 12720
+- table: fact_places_county
+  row_count: 229232
+- table: fact_pregnancy_outcomes
+  row_count: 6360
+- table: fact_pregnant_postpartum
+  row_count: 1060
+- table: fact_respiratory_conditions
+  row_count: 28620
+- table: fact_vaccinations
+  row_count: 47700
+- table: fact_vital_stats
+  row_count: 1836
+- table: fact_vital_stats_monthly
+  row_count: 1980
+- table: fact_cdc_natality
+  row_count: 1980
+- table: fact_cdc_vsrr_vital
+  row_count: 1980
+- table: fact_cdc_maternal_mortality_prov
+  row_count: 810
+- table: fact_infant_mortality_state
+  row_count: 1167
+- table: fact_infant_mortality_quarterly
+  row_count: 80
+- table: fact_child_vaccination
+  row_count: 128188
+- table: fact_adolescent_vaccination
+  row_count: 28181
+- table: fact_teen_birth_rate
+  row_count: 56466
+- table: fact_wic_nutrition
+  row_count: 12473
+- table: fact_wic_participation
+  row_count: 275
+- table: fact_foster_care
+  row_count: 1200
+- table: fact_title_v_mch
+  row_count: 3360
+- table: fact_prematurity_smm
+  row_count: 435
+- table: fact_smm_conditions
+  row_count: 530
+- table: fact_well_child_visits_v2
+  row_count: 63
+- table: fact_nam_cahps
+  row_count: 272679
+- table: fact_covid_testing
+  row_count: 3180
+supporting_tables:
+- fact_maternal_morbidity
+- fact_maternal_mortality_monthly
+- fact_maternal_mortality_national
+- fact_smm_extended
+- fact_well_child_visits
+- fact_respiratory_conditions_v2
+planned_tables:
+- table: fact_svi_county
+  description: CDC/ATSDR Social Vulnerability Index at county level — composite ranking on 16 social factors (poverty, housing, transportation, minority status) grouped into 4 themes. ~3,200 rows.
+  strategy: Manual browser download from atsdr.cdc.gov (WAF blocks programmatic). Simple CSV ingest.
+  priority: high
+- table: fact_svi_tract
+  description: CDC SVI at census tract level — same indicators at finer geography. ~74,000 tracts.
+  strategy: Same manual download. Larger file but same schema.
+  priority: medium
+- table: fact_adi_block_group
+  description: Area Deprivation Index at block group level — socioeconomic deprivation ranking (1-100 national, 1-10 state). ~220,000 rows.
+  strategy: Manual registration + download from neighborhoodatlas.medicine.wisc.edu
+  priority: medium
+- table: fact_brfss_state_indicators
+  description: BRFSS behavioral risk factors aggregated to state level — smoking, obesity, diabetes, mental health, exercise, healthcare access. Filter from 1GB raw JSON.
+  strategy: DuckDB read_json on cdc_brfss_state.json, filter to Medicaid-relevant indicators
+  priority: medium

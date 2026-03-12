@@ -1,0 +1,42 @@
+domain: economic
+display_name: Economic & Social Context
+description: BLS CPI/unemployment, Census ACS and health insurance coverage, BEA GDP/income/transfers, SAIPE poverty, HUD
+  FMR/SAFMR, food environment, county health rankings
+entities:
+- geographic_area
+- state
+primary_tables:
+- table: fact_ahrf_county
+  row_count: 3235
+- table: fact_fair_market_rent
+  row_count: 4764
+- table: fact_food_environment
+  row_count: 957753
+- table: fact_saipe_poverty
+  row_count: 3196
+- table: fact_unemployment
+  row_count: 3621
+- table: fact_bea_state_gdp
+  row_count: 13440
+- table: fact_bea_gdp_growth
+  row_count: 149040
+- table: fact_bea_personal_income
+  row_count: 1275
+- table: fact_bea_income_components
+  row_count: 1275
+- table: fact_bea_transfer_receipts
+  row_count: 1275
+- table: fact_safmr_zip
+  row_count: 51830
+- table: fact_county_health_rankings
+  row_count: 262687
+- table: fact_census_health_insurance
+  row_count: 9152
+supporting_tables:
+- fact_acs_state
+- fact_cpi
+- fact_median_income
+- fact_state_gdp
+- fact_state_population
+- food_environment_variables
+- fact_food_environment_full

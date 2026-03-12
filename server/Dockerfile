@@ -11,7 +11,9 @@ COPY scripts/sync_lake.py ./scripts/sync_lake.py
 # CPRA upload tool needs reference CSVs (68 E/M codes, code-category map, GPCI)
 COPY data/reference/cpra/ ./data/reference/cpra/
 
-# Download lake data from S3 on build (or at runtime via entrypoint)
+# Pre-bake lake data (785MB of Parquet) — eliminates 60s cold start R2 sync
+COPY data/lake/ ./data/lake/
+
 COPY server/entrypoint.sh .
 RUN chmod +x entrypoint.sh
 

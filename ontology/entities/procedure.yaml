@@ -1,0 +1,75 @@
+entity: procedure
+display_name: Medical Procedure
+description: A HCPCS/CPT procedure code with RVUs and descriptions
+canonical_table: dim_procedure
+primary_key: cpt_hcpcs_code
+key_type: VARCHAR
+properties:
+- name: procedure_code
+  type: VARCHAR
+- name: description
+  type: VARCHAR
+- name: short_description
+  type: VARCHAR
+- name: category
+  type: VARCHAR
+- name: subcategory
+  type: VARCHAR
+- name: is_add_on
+  type: BOOLEAN
+- name: is_em_code
+  type: BOOLEAN
+- name: em_category
+  type: VARCHAR
+- name: work_rvu
+  type: DOUBLE
+- name: pe_rvu_facility
+  type: DOUBLE
+- name: pe_rvu_nonfacility
+  type: DOUBLE
+- name: mp_rvu
+  type: DOUBLE
+- name: total_rvu_facility
+  type: DOUBLE
+- name: total_rvu_nonfac
+  type: DOUBLE
+- name: medicare_rate_nonfac
+  type: DOUBLE
+- name: medicare_rate_fac
+  type: DOUBLE
+- name: conversion_factor
+  type: DECIMAL(6,4)
+- name: pricing_indicator
+  type: VARCHAR
+- name: coverage_code
+  type: VARCHAR
+- name: type_of_service
+  type: VARCHAR
+fact_tables:
+- dim_hcpcs
+- dim_procedure
+- fact_ambulance
+- fact_claims
+- fact_claims_monthly
+- fact_clfs
+- fact_dmepos
+- fact_doge_state_hcpcs
+- fact_dq_flag
+- fact_medicaid_rate
+- fact_medicare_dme_geo
+- fact_medicare_outpatient_geo
+- fact_medicare_physician_geo
+- fact_medicare_procedure_summary
+- fact_medicare_procedure_summary_2024
+- fact_medicare_rate
+- fact_medicare_rate_state
+- fact_opps_cap_2026
+- fact_part_b_discarded_drugs
+- fact_part_b_discarded_drugs_v2
+- fact_part_b_quarterly_spending
+- fact_part_b_spending_by_drug
+- fact_pfs_opps_cap
+- fact_pfs_rvu
+- fact_pfs_rvu_2026
+- fact_rate_comparison
+- rbcs_taxonomy_2025

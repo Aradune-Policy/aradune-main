@@ -1,0 +1,16 @@
+domain: quality
+metrics:
+- name: core_set_measure_rate
+  display_name: Core Set Measure Rate
+  description: State performance rate on a CMS Core Set quality measure
+  formula: measure_value (direct)
+  source_table: fact_quality_core_set_2024
+  aggregation: avg
+  unit: percentage
+- name: five_star_avg
+  display_name: Average Five-Star Rating
+  description: Average CMS overall Five-Star rating for nursing facilities
+  formula: AVG(overall_rating)
+  source_table: fact_five_star
+  aggregation: avg
+  unit: rating

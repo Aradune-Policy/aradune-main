@@ -1,0 +1,51 @@
+domain: workforce
+display_name: Workforce & Shortage Areas
+description: BLS healthcare wages (OEWS, MSA), HPSA shortage areas (primary care, dental, mental health), workforce projections,
+  NHSC field strength and scholars, behavioral health workforce, NP/PA supply
+entities:
+- occupation
+- state
+primary_tables:
+- table: dim_bls_occupation
+  row_count: 16
+- table: fact_bls_wage_msa
+  row_count: 5473
+- table: fact_hpsa
+  row_count: 68859
+- table: fact_mua_designation
+  row_count: 19645
+- table: fact_nursing_earnings
+  row_count: 41857
+- table: fact_nursing_workforce
+  row_count: 17640
+- table: fact_workforce_projections
+  row_count: 102528
+- table: fact_bls_oews
+  row_count: 38003
+- table: fact_bls_medicaid_occupations
+  row_count: 9752
+- table: fact_hpsa_dental
+  row_count: 30287
+- table: fact_hpsa_mental_health
+  row_count: 24761
+- table: fact_bh_workforce_projections
+  row_count: 12608
+- table: fact_np_pa_supply
+  row_count: 6961
+- table: fact_health_center_awards
+  row_count: 70902
+- table: fact_nhsc_scholar_pipeline
+  row_count: 56
+- table: fact_hrsa_awarded_grants
+  row_count: 70902
+- table: fact_hrsa_active_grants
+  row_count: 18641
+supporting_tables:
+- fact_bls_wage
+- fact_bls_wage_national
+- fact_nhsc_field_strength
+planned_tables:
+- table: fact_bls_oews_msa
+  description: BLS OEWS full occupation x MSA/metro area detail for all healthcare occupations. ~400K rows from all_data_M_2024.xlsx (78 MB in raw).
+  strategy: Filter all_data_M_2024.xlsx to healthcare SOCs (29-XXXX), output MSA-level wage data
+  priority: medium

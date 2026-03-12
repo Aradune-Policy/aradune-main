@@ -1,0 +1,73 @@
+entity: quality_measure
+display_name: Quality Measure
+description: A CMS quality measure from Core Set, Five-Star, or Scorecard
+canonical_table: dim_scorecard_measure
+primary_key: measure_id
+key_type: VARCHAR
+properties:
+- name: data_source_link
+  type: VARCHAR
+- name: data_period_type
+  type: VARCHAR
+- name: data_range
+  type: VARCHAR
+- name: data_source
+  type: VARCHAR
+- name: keywords
+  type: VARCHAR
+- name: has_national_view
+  type: BOOLEAN
+- name: has_state_view
+  type: BOOLEAN
+- name: source
+  type: VARCHAR
+fact_tables:
+- dim_scorecard_measure
+- fact_complications
+- fact_complications_hosp
+- fact_county_health_rankings
+- fact_hac_measure
+- fact_hai_hospital
+- fact_hai_hospital2
+- fact_hai_state
+- fact_hcahps_hospital
+- fact_hcahps_state
+- fact_hcbs_authority
+- fact_hospice_cahps_state
+- fact_hospice_provider
+- fact_hospice_quality
+- fact_hospice_quality_national
+- fact_hospice_state
+- fact_hospital_hrrp
+- fact_hospital_timely_effective
+- fact_imaging_hospital
+- fact_irf_provider
+- fact_ltch_provider
+- fact_maternal_health
+- fact_mds_quality
+- fact_mds_quality_full
+- fact_mspb_hospital
+- fact_mspb_hospital_detail
+- fact_mspb_state
+- fact_nh_claims_quality
+- fact_nh_mds_quality
+- fact_nsduh_prevalence
+- fact_nsduh_prevalence_2024
+- fact_nsduh_sae_totals_2024
+- fact_oas_cahps_hospital
+- fact_oas_cahps_state
+- fact_places_county
+- fact_psi90_hospital
+- fact_quality_core_set_2023
+- fact_quality_core_set_2024
+- fact_quality_measure
+- fact_quality_measures_2024_full
+- fact_scorecard
+- fact_scorecard_detail
+- fact_snf_quality_provider
+- fact_timely_effective
+- fact_timely_effective_hosp
+- fact_timely_effective_hospital
+- fact_unplanned_visits
+- fact_unplanned_visits_hosp
+- scorecard_measures

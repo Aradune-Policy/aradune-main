@@ -1,0 +1,68 @@
+domain: nursing
+display_name: Nursing Facilities
+description: Nursing facility Five-Star ratings, PBJ staffing (daily and summary), MDS quality and assessment data, deficiency
+  citations, SNF cost, chain performance, LTC facility characteristics
+entities:
+- geographic_area
+- hospital
+- quality_measure
+- state
+primary_tables:
+- table: fact_five_star
+  row_count: 14710
+- table: fact_mds_quality
+  row_count: 250070
+- table: fact_nh_deficiencies
+  row_count: 419452
+- table: fact_nh_deficiency
+  row_count: 419452
+- table: fact_nh_mds_quality
+  row_count: 250070
+- table: fact_nh_ownership
+  row_count: 144000
+- table: fact_nh_penalties
+  row_count: 17463
+- table: fact_nh_penalties_v2
+  row_count: 17463
+- table: fact_nh_provider_info
+  row_count: 14710
+- table: fact_nh_survey_summary
+  row_count: 43983
+- table: fact_pbj_employee
+  row_count: 65006704
+- table: fact_pbj_nonnurse_staffing
+  row_count: 1332804
+- table: fact_pbj_nurse_staffing
+  row_count: 1332436
+- table: fact_snf_cost
+  row_count: 44979
+- table: fact_snf_quality_provider
+  row_count: 838470
+- table: fact_mds_facility_level
+  row_count: 29224873
+- table: fact_mds_frequency
+  row_count: 133920
+- table: fact_mds_quality_full
+  row_count: 250070
+- table: fact_nh_chain_performance
+  row_count: 619
+- table: fact_nh_chain_performance_v2
+  row_count: 619
+- table: fact_ltc_facility_characteristics
+  row_count: 14717
+- table: fact_ltc_facility_characteristics_v2
+  row_count: 14717
+- table: fact_hcris_snf
+  row_count: 44979
+- table: fact_pbj_daily_nurse
+  row_count: 1332436
+- table: fact_pbj_daily_nonnurse
+  row_count: 1332436
+- table: fact_pbj_employee_summary
+  row_count: 14487
+supporting_tables:
+- fact_nh_state_averages
+- fact_snf_chow
+- fact_snf_chow_owners
+- fact_snf_owners
+- fact_snf_enrollments

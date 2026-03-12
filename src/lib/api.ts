@@ -24,4 +24,38 @@ export async function apiFetch<T>(path: string, fallbackPath?: string): Promise<
   throw new Error(`API request failed: ${path}`);
 }
 
+/**
+ * Get the Clerk session token for authenticated API requests.
+ * Returns null if Clerk is not configured or user is not signed in.
+ *
+ * This dynamically imports Clerk to avoid circular dependencies
+ * and only runs when Clerk is actually configured.
+ */
+let _getTokenFn: (() => Promise<string | null>) | null = null;
+
+export function setClerkTokenGetter(fn: () => Promise<string | null>) {
+  _getTokenFn = fn;
+}
+
+export async function getAuthToken(): Promise<string | null> {
+  if (!_getTokenFn) return null;
+  try {
+    return await _getTokenFn();
+  } catch {
+    return null;
+  }
+}
+
+/**
+ * Build auth headers for API requests.
+ * Returns an object with the Authorization header if a Clerk token is available.
+ */
+export async function getAuthHeaders(): Promise<Record<string, string>> {
+  const token = await getAuthToken();
+  if (token) {
+    return { Authorization: `Bearer ${token}` };
+  }
+  return {};
+}
+
 export { API_BASE };

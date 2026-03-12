@@ -1,8 +1,9 @@
-# Exclude large data files from Docker build context
+# Exclude large raw data files from Docker build context
 data/raw/
-data/lake/
 data/processed/
 data/sources/
+
+# Exclude heavy dev/build artifacts
 tools/mfs_scraper/aradune.db
 tools/mfs_scraper/aradune_cpra.duckdb
 node_modules/
@@ -11,11 +12,16 @@ src/
 public/
 docs/
 pipeline/
-*.parquet
+
+# Exclude large binary files
 *.duckdb
 *.xlsx
 *.zip
 *.gz
+
+# Lake data is pre-baked into the Docker image (785MB)
+# This eliminates the 60s cold start R2 sync
+
 __pycache__/
 .vite/
 dist/

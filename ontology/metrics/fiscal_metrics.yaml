@@ -1,0 +1,39 @@
+domain: expenditure
+metrics:
+- name: per_enrollee_spending
+  display_name: Per-Enrollee Spending
+  description: Total Medicaid spending divided by average monthly enrollment
+  formula: total_expenditure / avg_monthly_enrollment
+  source_tables:
+  - fact_expenditure
+  - fact_enrollment
+  aggregation: ratio
+  unit: currency
+  caveats:
+  - CHIP excluded from per-enrollee calculations
+  - Uses CMS-64 expenditure (may differ from state budget data)
+- name: federal_share_pct
+  display_name: Federal Share %
+  description: Federal share of total Medicaid expenditure
+  formula: federal_expenditure / total_expenditure
+  source_table: fact_expenditure
+  aggregation: ratio
+  unit: percentage
+- name: fmap_rate
+  display_name: FMAP Rate
+  description: Federal Medical Assistance Percentage for a state
+  formula: fmap (direct lookup)
+  source_table: fact_fmap
+  aggregation: avg
+  unit: percentage
+- name: cms64_spending_growth
+  display_name: CMS-64 Year-over-Year Spending Growth
+  description: Change in total computable expenditure by state between fiscal years
+  formula: (SUM(total_computable WHERE fiscal_year={year}) - SUM(total_computable WHERE fiscal_year={year-1})) / SUM(total_computable WHERE fiscal_year={year-1})
+  source_table: fact_cms64_multiyear
+  aggregation: ratio
+  unit: percentage
+  caveats:
+    - Net of recoveries. MAP (service) and ADM (admin) reported separately.
+    - FY2020-2022 inflated by FFCRA enhanced FMAP and COVID supplemental spending.
+    - Total computable = federal share + state share.

@@ -1,0 +1,34 @@
+entity: mco
+display_name: Managed Care Organization
+description: A Medicaid managed care plan
+canonical_table: fact_mc_enrollment_plan
+primary_key: plan_id
+key_type: VARCHAR
+properties:
+- name: state_name
+  type: VARCHAR
+- name: program_name
+  type: VARCHAR
+- name: plan_name
+  type: VARCHAR
+- name: geographic_region
+  type: VARCHAR
+- name: medicaid_only_enrollment
+  type: INTEGER
+- name: dual_enrollment
+  type: INTEGER
+- name: total_enrollment
+  type: INTEGER
+- name: year
+  type: INTEGER
+- name: parent_organization
+  type: VARCHAR
+- name: is_pace
+  type: BOOLEAN
+- name: source
+  type: VARCHAR
+- name: snapshot_date
+  type: DATE
+- name: snapshot
+  type: DATE
+fact_tables: []

@@ -1,0 +1,24 @@
+domain: policy
+display_name: Policy & Regulatory
+description: CMS policy documents (CIBs, SHO letters, SPAs, waivers), Federal Register rulemaking, and Medicaid enterprise
+  system standards
+entities:
+- state
+primary_tables:
+- table: fact_policy_chunk
+  row_count: 6058
+- table: fact_policy_document
+  row_count: 1039
+- table: fact_federal_register
+  row_count: 762
+- table: fact_federal_register_cms
+  row_count: 5982
+- table: fact_medicaid_enterprise
+  row_count: 68
+supporting_tables:
+- fact_spa
+planned_tables:
+- table: fact_section_1115_waivers
+  description: Section 1115 waiver tracker by state — approved, pending, expired, with key provisions and effective dates. Source KFF or Medicaid.gov. ~200 rows.
+  strategy: Scrape KFF waiver tracker HTML or compile from Medicaid.gov demonstration search
+  priority: high

@@ -1,0 +1,27 @@
+domain: workforce
+metrics:
+- name: wage_adequacy_ratio
+  display_name: Wage Adequacy Ratio
+  description: Medicaid rate implied hourly wage vs BLS market wage
+  formula: medicaid_implied_wage / bls_median_wage
+  source_tables:
+  - fact_medicaid_rate
+  - fact_bls_wage
+  aggregation: ratio
+  unit: ratio
+- name: hpsa_score
+  display_name: HPSA Shortage Score
+  description: Health Professional Shortage Area designation score
+  formula: hpsa_score (direct)
+  source_table: fact_hpsa
+  aggregation: avg
+  unit: score
+- name: hcbs_waitlist_per_capita
+  display_name: HCBS Waitlist per 1,000 Enrollees
+  description: People on HCBS waitlists per 1,000 Medicaid enrollees
+  formula: waitlist_count / (enrollment / 1000)
+  source_tables:
+  - fact_hcbs_waitlist
+  - fact_enrollment
+  aggregation: ratio
+  unit: rate_per_1000

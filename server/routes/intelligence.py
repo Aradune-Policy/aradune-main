@@ -547,6 +547,30 @@ async def intelligence(req: IntelligenceRequest, user: dict = Depends(require_cl
         except anthropic.APIError as e:
             raise HTTPException(status_code=502, detail=f"Claude API error in tool loop: {e}")
 
+    # If model still wants tools but we hit max rounds, force a text response
+    if response.stop_reason == "tool_use":
+        tool_uses = [b for b in response.content if b.type == "tool_use"]
+        tool_results = []
+        for tu in tool_uses:
+            output = _execute_tool(tu.name, tu.input)
+            tool_results.append({
+                "type": "tool_result",
+                "tool_use_id": tu.id,
+                "content": output,
+            })
+        all_messages.append({"role": "assistant", "content": response.content})
+        all_messages.append({"role": "user", "content": tool_results})
+        try:
+            response = client.messages.create(
+                model=route.model,
+                max_tokens=16000,
+                thinking=thinking_config,
+                system=system_prompt,
+                messages=all_messages,
+            )
+        except anthropic.APIError as e:
+            raise HTTPException(status_code=502, detail=f"Claude API error in final round: {e}")
+
     final_text = ""
     for block in response.content:
         if block.type == "thinking":
@@ -750,6 +774,32 @@ async def intelligence_stream(req: IntelligenceRequest, user: dict = Depends(req
                     thinking=thinking_config,
                     system=system_prompt,
                     tools=TOOLS,
+                    messages=all_messages,
+                )
+            except anthropic.APIError as e:
+                yield _sse_event("error", {"message": str(e)})
+                return
+
+        # ── If the model still wants tools but we hit max rounds, force a text response ──
+        if response.stop_reason == "tool_use":
+            # Append what we have and ask again without tools
+            all_messages.append({"role": "assistant", "content": response.content})
+            tool_uses = [b for b in response.content if b.type == "tool_use"]
+            tool_results = []
+            for tu in tool_uses:
+                output = _execute_tool(tu.name, tu.input)
+                tool_results.append({
+                    "type": "tool_result",
+                    "tool_use_id": tu.id,
+                    "content": output,
+                })
+            all_messages.append({"role": "user", "content": tool_results})
+            try:
+                response = client.messages.create(
+                    model=route.model,
+                    max_tokens=16000,
+                    thinking=thinking_config,
+                    system=system_prompt,
                     messages=all_messages,
                 )
             except anthropic.APIError as e:

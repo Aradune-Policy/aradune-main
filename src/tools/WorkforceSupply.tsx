@@ -53,15 +53,17 @@ export default function WorkforceSupply() {
   const [nhsc, setNhsc] = useState<NhscRow[]>([]);
   const [projections, setProjections] = useState<Record<string, unknown>[]>([]);
   const [loading, setLoading] = useState(false);
+  const [error, setError] = useState<string | null>(null);
 
   // Load wages for state
   useEffect(() => {
     if (subView !== "wages") return;
     setLoading(true);
+    setError(null);
     fetch(`${API_BASE}/api/wages/${state}`)
       .then((r) => r.json())
-      .then((d) => setWages(d.rows || []))
-      .catch(() => setWages([]))
+      .then((d) => { setWages(d.rows || []); setError(null); })
+      .catch(() => { setWages([]); setError("Unable to load wage data"); })
       .finally(() => setLoading(false));
   }, [state, subView]);
 
@@ -69,10 +71,11 @@ export default function WorkforceSupply() {
   useEffect(() => {
     if (subView !== "nhsc") return;
     setLoading(true);
+    setError(null);
     fetch(`${API_BASE}/api/workforce/nhsc?state_code=${state}`)
       .then((r) => r.json())
-      .then((d) => setNhsc(d.rows || []))
-      .catch(() => setNhsc([]))
+      .then((d) => { setNhsc(d.rows || []); setError(null); })
+      .catch(() => { setNhsc([]); setError("Unable to load NHSC data"); })
       .finally(() => setLoading(false));
   }, [state, subView]);
 
@@ -80,10 +83,11 @@ export default function WorkforceSupply() {
   useEffect(() => {
     if (subView !== "projections") return;
     setLoading(true);
+    setError(null);
     fetch(`${API_BASE}/api/workforce/projections?state_code=${state}`)
       .then((r) => r.json())
-      .then((d) => setProjections(d.rows || []))
-      .catch(() => setProjections([]))
+      .then((d) => { setProjections(d.rows || []); setError(null); })
+      .catch(() => { setProjections([]); setError("Unable to load projection data"); })
       .finally(() => setLoading(false));
   }, [state, subView]);
 
@@ -138,6 +142,9 @@ export default function WorkforceSupply() {
 
       {loading && (
         <div style={{ padding: 16, fontSize: 12, color: C.inkLight }}>Loading...</div>
+      )}
+      {!loading && error && (
+        <div style={{ padding: 16, fontSize: 12, color: C.neg }}>{error}</div>
       )}
 
       {/* ── BLS Wages ──────────────────────────────────────── */}

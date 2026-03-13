@@ -432,11 +432,11 @@ class CpraGenerator:
         """)
 
         # Filter to this state
-        self.db.execute(f"""
+        self.db.execute("""
             CREATE TABLE state_gpcis AS
             SELECT * FROM all_gpcis
-            WHERE state_code = '{self.state_code}'
-        """)
+            WHERE state_code = $1
+        """, [self.state_code])
 
         n_localities = self.db.execute(
             "SELECT COUNT(*) FROM state_gpcis"

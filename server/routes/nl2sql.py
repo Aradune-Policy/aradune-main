@@ -92,8 +92,9 @@ SCHEMA_CONTEXT = """You are a DuckDB SQL expert. You have access to a Medicaid d
   age_group VARCHAR, estimate_pct DOUBLE, ci_lower_pct DOUBLE, ci_upper_pct DOUBLE,
   survey_years VARCHAR
 
-### fact_fmap (51 rows) — Federal Medical Assistance Percentages
-  state_code VARCHAR, fiscal_year BIGINT, fmap_rate DOUBLE, efmap_rate DOUBLE
+### fact_fmap_historical — Federal Medical Assistance Percentages (MACPAC, authoritative)
+  state_code VARCHAR, fiscal_year BIGINT, rate_type VARCHAR, rate DOUBLE
+  -- rate_type: 'fmap' or 'efmap'. Use WHERE rate_type = 'fmap' for standard FMAP.
 
 ### fact_unwinding (57,759 rows) — Medicaid unwinding/redetermination outcomes
   state_code VARCHAR, metric VARCHAR, time_period BIGINT,

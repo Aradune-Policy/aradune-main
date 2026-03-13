@@ -360,9 +360,9 @@ export default function CaseloadForecaster() {
             const r = result as any;
             const summary = [
               `Caseload Forecast: ${STATE_NAMES[state] || state}`,
-              r.model ? `Model: ${r.model}` : null,
-              r.holdout_mape ? `MAPE: ${(r.holdout_mape * 100).toFixed(1)}%` : null,
-              r.forecast?.length ? `${r.forecast.length}-month forecast` : null,
+              r.categories?.[0]?.model_used ? `Model: ${r.categories[0].model_used}` : null,
+              r.categories?.[0]?.fit_mape ? `MAPE: ${(r.categories[0].fit_mape * 100).toFixed(1)}%` : null,
+              r.aggregate?.forecasts?.length ? `${r.aggregate.forecasts.length}-month forecast` : null,
             ].filter(Boolean).join(". ");
             addReportSection({
               id: crypto.randomUUID(),
@@ -927,8 +927,11 @@ export default function CaseloadForecaster() {
         const eligibilityMultiplier = 1 + (scenEligibility / 100);
         const enrollmentMultiplier = unemploymentMultiplier * eligibilityMultiplier;
         const rateMultiplier = 1 + (scenRateChange / 100);
+        // MC shift: each pp shift to MC reduces per-capita cost ~0.5% (MC capitation typically 90-95% of FFS)
+        const mcCostMultiplier = 1 - (scenMcShift * 0.005);
 
-        const agg = result!.aggregate;
+        const agg = result?.aggregate;
+        if (!agg) return null;
         const baselineTotal = agg.forecasts.reduce((s, f) => s + f.point, 0);
         const scenarioTotal = baselineTotal * enrollmentMultiplier;
         const deltaEnrollment = scenarioTotal - baselineTotal;
@@ -945,10 +948,10 @@ export default function CaseloadForecaster() {
           })),
         ];
 
-        // Expenditure impact
+        // Expenditure impact (MC shift affects cost, not enrollment)
         const hasExp = !!expResult;
         const baseExp = hasExp ? expResult.meta.total_projected : 0;
-        const scenExp = baseExp * enrollmentMultiplier * rateMultiplier;
+        const scenExp = baseExp * enrollmentMultiplier * rateMultiplier * mcCostMultiplier;
 
         const SB = "#5B6E8A";
         const SC = "#8B5CF6";
@@ -1048,9 +1051,9 @@ export default function CaseloadForecaster() {
             <Card accent={SC}>
               <CH title="Scenario Impact" sub="Compared to baseline forecast" />
               <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(140px, 1fr))", gap: 20, padding: "8px 0" }}>
-                <Met label="Baseline Enrollment" value={fmtNum(baselineTotal / agg.forecasts.length)} mono />
-                <Met label="Scenario Enrollment" value={fmtNum(scenarioTotal / agg.forecasts.length)} color={enrollmentMultiplier > 1 ? WARN : POS} mono />
-                <Met label="Enrollment Delta" value={(deltaEnrollment >= 0 ? "+" : "") + fmtNum(deltaEnrollment / agg.forecasts.length) + "/mo"} color={deltaEnrollment > 0 ? NEG : POS} mono />
+                <Met label="Baseline Enrollment" value={fmtNum(agg.forecasts.length ? baselineTotal / agg.forecasts.length : 0)} mono />
+                <Met label="Scenario Enrollment" value={fmtNum(agg.forecasts.length ? scenarioTotal / agg.forecasts.length : 0)} color={enrollmentMultiplier > 1 ? WARN : POS} mono />
+                <Met label="Enrollment Delta" value={(deltaEnrollment >= 0 ? "+" : "") + fmtNum(agg.forecasts.length ? deltaEnrollment / agg.forecasts.length : 0) + "/mo"} color={deltaEnrollment > 0 ? NEG : POS} mono />
                 {hasExp && <>
                   <Met label="Baseline Expenditure" value={fmtDollars(baseExp)} mono />
                   <Met label="Scenario Expenditure" value={fmtDollars(scenExp)} color={scenExp > baseExp ? WARN : POS} mono />
@@ -1095,8 +1098,8 @@ export default function CaseloadForecaster() {
                     </tr>
                   </thead>
                   <tbody>
-                    {result!.categories.map((c: { category: string; model_used: string; forecasts: { point: number }[] }, i: number) => {
-                      const baseAvg = c.forecasts.reduce((s: number, f: { point: number }) => s + f.point, 0) / c.forecasts.length;
+                    {(result?.categories ?? []).map((c: { category: string; model_used: string; forecasts: { point: number }[] }, i: number) => {
+                      const baseAvg = c.forecasts.length ? c.forecasts.reduce((s: number, f: { point: number }) => s + f.point, 0) / c.forecasts.length : 0;
                       const scenAvg = baseAvg * enrollmentMultiplier;
                       const delta = scenAvg - baseAvg;
                       return (

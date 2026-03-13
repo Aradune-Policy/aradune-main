@@ -148,7 +148,14 @@ export default function CpraGenerator() {
       fetch("/data/cpra_summary.json").then(r => r.json()).catch(() => null),
       fetch("/data/dq_state_notes.json").then(r => r.ok ? r.json() : {}).catch(() => ({})),
     ]).then(([mc, md, cf, sts, dim, summ, dqNotes]) => {
-      setMedicare(mc);
+      // Normalize medicare data: static file is {code: {rates: {state: {r,fr}}, d, w}}
+      // but MedicareData expects {rates: {code: {r,fr,d}}, cf, year}
+      if (mc && !mc.rates && !mc.cf) {
+        // Static file shape — wrap it
+        setMedicare({ rates: mc, cf: 33.4009, year: 2025 } as MedicareData);
+      } else {
+        setMedicare(mc);
+      }
       setMedicaid(md);
       setConvFactors(cf);
       setStatesData(sts);
@@ -281,7 +288,7 @@ export default function CpraGenerator() {
 
   // ── Build code rows ─────────────────────────────────────────────────
   const rows: CpraCodeRow[] = useMemo(() => {
-    if (!medicare || !medicaid || dim447.length === 0) return [];
+    if (!medicare?.rates || !medicaid || dim447.length === 0) return [];
 
     // Pre-computed rows from Terminal B (primary source)
     const emRows = cpraEm[st] || [];
@@ -336,9 +343,22 @@ export default function CpraGenerator() {
 
       if (medicaidRate <= 0) continue;
 
-      const mcEntry = medicare.rates[code];
-      const medicareRate: number | null = mcEntry ? mcEntry.r : null;
-      const desc = (fsEntry && fsEntry[1]) || dimEntry.description || (mcEntry && mcEntry.d) || code;
+      const mcRaw = medicare.rates[code] as MedicareEntry | any;
+      // Handle both API shape ({r, fr, d}) and static file shape ({rates: {state: {r, fr}}, d, w})
+      let medicareRate: number | null = null;
+      let mcDesc: string | undefined;
+      if (mcRaw) {
+        if (typeof mcRaw.r === "number") {
+          // API wrapper shape: entry is {r, fr, d, w}
+          medicareRate = mcRaw.r;
+          mcDesc = mcRaw.d;
+        } else if (mcRaw.rates && mcRaw.rates[st]) {
+          // Static file shape: entry is {rates: {state: {r, fr}}, d, w}
+          medicareRate = mcRaw.rates[st]?.r ?? null;
+          mcDesc = mcRaw.d;
+        }
+      }
+      const desc = (fsEntry && fsEntry[1]) || dimEntry.description || mcDesc || code;
 
       const pctMedicare = (medicareRate && medicareRate > 0) ? (medicaidRate / medicareRate) * 100 : null;
       let flag: CpraCodeRow["flag"] = "na";
@@ -593,7 +613,12 @@ ${stateConv ? `State methodology: ${stateConv.methodology_detail || stateConv.me
       });
       if (!res.ok) {
         const err = await res.json().catch(() => ({ detail: res.statusText }));
-        throw new Error(err.detail || err.errors?.[0]?.message || JSON.stringify(err));
+        throw new Error(
+          typeof err.detail === "string" ? err.detail
+            : err.detail?.errors?.[0]?.message
+            || err.detail?.message
+            || JSON.stringify(err.detail || err)
+        );
       }
       const data = await res.json();
       setUploadResult(data);

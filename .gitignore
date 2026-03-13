@@ -26,8 +26,14 @@ server/__pycache__/
 server/.env
 .env
 .env.local
+.env.vercel
 !.env.example
 *.pyc
+
+# Test artifacts
+.hypothesis/
+tests/chaos/
+data/tmp/
 
 # Working directories (local scraping, analysis, data processing)
 .wrangler/

@@ -47,8 +47,8 @@ function fmt(v: unknown, digits = 1): string {
   return isNaN(n) ? String(v) : n.toLocaleString("en-US", { maximumFractionDigits: digits });
 }
 
-function scoreColor(score: number | undefined): string {
-  if (!score) return C.ink;
+function scoreColor(score: number | undefined | null): string {
+  if (score == null) return C.ink;
   if (score >= 18) return C.neg;
   if (score >= 12) return C.warn;
   return C.ink;
@@ -64,13 +64,14 @@ export default function ShortageAreas() {
   const [hpsaRows, setHpsaRows] = useState<HpsaRow[]>([]);
   const [muaRows, setMuaRows] = useState<Record<string, unknown>[]>([]);
   const [loading, setLoading] = useState(false);
+  const [error, setError] = useState<string | null>(null);
 
   // National summary
   useEffect(() => {
     fetch(`${API_BASE}/api/hpsa/summary`)
       .then((r) => r.json())
-      .then((d) => setSummary(d.rows || []))
-      .catch(() => {});
+      .then((d) => { setSummary(d.rows || []); setError(null); })
+      .catch(() => { setError("Unable to load summary data"); });
   }, []);
 
   // HPSA detail
@@ -80,7 +81,7 @@ export default function ShortageAreas() {
     fetch(`${API_BASE}/api/hpsa/${state}`)
       .then((r) => r.json())
       .then((d) => setHpsaRows(d.rows || []))
-      .catch(() => setHpsaRows([]))
+      .catch(() => { setHpsaRows([]); setError("Unable to load HPSA data"); })
       .finally(() => setLoading(false));
   }, [state, view]);
 
@@ -91,7 +92,7 @@ export default function ShortageAreas() {
     fetch(`${API_BASE}/api/mua/${state}`)
       .then((r) => r.json())
       .then((d) => setMuaRows(d.rows || []))
-      .catch(() => setMuaRows([]))
+      .catch(() => { setMuaRows([]); setError("Unable to load MUA data"); })
       .finally(() => setLoading(false));
   }, [state, view]);
 
@@ -179,6 +180,11 @@ export default function ShortageAreas() {
               ))}
             </tbody>
           </table>
+          {summary.length === 0 && !loading && (
+            <div style={{ padding: 24, textAlign: "center", color: error ? C.neg : C.inkLight, fontSize: 12 }}>
+              {error || "Loading summary data..."}
+            </div>
+          )}
         </div>
       )}
 

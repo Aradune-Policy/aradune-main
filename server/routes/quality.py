@@ -251,7 +251,7 @@ async def hpsa_summary():
     with get_cursor() as cur:
         rows = cur.execute("""
             SELECT state_code, discipline,
-                   COUNT(*) AS total_hpsas,
+                   COUNT(DISTINCT hpsa_id) AS total_hpsas,
                    AVG(hpsa_score) AS avg_score,
                    SUM(designation_population) AS total_pop,
                    SUM(shortage) AS total_shortage,

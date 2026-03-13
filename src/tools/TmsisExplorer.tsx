@@ -872,8 +872,8 @@ export default function TmsisExplorer() {
         const growth = ((last.s/first.s-1)*100).toFixed(0);
         const peGrowth = ((last.pe/first.pe-1)*100).toFixed(0);
         ins.push({
-          id:"growth", q:"How fast is Medicaid spending growing?",
-          a:`Total spending grew ${growth}% from ${first.y} to ${last.y} ($${first.s.toFixed(0)}B to $${last.s.toFixed(0)}B). Per-enrollee costs rose ${peGrowth}%, outpacing enrollment changes.`,
+          id:"growth", q:"How fast is Medicaid OT claims spending growing?",
+          a:`T-MSIS OT claims spending grew ${growth}% from ${first.y} to ${last.y} ($${first.s.toFixed(0)}B to $${last.s.toFixed(0)}B). Per-enrollee costs rose ${peGrowth}%, outpacing enrollment changes. Note: OT claims are a subset of total Medicaid spending.`,
           data:trends.map(t=>({n:String(t.y),v:+t.s.toFixed(0)})), color:cB, unit:"$B",
           action:()=>{setMM("s");}
         });
@@ -996,6 +996,7 @@ export default function TmsisExplorer() {
   const rateOverview = useMemo(() => {
     if (!catSummary.length) return null;
     const totalW = catSummary.reduce((a, c) => a + c.claims, 0);
+    if (totalW === 0) return null;
     const s1All = catSummary.reduce((a, c) => a + c.s1 * c.claims, 0) / totalW;
     const naAll = catSummary.reduce((a, c) => a + c.na * c.claims, 0) / totalW;
     const adj1 = getAdj(s1);
@@ -1057,7 +1058,7 @@ export default function TmsisExplorer() {
       {/* DASHBOARD */}
       {tab==="dash" && <div style={{ display:"grid",gap:10 }}>
         <div style={{ display:"flex",gap:8,alignItems:"flex-start",justifyContent:"space-between",flexWrap:"wrap" }}>
-          <TabGuide title="Dashboard" desc="National overview of Medicaid spending. Pick a state and compare metric to see how it ranks. The hex map colors states by the selected metric; click any state to select it." tips="Try switching to Access mode and picking a provider type to see provider-per-enrollee density by state."/>
+          <TabGuide title="Dashboard" desc="T-MSIS Other Services (OT) claims data across states. This covers professional and outpatient services; it excludes inpatient, long-term care, and pharmacy claims. Pick a state and compare metric to see how it ranks." tips="Try switching to Access mode and picking a provider type to see provider-per-enrollee density by state."/>
           <ExportBtn label="Export States" onClick={()=>{
             const hdr=["State","Spend","Enrollment","Per Enrollee","FMAP","MC%","Providers","E&M Provs","HCBS Provs","BH Provs","Dental Provs"];
             const rows=SL.map(k=>{const s=states[k];return [s?.name||k,safe(s?.spend),safe(s?.enroll),safe(s?.pe),s?.fmap,s?.mc,safe(s?.provs),safe(s?.em),safe(s?.hcbs),safe(s?.bh),safe(s?.dn)];});
@@ -1067,9 +1068,9 @@ export default function TmsisExplorer() {
         {/* KPI Strip */}
         <div style={{ display:"grid",gridTemplateColumns:"repeat(auto-fit,minmax(80px,1fr))",gap:6 }}>
           <Card><Met l="States" v={SL.length}/></Card>
-          <Card><Met l="Total Spend" v={f$(SL.reduce((a,k)=>a+safe(states[k]?.spend),0))}/></Card>
+          <Card><Met l="OT Claims Spend" v={f$(SL.reduce((a,k)=>a+safe(states[k]?.spend),0))}/></Card>
           <Card><Met l="Enrollment" v={fN(SL.reduce((a,k)=>a+safe(states[k]?.enroll),0))}/></Card>
-          <Card><Met l="Per Enrollee" v={f$(natlPE)}/></Card>
+          <Card><Met l="OT Per Enrollee" v={f$(natlPE)}/></Card>
           <Card><Met l="HCPCS Codes" v={codes.length.toLocaleString()}/></Card>
         </div>
         {/* Controls */}
@@ -1902,7 +1903,7 @@ export default function TmsisExplorer() {
               {(() => {
                 const flPb = r.provider_benchmarks!.find(pb => pb.state === ccbhcState);
                 const topPb = r.provider_benchmarks![0];
-                if (flPb && topPb && topPb.state !== ccbhcState) {
+                if (flPb && topPb && topPb.state !== ccbhcState && flPb.per_provider > 0) {
                   const ratio = topPb.per_provider / flPb.per_provider;
                   return <div style={{ padding:"6px 0 0",fontSize:10,color:A,lineHeight:1.5 }}>
                     <strong>Finding:</strong> {ccbhcState} per-provider CCBHC spending ({f$$(flPb.per_provider)}) is {ratio.toFixed(1)}x lower than {topPb.state} ({f$$(topPb.per_provider)}), reflecting rate adequacy gaps and the absence of an enhanced CCBHC payment model.
@@ -2265,7 +2266,7 @@ export default function TmsisExplorer() {
                 const recentAvg = recent.length > 0 ? Math.round(recent.reduce((a,t) => a + t.total_claims, 0) / recent.length) : 0;
                 return <div style={{ display:"grid",gap:6 }}>
                   <div style={{ fontSize:10,color:A,lineHeight:1.5,padding:"6px 10px",background:`${cB}06`,borderRadius:6,borderLeft:`3px solid ${cB}` }}>
-                    <strong>COVID peak:</strong> {peak.month}: {fNu(peak.total_claims)} telehealth claims ({f$$(peak.total_paid)}). <strong>2024 average:</strong> {fNu(recentAvg)}/month, an {((recentAvg / peak.total_claims) * 100).toFixed(0)}% retention rate from pandemic peak.
+                    <strong>COVID peak:</strong> {peak.month}: {fNu(peak.total_claims)} telehealth claims ({f$$(peak.total_paid)}). <strong>2024 average:</strong> {fNu(recentAvg)}/month{peak.total_claims > 0 ? `, an ${((recentAvg / peak.total_claims) * 100).toFixed(0)}% retention rate from pandemic peak` : ""}.
                   </div>
                   <div style={{ fontSize:9,color:AL,fontStyle:"italic" }}>
                     These are telehealth-specific HCPCS codes only (99441-99443, G2010, G2012). Services delivered via telehealth using modifier 95/GT on base codes (e.g., 90834) are counted under the base code, significantly understating true telehealth volume.

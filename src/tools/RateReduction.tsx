@@ -124,6 +124,7 @@ export default function RateReduction() {
   const [medMap, setMedMap] = useState<Record<string, number>>({});
   const [medDescs, setMedDescs] = useState<Record<string, string>>({});
   const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
 
   // Load static data
   useEffect(() => {
@@ -136,14 +137,16 @@ export default function RateReduction() {
       setDescMap(descs as Record<string, string>);
       const mRates: Record<string, number> = {};
       const mDescs: Record<string, string> = {};
-      const rates = (med as MedRates).rates;
-      for (const [code, entry] of Object.entries(rates)) {
-        mRates[code] = entry.r ?? (entry.rvu ? entry.rvu * MCR_CF : 0);
-        if (entry.d) mDescs[code] = entry.d;
+      const rates = (med as MedRates)?.rates;
+      if (rates) {
+        for (const [code, entry] of Object.entries(rates)) {
+          mRates[code] = entry?.r ?? (entry?.rvu ? entry.rvu * MCR_CF : 0);
+          if (entry?.d) mDescs[code] = entry.d;
+        }
       }
       setMedMap(mRates);
       setMedDescs(mDescs);
-    }).catch(() => { /* Static data failed — tool still works with DuckDB data */ });
+    }).catch(() => { setError("Unable to load Medicare rate reference data. Analysis will proceed without Medicare comparisons."); });
     return () => { cancelled = true; };
   }, []);
 
@@ -163,14 +166,15 @@ export default function RateReduction() {
       LIMIT 500
     `;
     query(sql).then(result => {
-      setRawData(result.rows.map(r => ({
-        hcpcs_code: String(r.hcpcs_code ?? ""),
-        total_paid: Number(r.total_paid ?? 0),
-        total_claims: Number(r.total_claims ?? 0),
-        total_bene: Number(r.total_bene ?? 0),
+      setRawData((result?.rows ?? []).map(r => ({
+        hcpcs_code: String(r?.hcpcs_code ?? ""),
+        total_paid: Number(r?.total_paid ?? 0),
+        total_claims: Number(r?.total_claims ?? 0),
+        total_bene: Number(r?.total_bene ?? 0),
       })));
+      setError(null);
       setLoading(false);
-    }).catch(() => setLoading(false));
+    }).catch(() => { setError("Unable to load spending data. The claims dataset may not be available."); setLoading(false); });
   }, [st]);
 
   // Filtered + reduction analysis
@@ -178,7 +182,7 @@ export default function RateReduction() {
     let filtered = rawData;
     if (cat !== "all") {
       const preset = getPreset(cat);
-      if (preset && preset.codes.length > 0) {
+      if (preset && preset.codes?.length > 0) {
         const codes = new Set(preset.codes);
         filtered = rawData.filter(r => codes.has(r.hcpcs_code));
       }
@@ -266,6 +270,12 @@ export default function RateReduction() {
           {FILTERS.map(f => <Pill key={f.id} label={f.label} on={cat === f.id} onClick={() => setCat(f.id)} />)}
         </div>
       </Card>
+
+      {error && (
+        <div style={{ padding: "12px 16px", marginBottom: 16, borderRadius: 8, background: "#FEE2E2", border: `1px solid ${NEG}`, color: NEG, fontSize: 13, fontFamily: FB }}>
+          {error}
+        </div>
+      )}
 
       {loading ? (
         <Card><p style={{ color: AL, fontSize: 13, textAlign: "center", padding: 40 }}>Loading spending data for {STATE_NAMES[st] ?? st}...</p></Card>

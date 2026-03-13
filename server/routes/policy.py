@@ -62,12 +62,25 @@ async def managed_care(state_code: str, year: int = Query(None)):
 
 @router.get("/api/policy/fmap")
 async def fmap_rates():
-    """Get Federal Medical Assistance Percentages for all states."""
+    """Get FMAP for all states from fact_fmap_historical (MACPAC, authoritative)."""
     with get_cursor() as cur:
         rows = cur.execute("""
-            SELECT state_code, fiscal_year, fmap_rate, efmap_rate
-            FROM fact_fmap
-            ORDER BY state_code
+            WITH latest_fy AS (
+                SELECT MAX(fiscal_year) AS fy FROM fact_fmap_historical WHERE rate_type = 'fmap'
+            )
+            SELECT
+                f.state_code,
+                f.fiscal_year,
+                f.rate AS fmap_rate,
+                e.rate AS efmap_rate
+            FROM fact_fmap_historical f
+            LEFT JOIN fact_fmap_historical e
+                ON f.state_code = e.state_code
+                AND e.rate_type = 'efmap'
+                AND e.fiscal_year = f.fiscal_year
+            WHERE f.rate_type = 'fmap'
+              AND f.fiscal_year = (SELECT fy FROM latest_fy)
+            ORDER BY f.state_code
         """).fetchall()
         columns = ["state_code", "fiscal_year", "fmap_rate", "efmap_rate"]
         return [dict(zip(columns, r)) for r in rows]

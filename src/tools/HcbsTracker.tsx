@@ -106,6 +106,7 @@ export default function HcbsTracker() {
   const [blsData, setBlsData] = useState<BlsData | null>(null);
   const [hcpcsData, setHcpcsData] = useState<HcpcsEntry[]>([]);
   const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
 
   // Load data on mount — try API for BLS, fall back to static JSON
   useEffect(() => {
@@ -116,20 +117,26 @@ export default function HcbsTracker() {
         if (res.ok) return res.json();
       } catch { /* API unavailable */ }
       const r = await fetch("/data/bls_wages.json");
-      if (!r.ok) throw new Error("Failed");
+      if (!r.ok) throw new Error("Failed to load BLS wage data");
       return r.json();
     }
     Promise.all([
-      fetch("/data/soc_hcpcs_crosswalk.json").then(r => { if (!r.ok) throw new Error("Failed"); return r.json(); }),
+      fetch("/data/soc_hcpcs_crosswalk.json").then(r => { if (!r.ok) throw new Error("Failed to load crosswalk data"); return r.json(); }),
       loadBls(),
-      fetch("/data/hcpcs.json").then(r => { if (!r.ok) throw new Error("Failed"); return r.json(); }),
+      fetch("/data/hcpcs.json").then(r => { if (!r.ok) throw new Error("Failed to load HCPCS data"); return r.json(); }),
     ]).then(([xw, bls, hcpcs]) => {
       if (cancelled) return;
-      setCrosswalk((xw as { categories: CrosswalkCat[] }).categories);
-      setBlsData(bls as BlsData);
+      const categories = (xw as { categories?: CrosswalkCat[] })?.categories;
+      setCrosswalk(Array.isArray(categories) ? categories : []);
+      setBlsData(bls as BlsData ?? null);
       setHcpcsData(Array.isArray(hcpcs) ? hcpcs : []);
       setLoading(false);
-    }).catch(() => { if (!cancelled) setLoading(false); });
+    }).catch((err) => {
+      if (!cancelled) {
+        setError(err instanceof Error ? err.message : "Failed to load HCBS data. Please refresh the page.");
+        setLoading(false);
+      }
+    });
     return () => { cancelled = true; };
   }, []);
 
@@ -142,6 +149,7 @@ export default function HcbsTracker() {
 
   // Get T-MSIS rate for a code in a state
   const getRate = (code: string, state: string): number => {
+    if (!hcpcsData) return 0;
     for (const h of hcpcsData) {
       const c = h.code ?? h.c;
       if (c === code) {
@@ -155,11 +163,11 @@ export default function HcbsTracker() {
   // Code-level analysis for selected state + category
   const codeAnalysis = useMemo(() => {
     if (!curCat || !blsData) return [];
-    const blsState = blsData.states[st]?.[curCat.soc];
-    const blsNational = blsData.national[curCat.soc];
+    const blsState = blsData.states?.[st]?.[curCat.soc];
+    const blsNational = blsData.national?.[curCat.soc];
     const blsMedian = blsState?.h_median ?? blsNational?.h_median ?? 0;
 
-    return curCat.codes.filter(c => c.units_per_hour).map(code => {
+    return (curCat.codes ?? []).filter(c => c.units_per_hour).map(code => {
       const rate = getRate(code.hcpcs, st);
       const grossHourly = rate * (code.units_per_hour ?? 1);
       const workerHourly = grossHourly * (1 - overhead / 100);
@@ -186,15 +194,15 @@ export default function HcbsTracker() {
   // All-state comparison for primary HCBS code
   const allStates = useMemo(() => {
     if (!curCat || !blsData) return [];
-    const primaryCode = curCat.codes.find(c => c.units_per_hour);
+    const primaryCode = (curCat.codes ?? []).find(c => c.units_per_hour);
     if (!primaryCode) return [];
 
     return STATES_LIST.map(s => {
       const rate = getRate(primaryCode.hcpcs, s);
       const grossHourly = rate * (primaryCode.units_per_hour ?? 1);
       const workerHourly = grossHourly * (1 - overhead / 100);
-      const blsState = blsData.states[s]?.[curCat.soc];
-      const blsMedian = blsState?.h_median ?? blsData.national[curCat.soc]?.h_median ?? 0;
+      const blsState = blsData.states?.[s]?.[curCat.soc];
+      const blsMedian = blsState?.h_median ?? blsData?.national?.[curCat.soc]?.h_median ?? 0;
       const workerPct = grossHourly > 0 ? ((1 - overhead / 100) * 100) : 0;
       return {
         st: s,
@@ -244,6 +252,10 @@ export default function HcbsTracker() {
 
       {loading ? (
         <Card><p style={{ color: AL, fontSize: 13, textAlign: "center", padding: 40 }}>Loading wage and rate data...</p></Card>
+      ) : error ? (
+        <Card accent={NEG}>
+          <p style={{ color: NEG, fontSize: 13, textAlign: "center", padding: 40, margin: 0 }}>{error}</p>
+        </Card>
       ) : (
         <>
           {/* Controls */}
@@ -270,7 +282,7 @@ export default function HcbsTracker() {
               </div>
             </div>
             <div style={{ marginTop: 12 }}>
-              {crosswalk.map(c => <Pill key={c.id} label={c.name} on={catId === c.id} onClick={() => setCatId(c.id)} />)}
+              {(crosswalk ?? []).map(c => <Pill key={c.id} label={c.name} on={catId === c.id} onClick={() => setCatId(c.id)} />)}
             </div>
             {curCat && (
               <p style={{ fontSize: 11, color: AL, margin: "8px 0 0", fontStyle: "italic" }}>{curCat.overhead_note}</p>
@@ -311,7 +323,7 @@ export default function HcbsTracker() {
               borderRadius: 8, fontSize: 12, fontWeight: 600,
               color: summary.workerPct >= 80 ? POS : WARN }}>
               {summary.workerPct >= 80
-                ? `✓ At ${overhead}% overhead, ${STATE_NAMES[st]}'s HCBS rates meet the 80/20 pass-through standard`
+                ? `✓ At ${overhead}% overhead, ${STATE_NAMES[st] ?? st}'s HCBS rates meet the 80/20 pass-through standard`
                 : `⚠ At ${overhead}% overhead, only ${summary.workerPct}% reaches workers. Below the 80% pass-through target.`}
             </div>
           </Card>
@@ -380,7 +392,7 @@ export default function HcbsTracker() {
           {chartData.length > 0 && (
             <Card>
               <CH title="Cross-State Comparison"
-                sub={`Implied worker hourly for ${curCat?.codes.find(c => c.units_per_hour)?.hcpcs ?? ""} at ${overhead}% overhead`} />
+                sub={`Implied worker hourly for ${(curCat?.codes ?? []).find(c => c.units_per_hour)?.hcpcs ?? ""} at ${overhead}% overhead`} />
               <ChartActions filename="hcbs-comparison">
               <ResponsiveContainer width="100%" height={Math.max(400, chartData.length * 22)}>
                 <BarChart data={chartData} layout="vertical" margin={{ left: 35, right: 20, top: 5, bottom: 5 }}>

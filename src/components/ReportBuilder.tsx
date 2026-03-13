@@ -68,31 +68,31 @@ export default function ReportBuilder() {
 
   return (
     <>
-      {/* Floating "Report" button — always visible */}
-      <button
-        onClick={() => setReportBuilderOpen((o) => !o)}
-        style={{
-          position: "fixed",
-          bottom: 24,
-          right: 24,
-          zIndex: 199,
-          background: C.brand,
-          color: C.white,
-          border: "none",
-          borderRadius: 8,
-          padding: "10px 18px",
-          fontSize: 13,
-          fontWeight: 600,
-          fontFamily: FONT.body,
-          cursor: "pointer",
-          boxShadow: SHADOW_LG,
-          display: "flex",
-          alignItems: "center",
-          gap: 8,
-        }}
-      >
-        Report
-        {reportSections.length > 0 && (
+      {/* Floating report indicator — only visible when sections have been added */}
+      {reportSections.length > 0 && (
+        <button
+          onClick={() => setReportBuilderOpen((o) => !o)}
+          style={{
+            position: "fixed",
+            bottom: 24,
+            right: 24,
+            zIndex: 199,
+            background: C.brand,
+            color: C.white,
+            border: "none",
+            borderRadius: 8,
+            padding: "10px 18px",
+            fontSize: 12,
+            fontWeight: 600,
+            fontFamily: FONT.body,
+            cursor: "pointer",
+            boxShadow: SHADOW_LG,
+            display: "flex",
+            alignItems: "center",
+            gap: 8,
+          }}
+        >
+          Export Report
           <span
             style={{
               background: C.white,
@@ -109,8 +109,8 @@ export default function ReportBuilder() {
           >
             {reportSections.length}
           </span>
-        )}
-      </button>
+        </button>
+      )}
 
       {/* Slide-out panel */}
       {reportBuilderOpen && (

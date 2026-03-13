@@ -442,7 +442,7 @@ def _build_cpra_html_report(data: dict) -> str:
             <td style="text-align:right;">{cat['median_pct_medicare']}%</td>
             <td style="text-align:right;">{cat['min_pct_medicare']}%-{cat['max_pct_medicare']}%</td>
             <td style="text-align:right;">{cat['n_codes']}</td>
-            <td style="text-align:right;">{cat['total_claims']:,}</td>
+            <td style="text-align:right;">{(cat['total_claims'] or 0):,}</td>
         </tr>"""
 
     cat_tables = ""
@@ -457,8 +457,8 @@ def _build_cpra_html_report(data: dict) -> str:
             pct_str = f"{pct}%" if pct is not None else "---"
             med_str = dollar(r["medicaid_rate"]) if r["has_medicaid_rate"] else "---"
             mcr_str = dollar(r["medicare_nf_rate_avg"])
-            claims = "*" if r["is_suppressed"] else f"{r['total_claims']:,}"
-            benes = "*" if r["is_suppressed"] else f"{r['unique_beneficiaries']:,}"
+            claims = "*" if r["is_suppressed"] else f"{(r['total_claims'] or 0):,}"
+            benes = "*" if r["is_suppressed"] else f"{(r['unique_beneficiaries'] or 0):,}"
             bg = pct_bg(pct)
             clr = pct_color(pct)
             table_rows += f"""<tr>
@@ -503,7 +503,7 @@ def _build_cpra_html_report(data: dict) -> str:
             <td style="text-align:right;">{r['median_pct_medicare']}%</td>
             <td style="text-align:right;">{r['min_pct_medicare']}%</td>
             <td style="text-align:right;">{r['max_pct_medicare']}%</td>
-            <td style="text-align:right;">{r['total_claims']:,}</td>
+            <td style="text-align:right;">{(r['total_claims'] or 0):,}</td>
         </tr>"""
 
     n_loc = m['n_localities']

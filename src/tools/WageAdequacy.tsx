@@ -172,6 +172,7 @@ export default function WageAdequacy() {
   const [statesData, setStates] = useState<Record<string, unknown> | null>(null);
   const [oesIndex, setOesIndex] = useState<Record<string, OesEntry>>({});
   const [loading, setLoading] = useState(true);
+  const [loadError, setLoadError] = useState<string | null>(null);
 
   // Load data — try API first, fall back to static JSON
   useEffect(() => {
@@ -205,7 +206,10 @@ export default function WageAdequacy() {
           for (const e of oes as OesEntry[]) { idx[`${e.state}|${e.soc}`] = e; }
           setOesIndex(idx);
         }
-      } catch(e) { console.error(e); }
+      } catch(e) {
+        console.error(e);
+        if (!cancelled) setLoadError("Failed to load wage data. Please refresh the page or try again later.");
+      }
       if (!cancelled) setLoading(false);
     }
     load();
@@ -245,7 +249,7 @@ export default function WageAdequacy() {
   const analysis = useMemo(() => {
     if (!blsData?.states || !curCat) return null;
 
-    const stateWages = blsData.states[s1];
+    const stateWages = blsData.states?.[s1];
     const natlWages = blsData.national;
     if (!stateWages) return null;
 
@@ -257,7 +261,7 @@ export default function WageAdequacy() {
     const minWage = MIN_WAGE[s1] || FED_MIN;
 
     // Get T-MSIS rates for each code in this category
-    const codeAnalysis: CodeAnalysisEntry[] = curCat.codes.map((code: CrosswalkCode) => {
+    const codeAnalysis: CodeAnalysisEntry[] = (curCat.codes ?? []).map((code: CrosswalkCode) => {
       const tmsisRate = getTmsisRateAlt(s1, code.hcpcs);
       let impliedHourly: number | null = null;
       if (tmsisRate && code.units_per_hour) {
@@ -290,9 +294,10 @@ export default function WageAdequacy() {
 
   // All-state comparison for the primary code
   const allStates = useMemo((): AllStateEntry[] => {
-    if (!blsData?.states || !curCat || !curCat.codes[0]) return [];
+    if (!blsData?.states || !curCat || !curCat.codes?.length) return [];
     const socCode = curCat.soc;
     const primaryCode = curCat.codes.find((c: CrosswalkCode) => c.units_per_hour) || curCat.codes[0];
+    if (!primaryCode) return [];
 
     // Collect all states with either BLS or OES data
     const allStateKeys = new Set(SL);
@@ -320,7 +325,7 @@ export default function WageAdequacy() {
         impliedHourly,
         tmsisRate,
         gap: (impliedHourly && blsMedian) ? impliedHourly - blsMedian : null,
-        gapPct: (impliedHourly && blsMedian) ? ((impliedHourly / blsMedian - 1) * 100) : null,
+        gapPct: (impliedHourly && blsMedian && blsMedian > 0) ? ((impliedHourly / blsMedian - 1) * 100) : null,
         minWage: minW,
         belowMin: impliedHourly != null && impliedHourly < minW,
         emp: oes?.employment || wage?.emp || 0,
@@ -331,6 +336,15 @@ export default function WageAdequacy() {
 
 
   if (loading) return <LoadingBar text="Loading wage data" detail="BLS occupational wages + T-MSIS rates" />;
+
+  if (loadError) return (
+    <div style={{ maxWidth:640,margin:"0 auto",padding:"40px 16px",fontFamily:"Helvetica Neue,Arial,sans-serif",color:A }}>
+      <Card><div style={{ padding:24,textAlign:"center" }}>
+        <div style={{ fontSize:16,fontWeight:600,marginBottom:8,color:NEG }}>Error Loading Data</div>
+        <div style={{ fontSize:12,color:AL,lineHeight:1.7 }}>{loadError}</div>
+      </div></Card>
+    </div>
+  );
 
   if (!blsData) return (
     <div style={{ maxWidth:640,margin:"0 auto",padding:"40px 16px",fontFamily:"Helvetica Neue,Arial,sans-serif",color:A }}>
@@ -343,7 +357,10 @@ export default function WageAdequacy() {
     </div>
   );
 
-  const categories = crosswalk?.categories || [];
+  const categories = crosswalk?.categories ?? [];
+  const dataWarnings: string[] = [];
+  if (!crosswalk) dataWarnings.push("SOC-HCPCS crosswalk not loaded — category analysis unavailable.");
+  if (!hcpcsData) dataWarnings.push("T-MSIS rate data not loaded — Medicaid rate comparisons unavailable.");
 
   return (
     <div style={{ maxWidth:960,margin:"0 auto",padding:"10px 16px 40px",fontFamily:"Helvetica Neue,Arial,sans-serif",color:A }}>
@@ -362,7 +379,7 @@ export default function WageAdequacy() {
           }}>Ask Aradune</button>
           <ExportBtn label="Export Analysis" onClick={() => {
             if (!allStates.length) return;
-            const pc = curCat?.codes.find((c: CrosswalkCode)=>c.units_per_hour) || curCat?.codes[0];
+            const pc = curCat?.codes?.find((c: CrosswalkCode)=>c.units_per_hour) || curCat?.codes?.[0];
             downloadCSV(`wage_adequacy_${cat}_${overhead}pct.csv`,
               ["State","BLS Median $/hr","Medicaid Rate","Implied Wage $/hr","Gap $/hr","Gap %","Min Wage","Below Min Wage","Employment"],
               allStates.map((s: AllStateEntry)=>[s.name,s.blsMedian?.toFixed(2),s.tmsisRate?.toFixed(2),s.impliedHourly?.toFixed(2),s.gap?.toFixed(2),s.gapPct?.toFixed(1),s.minWage,s.belowMin?"YES":"",s.emp])
@@ -376,6 +393,11 @@ export default function WageAdequacy() {
       <Card><div style={{ padding:"10px 14px",fontSize:11,color:AL,lineHeight:1.6,background:"rgba(46,107,74,0.03)",borderLeft:`3px solid ${cB}` }}>
         <span style={{ fontWeight:700,color:A }}>Rate & Wage Comparison.</span> Compares Medicaid reimbursement rates to BLS market wages for the equivalent occupation. For each service category, the tool converts the Medicaid rate into an implied hourly wage (after agency overhead), then shows how it compares to what workers in that field actually earn.
       </div></Card>
+
+      {/* Data warnings */}
+      {dataWarnings.length > 0 && <Card><div style={{ padding:"10px 14px",fontSize:11,color:WARN,lineHeight:1.6,background:"rgba(184,134,11,0.04)",borderLeft:`3px solid ${WARN}` }}>
+        {dataWarnings.map((w, i) => <div key={i}>{w}</div>)}
+      </div></Card>}
 
       {/* Controls */}
       <div style={{ display:"flex",gap:10,alignItems:"flex-end",flexWrap:"wrap",margin:"10px 0" }}>
@@ -405,32 +427,32 @@ export default function WageAdequacy() {
         <Card accent={analysis.primary.gapVsBls!=null&&analysis.primary.gapVsBls<0?NEG:POS}>
           <div style={{ padding:"14px 16px 10px" }}>
             <div style={{ fontSize:18,fontWeight:300 }}>{analysis.stateName}</div>
-            <div style={{ fontSize:10,color:AL }}>{curCat?.name} · {analysis.wage.title}</div>
+            <div style={{ fontSize:10,color:AL }}>{curCat?.name} · {analysis.wage.title ?? "—"}</div>
           </div>
           <div style={{ display:"grid",gridTemplateColumns:"repeat(auto-fit,minmax(130px,1fr))",padding:"0 6px 12px" }}>
-            <Met l="BLS Median Wage" v={`$${safe(analysis.wage.h_median).toFixed(2)}/hr`} sub={oesEntry ? `${fN(oesEntry.employment)} employed · $${oesEntry.h_10.toFixed(2)}-$${oesEntry.h_90.toFixed(2)} range` : `${fN(analysis.wage.emp ?? 0)} employed`}/>
-            <Met l="Medicaid Implied Wage" v={analysis.primary.impliedHourly!=null?`$${analysis.primary.impliedHourly.toFixed(2)}/hr`:"—"} sub={`${analysis.primary.hcpcs} @ $${safe(analysis.primary.tmsisRate).toFixed(2)}/${analysis.primary.unit}`} cl={analysis.primary.gapVsBls!=null&&analysis.primary.gapVsBls<0?NEG:POS}/>
+            <Met l="BLS Median Wage" v={`$${safe(analysis.wage.h_median).toFixed(2)}/hr`} sub={oesEntry ? `${fN(oesEntry.employment ?? 0)} employed · $${safe(oesEntry.h_10).toFixed(2)}-$${safe(oesEntry.h_90).toFixed(2)} range` : `${fN(analysis.wage.emp ?? 0)} employed`}/>
+            <Met l="Medicaid Implied Wage" v={analysis.primary.impliedHourly!=null?`$${analysis.primary.impliedHourly.toFixed(2)}/hr`:"—"} sub={`${analysis.primary.hcpcs} @ $${safe(analysis.primary.tmsisRate).toFixed(2)}/${analysis.primary.unit || "unit"}`} cl={analysis.primary.gapVsBls!=null&&analysis.primary.gapVsBls<0?NEG:POS}/>
             <Met l="Wage Gap" v={analysis.primary.gapVsBls!=null?`${analysis.primary.gapVsBls>=0?"+":""}$${analysis.primary.gapVsBls.toFixed(2)}/hr`:"—"} sub={analysis.primary.gapVsBls!=null&&analysis.primary.impliedHourly!=null&&analysis.wage.h_median?`${((analysis.primary.impliedHourly/analysis.wage.h_median-1)*100).toFixed(0)}% vs market`:"No rate data"} cl={analysis.primary.gapVsBls!=null&&analysis.primary.gapVsBls<0?NEG:POS}/>
           </div>
           {analysis.primary.gapVsMin!=null && analysis.primary.gapVsMin<0 && (
             <div style={{ padding:"6px 16px 10px",borderTop:`1px solid ${BD}`,background:"rgba(164,38,44,0.04)" }}>
               <span style={{ fontSize:10,fontWeight:700,color:NEG }}>⚠ Below minimum wage.</span>
-              <span style={{ fontSize:10,color:AL,marginLeft:4 }}>{analysis.stateName} min wage is ${analysis.minWage.toFixed(2)}/hr. Medicaid rate implies ${analysis.primary.impliedHourly?.toFixed(2)}/hr after {overhead}% overhead.</span>
+              <span style={{ fontSize:10,color:AL,marginLeft:4 }}>{analysis.stateName} min wage is ${analysis.minWage.toFixed(2)}/hr. Medicaid rate implies ${safe(analysis.primary.impliedHourly).toFixed(2)}/hr after {overhead}% overhead.</span>
             </div>
           )}
           <div style={{ padding:"4px 16px 10px",fontSize:9,color:AL,lineHeight:1.6 }}>
-            <b>How this works:</b> {analysis.primary.hcpcs} ({analysis.primary.desc}) pays ${safe(analysis.primary.tmsisRate).toFixed(2)} per {analysis.primary.unit} in T-MSIS actual-paid data. At {analysis.primary.units_per_hour} units/hour = ${(safe(analysis.primary.tmsisRate)*safe(analysis.primary.units_per_hour)).toFixed(2)}/hr gross. After {overhead}% agency overhead → ${analysis.primary.impliedHourly?.toFixed(2)}/hr worker wage. BLS reports the median {analysis.wage.title?.toLowerCase()} in {analysis.stateName} earns ${analysis.wage.h_median?.toFixed(2)}/hr.
+            <b>How this works:</b> {analysis.primary.hcpcs} ({analysis.primary.desc || "—"}) pays ${safe(analysis.primary.tmsisRate).toFixed(2)} per {analysis.primary.unit || "unit"} in T-MSIS actual-paid data. At {analysis.primary.units_per_hour ?? "—"} units/hour = ${(safe(analysis.primary.tmsisRate)*safe(analysis.primary.units_per_hour)).toFixed(2)}/hr gross. After {overhead}% agency overhead → ${safe(analysis.primary.impliedHourly).toFixed(2)}/hr worker wage. BLS reports the median {(analysis.wage.title ?? "worker")?.toLowerCase()} in {analysis.stateName} earns ${safe(analysis.wage.h_median).toFixed(2)}/hr.
           </div>
         </Card>
 
         {/* Wage Distribution */}
         <Card x>
-          <CH t="Wage Distribution" b={`${analysis.wage.title} in ${analysis.stateName}`}/>
+          <CH t="Wage Distribution" b={`${analysis.wage.title ?? "Occupation"} in ${analysis.stateName}`}/>
           <div style={{ padding:"8px 14px 12px" }}>
             {(() => {
               const w = analysis.wage;
               const implied = analysis.primary?.impliedHourly ?? null;
-              const maxVal = Math.max(safe(w.h_p90), safe(implied,0)) * 1.1;
+              const maxVal = Math.max(safe(w.h_p90), safe(implied,0)) * 1.1 || 1;
               const markers = [
                 { label:"10th pct", val:w.h_p10, color:AL },
                 { label:"25th pct", val:w.h_p25, color:AL },
@@ -496,7 +518,7 @@ export default function WageAdequacy() {
 
       {/* National Comparison */}
       {allStates.length > 0 && <Card x>
-        <CH t="Rate-Wage Gap by State" b={`${curCat?.codes.find((c: CrosswalkCode)=>c.units_per_hour)?.hcpcs||curCat?.codes[0]?.hcpcs} · ${allStates.length} states`} r={`Negative = Medicaid can't match market`}/>
+        <CH t="Rate-Wage Gap by State" b={`${curCat?.codes?.find((c: CrosswalkCode)=>c.units_per_hour)?.hcpcs||curCat?.codes?.[0]?.hcpcs||"—"} · ${allStates.length} states`} r={`Negative = Medicaid can't match market`}/>
         <div style={{ padding:"0 14px 8px" }}>
           <ChartActions filename="wage-comparison">
           <ResponsiveContainer width="100%" height={Math.max(240,allStates.length*13)}>
@@ -512,7 +534,7 @@ export default function WageAdequacy() {
                   <div style={{ color:((d.gap as number) ?? 0)<0?"#ff9999":"#99ff99" }}>Medicaid implied: <b>${safe(d.impliedHourly as number | null).toFixed(2)}/hr</b></div>
                   <div>Gap: {((d.gap as number) ?? 0)>=0?"+":""}${safe(d.gap as number | null).toFixed(2)}/hr ({safe(d.gapPct as number | null).toFixed(0)}%)</div>
                   <div style={{ fontSize:9 }}>Min wage: ${String(d.minWage ?? "")} {d.belowMin?"⚠ BELOW":""}</div>
-                  <div style={{ fontSize:9 }}>{fN(d.emp as number ?? 0)} workers in state</div>
+                  <div style={{ fontSize:9 }}>{fN((d.emp as number) ?? 0)} workers in state</div>
                 </div>
               )}/>}/>
               <Bar dataKey="gap" barSize={8} radius={[0,3,3,0]}>
@@ -536,9 +558,9 @@ export default function WageAdequacy() {
         <div style={{ display:"grid",gridTemplateColumns:"repeat(auto-fit,minmax(120px,1fr))",padding:"0 6px 10px" }}>
           <Met l="States Below Market" v={`${allStates.filter((s: AllStateEntry)=>(s.gap ?? 0)<0).length} / ${allStates.length}`} cl={allStates.filter((s: AllStateEntry)=>(s.gap ?? 0)<0).length > allStates.length/2?NEG:POS}/>
           <Met l="States Below Min Wage" v={`${allStates.filter((s: AllStateEntry)=>s.belowMin).length}`} cl={allStates.filter((s: AllStateEntry)=>s.belowMin).length>0?NEG:POS}/>
-          <Met l="Median Gap" v={`$${(allStates.map((s: AllStateEntry)=>s.gap ?? 0).sort((a: number, b: number)=>a-b)[Math.floor(allStates.length/2)]||0).toFixed(2)}/hr`}/>
-          <Met l="Worst Gap" v={allStates[0]?`${allStates[0].name}: $${allStates[0].gap?.toFixed(2)}`:"—"} cl={NEG}/>
-          <Met l="Best Gap" v={allStates[allStates.length-1]?`${allStates[allStates.length-1].name}: +$${allStates[allStates.length-1].gap?.toFixed(2)}`:"—"} cl={POS}/>
+          <Met l="Median Gap" v={`$${safe(allStates.map((s: AllStateEntry)=>s.gap ?? 0).sort((a: number, b: number)=>a-b)[Math.floor(allStates.length/2)]).toFixed(2)}/hr`}/>
+          <Met l="Worst Gap" v={allStates[0]?`${allStates[0].name}: $${safe(allStates[0].gap).toFixed(2)}`:"—"} cl={NEG}/>
+          <Met l="Best Gap" v={allStates.length>0?`${allStates[allStates.length-1].name}: +$${safe(allStates[allStates.length-1].gap).toFixed(2)}`:"—"} cl={POS}/>
         </div>
       </Card>}
 

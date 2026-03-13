@@ -23,15 +23,23 @@ export default function DataCatalog() {
   const [search, setSearch] = useState("");
   const [categoryFilter, setCategoryFilter] = useState<string>("all");
   const [expanded, setExpanded] = useState<string | null>(null);
+  const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
     fetch(`${API_BASE}/api/catalog`)
-      .then(r => r.json())
+      .then(r => {
+        if (!r.ok) throw new Error(`API returned ${r.status}`);
+        return r.json();
+      })
       .then(d => {
         setTables(d.tables || []);
         setTotalRows(d.total_rows || 0);
+        setError(null);
       })
-      .catch(() => {})
+      .catch(err => {
+        setError(`Unable to load data catalog: ${err.message}`);
+        setTables([]);
+      })
       .finally(() => setLoading(false));
   }, []);
 
@@ -115,6 +123,17 @@ export default function DataCatalog() {
           ))}
         </div>
       </div>
+
+      {/* Error state */}
+      {error && (
+        <div style={{
+          padding: "16px", marginBottom: 16, borderRadius: 8,
+          background: "#FEE2E2", border: "1px solid #A4262C",
+          color: "#A4262C", fontSize: 13,
+        }}>
+          {error}
+        </div>
+      )}
 
       {/* Table list */}
       <div style={{ display: "flex", flexDirection: "column", gap: 6 }}>

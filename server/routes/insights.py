@@ -12,11 +12,11 @@ from server.db import get_cursor
 router = APIRouter(tags=["insights"])
 
 
-def _safe_query(sql: str) -> dict | None:
+def _safe_query(sql: str, params: list | None = None) -> dict | None:
     """Run a query, return first row as dict, or None on error."""
     try:
         with get_cursor() as cur:
-            result = cur.execute(sql).fetchone()
+            result = cur.execute(sql, params or []).fetchone()
             if result is None:
                 return None
             columns = [desc[0] for desc in cur.description]
@@ -25,11 +25,11 @@ def _safe_query(sql: str) -> dict | None:
         return None
 
 
-def _safe_query_all(sql: str) -> list[dict]:
+def _safe_query_all(sql: str, params: list | None = None) -> list[dict]:
     """Run a query, return all rows as list of dicts."""
     try:
         with get_cursor() as cur:
-            rows = cur.execute(sql).fetchall()
+            rows = cur.execute(sql, params or []).fetchall()
             columns = [desc[0] for desc in cur.description]
             return [dict(zip(columns, row)) for row in rows]
     except Exception:
@@ -43,24 +43,24 @@ def get_state_insights(state_code: str):
     insights = []
 
     # 1. Rate adequacy + HPSA correlation
-    rate_data = _safe_query(f"""
+    rate_data = _safe_query("""
         SELECT
-            ROUND(AVG(pct_of_medicare) * 100, 1) AS avg_pct_medicare,
+            ROUND(AVG(pct_of_medicare), 1) AS avg_pct_medicare,
             COUNT(DISTINCT procedure_code) AS code_count
         FROM fact_rate_comparison
-        WHERE state_code = '{sc}'
-          AND pct_of_medicare > 0 AND pct_of_medicare < 10
+        WHERE state_code = $1
+          AND pct_of_medicare > 0 AND pct_of_medicare < 1000
           AND em_category IS NOT NULL
-    """)
-    hpsa_data = _safe_query(f"""
+    """, [sc])
+    hpsa_data = _safe_query("""
         SELECT
-            COUNT(*) AS total_hpsas,
+            COUNT(DISTINCT hpsa_id) AS total_hpsas,
             ROUND(AVG(hpsa_score), 1) AS avg_score,
             SUM(CASE WHEN hpsa_score >= 18 THEN 1 ELSE 0 END) AS severe_count
         FROM fact_hpsa
-        WHERE state_code = '{sc}'
+        WHERE state_code = $1
           AND discipline = 'Primary Care'
-    """)
+    """, [sc])
     if rate_data and hpsa_data and rate_data.get("avg_pct_medicare") and hpsa_data.get("total_hpsas"):
         pct = rate_data["avg_pct_medicare"]
         hpsas = hpsa_data["total_hpsas"]
@@ -82,19 +82,19 @@ def get_state_insights(state_code: str):
             })
 
     # 2. Enrollment trend + economic context
-    enrollment = _safe_query(f"""
+    enrollment = _safe_query("""
         SELECT
-            MAX(total_enrollment) FILTER (WHERE year = (SELECT MAX(year) FROM fact_enrollment WHERE state_code = '{sc}')) AS latest,
-            MAX(total_enrollment) FILTER (WHERE year = (SELECT MAX(year) - 2 FROM fact_enrollment WHERE state_code = '{sc}')) AS two_years_ago
+            MAX(total_enrollment) FILTER (WHERE year = (SELECT MAX(year) FROM fact_enrollment WHERE state_code = $1)) AS latest,
+            MAX(total_enrollment) FILTER (WHERE year = (SELECT MAX(year) - 2 FROM fact_enrollment WHERE state_code = $1)) AS two_years_ago
         FROM fact_enrollment
-        WHERE state_code = '{sc}'
-    """)
-    econ = _safe_query(f"""
+        WHERE state_code = $1
+    """, [sc])
+    econ = _safe_query("""
         SELECT
-            poverty_rate, uninsured_rate, medicaid_pct
+            pct_poverty AS poverty_rate, pct_uninsured AS uninsured_rate
         FROM fact_acs_state
-        WHERE state_code = '{sc}'
-    """)
+        WHERE state_code = $1
+    """, [sc])
     if enrollment and econ and enrollment.get("latest") and enrollment.get("two_years_ago"):
         change_pct = round((enrollment["latest"] - enrollment["two_years_ago"]) / enrollment["two_years_ago"] * 100, 1)
         pov = econ.get("poverty_rate")
@@ -115,16 +115,16 @@ def get_state_insights(state_code: str):
             })
 
     # 3. Hospital Medicaid dependence + safety net
-    hospital = _safe_query(f"""
+    hospital = _safe_query("""
         SELECT
             COUNT(*) AS total_hospitals,
             ROUND(AVG(medicaid_day_pct), 1) AS avg_medicaid_pct,
             SUM(CASE WHEN medicaid_day_pct > 25 THEN 1 ELSE 0 END) AS high_medicaid_hospitals,
             ROUND(SUM(uncompensated_care_cost) / 1e6, 0) AS total_uncompensated_m
         FROM fact_hospital_cost
-        WHERE state_code = '{sc}'
-          AND report_year = (SELECT MAX(report_year) FROM fact_hospital_cost WHERE state_code = '{sc}')
-    """)
+        WHERE state_code = $1
+          AND report_year = (SELECT MAX(report_year) FROM fact_hospital_cost WHERE state_code = $1)
+    """, [sc])
     if hospital and hospital.get("total_hospitals"):
         high_med = hospital.get("high_medicaid_hospitals", 0)
         total = hospital["total_hospitals"]
@@ -142,18 +142,18 @@ def get_state_insights(state_code: str):
             })
 
     # 4. HCBS waitlist + LTSS spending
-    waitlist = _safe_query(f"""
+    waitlist = _safe_query("""
         SELECT total_waiting, idd_waiting
         FROM fact_hcbs_waitlist
-        WHERE state_code = '{sc}'
-    """)
-    ltss = _safe_query(f"""
+        WHERE state_code = $1
+    """, [sc])
+    ltss = _safe_query("""
         SELECT
             hcbs_pct, institutional_pct, year
         FROM fact_ltss_expenditure
-        WHERE state_code = '{sc}'
+        WHERE state_code = $1
         ORDER BY year DESC LIMIT 1
-    """)
+    """, [sc])
     if waitlist and waitlist.get("total_waiting") and waitlist["total_waiting"] > 1000:
         text = f"{waitlist['total_waiting']:,} people on HCBS waitlists"
         if waitlist.get("idd_waiting"):
@@ -171,15 +171,15 @@ def get_state_insights(state_code: str):
         })
 
     # 5. Nursing home quality
-    nh = _safe_query(f"""
+    nh = _safe_query("""
         SELECT
             COUNT(*) AS total_facilities,
             ROUND(AVG(CASE WHEN overall_rating IS NOT NULL THEN overall_rating END), 1) AS avg_rating,
             SUM(CASE WHEN overall_rating <= 2 THEN 1 ELSE 0 END) AS low_rated,
             SUM(CASE WHEN abuse_flag = true THEN 1 ELSE 0 END) AS abuse_flagged
         FROM fact_five_star
-        WHERE state_code = '{sc}'
-    """)
+        WHERE state_code = $1
+    """, [sc])
     if nh and nh.get("total_facilities") and nh["total_facilities"] > 10:
         low = nh.get("low_rated", 0)
         total = nh["total_facilities"]
@@ -198,14 +198,14 @@ def get_state_insights(state_code: str):
             })
 
     # 6. Drug spending
-    drug_data = _safe_query(f"""
+    drug_data = _safe_query("""
         SELECT
             ROUND(SUM(total_amount_reimbursed) / 1e6, 0) AS total_drug_spend_m,
             COUNT(DISTINCT ndc) AS unique_drugs
         FROM fact_drug_utilization
-        WHERE state_code = '{sc}'
-          AND year = (SELECT MAX(year) FROM fact_drug_utilization WHERE state_code = '{sc}')
-    """)
+        WHERE state_code = $1
+          AND year = (SELECT MAX(year) FROM fact_drug_utilization WHERE state_code = $1)
+    """, [sc])
     if drug_data and drug_data.get("total_drug_spend_m") and drug_data["total_drug_spend_m"] > 100:
         insights.append({
             "type": "info",
@@ -215,14 +215,14 @@ def get_state_insights(state_code: str):
         })
 
     # 7. Unwinding impact
-    unwinding = _safe_query(f"""
+    unwinding = _safe_query("""
         SELECT
             SUM(terminated_count) AS total_terminated,
             MAX(terminated_pct) AS max_pct
         FROM fact_unwinding
-        WHERE state_code = '{sc}'
+        WHERE state_code = $1
           AND metric ILIKE '%disenroll%'
-    """)
+    """, [sc])
     if unwinding and unwinding.get("total_terminated") and unwinding["total_terminated"] > 10000:
         insights.append({
             "type": "info",
@@ -231,19 +231,19 @@ def get_state_insights(state_code: str):
             "domains": ["enrollment"],
         })
 
-    # 8. Opioid prescribing (new data!)
-    opioid = _safe_query(f"""
+    # 8. Opioid prescribing
+    opioid = _safe_query("""
         SELECT
             opioid_prescribing_rate,
             opioid_rate_1y_change,
             year
         FROM fact_medicaid_opioid_prescribing
-        WHERE state_code = '{sc}'
+        WHERE state_code = $1
           AND geo_level = 'State'
           AND plan_type = 'All'
-          AND year = (SELECT MAX(year) FROM fact_medicaid_opioid_prescribing WHERE state_code = '{sc}' AND geo_level = 'State')
-    """)
-    national_opioid = _safe_query(f"""
+          AND year = (SELECT MAX(year) FROM fact_medicaid_opioid_prescribing WHERE state_code = $1 AND geo_level = 'State')
+    """, [sc])
+    national_opioid = _safe_query("""
         SELECT opioid_prescribing_rate
         FROM fact_medicaid_opioid_prescribing
         WHERE geo_level = 'National'
@@ -262,14 +262,14 @@ def get_state_insights(state_code: str):
             })
 
     # 9. Nursing home deficiency patterns
-    deficiency = _safe_query(f"""
+    deficiency = _safe_query("""
         SELECT
             COUNT(*) AS total_deficiencies,
             SUM(CASE WHEN severity_level >= 3 THEN 1 ELSE 0 END) AS serious_count,
             COUNT(DISTINCT federal_provider_number) AS facilities_cited
         FROM fact_nh_deficiency
-        WHERE state_code = '{sc}'
-    """)
+        WHERE state_code = $1
+    """, [sc])
     if deficiency and deficiency.get("total_deficiencies") and deficiency["total_deficiencies"] > 100:
         serious = deficiency.get("serious_count", 0)
         total = deficiency["total_deficiencies"]
@@ -283,14 +283,14 @@ def get_state_insights(state_code: str):
             })
 
     # 10. Managed care penetration
-    mc = _safe_query(f"""
+    mc = _safe_query("""
         SELECT
             total_enrollment, mc_enrollment
         FROM fact_enrollment
-        WHERE state_code = '{sc}'
+        WHERE state_code = $1
         ORDER BY year DESC, month DESC NULLS LAST
         LIMIT 1
-    """)
+    """, [sc])
     if mc and mc.get("total_enrollment") and mc.get("mc_enrollment"):
         mc_pct = round(mc["mc_enrollment"] / mc["total_enrollment"] * 100, 1)
         if mc_pct > 85:
@@ -302,14 +302,14 @@ def get_state_insights(state_code: str):
             })
 
     # 11. Maternal health signals
-    maternal = _safe_query(f"""
+    maternal = _safe_query("""
         SELECT
             measure_name, rate
         FROM fact_maternal_health
-        WHERE state_code = '{sc}'
+        WHERE state_code = $1
           AND measure_name ILIKE '%severe maternal morbidity%'
         ORDER BY year DESC LIMIT 1
-    """)
+    """, [sc])
     if maternal and maternal.get("rate"):
         insights.append({
             "type": "warning" if maternal["rate"] > 2.0 else "info",

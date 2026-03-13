@@ -107,6 +107,7 @@ export default function ComplianceReport() {
   const [catFilter, setCatFilter] = useState("all");
   const [medicaidRates, setMedicaidRates] = useState<MedicaidRatesData | null>(null);
   const [gpciData, setGpciData] = useState<GpciEntry[]>([]);
+  const [error, setError] = useState<string | null>(null);
 
   // Load static data
   useEffect(() => {
@@ -116,16 +117,22 @@ export default function ComplianceReport() {
     };
     Promise.all([
       tryApi("/api/bulk/medicare-rates", "/data/medicare_rates.json"),
-      fetch("/data/fee_schedule_directory.json").then(r => r.json()),
-      tryApi("/api/bulk/states", "/data/states.json"),
+      fetch("/data/fee_schedule_directory.json").then(r => r.ok ? r.json() : null).catch(() => null),
+      tryApi("/api/bulk/states", "/data/states.json", []),
       tryApi("/api/bulk/medicaid-rates", "/data/medicaid_rates.json"),
       tryApi("/api/bulk/gpci", "/data/gpci.json", []),
     ]).then(([med, dir, states, mcdRates, gpci]) => {
-      setMedicare(med as MedicareData);
-      setDirectory((dir as { directory: DirEntry[] }).directory.filter((d: DirEntry) => d.agency));
-      setStatesData(states as StateSpending[]);
-      if (mcdRates) setMedicaidRates(mcdRates as MedicaidRatesData);
-      if (gpci) setGpciData(gpci as GpciEntry[]);
+      setMedicare(med as MedicareData | null);
+      const dirArr = (dir && typeof dir === "object" && Array.isArray((dir as any).directory))
+        ? (dir as { directory: DirEntry[] }).directory : [];
+      setDirectory(dirArr.filter((d: DirEntry) => d?.agency));
+      setStatesData(Array.isArray(states) ? states as StateSpending[] : []);
+      if (mcdRates && typeof mcdRates === "object") setMedicaidRates(mcdRates as MedicaidRatesData);
+      if (Array.isArray(gpci)) setGpciData(gpci as GpciEntry[]);
+      setLoading(false);
+    }).catch((err) => {
+      console.error("ComplianceReport: failed to load static data", err);
+      setError("Failed to load compliance data. Please refresh or try again.");
       setLoading(false);
     });
   }, []);
@@ -145,9 +152,12 @@ export default function ComplianceReport() {
       ORDER BY total_paid DESC
       LIMIT 500
     `).then(res => {
-      setSpendData(res.rows as unknown as SpendRow[]);
+      setSpendData(Array.isArray(res?.rows) ? res.rows as unknown as SpendRow[] : []);
       setDuckLoading(false);
-    }).catch(() => setDuckLoading(false));
+    }).catch(() => {
+      setSpendData([]);
+      setDuckLoading(false);
+    });
   }, [st, loading]);
 
   // Map state name → abbreviation
@@ -274,7 +284,7 @@ export default function ComplianceReport() {
         label: "FFS rates published in machine-readable format",
         status: isMachineReadable ? "pass" : "fail",
         detail: isMachineReadable
-          ? `Published in ${stateDir?.format || "machine-readable format"}${medicaidRates?.[st] ? ` — ${Object.keys(medicaidRates[st]).length.toLocaleString()} codes loaded` : ""}`
+          ? `Published in ${stateDir?.format || "machine-readable format"}${medicaidRates?.[st] ? ` — ${Object.keys(medicaidRates[st] || {}).length.toLocaleString()} codes loaded` : ""}`
           : `Currently published as ${stateDir?.format || "unknown format"} — must convert to Excel or CSV`,
         regulation: "42 CFR §447.203(b)(1)",
       },
@@ -435,7 +445,9 @@ export default function ComplianceReport() {
         </div>
       </div>
 
-      {loading ? (
+      {error ? (
+        <Card><p style={{ color: NEG, fontSize: 13, textAlign: "center", padding: 40 }}>{error}</p></Card>
+      ) : loading ? (
         <Card><p style={{ color: AL, fontSize: 13, textAlign: "center", padding: 40 }}>Loading compliance data...</p></Card>
       ) : (
         <>

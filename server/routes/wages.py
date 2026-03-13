@@ -148,8 +148,8 @@ async def national_wages(
             FROM fact_bls_wage_national
             {where}
             ORDER BY annual_median DESC
-            LIMIT {limit}
-        """, params).fetchall()
+            LIMIT ${idx}
+        """, params + [limit]).fetchall()
         columns = ["soc_code", "occupation_title", "occ_group",
                     "total_employment", "hourly_mean", "annual_mean",
                     "hourly_median", "annual_median",

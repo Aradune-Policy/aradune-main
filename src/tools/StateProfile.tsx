@@ -67,6 +67,8 @@ const SectionToggle = ({ label, open, onClick }: { label: string; open: boolean;
 const STATES = Object.keys(STATE_NAMES).sort();
 const fmtNum = (n: number) => n >= 1_000_000 ? (n / 1_000_000).toFixed(2) + "M" : n >= 1_000 ? (n / 1_000).toFixed(1) + "K" : n.toFixed(0);
 const fmtDollars = (n: number) => n >= 1e9 ? "$" + (n / 1e9).toFixed(2) + "B" : n >= 1e6 ? "$" + (n / 1e6).toFixed(1) + "M" : n >= 1e3 ? "$" + (n / 1e3).toFixed(1) + "K" : "$" + n.toFixed(0);
+/** Count unique HPSAs — the raw API returns multiple rows per HPSA ID (by provider type, population type). */
+const uniqueHpsaCount = (hpsa: any[]): number => new Set(hpsa.map((h: any) => h.hpsa_id).filter(Boolean)).size || hpsa.length;
 const fmtPct = (n: number) => (n * 100).toFixed(1) + "%";
 const PIE_COLORS = [cB, ACC, "#3B82F6", "#8B5CF6", "#EC4899", "#F59E0B", "#6366F1", "#14B8A6"];
 
@@ -121,7 +123,7 @@ function computeInsights(d: any, state: string): Insight[] {
     const pctMcr = d.cpraSummary.medianPctMcr;
     const pctStr = (pctMcr * 100).toFixed(0);
     const emCount = d.cpraSummary.emCount || 0;
-    const hpsaCount = d.hpsa?.length || 0;
+    const hpsaCount = d.hpsa?.length ? uniqueHpsaCount(d.hpsa) : 0;
 
     if (pctMcr < 0.70) {
       insights.push({
@@ -194,7 +196,7 @@ function computeInsights(d: any, state: string): Insight[] {
 
   // ── 3. Access risk: HPSAs + rate adequacy ─────────────────────────
   if (d.hpsa?.length > 0) {
-    const hpsaCount = d.hpsa.length;
+    const hpsaCount = uniqueHpsaCount(d.hpsa);
     const pctMcr = d.cpraSummary?.medianPctMcr || 0;
     const byDiscipline: Record<string, number> = {};
     d.hpsa.forEach((h: any) => {
@@ -262,7 +264,7 @@ function computeInsights(d: any, state: string): Insight[] {
 
   // ── 5. Hospital financial stress + Medicaid dependency ────────────
   if (d.hospitals?.length > 0) {
-    const highMedicaid = d.hospitals.filter((h: any) => (h.medicaid_day_pct || 0) > 0.25);
+    const highMedicaid = d.hospitals.filter((h: any) => (h.medicaid_day_pct || 0) > 25);
     const totalHospitals = d.hospitals.length;
     const highMcdPct = totalHospitals > 0 ? (highMedicaid.length / totalHospitals * 100) : 0;
 
@@ -286,8 +288,12 @@ function computeInsights(d: any, state: string): Insight[] {
   // ── 6. Demographics + coverage gap ────────────────────────────────
   if (d.demographics) {
     const demo = d.demographics;
-    const povertyRate = demo.poverty_rate || demo.pct_poverty || 0;
-    const uninsuredRate = demo.uninsured_rate || demo.pct_uninsured || 0;
+    // pct_poverty/pct_uninsured are already in percentage form (e.g. 12.6 = 12.6%)
+    // Convert to decimal (0-1) for consistent math
+    const rawPov = demo.poverty_rate || demo.pct_poverty || 0;
+    const rawUni = demo.uninsured_rate || demo.pct_uninsured || 0;
+    const povertyRate = rawPov > 1 ? rawPov / 100 : rawPov;
+    const uninsuredRate = rawUni > 1 ? rawUni / 100 : rawUni;
     const pop = demo.total_population || 0;
 
     if (povertyRate > 0.15 && uninsuredRate > 0.10) {
@@ -443,6 +449,7 @@ async function loadStateData(code: string): Promise<any> {
     if (!d) return [];
     if (Array.isArray(d)) return d;
     if (d.rows && Array.isArray(d.rows)) return d.rows;
+    if (d.states && Array.isArray(d.states)) return d.states;
     return [];
   };
   const first = (d: any): any => {
@@ -554,7 +561,7 @@ function ComparisonTable({ states, dataMap }: { states: string[]; dataMap: Recor
     },
     {
       label: "HPSAs",
-      get: (d: any) => d?.hpsa?.length ? String(d.hpsa.length) : "\u2014",
+      get: (d: any) => d?.hpsa?.length ? String(uniqueHpsaCount(d.hpsa)) : "\u2014",
     },
     {
       label: "Poverty Rate",
@@ -747,8 +754,8 @@ function ComparisonHospitalCard({ states, dataMap }: { states: string[]; dataMap
               { label: "Median CCR", get: (d: any) => { const c = d?.hospitalSummary?.median_ccr; return c ? c.toFixed(3) : "\u2014"; } },
               { label: "Avg NF Rating", get: (d: any) => { const r = d?.fiveStarSummary?.avg_overall || d?.fiveStarSummary?.avg_overall_rating; return r ? r.toFixed(1) : "\u2014"; } },
               { label: "Avg NF HPRD", get: (d: any) => d?.staffingSummary?.avg_nursing_hprd ? d.staffingSummary.avg_nursing_hprd.toFixed(2) : "\u2014" },
-              { label: "HPSAs", get: (d: any) => d?.hpsa?.length || 0 },
-              { label: "High-Medicaid Hospitals (>25%)", get: (d: any) => { const h = (d?.hospitals || []).filter((h: any) => (h.medicaid_day_pct || 0) > 0.25); return h.length; } },
+              { label: "HPSAs", get: (d: any) => d?.hpsa?.length ? uniqueHpsaCount(d.hpsa) : 0 },
+              { label: "High-Medicaid Hospitals (>25%)", get: (d: any) => { const h = (d?.hospitals || []).filter((h: any) => (h.medicaid_day_pct || 0) > 25); return h.length; } },
             ].map((m, mi) => (
               <tr key={m.label} style={{ background: mi % 2 === 0 ? WH : SF, borderBottom: `1px solid ${BD}` }}>
                 <td style={{ padding: "5px 8px", fontWeight: 500, color: A }}>{m.label}</td>
@@ -908,7 +915,7 @@ function ComparisonView({ states, dataMap, loading, onChangeStates }: {
                 { label: "FMAP", get: (d: any) => d?.fmap ? ((d.fmap.fmap_rate || d.fmap.fmap || 0) * 100).toFixed(2) : "" },
                 { label: "Median % of Medicare", get: (d: any) => d?.cpraSummary?.medianPctMcr ? (d.cpraSummary.medianPctMcr * 100).toFixed(1) : "" },
                 { label: "Hospitals", get: (d: any) => d?.hospitals?.length || "" },
-                { label: "HPSAs", get: (d: any) => d?.hpsa?.length || "" },
+                { label: "HPSAs", get: (d: any) => d?.hpsa?.length ? uniqueHpsaCount(d.hpsa) : "" },
               ];
               const csvRows = metrics.map(m => [m.label, ...states.map(s => m.get(dataMap[s]))]);
               downloadCSV(headers, csvRows, `state_comparison_${states.join("_")}.csv`);
@@ -1077,7 +1084,7 @@ export default function StateProfile() {
             const rows: (string | number)[][] = [];
             if (d.cpraRates.length > 0) {
               for (const r of d.cpraRates) {
-                rows.push([r.cpt_hcpcs_code || r.code || "", r.description || r.desc || "", r.medicaid_rate?.toFixed(2) || "", r.medicare_nonfac_rate?.toFixed(2) || "", r.pct_of_medicare ? (r.pct_of_medicare * 100).toFixed(1) : ""]);
+                rows.push([r.cpt_hcpcs_code || r.code || "", r.description || r.desc || "", r.medicaid_rate?.toFixed(2) || "", r.medicare_nonfac_rate?.toFixed(2) || "", r.pct_of_medicare ? r.pct_of_medicare.toFixed(1) : ""]);
               }
             }
             if (rows.length > 0) {
@@ -1185,9 +1192,18 @@ export default function StateProfile() {
                   const latest = d.enrollment[d.enrollment.length - 1];
                   const totalEnroll = latest.total_enrollment || latest.total_medicaid_enrollment || 0;
                   const mcEnroll = latest.mc_enrollment || latest.managed_care_enrollment || 0;
+                  // If mc_enrollment is missing, fall back to stateInfo managed care % or mc_enrollment_summary
+                  let mcPct: string | null = null;
+                  if (mcEnroll > 0 && totalEnroll > 0) {
+                    mcPct = `${((mcEnroll / totalEnroll) * 100).toFixed(0)}%`;
+                  } else if (d.stateInfo?.pct_managed_care && !isNaN(d.stateInfo.pct_managed_care)) {
+                    mcPct = `${Number(d.stateInfo.pct_managed_care).toFixed(0)}%`;
+                  } else if (d.stateInfo?.mc_penetration_pct && !isNaN(d.stateInfo.mc_penetration_pct)) {
+                    mcPct = `${Number(d.stateInfo.mc_penetration_pct).toFixed(0)}%`;
+                  }
                   return <>
                     <Met label="Medicaid Enrollment" value={fmtNum(totalEnroll)} color={cB} mono />
-                    <Met label="Managed Care %" value={totalEnroll > 0 ? `${((mcEnroll / totalEnroll) * 100).toFixed(0)}%` : "\u2014"} mono />
+                    <Met label="Managed Care %" value={mcPct || "\u2014"} mono />
                   </>;
                 })()}
                 {d.cpraSummary.count > 0 && (
@@ -1198,7 +1214,7 @@ export default function StateProfile() {
                   <Met label="Hospitals" value={d.hospitalSummary.hospital_count || d.hospitals.length || "\u2014"} mono />
                 )}
                 {d.hpsa.length > 0 && (
-                  <Met label="HPSA Designations" value={d.hpsa.length} mono />
+                  <Met label="HPSA Designations" value={uniqueHpsaCount(d.hpsa)} mono />
                 )}
               </div>
             </Card>
@@ -1371,7 +1387,7 @@ export default function StateProfile() {
                   {(d.hospitalSummary?.median_ccr || d.hospitalSummary?.median_cost_to_charge) && <Met label="Median CCR" value={(d.hospitalSummary.median_ccr || d.hospitalSummary.median_cost_to_charge).toFixed(3)} mono small />}
                   {(d.fiveStarSummary?.avg_overall || d.fiveStarSummary?.avg_overall_rating) && <Met label="Avg NF Rating" value={`${(d.fiveStarSummary.avg_overall || d.fiveStarSummary.avg_overall_rating).toFixed(1)}`} mono small />}
                   {d.staffingSummary?.avg_nursing_hprd && <Met label="Avg NF HPRD" value={d.staffingSummary.avg_nursing_hprd.toFixed(2)} mono small />}
-                  {d.hpsa.length > 0 && <Met label="HPSAs" value={d.hpsa.length} color={d.hpsa.length > 50 ? NEG : AL} mono small />}
+                  {d.hpsa.length > 0 && <Met label="HPSAs" value={uniqueHpsaCount(d.hpsa)} color={uniqueHpsaCount(d.hpsa) > 50 ? NEG : AL} mono small />}
                 </div>
 
                 {/* HPSA breakdown by discipline */}

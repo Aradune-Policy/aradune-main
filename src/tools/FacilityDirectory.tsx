@@ -118,15 +118,17 @@ export default function FacilityDirectory() {
   const [summaryRows, setSummaryRows] = useState<Record<string, unknown>[]>([]);
   const [loading, setLoading] = useState(false);
   const [search, setSearch] = useState("");
+  const [error, setError] = useState<string | null>(null);
 
   const config = FACILITY_TYPES.find((f) => f.key === facilityType)!;
 
   // Load summary on type change
   useEffect(() => {
+    setError(null);
     fetch(`${API_BASE}${config.summaryEndpoint}`)
       .then((r) => r.json())
-      .then((d) => setSummaryRows(d.rows || []))
-      .catch(() => setSummaryRows([]));
+      .then((d) => { setSummaryRows(d.rows || []); setError(null); })
+      .catch(() => { setSummaryRows([]); setError("Unable to load summary data"); });
   }, [config.summaryEndpoint]);
 
   // Load facilities
@@ -141,6 +143,7 @@ export default function FacilityDirectory() {
       setRows(data.rows || []);
     } catch {
       setRows([]);
+      setError("Unable to load facility data");
     }
     setLoading(false);
   }, [config.endpoint, state]);
@@ -295,8 +298,8 @@ export default function FacilityDirectory() {
         </div>
       )}
       {displayed.length === 0 && !loading && (
-        <div style={{ padding: 24, textAlign: "center", color: C.inkLight, fontSize: 12 }}>
-          No facilities found. Try a different state or facility type.
+        <div style={{ padding: 24, textAlign: "center", color: error ? C.neg : C.inkLight, fontSize: 12 }}>
+          {error || "No facilities found. Try a different state or facility type."}
         </div>
       )}
     </div>

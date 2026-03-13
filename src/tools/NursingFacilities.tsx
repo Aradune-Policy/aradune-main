@@ -57,13 +57,14 @@ export default function NursingFacilities() {
   const [loading, setLoading] = useState(false);
   const [sortCol, setSortCol] = useState<string>("overall_rating");
   const [sortAsc, setSortAsc] = useState(false);
+  const [error, setError] = useState<string | null>(null);
 
   // Load national summary
   useEffect(() => {
     fetch(`${API_BASE}/api/five-star/summary`)
       .then((r) => r.json())
-      .then((d) => setSummary(d.rows || []))
-      .catch(() => {});
+      .then((d) => { setSummary(d.rows || []); setError(null); })
+      .catch(() => { setError("Unable to load summary data"); });
   }, []);
 
   // Load state facilities
@@ -76,6 +77,7 @@ export default function NursingFacilities() {
       setView("facilities");
     } catch {
       setFacilities([]);
+      setError("Unable to load facility data");
     }
     setLoading(false);
   }, []);
@@ -171,8 +173,8 @@ export default function NursingFacilities() {
             </tbody>
           </table>
           {summary.length === 0 && !loading && (
-            <div style={{ padding: 24, textAlign: "center", color: C.inkLight, fontSize: 12 }}>
-              Loading summary data...
+            <div style={{ padding: 24, textAlign: "center", color: error ? C.neg : C.inkLight, fontSize: 12 }}>
+              {error || "Loading summary data..."}
             </div>
           )}
         </div>

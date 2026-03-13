@@ -11,7 +11,33 @@ export default function NavDrop({ group, route }: NavDropProps) {
   const [open, setOpen] = useState(false);
   const ref = useRef<HTMLDivElement>(null);
   const timer = useRef<ReturnType<typeof setTimeout> | null>(null);
-  const isActive = group.tools.some(t => route === `/${t.id}`);
+  const isActive = group.tools.some(t => route === `/${t.id}` || route.startsWith(`/${t.id}/`));
+
+  // Single-item groups render as direct links, no dropdown
+  if (group.tools.length === 1) {
+    const t = group.tools[0];
+    const active = route === `/${t.id}` || route.startsWith(`/${t.id}/`);
+    return (
+      <a
+        href={`#/${t.id}`}
+        style={{
+          background: active ? "rgba(46,107,74,0.06)" : "none",
+          border: "none",
+          borderRadius: 6,
+          color: active ? C.brand : C.inkLight,
+          fontSize: 11,
+          fontFamily: FONT.body,
+          fontWeight: active ? 600 : 400,
+          cursor: "pointer",
+          padding: "4px 8px",
+          textDecoration: "none",
+          transition: "all .15s",
+        }}
+      >
+        {group.label}
+      </a>
+    );
+  }
 
   const clearTimer = useCallback(() => {
     if (timer.current) { clearTimeout(timer.current); timer.current = null; }

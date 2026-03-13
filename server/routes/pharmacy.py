@@ -14,8 +14,10 @@ async def drug_utilization(
 ):
     """Get State Drug Utilization Data for a state."""
     state_code = state_code.upper()
-    year_filter = "AND year = $2" if year else ""
-    params = [state_code] + ([year] if year else [])
+    year_filter = "AND year = $2" if year is not None else ""
+    params = [state_code] + ([year] if year is not None else [])
+    limit_idx = len(params) + 1
+    params.append(limit)
 
     with get_cursor() as cur:
         rows = cur.execute(f"""
@@ -25,7 +27,7 @@ async def drug_utilization(
             FROM fact_drug_utilization
             WHERE state_code = $1 {year_filter}
             ORDER BY medicaid_reimbursed DESC
-            LIMIT {limit}
+            LIMIT ${limit_idx}
         """, params).fetchall()
         columns = ["ndc", "product_name", "year", "quarter",
                     "units_reimbursed", "prescription_count",
@@ -62,8 +64,8 @@ async def nadac_pricing(
             FROM fact_nadac
             {where}
             ORDER BY effective_date DESC
-            LIMIT {limit}
-        """, params).fetchall()
+            LIMIT ${idx}
+        """, params + [limit]).fetchall()
         columns = ["ndc", "ndc_description", "nadac_per_unit",
                     "effective_date", "pricing_unit", "is_otc"]
         return [dict(zip(columns, r)) for r in rows]

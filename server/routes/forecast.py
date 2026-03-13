@@ -172,11 +172,14 @@ async def forecast_generate_csv(
         except Exception:
             pass
 
-    result = forecaster.forecast(
-        horizon_months=min(horizon_months, 60),
-        include_seasonality=include_seasonality,
-        include_economic=include_economic,
-    )
+    try:
+        result = forecaster.forecast(
+            horizon_months=min(horizon_months, 60),
+            include_seasonality=include_seasonality,
+            include_economic=include_economic,
+        )
+    except Exception as e:
+        raise HTTPException(500, f"Forecast engine error: {e}")
 
     csv_bytes = result.to_csv_bytes()
     filename = f"caseload_forecast_{state}_{result.forecast_date}.csv"
@@ -342,7 +345,10 @@ async def forecast_expenditure(
             "errors": [{"field": e.field, "message": e.message} for e in param_errors],
         })
 
-    exp_result = modeler.project()
+    try:
+        exp_result = modeler.project()
+    except Exception as e:
+        raise HTTPException(500, f"Expenditure projection error: {e}")
 
     return {
         "forecast": forecast_json,
@@ -395,13 +401,30 @@ async def forecast_expenditure_csv(
     )
     forecast_json = forecast_result.to_json()
 
-    modeler = ExpenditureModeler(state)
-    modeler.load_caseload_from_forecast(forecast_json)
+    try:
+        modeler = ExpenditureModeler(state)
+    except ValueError as e:
+        raise HTTPException(400, str(e))
+
+    load_errors = modeler.load_caseload_from_forecast(forecast_json)
+    if any(e.severity == "error" for e in load_errors):
+        raise HTTPException(422, {
+            "stage": "caseload_load",
+            "errors": [{"field": e.field, "message": e.message} for e in load_errors],
+        })
 
     params_bytes = await params.read()
-    modeler.load_params_bytes(params_bytes)
+    param_errors = modeler.load_params_bytes(params_bytes)
+    if any(e.severity == "error" for e in param_errors):
+        raise HTTPException(422, {
+            "stage": "params",
+            "errors": [{"field": e.field, "message": e.message} for e in param_errors],
+        })
 
-    exp_result = modeler.project()
+    try:
+        exp_result = modeler.project()
+    except Exception as e:
+        raise HTTPException(500, f"Expenditure projection error: {e}")
     csv_bytes = exp_result.to_csv_bytes()
     filename = f"expenditure_projection_{state}_{exp_result.projection_date}.csv"
 
@@ -445,5 +468,8 @@ async def expenditure_from_forecast(
             "errors": [{"field": e.field, "message": e.message} for e in param_errors],
         })
 
-    result = modeler.project()
+    try:
+        result = modeler.project()
+    except Exception as e:
+        raise HTTPException(500, f"Expenditure projection error: {e}")
     return result.to_json()

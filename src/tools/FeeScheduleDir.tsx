@@ -346,7 +346,7 @@ export default function FeeScheduleDir() {
                   ["State", "Abbr", "Agency", "Methodology", "Method Type", "Conversion Factors", "Format", "Access", "Machine-Readable", "Verified", "Total Spend", "FMAP", "URL"],
                   filtered.map(d => [
                     d.state, d.abbr, d.agency, d.methodology, d.methodType,
-                    d.conversion_factors.map(c => `${c.name}: $${c.value.toFixed(4)}`).join("; "),
+                    d.conversion_factors.map(c => `${c.name}: $${(c.value ?? 0).toFixed(4)}`).join("; "),
                     d.formats.join("; "), d.accessTag, d.machineReadable ? "Yes" : "No",
                     d.verified ? "Yes" : "No", d.total_spend.toFixed(0), d.fmap.toFixed(1), d.url,
                   ]),
@@ -480,7 +480,7 @@ export default function FeeScheduleDir() {
                             {(d.total_spend > 0 || d.fmap > 0 || d.conversion_factors.length > 0) && (
                               <div style={{ display: "flex", gap: 24, marginTop: 12, paddingTop: 12, borderTop: `1px solid ${BD}`, flexWrap: "wrap" }}>
                                 {d.conversion_factors.map(c => (
-                                  <div key={c.name}><span style={{ color: AL }}>{c.name} CF:</span> <span style={{ fontWeight: 600, color: cB, fontFamily: FM }}>${c.value.toFixed(4)}</span></div>
+                                  <div key={c.name}><span style={{ color: AL }}>{c.name} CF:</span> <span style={{ fontWeight: 600, color: cB, fontFamily: FM }}>${(c.value ?? 0).toFixed(4)}</span></div>
                                 ))}
                                 {d.total_spend > 0 && <div><span style={{ color: AL }}>Total Spend:</span> <span style={{ fontWeight: 600, color: A }}>{f$(d.total_spend)}</span></div>}
                                 {d.total_claims > 0 && <div><span style={{ color: AL }}>Claims:</span> <span style={{ fontWeight: 600, color: A }}>{f$(d.total_claims).replace("$", "")}</span></div>}

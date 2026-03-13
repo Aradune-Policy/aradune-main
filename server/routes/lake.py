@@ -8,22 +8,33 @@ router = APIRouter()
 
 @router.get("/api/states")
 async def states():
-    """Get all states with metadata from dim_state."""
+    """Get all states with metadata from dim_state, backfilling MC penetration."""
     with get_cursor() as cur:
         rows = cur.execute("""
             SELECT
-                state_code, state_name, region, methodology,
-                conversion_factor, fmap, total_enrollment,
-                ffs_enrollment, mc_enrollment, pct_managed_care,
-                fee_index, update_frequency
-            FROM dim_state
-            ORDER BY state_code
+                d.state_code, d.state_name, d.region, d.methodology,
+                d.conversion_factor, d.fmap, d.total_enrollment,
+                d.ffs_enrollment, d.mc_enrollment,
+                COALESCE(
+                    CASE WHEN d.pct_managed_care IS NOT NULL AND NOT isnan(d.pct_managed_care)
+                         THEN d.pct_managed_care END,
+                    mc.mc_penetration_pct / 100.0
+                ) AS pct_managed_care,
+                mc.mc_penetration_pct,
+                d.fee_index, d.update_frequency
+            FROM dim_state d
+            LEFT JOIN (
+                SELECT state_code, mc_penetration_pct
+                FROM fact_mc_enrollment_summary
+                WHERE year = (SELECT MAX(year) FROM fact_mc_enrollment_summary)
+            ) mc ON d.state_code = mc.state_code
+            ORDER BY d.state_code
         """).fetchall()
         columns = [
             "state_code", "state_name", "region", "methodology",
             "conversion_factor", "fmap", "total_enrollment",
             "ffs_enrollment", "mc_enrollment", "pct_managed_care",
-            "fee_index", "update_frequency",
+            "mc_penetration_pct", "fee_index", "update_frequency",
         ]
         return [dict(zip(columns, r)) for r in rows]
 
@@ -53,8 +64,8 @@ async def enrollment(state_code: str):
 async def quality_measures(state_code: str, year: int = Query(None)):
     """Get quality measures for a state."""
     state_code = state_code.upper()
-    year_filter = "AND year = $2" if year else ""
-    params = [state_code] + ([year] if year else [])
+    year_filter = "AND year = $2" if year is not None else ""
+    params = [state_code] + ([year] if year is not None else [])
 
     with get_cursor() as cur:
         rows = cur.execute(f"""

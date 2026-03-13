@@ -66,9 +66,8 @@ const CaseloadForecaster = lazy(() => import("./tools/CaseloadForecaster"));
 const StateProfile = lazy(() => import("./tools/StateProfile"));
 const DataCatalog = lazy(() => import("./tools/DataCatalog"));
 const IntelligenceChat = lazy(() => import("./tools/IntelligenceChat"));
-const RateAnalysis = lazy(() => import("./tools/RateAnalysis"));
-const ProviderIntelligence = lazy(() => import("./tools/ProviderIntelligence"));
-const WorkforceQuality = lazy(() => import("./tools/WorkforceQuality"));
+// Module wrappers (RateAnalysis, ProviderIntelligence, WorkforceQuality) removed from routing
+// All tools are standalone now — kept in src/tools/ for reference
 
 // ── Hash Router ──────────────────────────────────────────────────────────
 function useRoute() {
@@ -81,11 +80,11 @@ function useRoute() {
   return route;
 }
 
-// ── Tool Registry (6 modules) ────────────────────────────────────────────
+// ── Tool Registry (standalone modules) ───────────────────────────────────
 const TOOLS: ToolDef[] = [
-  // ── STATES ────────────────────────────────────────────────────────────
+  // ── STATES (direct link, no dropdown) ─────────────────────────────────
   {
-    id: "state", group: "states", name: "State Profile",
+    id: "state", group: "states", name: "State Profiles",
     tagline: "Everything Aradune knows about a state, in one view",
     desc: "Enrollment, rates, hospitals, quality, workforce, pharmacy, and economic context for any state, unified from 250 fact tables with cross-dataset insights.",
     status: "live", icon: "◉", color: C.brand,
@@ -94,8 +93,8 @@ const TOOLS: ToolDef[] = [
   {
     id: "rates", group: "rates", name: "Rate Comparison",
     tagline: "Medicaid-to-Medicare rate parity across all states",
-    desc: "16,000+ HCPCS codes across 47 states compared against the Medicare PFS. Cross-state rankings, rate erosion tracking, and impact analysis for proposed changes.",
-    status: "live", icon: "◧", color: C.brand, navLabel: "Rates",
+    desc: "16,000+ HCPCS codes across 47 states compared against the Medicare PFS. Cross-state rankings, rate erosion tracking, and impact analysis.",
+    status: "live", icon: "◧", color: C.brand,
   },
   {
     id: "cpra", group: "rates", name: "CPRA Generator",
@@ -104,35 +103,23 @@ const TOOLS: ToolDef[] = [
     status: "live", icon: "◆", color: C.brand,
   },
   {
-    id: "fees", group: "rates", name: "Fee Schedule Directory",
-    tagline: "State fee schedule sources and methodology documentation",
-    desc: "Every state's Medicaid fee schedule source, effective dates, and methodology notes. Links to official state portals.",
-    status: "live", icon: "◇", color: C.brand,
-  },
-  {
     id: "lookup", group: "rates", name: "Rate Lookup",
     tagline: "Search any HCPCS code across all states",
     desc: "Look up Medicaid reimbursement rates for any procedure code across all 47 states with fee schedule data.",
     status: "live", icon: "⌗", color: C.brand,
   },
+  // ── FORECAST (direct link, no dropdown) ───────────────────────────────
   {
-    id: "builder", group: "rates", name: "Rate Builder",
-    tagline: "Model custom rate methodologies",
-    desc: "Build Medicaid rates using different methodologies: percent of Medicare, RBRVS, state-specific conversion factors, and peer state benchmarks.",
-    status: "live", icon: "◐", color: C.brand,
-  },
-  // ── FORECAST ──────────────────────────────────────────────────────────
-  {
-    id: "forecast", group: "forecast", name: "Caseload Forecaster",
+    id: "forecast", group: "forecast", name: "Forecasting",
     tagline: "Caseload and expenditure projections with scenario modeling",
-    desc: "Upload monthly enrollment data. Aradune runs SARIMAX + ETS model competition, produces caseload forecasts with confidence intervals, and projects expenditure by category.",
+    desc: "Upload monthly enrollment data. SARIMAX + ETS model competition, caseload forecasts with confidence intervals, expenditure projections.",
     status: "live", icon: "◐", color: C.teal,
   },
   // ── PROVIDERS ─────────────────────────────────────────────────────────
   {
     id: "hospitals", group: "providers", name: "Hospital Intelligence",
-    tagline: "AHEAD readiness, global budgets, and hospital financial data",
-    desc: "Search any hospital by name. AHEAD readiness scoring from public HCRIS data, global budget modeling, peer comparison.",
+    tagline: "AHEAD readiness, financials, and peer benchmarks",
+    desc: "Search any hospital by name. HCRIS financials, AHEAD readiness scoring, global budget modeling, peer comparison.",
     status: "live", icon: "△", color: C.accent,
   },
   {
@@ -140,12 +127,6 @@ const TOOLS: ToolDef[] = [
     tagline: "AHEAD model savings and global budget projections",
     desc: "Model hospital participation in the CMS AHEAD model. Project savings, global budgets, and readiness.",
     status: "live", icon: "△", color: C.accent,
-  },
-  {
-    id: "explorer", group: "providers", name: "Spending Explorer",
-    tagline: "T-MSIS provider spending patterns across states",
-    desc: "Explore provider-level Medicaid spending patterns from 227M T-MSIS claims. Filter by state, category, procedure code, and provider.",
-    status: "live", icon: "◧", color: C.accent,
   },
   // ── WORKFORCE ─────────────────────────────────────────────────────────
   {
@@ -155,27 +136,9 @@ const TOOLS: ToolDef[] = [
     status: "live", icon: "⊿", color: C.teal,
   },
   {
-    id: "quality", group: "workforce", name: "Quality Linkage",
-    tagline: "CMS Core Set quality measures mapped to payment rates",
-    desc: "Link CMS quality measures to Medicaid payment rates. Identify where low rates correlate with poor outcomes.",
-    status: "live", icon: "⊿", color: C.teal,
-  },
-  {
-    id: "hcbs8020", group: "workforce", name: "HCBS Tracker",
-    tagline: "80/20 HCBS pass-through compliance tracking",
-    desc: "Track HCBS payment pass-through rates against the 80% direct care worker compensation requirement.",
-    status: "live", icon: "⊿", color: C.teal,
-  },
-  {
     id: "compliance", group: "workforce", name: "Compliance Center",
     tagline: "42 CFR 447.203 requirements and transparency",
-    desc: "Everything for the July 2026 Ensuring Access deadline: compliance checklists, rate reduction modeling, methodology documentation.",
-    status: "live", icon: "◇", color: C.teal,
-  },
-  {
-    id: "reduction", group: "workforce", name: "Rate Reduction Analyzer",
-    tagline: "Model the impact of proposed Medicaid rate reductions",
-    desc: "Analyze how proposed rate reductions affect provider participation and beneficiary access.",
+    desc: "Rate transparency, HCBS pass-through tracking, rate reduction analysis for the July 2026 Ensuring Access deadline.",
     status: "live", icon: "◇", color: C.teal,
   },
 ];
@@ -337,10 +300,10 @@ function Landing() {
 
   const MODULE_GROUPS = [
     {
-      title: "States & Enrollment",
+      title: "States",
       color: C.brand,
       modules: [
-        { id: "state", name: "State Profiles", desc: "54-jurisdiction dashboards with enrollment, rates, hospitals, quality, workforce, and economic context", route: "#/state/FL" },
+        { id: "state", name: "State Profiles", desc: "54-jurisdiction dashboards: enrollment, rates, hospitals, quality, workforce, pharmacy, and economic context with cross-dataset insights", route: "#/state/FL" },
       ],
     },
     {
@@ -350,15 +313,14 @@ function Landing() {
         { id: "rates", name: "Rate Comparison", desc: "Medicaid-to-Medicare parity across 47 states, 16,000+ procedure codes", route: "#/rates" },
         { id: "cpra", name: "CPRA Generator", desc: "42 CFR 447.203 Comparative Payment Rate Analysis for July 2026 deadline", route: "#/cpra" },
         { id: "lookup", name: "Rate Lookup", desc: "Search any HCPCS code across all states instantly", route: "#/lookup" },
-        { id: "fees", name: "Fee Schedule Directory", desc: "Every state's fee schedule source, methodology, and effective dates", route: "#/fees" },
-        { id: "builder", name: "Rate Builder", desc: "Model custom rate methodologies: % of Medicare, RBRVS, conversion factors", route: "#/builder" },
+        { id: "compliance", name: "Compliance Center", desc: "Ensuring Access requirements, rate transparency, HCBS pass-through, rate reduction analysis", route: "#/compliance" },
       ],
     },
     {
-      title: "Fiscal & Forecasting",
+      title: "Forecasting",
       color: C.teal,
       modules: [
-        { id: "forecast", name: "Caseload Forecaster", desc: "SARIMAX + ETS model competition with scenario modeling and expenditure projections", route: "#/forecast" },
+        { id: "forecast", name: "Caseload & Expenditure", desc: "SARIMAX + ETS model competition with scenario modeling and expenditure projections", route: "#/forecast" },
       ],
     },
     {
@@ -367,17 +329,13 @@ function Landing() {
       modules: [
         { id: "hospitals", name: "Hospital Intelligence", desc: "HCRIS financials, AHEAD readiness, global budget modeling, peer benchmarks", route: "#/hospitals" },
         { id: "ahead", name: "AHEAD Calculator", desc: "CMS AHEAD model participation scoring and savings projections", route: "#/ahead" },
-        { id: "explorer", name: "Spending Explorer", desc: "Provider-level Medicaid spending patterns from T-MSIS claims data", route: "#/explorer" },
       ],
     },
     {
-      title: "Workforce & Access",
+      title: "Workforce",
       color: C.teal,
       modules: [
         { id: "wages", name: "Wage Adequacy", desc: "BLS market wages vs Medicaid reimbursement for healthcare occupations", route: "#/wages" },
-        { id: "quality", name: "Quality Linkage", desc: "CMS Core Set quality measures correlated with payment rates", route: "#/quality" },
-        { id: "hcbs8020", name: "HCBS Tracker", desc: "80% direct care worker compensation pass-through tracking", route: "#/hcbs8020" },
-        { id: "compliance", name: "Compliance Center", desc: "Ensuring Access requirements, rate reduction modeling, methodology docs", route: "#/compliance" },
       ],
     },
   ];
@@ -1242,35 +1200,32 @@ function PlatformInner() {
     // Lazy-loaded tool routes (code-split)
     // 6-module routes + all legacy routes still work
     const toolMap: Record<string, ReactElement> = {
-      // ── Module routes (6 modules) ────────────────────────────
+      // ── Standalone modules (each does one thing) ─────────────
       "/state": <StateProfile />,
-      "/rates": <RateAnalysis />,
+      "/rates": <TmsisExplorer />,
+      "/cpra": <CpraGenerator />,
+      "/lookup": <RateLookup />,
       "/forecast": <CaseloadForecaster />,
-      "/providers": <ProviderIntelligence />,
-      "/workforce": <WorkforceQuality />,
-      // ── Standalone tools ─────────────────────────────────────
+      "/hospitals": <AheadReadiness />,
+      "/ahead": <AheadCalculator />,
+      "/wages": <WageAdequacy />,
+      "/compliance": <ComplianceReport />,
+      // ── Utility tools ──────────────────────────────────────────
       "/ask": <ToolErrorBoundary><Suspense fallback={loadingFallback}><IntelligenceChat /></Suspense></ToolErrorBoundary>,
       "/catalog": <DataCatalog />,
-      "/analyst": <IntelligenceChat />,  // Legacy: was PolicyAnalyst → now Intelligence
-      // ── Legacy routes → module wrappers (old bookmarks work) ──
-      "/cpra": <RateAnalysis />,
-      "/fees": <RateAnalysis />,
-      "/builder": <RateAnalysis />,
-      "/explorer": <RateAnalysis />,
-      "/reduction": <RateAnalysis />,
-      // Standalone tools (no tab in module wrappers)
-      "/lookup": <RateLookup />,
+      // ── Legacy routes (old bookmarks still work) ───────────────
+      "/analyst": <IntelligenceChat />,
+      "/fees": <FeeScheduleDir />,
+      "/builder": <RateBuilder />,
+      "/explorer": <TmsisExplorer />,
+      "/reduction": <RateReduction />,
       "/decay": <RateDecay />,
-      // Provider module
-      "/hospitals": <ProviderIntelligence />,
-      "/ahead": <ProviderIntelligence />,
-      "/ahead-readiness": <ProviderIntelligence />,
-      // Workforce module
-      "/wages": <WorkforceQuality />,
-      "/quality": <WorkforceQuality />,
-      "/hcbs8020": <WorkforceQuality />,
-      "/compliance": <WorkforceQuality />,
-      "/adequacy": <WorkforceQuality />,
+      "/ahead-readiness": <AheadReadiness />,
+      "/quality": <QualityLinkage />,
+      "/hcbs8020": <HcbsTracker />,
+      "/adequacy": <WageAdequacy />,
+      "/providers": <AheadReadiness />,
+      "/workforce": <WageAdequacy />,
     };
     const toolRoute = toolMap[route] ?? (route.startsWith("/ahead?") ? toolMap["/ahead"] : route.startsWith("/state/") ? toolMap["/state"] : null);
     if (toolRoute) return <ToolErrorBoundary><Suspense fallback={loadingFallback}>{toolRoute}</Suspense></ToolErrorBoundary>;

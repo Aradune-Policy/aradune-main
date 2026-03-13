@@ -426,7 +426,7 @@ export default function QualityLinkage() {
                   <td style={{ padding:"4px",color:DOMAIN_COLORS[m.domain]||AL,fontSize:9,maxWidth:140,overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap" }}>{m.domain}</td>
                   <td style={{ fontFamily:FM,fontWeight:600 }}>{m.rate}%</td>
                   <td style={{ fontFamily:FM,color:AL }}>{m.median}%</td>
-                  <td style={{ fontFamily:FM,fontWeight:700,color:(m.gap ?? 0)>=0?POS:NEG }}>{(m.gap ?? 0)>=0?"+":""}{m.gap?.toFixed(1)}pp</td>
+                  <td style={{ fontFamily:FM,fontWeight:700,color:(m.gap ?? 0)>=0?POS:NEG }}>{(m.gap ?? 0)>=0?"+":""}{(m.gap ?? 0).toFixed(1)}pp</td>
                   <td>{m.aboveMedian?<span style={{ fontSize:8,padding:"1px 6px",borderRadius:8,background:"rgba(46,107,74,0.1)",color:POS,fontWeight:600 }}>Above</span>:<span style={{ fontSize:8,padding:"1px 6px",borderRadius:8,background:"rgba(164,38,44,0.1)",color:NEG,fontWeight:600 }}>Below</span>}</td>
                 </tr>
               ))}

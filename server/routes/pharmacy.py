@@ -1,6 +1,6 @@
 """Pharmacy data routes — SDUD, NADAC, drug rebate."""
 
-from fastapi import APIRouter, Query
+from fastapi import APIRouter, HTTPException, Query
 from server.db import get_cursor
 
 router = APIRouter()
@@ -19,20 +19,23 @@ async def drug_utilization(
     limit_idx = len(params) + 1
     params.append(limit)
 
-    with get_cursor() as cur:
-        rows = cur.execute(f"""
-            SELECT ndc, product_name, year, quarter,
-                   units_reimbursed, prescription_count,
-                   total_reimbursed, medicaid_reimbursed
-            FROM fact_drug_utilization
-            WHERE state_code = $1 {year_filter}
-            ORDER BY medicaid_reimbursed DESC
-            LIMIT ${limit_idx}
-        """, params).fetchall()
-        columns = ["ndc", "product_name", "year", "quarter",
-                    "units_reimbursed", "prescription_count",
-                    "total_reimbursed", "medicaid_reimbursed"]
-        return [dict(zip(columns, r)) for r in rows]
+    try:
+        with get_cursor() as cur:
+            rows = cur.execute(f"""
+                SELECT ndc, product_name, year, quarter,
+                       units_reimbursed, prescription_count,
+                       total_reimbursed, medicaid_reimbursed
+                FROM fact_drug_utilization
+                WHERE state_code = $1 {year_filter}
+                ORDER BY medicaid_reimbursed DESC
+                LIMIT ${limit_idx}
+            """, params).fetchall()
+            columns = ["ndc", "product_name", "year", "quarter",
+                        "units_reimbursed", "prescription_count",
+                        "total_reimbursed", "medicaid_reimbursed"]
+            return [dict(zip(columns, r)) for r in rows]
+    except Exception as e:
+        raise HTTPException(500, {"error": "Drug utilization query failed", "detail": str(e)})
 
 
 @router.get("/api/pharmacy/nadac")
@@ -57,39 +60,45 @@ async def nadac_pricing(
 
     where = "WHERE " + " AND ".join(filters) if filters else ""
 
-    with get_cursor() as cur:
-        rows = cur.execute(f"""
-            SELECT ndc, ndc_description, nadac_per_unit,
-                   effective_date, pricing_unit, is_otc
-            FROM fact_nadac
-            {where}
-            ORDER BY effective_date DESC
-            LIMIT ${idx}
-        """, params + [limit]).fetchall()
-        columns = ["ndc", "ndc_description", "nadac_per_unit",
-                    "effective_date", "pricing_unit", "is_otc"]
-        return [dict(zip(columns, r)) for r in rows]
+    try:
+        with get_cursor() as cur:
+            rows = cur.execute(f"""
+                SELECT ndc, ndc_description, nadac_per_unit,
+                       effective_date, pricing_unit, is_otc
+                FROM fact_nadac
+                {where}
+                ORDER BY effective_date DESC
+                LIMIT ${idx}
+            """, params + [limit]).fetchall()
+            columns = ["ndc", "ndc_description", "nadac_per_unit",
+                        "effective_date", "pricing_unit", "is_otc"]
+            return [dict(zip(columns, r)) for r in rows]
+    except Exception as e:
+        raise HTTPException(500, {"error": "NADAC query failed", "detail": str(e)})
 
 
 @router.get("/api/pharmacy/top-drugs/{state_code}")
 async def top_drugs(state_code: str, limit: int = Query(20, le=100)):
     """Get top drugs by Medicaid spending for a state."""
     state_code = state_code.upper()
-    with get_cursor() as cur:
-        rows = cur.execute("""
-            SELECT
-                du.ndc,
-                du.product_name,
-                SUM(du.medicaid_reimbursed) AS total_spending,
-                SUM(du.prescription_count) AS total_rx,
-                AVG(n.nadac_per_unit) AS avg_nadac
-            FROM fact_drug_utilization du
-            LEFT JOIN fact_nadac n ON du.ndc = n.ndc
-            WHERE du.state_code = $1
-            GROUP BY du.ndc, du.product_name
-            ORDER BY total_spending DESC
-            LIMIT $2
-        """, [state_code, limit]).fetchall()
-        columns = ["ndc", "product_name", "total_spending",
-                    "total_rx", "avg_nadac"]
-        return [dict(zip(columns, r)) for r in rows]
+    try:
+        with get_cursor() as cur:
+            rows = cur.execute("""
+                SELECT
+                    du.ndc,
+                    du.product_name,
+                    SUM(du.medicaid_reimbursed) AS total_spending,
+                    SUM(du.prescription_count) AS total_rx,
+                    AVG(n.nadac_per_unit) AS avg_nadac
+                FROM fact_drug_utilization du
+                LEFT JOIN fact_nadac n ON du.ndc = n.ndc
+                WHERE du.state_code = $1
+                GROUP BY du.ndc, du.product_name
+                ORDER BY total_spending DESC
+                LIMIT $2
+            """, [state_code, limit]).fetchall()
+            columns = ["ndc", "product_name", "total_spending",
+                        "total_rx", "avg_nadac"]
+            return [dict(zip(columns, r)) for r in rows]
+    except Exception as e:
+        raise HTTPException(500, {"error": "Top drugs query failed", "detail": str(e)})

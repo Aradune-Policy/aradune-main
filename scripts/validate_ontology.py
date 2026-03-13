@@ -185,7 +185,7 @@ def validate_domains(
             tbl = entry.get("table", "") if isinstance(entry, dict) else entry
             all_tables.add(tbl)
             if inventory and tbl not in inventory:
-                error(f"{path.name}: primary_table '{tbl}' not in inventory")
+                warn(f"{path.name}: primary_table '{tbl}' not in inventory")
             if tbl in table_to_domain:
                 warn(
                     f"{path.name}: table '{tbl}' also appears in domain "

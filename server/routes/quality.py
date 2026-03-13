@@ -1,6 +1,6 @@
 """Quality and facility data routes — Five-Star, HAC, Provider of Services."""
 
-from fastapi import APIRouter, Query
+from fastapi import APIRouter, HTTPException, Query
 from server.db import get_cursor
 
 router = APIRouter()
@@ -277,25 +277,29 @@ async def hpsa_by_state(state_code: str, discipline: str = Query(None)):
         disc_filter = "AND discipline = $2"
         params.append(discipline)
 
-    with get_cursor() as cur:
-        rows = cur.execute(f"""
-            SELECT hpsa_name, hpsa_id, discipline, designation_type,
-                   hpsa_score, hpsa_status, metro_indicator,
-                   degree_of_shortage, hpsa_fte, designation_population,
-                   pct_poverty, population_type, rural_status,
-                   county_name, provider_type
-            FROM fact_hpsa
-            WHERE state_code = $1 {disc_filter}
-            ORDER BY hpsa_score DESC NULLS LAST
-        """, params).fetchall()
-        columns = [
-            "hpsa_name", "hpsa_id", "discipline", "designation_type",
-            "hpsa_score", "hpsa_status", "metro_indicator",
-            "degree_of_shortage", "hpsa_fte", "designation_population",
-            "pct_poverty", "population_type", "rural_status",
-            "county_name", "provider_type",
-        ]
-        return [dict(zip(columns, r)) for r in rows]
+    try:
+        with get_cursor() as cur:
+            rows = cur.execute(f"""
+                SELECT hpsa_name, hpsa_id, discipline, designation_type,
+                       hpsa_score, hpsa_status, metro_indicator,
+                       degree_of_shortage, hpsa_fte, designation_population,
+                       pct_poverty, population_type, rural_status,
+                       county_name, provider_type
+                FROM fact_hpsa
+                WHERE state_code = $1 {disc_filter}
+                QUALIFY ROW_NUMBER() OVER (PARTITION BY hpsa_id ORDER BY hpsa_score DESC NULLS LAST) = 1
+                ORDER BY hpsa_score DESC NULLS LAST
+            """, params).fetchall()
+            columns = [
+                "hpsa_name", "hpsa_id", "discipline", "designation_type",
+                "hpsa_score", "hpsa_status", "metro_indicator",
+                "degree_of_shortage", "hpsa_fte", "designation_population",
+                "pct_poverty", "population_type", "rural_status",
+                "county_name", "provider_type",
+            ]
+            return [dict(zip(columns, r)) for r in rows]
+    except Exception as e:
+        raise HTTPException(500, {"error": "HPSA query failed", "detail": str(e)})
 
 
 # ── Medically Underserved Areas ──────────────────────────────────────────

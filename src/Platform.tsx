@@ -66,6 +66,7 @@ const CaseloadForecaster = lazy(() => import("./tools/CaseloadForecaster"));
 const StateProfile = lazy(() => import("./tools/StateProfile"));
 const DataCatalog = lazy(() => import("./tools/DataCatalog"));
 const IntelligenceChat = lazy(() => import("./tools/IntelligenceChat"));
+const FiscalImpact = lazy(() => import("./tools/FiscalImpact"));
 // Module wrappers (RateAnalysis, ProviderIntelligence, WorkforceQuality) removed from routing
 // All tools are standalone now — kept in src/tools/ for reference
 
@@ -114,6 +115,12 @@ const TOOLS: ToolDef[] = [
     tagline: "Caseload and expenditure projections with scenario modeling",
     desc: "Upload monthly enrollment data. SARIMAX + ETS model competition, caseload forecasts with confidence intervals, expenditure projections.",
     status: "live", icon: "◐", color: C.teal,
+  },
+  {
+    id: "fiscal-impact", group: "forecast", name: "Fiscal Impact",
+    tagline: "Rate change budget impact with FMAP and UPL analysis",
+    desc: "Model rate increases: federal match at FMAP, UPL headroom check, biennial state/federal cost split from CMS-64 and enrollment data.",
+    status: "live", icon: "◑", color: C.teal,
   },
   // ── PROVIDERS ─────────────────────────────────────────────────────────
   {
@@ -310,6 +317,7 @@ function Landing() {
       color: C.teal,
       modules: [
         { id: "forecast", name: "Caseload & Expenditure", desc: "SARIMAX + ETS model competition with scenario modeling and expenditure projections", route: "#/forecast" },
+        { id: "fiscal-impact", name: "Fiscal Impact", desc: "Rate change budget impact: FMAP federal match, UPL headroom, biennial state/federal cost split", route: "#/fiscal-impact" },
       ],
     },
     {
@@ -1196,6 +1204,7 @@ function PlatformInner() {
       "/cpra": <CpraGenerator />,
       "/lookup": <RateLookup />,
       "/forecast": <CaseloadForecaster />,
+      "/fiscal-impact": <FiscalImpact />,
       "/hospitals": <AheadReadiness />,
       "/ahead": <AheadCalculator />,
       "/wages": <WageAdequacy />,

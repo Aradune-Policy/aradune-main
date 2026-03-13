@@ -25,6 +25,7 @@ from server.engines.expenditure_model import (
     ExpenditureModeler,
     generate_params_template,
 )
+from server.engines.fiscal_impact import FiscalImpactEngine
 
 router = APIRouter()
 
@@ -473,3 +474,95 @@ async def expenditure_from_forecast(
     except Exception as e:
         raise HTTPException(500, f"Expenditure projection error: {e}")
     return result.to_json()
+
+
+# -- Fiscal Impact Engine ----------------------------------------------------
+
+
+@router.post("/api/forecast/fiscal-impact")
+async def fiscal_impact(
+    state: str = Form(...),
+    fy_start: int = Form(None),
+    fy_end: int = Form(None),
+    adjustments: str = Form("[]"),
+):
+    """
+    Calculate budget impact of rate/benefit policy changes.
+
+    Rate increase % -> federal match at FMAP -> UPL headroom
+    -> biennial budget impact with state/federal cost split.
+
+    adjustments: JSON array of {"service_type": str, "increase_pct": float}
+    """
+    import json as json_mod
+    state = state.upper().strip()
+
+    try:
+        adj_list = json_mod.loads(adjustments)
+    except (json_mod.JSONDecodeError, TypeError):
+        raise HTTPException(400, "adjustments must be valid JSON array")
+
+    if not isinstance(adj_list, list):
+        raise HTTPException(400, "adjustments must be a JSON array")
+
+    try:
+        with get_cursor() as cur:
+            engine = FiscalImpactEngine(state, cur)
+
+            if fy_start:
+                engine.set_biennium(fy_start, fy_end or fy_start + 1)
+
+            for adj in adj_list:
+                engine.add_rate_adjustment(
+                    service_type=adj.get("service_type", "All"),
+                    increase_pct=float(adj.get("increase_pct", 0)),
+                    description=adj.get("description", ""),
+                )
+
+            result = engine.calculate()
+    except HTTPException:
+        raise
+    except Exception as e:
+        raise HTTPException(500, {"error": "Fiscal impact calculation failed", "detail": str(e)})
+
+    return result.to_json()
+
+
+@router.post("/api/forecast/fiscal-impact/csv")
+async def fiscal_impact_csv(
+    state: str = Form(...),
+    fy_start: int = Form(None),
+    fy_end: int = Form(None),
+    adjustments: str = Form("[]"),
+):
+    """Fiscal impact analysis as CSV download."""
+    import json as json_mod
+    state = state.upper().strip()
+
+    try:
+        adj_list = json_mod.loads(adjustments)
+    except (json_mod.JSONDecodeError, TypeError):
+        raise HTTPException(400, "adjustments must be valid JSON array")
+
+    try:
+        with get_cursor() as cur:
+            engine = FiscalImpactEngine(state, cur)
+            if fy_start:
+                engine.set_biennium(fy_start, fy_end or fy_start + 1)
+            for adj in adj_list:
+                engine.add_rate_adjustment(
+                    service_type=adj.get("service_type", "All"),
+                    increase_pct=float(adj.get("increase_pct", 0)),
+                )
+            result = engine.calculate()
+    except Exception as e:
+        raise HTTPException(500, {"error": "Fiscal impact calculation failed", "detail": str(e)})
+
+    csv_bytes = result.to_csv_bytes()
+    filename = f"fiscal_impact_{state}_FY{result.fy_start}-{result.fy_end}.csv"
+
+    return StreamingResponse(
+        io.BytesIO(csv_bytes),
+        media_type="text/csv",
+        headers={"Content-Disposition": f"attachment; filename={filename}"},
+    )

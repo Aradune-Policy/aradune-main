@@ -3,7 +3,7 @@ import {
   BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer,
   ScatterChart, Scatter, Cell, ReferenceLine,
 } from "recharts";
-import { C, FONT, SHADOW } from "../design";
+import { C, FONT, SHADOW, useIsMobile } from "../design";
 import { useAradune } from "../context/AraduneContext";
 import {
   scoreFinancialStability, scoreRevenueConcentration,
@@ -241,6 +241,7 @@ function PeerPanel({ hospital, peers, d1, d2, d3, d4 }: {
 
       <div style={{ fontSize: 12, fontWeight: 600, color: C.ink, marginBottom: 8 }}>Dimension Score Comparison</div>
       <div style={{ fontSize: 10, color: AL, marginBottom: 8 }}>* AHEAD benchmark based on published MedPAC/MACPAC reports for Maryland model hospitals. Indicative only.</div>
+      <div style={{ overflowX: "auto" }}>
       <table style={{ width: "100%", fontSize: 11, borderCollapse: "collapse" }}>
         <thead>
           <tr style={{ borderBottom: `2px solid ${BD}` }}>
@@ -264,6 +265,7 @@ function PeerPanel({ hospital, peers, d1, d2, d3, d4 }: {
           ))}
         </tbody>
       </table>
+      </div>
     </Card>
   );
 }
@@ -462,6 +464,7 @@ async function exportExcel(hospital: HospitalData, composite: number, dims: { ti
 
 export default function AheadReadiness() {
   const { openIntelligence } = useAradune();
+  const isMobile = useIsMobile();
   const [ccn, setCcn] = useState("");
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -715,7 +718,7 @@ export default function AheadReadiness() {
 
   // ── Dashboard ─────────────────────────────────────────────────────
   return (
-    <div style={{ maxWidth: 900, margin: "0 auto", padding: "24px 20px 60px", fontFamily: FONT.body }}>
+    <div style={{ maxWidth: 900, margin: "0 auto", padding: isMobile ? "16px 12px 40px" : "24px 20px 60px", fontFamily: FONT.body }}>
       {/* Header */}
       <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", flexWrap: "wrap", gap: 12, marginBottom: 20 }}>
         <div>

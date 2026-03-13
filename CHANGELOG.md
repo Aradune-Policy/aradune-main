@@ -1,5 +1,47 @@
 # Changelog
 
+## Session 27 (2026-03-13): Comprehensive Audit + Mobile Pass + Deploy
+
+### Bug Fixes (12 changes across 10 files)
+- **CPRA `[object Object]` error** — FastAPI 422 `err.detail` is an object, not string. Proper structured error extraction in CpraGenerator.tsx.
+- **CPRA HTML report None crashes** — Added `(value or 0)` guards to 3 format expressions in cpra.py.
+- **StateProfile supplemental summary not loading** — API returns `"states"` key but helper only checked `"rows"`. Added `d.states` key check.
+- **pct_managed_care showing 8930% instead of 89%** — Removed erroneous `*100` (already percentage form in dim_state).
+- **CaseloadForecaster report fields wrong** — Fixed to match actual API response shape (`r.categories?.[0]?.model_used` etc.).
+- **MC shift slider no-op** — Wired `mcCostMultiplier = 1 - (scenMcShift * 0.005)` into expenditure calculation.
+- **Expenditure project() unhandled exceptions** — Wrapped all 3 calls in try/except with HTTPException in forecast.py.
+- **Falsy year check bugs** — `if year` → `if year is not None` in lake.py and pharmacy.py (year=0 was treated as missing).
+- **SQL injection in LIMIT** — Parameterized LIMIT in pharmacy.py and wages.py (was f-string interpolated).
+- **NL2SQL stale FMAP table** — Updated prompt from `fact_fmap` to `fact_fmap_historical` (MACPAC authoritative).
+- **"Ask Aradune" homepage button broken** — `useState` for autoSent guard was batched (failed in React StrictMode). Replaced with `useRef` (synchronous) + `sessionStorage` fallback.
+
+### Data Accuracy
+- **fact_fmap rebuilt** from `fact_fmap_historical` (MACPAC authoritative). 204 rows (51 states x 4 FYs), eFMAP populated. 38/51 states corrected.
+- Verified dim_state FMAP matches fact_fmap_historical for FL/AZ/CA/TX/NY.
+- Verified expenditure trend formula is correct actuarial convention (stated annual rate, compounded monthly).
+- Verified AheadCalculator NaN risk is theoretical only (all entry points apply defaults).
+
+### Mobile Cleanup & Optimization
+- **Shared `useIsMobile()` hook** exported from `design.ts` with `BP` breakpoints. Removed duplicate local hook from Platform.tsx.
+- **Responsive container padding**: StateProfile, CaseloadForecaster, CpraGenerator, AheadReadiness reduce padding from 20px to 12px on mobile; headers reduce top/bottom padding.
+- **Table overflow wrapping**: Wrapped all remaining unwrapped tables across AheadReadiness (1), AheadCalculator (2 — Tbl component + Markov), TmsisExplorer (2 — SAMHSA + YoY). Every `<table>` in the codebase now has `overflowX: auto`.
+- **Responsive grids**: StateProfile insights `1fr 1fr` → `repeat(auto-fit, minmax(280px, 1fr))`. AheadCalculator cohort/markov grid → `repeat(auto-fit, minmax(300px, 1fr))`.
+- **Header flexWrap**: Added `flexWrap: "wrap"` to StateProfile and CaseloadForecaster headers for mobile button wrapping.
+- **isMobile integrated** into StateProfile, CaseloadForecaster, CpraGenerator, AheadReadiness, AheadCalculator.
+
+### Deployment
+- Committed all audit fixes, pushed to GitHub.
+- Deployed frontend to Vercel (aradune.co) — success.
+- Deployed backend to Fly.io (aradune-api.fly.dev) — success after retry (first attempt used wrong Docker context).
+- Added `.env.vercel`, `.hypothesis/`, `tests/chaos/`, `data/tmp/` to .gitignore.
+
+### Documentation
+- Updated CLAUDE.md: Known Issues, What Success Looks Like, responsive behavior, design.ts description, last-updated date.
+- Updated MEMORY.md: Current state, open items, architecture decisions.
+- Updated CHANGELOG.md with this session.
+
+---
+
 ## Session 17 (2026-03-12): Overnight Data Marathon + Deploy
 
 ### Data Collection (largest session ever)

@@ -2,7 +2,7 @@
 > **The operating system for Medicaid intelligence.**
 > Read this file at the start of every session. It defines what Aradune is, how it's built, and the rules for building it.
 > Build plan: See ARADUNE_BUILD_GUIDE.md for the phased build plan, module specs, and data import architecture.
-> Last updated: 2026-03-12 · Live: https://www.aradune.co
+> Last updated: 2026-03-13 · Live: https://www.aradune.co
 
 ---
 
@@ -136,9 +136,10 @@ Every tool view has **"Ask Intelligence about this"** → opens sidebar with cur
 
 ### Responsive behavior
 
-On screens < 1024px: collapse module links into hamburger menu.
-On screens >= 1024px: show all nav items + Import button inline.
-Intelligence search bar doubles as nav search.
+On screens < 768px (`BP.mobile`): hamburger menu, reduced container padding (12px), single-column grids, all tables horizontally scrollable.
+On screens >= 768px: full horizontal nav with dropdowns, standard 20px padding, multi-column grids.
+Shared `useIsMobile()` hook exported from `design.ts` — used by Platform, StateProfile, CaseloadForecaster, CpraGenerator, AheadReadiness. AheadCalculator has its own `wW`-based breakpoint at 900px.
+All `<table>` elements wrapped with `overflowX: "auto"` containers. Recharts charts use `ResponsiveContainer`.
 
 ### Key tool API endpoints
 
@@ -859,7 +860,7 @@ Aradune/
 │
 ├── src/
 │   ├── Platform.tsx                 ← ~980 lines. Router, tool registry, PasswordGate
-│   ├── design.ts                    ← Design tokens (C, FONT, SHADOW)
+│   ├── design.ts                    ← Design tokens (C, FONT, SHADOW, BP, useIsMobile)
 │   ├── tools/
 │   │   ├── IntelligenceChat.tsx     ← ~850 lines. Intelligence home, SSE, file upload
 │   │   ├── TmsisExplorer.tsx        ← ~2,400 lines. → Rates: Browse & Compare
@@ -1048,12 +1049,14 @@ python scripts/generate_ontology.py           # Regenerates system prompt + Duck
 | 12 | HPSA count shows row count not unique HPSA count | Minor — cosmetic |
 | 13 | pharmacy/enrollment/wages routes lack error handling | Returns 500 instead of structured error |
 | 14 | AHEAD module hardcoded to 6 states/12 hospitals | Save for last per James |
+| 15 | "Ask Aradune" homepage button was broken in dev (StrictMode) | **Fixed** — Session 27 |
+| 16 | Mobile: tables overflowed on small screens | **Fixed** — Session 27, all tables wrapped |
 
 ---
 
 ## 21. What Success Looks Like
 
-**Now (March 2026):** 698 views (667 fact + 9 dim + 22 ref), 400M+ rows, 4.9 GB, 258+ endpoints across 25 route files, 4 engines, 18 ontology domains, Intelligence with SSE + DuckDB + RAG + web search, 9 standalone modules behind password gate, CPRA regulatory-correct both modes. 115+ ETL scripts. Export pipeline: DOCX/PDF/Excel/CSV + chart PNG/SVG. Demo mode with 27 pre-cached Intelligence responses. Comprehensive audit complete: 14+ crash risks fixed, data accuracy verified across 5 states (FL/TX/CA/NY/OH), fact_fmap rebuilt from MACPAC, enrollment deduplicated, all SQL injection vectors parameterized. Deployed to Fly.io + R2 + Vercel.
+**Now (March 2026):** 698 views (667 fact + 9 dim + 22 ref), 400M+ rows, 4.9 GB, 258+ endpoints across 25 route files, 4 engines, 18 ontology domains, Intelligence with SSE + DuckDB + RAG + web search, 9 standalone modules behind password gate, CPRA regulatory-correct both modes. 115+ ETL scripts. Export pipeline: DOCX/PDF/Excel/CSV + chart PNG/SVG. Demo mode with 27 pre-cached Intelligence responses. Comprehensive audit complete: 14+ crash risks fixed, data accuracy verified across 5 states (FL/TX/CA/NY/OH), fact_fmap rebuilt from MACPAC, enrollment deduplicated, all SQL injection vectors parameterized. Mobile-responsive: shared `useIsMobile` hook, all tables wrapped with `overflowX: auto`, responsive padding/grids across all tools. "Ask Aradune" homepage passthrough working (ref-based guard + sessionStorage fallback). Deployed to Fly.io + R2 + Vercel.
 
 **Demo milestone (~April 2026):** End-to-end demo flow tested. Import → cross-reference → export polished. Visual polish pass. Demo walkthrough script written.
 

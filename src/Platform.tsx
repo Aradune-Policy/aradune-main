@@ -1,6 +1,6 @@
 import { useState, useEffect, lazy, Suspense, Component } from "react";
 import type { ReactNode, ErrorInfo, ReactElement } from "react";
-import { C, FONT, SHADOW, SHADOW_LG } from "./design";
+import { C, FONT, SHADOW, SHADOW_LG, useIsMobile } from "./design";
 import type { ToolDef, NavGroup } from "./types";
 // STATES_LIST and STATE_NAMES available via lazy-loaded tools
 
@@ -162,17 +162,6 @@ const GROUP_DESCS: Record<string, string> = {
   providers: "Hospital intelligence, AHEAD readiness, and provider spending analysis.",
   workforce: "Wage adequacy, quality linkage, HCBS tracking, and compliance.",
 };
-
-// ── Responsive hook ──────────────────────────────────────────────────────
-function useIsMobile(breakpoint = 768) {
-  const [isMobile, setIsMobile] = useState(typeof window !== "undefined" ? window.innerWidth < breakpoint : false);
-  useEffect(() => {
-    const handler = () => setIsMobile(window.innerWidth < breakpoint);
-    window.addEventListener("resize", handler);
-    return () => window.removeEventListener("resize", handler);
-  }, [breakpoint]);
-  return isMobile;
-}
 
 // ── Platform Nav ─────────────────────────────────────────────────────────
 function PlatformNav({ route }: { route: string }) {
@@ -350,6 +339,7 @@ function Landing() {
 
   const handleChatSubmit = () => {
     if (!chatInput.trim()) return;
+    try { sessionStorage.setItem("aradune_pending_query", chatInput.trim()); } catch {}
     window.location.hash = `#/intelligence?q=${encodeURIComponent(chatInput.trim())}`;
   };
 
@@ -488,7 +478,7 @@ function Landing() {
               {STARTERS.map(s => (
                 <button
                   key={s.label}
-                  onClick={() => { window.location.hash = `#/intelligence?q=${encodeURIComponent(s.prompt)}`; }}
+                  onClick={() => { try { sessionStorage.setItem("aradune_pending_query", s.prompt); } catch {} window.location.hash = `#/intelligence?q=${encodeURIComponent(s.prompt)}`; }}
                   style={{
                     padding: "6px 14px", borderRadius: 20,
                     background: "rgba(255,255,255,0.06)", border: "1px solid rgba(255,255,255,0.1)",

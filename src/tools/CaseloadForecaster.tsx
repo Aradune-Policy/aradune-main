@@ -12,6 +12,7 @@ import { STATE_NAMES } from "../data/states";
 import { API_BASE } from "../lib/api";
 import { useAradune } from "../context/AraduneContext";
 import ChartActions from "../components/ChartActions";
+import { useIsMobile } from "../design";
 
 // ── Design tokens ───────────────────────────────────────────────────────
 const A = "#0A2540", AL = "#425A70", POS = "#2E6B4A", NEG = "#A4262C", WARN = "#B8860B";
@@ -142,6 +143,7 @@ const ForecastTooltip = ({ active, payload, label }: any) => {
 // ═══════════════════════════════════════════════════════════════════════
 export default function CaseloadForecaster() {
   const { openIntelligence, addReportSection } = useAradune();
+  const isMobile = useIsMobile();
   // Upload state
   const [state, setState] = useState("FL");
   const [caseloadFile, setCaseloadFile] = useState<File | null>(null);
@@ -340,9 +342,9 @@ export default function CaseloadForecaster() {
 
   // ═══ RENDER ═══════════════════════════════════════════════════════════
   return (
-    <div style={{ maxWidth: 1080, margin: "0 auto", padding: "0 20px 48px", fontFamily: FB }}>
+    <div style={{ maxWidth: 1080, margin: "0 auto", padding: isMobile ? "0 12px 32px" : "0 20px 48px", fontFamily: FB }}>
       {/* Header */}
-      <div style={{ padding: "28px 0 20px", display: "flex", justifyContent: "space-between", alignItems: "flex-end" }}>
+      <div style={{ padding: isMobile ? "20px 0 12px" : "28px 0 20px", display: "flex", justifyContent: "space-between", alignItems: isMobile ? "flex-start" : "flex-end", flexWrap: "wrap", gap: 8 }}>
         <div>
           <h2 style={{ margin: 0, fontSize: 20, fontWeight: 700, color: A, letterSpacing: -0.3 }}>
             Caseload Forecaster

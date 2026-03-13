@@ -26,3 +26,20 @@ export const FONT = {
 
 export const SHADOW = "0 1px 3px rgba(0,0,0,.04),0 4px 12px rgba(0,0,0,.03)";
 export const SHADOW_LG = "0 4px 16px rgba(0,0,0,.06),0 12px 40px rgba(0,0,0,.04)";
+
+// Breakpoints
+export const BP = { mobile: 768, tablet: 1024 } as const;
+
+// Shared responsive hook
+import { useState, useEffect } from "react";
+export function useIsMobile(breakpoint = BP.mobile) {
+  const [mobile, setMobile] = useState(
+    typeof window !== "undefined" ? window.innerWidth < breakpoint : false,
+  );
+  useEffect(() => {
+    const h = () => setMobile(window.innerWidth < breakpoint);
+    window.addEventListener("resize", h);
+    return () => window.removeEventListener("resize", h);
+  }, [breakpoint]);
+  return mobile;
+}

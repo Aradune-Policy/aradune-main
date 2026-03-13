@@ -418,7 +418,7 @@ export default function IntelligenceChat() {
   const [messages, setMessages] = useState<ChatMessage[]>([]);
   const [input, setInput] = useState("");
   const [loading, setLoading] = useState(false);
-  const [autoSent, setAutoSent] = useState(false);
+  const autoSentRef = useRef(false);
   const bottomRef = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLTextAreaElement>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
@@ -438,19 +438,28 @@ export default function IntelligenceChat() {
   }, [input]);
 
   // Auto-send query from URL param (homepage → Intelligence passthrough)
+  // Uses ref (not state) so the guard is synchronous — survives React StrictMode double-effect.
+  // Also checks sessionStorage as fallback (set by Landing page before hash navigation).
   useEffect(() => {
-    if (autoSent) return;
+    if (autoSentRef.current) return;
+    let query = "";
+    // Primary: read from hash
     const hash = window.location.hash;
     const match = hash.match(/[?&]q=([^&]*)/);
     if (match) {
-      const query = decodeURIComponent(match[1]);
-      if (query) {
-        setAutoSent(true);
-        window.location.hash = "#/intelligence";
-        setTimeout(() => sendMessage(query), 100);
-      }
+      query = decodeURIComponent(match[1]);
     }
-  }, [autoSent]); // eslint-disable-line react-hooks/exhaustive-deps
+    // Fallback: sessionStorage (survives any hash-cleaning race)
+    if (!query) {
+      try { query = sessionStorage.getItem("aradune_pending_query") || ""; } catch {}
+    }
+    if (query) {
+      autoSentRef.current = true;
+      try { sessionStorage.removeItem("aradune_pending_query"); } catch {}
+      window.location.hash = "#/intelligence";
+      setTimeout(() => sendMessage(query), 100);
+    }
+  }, []); // eslint-disable-line react-hooks/exhaustive-deps
 
   // Handle file upload for contextual data
   const handleFileUpload = (e: React.ChangeEvent<HTMLInputElement>) => {

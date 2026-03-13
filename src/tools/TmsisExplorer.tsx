@@ -1712,6 +1712,7 @@ export default function TmsisExplorer() {
 
               {/* Spending by SAMHSA category */}
               <div style={{ fontSize:10,fontWeight:600,color:A,marginBottom:4 }}>Spending by SAMHSA Category</div>
+              <div style={{ overflowX: "auto" }}>
               <table style={{ width:"100%",fontSize:10,borderCollapse:"collapse" }}>
                 <thead><tr style={{ borderBottom:`2px solid ${B}` }}>
                   {["Category","Total Paid","Claims","Pt-Svc"].map(h =>
@@ -1727,6 +1728,7 @@ export default function TmsisExplorer() {
                   </tr>
                 ))}</tbody>
               </table>
+              </div>
             </div>
           </Card>
 
@@ -1813,6 +1815,7 @@ export default function TmsisExplorer() {
             </div>
             {r.trends.length > 1 && <div style={{ padding:"0 14px 10px" }}>
               <div style={{ fontSize:10,fontWeight:600,color:A,marginBottom:4 }}>Year-over-Year Growth</div>
+              <div style={{ overflowX: "auto" }}>
               <table style={{ width:"100%",fontSize:10,borderCollapse:"collapse" }}>
                 <thead><tr style={{ borderBottom:`2px solid ${B}` }}>
                   {["Year","Total Paid","Claims","Pt-Svc","YoY Growth"].map(h =>
@@ -1831,6 +1834,7 @@ export default function TmsisExplorer() {
                   </tr>
                 ))}</tbody>
               </table>
+              </div>
             </div>}
           </Card>
 

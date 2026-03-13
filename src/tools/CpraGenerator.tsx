@@ -9,6 +9,7 @@ import { STATE_NAMES } from "../data/states";
 import { query as duckQuery } from "../lib/duckdb";
 import { API_BASE } from "../lib/api";
 import { useAradune } from "../context/AraduneContext";
+import { useIsMobile } from "../design";
 
 // ── Design tokens ───────────────────────────────────────────────────────
 const A = "#0A2540", AL = "#425A70", POS = "#2E6B4A", NEG = "#A4262C", WARN = "#B8860B";
@@ -97,6 +98,7 @@ const Badge = ({ text, color }: { text: string; color: string }) => (
 // ═════════════════════════════════════════════════════════════════════════
 export default function CpraGenerator() {
   const { openIntelligence } = useAradune();
+  const isMobile = useIsMobile();
   const [st, setSt] = useState("FL");
   const [medicare, setMedicare] = useState<MedicareData | null>(null);
   const [medicaid, setMedicaid] = useState<MedicaidRatesData | null>(null);
@@ -679,9 +681,9 @@ ${stateConv ? `State methodology: ${stateConv.methodology_detail || stateConv.me
   const statusLabel = stats.overallStatus === "critical" ? "Critical gaps identified" : stats.overallStatus === "warn" ? "Below parity in key categories" : "Meeting parity benchmarks";
 
   return (
-    <div style={{ maxWidth: 1080, margin: "0 auto", padding: "0 20px 48px", fontFamily: FB }}>
+    <div style={{ maxWidth: 1080, margin: "0 auto", padding: isMobile ? "0 12px 32px" : "0 20px 48px", fontFamily: FB }}>
       {/* Header */}
-      <div style={{ padding: "28px 0 12px" }}>
+      <div style={{ padding: isMobile ? "20px 0 8px" : "28px 0 12px" }}>
         <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", flexWrap: "wrap", gap: 12 }}>
           <div>
             <h2 style={{ margin: 0, fontSize: 20, fontWeight: 700, color: A, letterSpacing: -0.3 }}>

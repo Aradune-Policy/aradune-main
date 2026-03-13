@@ -10,6 +10,7 @@ import {
 import { STATES_LIST, STATE_NAMES } from "../data/states";
 import { API_BASE } from "../lib/api";
 import { useAradune } from "../context/AraduneContext";
+import ChartActions from "../components/ChartActions";
 
 // ── Design tokens ───────────────────────────────────────────────────────
 const A = "#0A2540", AL = "#425A70", POS = "#2E6B4A", NEG = "#A4262C", WARN = "#B8860B";
@@ -380,6 +381,7 @@ export default function HcbsTracker() {
             <Card>
               <CH title="Cross-State Comparison"
                 sub={`Implied worker hourly for ${curCat?.codes.find(c => c.units_per_hour)?.hcpcs ?? ""} at ${overhead}% overhead`} />
+              <ChartActions filename="hcbs-comparison">
               <ResponsiveContainer width="100%" height={Math.max(400, chartData.length * 22)}>
                 <BarChart data={chartData} layout="vertical" margin={{ left: 35, right: 20, top: 5, bottom: 5 }}>
                   <XAxis type="number" tickFormatter={v => `$${v}`} style={{ fontSize: 11 }} />
@@ -394,6 +396,7 @@ export default function HcbsTracker() {
                   </Bar>
                 </BarChart>
               </ResponsiveContainer>
+              </ChartActions>
             </Card>
           )}
 

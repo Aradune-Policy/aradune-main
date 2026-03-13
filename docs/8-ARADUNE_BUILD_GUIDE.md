@@ -1,6 +1,6 @@
 # ARADUNE BUILD GUIDE — FINAL
 > The definitive build plan for the Aradune rebuild.
-> Written 2026-03-09. Companion to CLAUDE.md and NEW_ARADUNE_BUILD_STRUCTURE.md.
+> Written 2026-03-09, updated 2026-03-12. Companion to CLAUDE.md and NEW_ARADUNE_BUILD_STRUCTURE.md.
 > Hand this document to any Claude Code session alongside the current CLAUDE.md.
 
 ---
@@ -9,11 +9,11 @@
 
 ### What's strong
 
-**The data lake.** 250 fact tables, 9 dimension tables, 9 reference tables, 2 compatibility views = 270 total views. 115M+ rows. 785MB Parquet. Hive-partitioned, ZSTD-compressed, snapshot-versioned. DuckDB in-memory. 44 ETL scripts. Dagster orchestration. R2-synced. No consulting firm, no SaaS product, no competing platform has assembled this.
+**The data lake.** 669 fact tables, 9 dimension tables, 9 reference tables, 2 compatibility views = 698 total views. 400M+ rows. 4.9 GB Parquet. Hive-partitioned, ZSTD-compressed, snapshot-versioned. DuckDB in-memory. 107 ETL scripts. Dagster orchestration. R2-synced. No consulting firm, no SaaS product, no competing platform has assembled this.
 
 **The analytical engines.** CPRA upload (68 codes, 171 category pairs, $32.3465 CF, regulatory-correct, 821 lines). Caseload forecasting (SARIMAX+ETS, 650 lines). Expenditure modeling (cap rate/cost-per-eligible, 430 lines). All tested, all producing real outputs.
 
-**The Intelligence backend.** `/api/intelligence` — Claude Sonnet 4.6 with extended thinking (10K budget) and direct DuckDB tool access to all 250 tables. Tools: `query_database`, `list_tables`, `describe_table`. This is the single most valuable piece of infrastructure in the platform and it is not connected to any frontend component.
+**The Intelligence backend.** `/api/intelligence` — Claude Sonnet 4.6 with extended thinking (10K budget) and direct DuckDB tool access to all 669 tables. Tools: `query_database`, `list_tables`, `describe_table`, `search_policy_corpus`, `web_search`. SSE streaming, 4-tier query routing, response caching, RAG over 1,039 CMS policy docs. Fully wired to IntelligenceChat.tsx (home page) and IntelligencePanel.tsx (sidebar from any module).
 
 **The API layer.** 241 endpoints across 20 route files. 13 tested as returning 200 with real data. Coverage spans every data domain.
 
@@ -73,7 +73,7 @@ People come to Aradune with different things:
 
 **Some come with a specific workflow.** "I need to build a CPRA compliance report for my state." They want the Rate Analysis module, the CPRA tab, and a structured tool with inputs and outputs. They may not want AI at all — they want a form and a button.
 
-**Some come with their own data.** "Here's our state's fee schedule — how does it compare to similar states? Where are we most out of line? What would it cost to bring our lowest codes up?" They want to upload a file and have Aradune cross-reference it against 250 tables of national data, layer in web-sourced context (CMS policy updates, recent federal register notices, state-specific regulatory context), and produce an analysis they can use.
+**Some come with their own data.** "Here's our state's fee schedule — how does it compare to similar states? Where are we most out of line? What would it cost to bring our lowest codes up?" They want to upload a file and have Aradune cross-reference it against 669 tables of national data, layer in web-sourced context (CMS policy updates, recent federal register notices, state-specific regulatory context), and produce an analysis they can use.
 
 **Some come to browse.** "Show me everything about Ohio." They want the State Profile — a dashboard with enrollment trends, rates, hospitals, quality, workforce, pharmacy, economics. They may drill into something and then want Intelligence to explain it.
 
@@ -97,7 +97,7 @@ People come to Aradune with different things:
 ┌─────────────────────────────────────────────────────────┐
 │                 ARADUNE INTELLIGENCE                     │
 │                                                          │
-│  Queries the data lake (250 tables, 115M rows)          │
+│  Queries the data lake (669 tables, 400M+ rows)          │
 │  Cross-references user-uploaded data if present          │
 │  Searches the web for current policy/regulatory context  │
 │  Produces narrative analysis with real numbers            │
@@ -154,7 +154,7 @@ And the modules aren't lesser — they're focused. A rate-setting actuary runnin
 ┌────────────────────────────┴────────────────────────────────────┐
 │                    THE DATA LAKE                                 │
 │                                                                 │
-│  250 fact tables · 9 dimensions · 9 references · 115M+ rows   │
+│  669 fact tables · 9 dimensions · 9 references · 400M+ rows   │
 │  + user session data (uploaded files, parsed and queryable)    │
 │  Hive-partitioned Parquet · DuckDB in-memory · R2 sync         │
 └─────────────────────────────────────────────────────────────────┘
@@ -255,7 +255,7 @@ User clicks [↑ Import] or drags file onto any page
 │  │  CSV, Excel, JSON — up to 50MB              │  │
 │  └─────────────────────────────────────────────┘  │
 │                                                   │
-│  Or start without data — Aradune has 250 tables  │
+│  Or start without data — Aradune has 669 tables  │
 │  of public Medicaid data ready to query.          │
 │                                                   │
 └──────────────────────────────────────────────────┘
@@ -657,9 +657,9 @@ Everything in Phase 0 must be done before any new build work. These are bugs and
 - [ ] Audit and fix the 10+ endpoints returning 404 — determine stale deploy vs code bug for each
 
 **Deployment:**
-- [x] Redeploy Fly.io with all 250 tables (all 250 tables live, 232 in production, verified)
+- [x] Redeploy Fly.io with all 669 tables (4.9 GB lake baked into Docker image, verified at https://aradune-api.fly.dev/)
 - [ ] Test top 20 most-used endpoints post-deploy
-- [ ] Address cold start: either pre-bake lake into Docker image (~800MB, eliminates 60s sync) or use Fly.io persistent volume
+- [x] Address cold start: lake pre-baked into Docker image (4.9 GB, eliminates 60s S3 sync on startup)
 - [ ] Confirm all 20 route files are registered and accessible
 
 **Cleanup:**
@@ -674,32 +674,32 @@ Everything in Phase 0 must be done before any new build work. These are bugs and
 Intelligence is the centerpiece. The platform restructure creates the 6-module navigation. Both happen together because Intelligence IS the home page.
 
 **Intelligence frontend:**
-- [ ] Build `IntelligenceChat.tsx` — full-page chat, markdown rendering, table display, chart rendering, streaming
-- [ ] Build `StarterPrompts.tsx` — 6-8 prompts by persona
-- [ ] Build `InputBar.tsx` — fixed bottom, auto-expanding, file drop zone
-- [ ] Build `QueryTrace.tsx` — collapsible SQL trace
-- [ ] Build `ResponseExport.tsx` — Save to Report, Export Table, Export Chart per response
-- [ ] Wire to `/api/intelligence` with streaming (SSE)
-- [ ] Conversation memory (messages array in state)
+- [x] Build `IntelligenceChat.tsx` — full-page chat, markdown rendering, table display, streaming (900 lines)
+- [x] Build `StarterPrompts.tsx` — 6 prompts by persona (integrated into IntelligenceChat)
+- [x] Build `InputBar.tsx` — fixed bottom, auto-expanding, file drop zone (integrated into IntelligenceChat)
+- [x] Build `QueryTrace.tsx` — collapsible SQL trace (integrated into IntelligenceChat)
+- [x] Build `ResponseExport.tsx` — Copy, Export CSV, Save to Report per response (integrated into IntelligenceChat)
+- [x] Wire to `/api/intelligence` with streaming (SSE)
+- [x] Conversation memory (messages array in state)
 
 **Intelligence backend:**
-- [ ] Write comprehensive system prompt (see Part 10)
-- [ ] Add streaming support (SSE via FastAPI StreamingResponse)
-- [ ] Add web search tool to Intelligence's tool set — use the Anthropic Messages API's built-in web search: add `{"type": "web_search_20250305", "name": "web_search", "max_uses": 3}` to the tools array. No custom tool implementation needed. Requires Anthropic SDK >=0.49.0.
-- [ ] Add context injection endpoint parameter
-- [ ] Add structured output format (narrative + tables + charts + queries + citations)
-- [ ] Add user-data awareness (augment system prompt when imported data exists)
+- [x] Write comprehensive system prompt (auto-generated from ontology + static rules, ~1,100 words)
+- [x] Add streaming support (SSE via FastAPI StreamingResponse — `/api/intelligence/stream`)
+- [x] Add web search tool (Anthropic Messages API built-in web search)
+- [x] Add context injection endpoint parameter
+- [x] Add structured output format (narrative + tables + queries + citations via SSE metadata event)
+- [x] Add user-data awareness (augment system prompt when imported data exists)
 - [ ] Test with 15+ representative queries across all data domains
 - [ ] Deprecate `api/chat.js` — keep it running but redirect PolicyAnalyst.tsx to use `/api/intelligence` instead. Migrate the FL methodology addendum and system_prompt.md content into Intelligence's system prompt. Once Intelligence is verified working in production, remove api/chat.js in a follow-up cleanup.
 
 **Platform restructure:**
-- [ ] Rewrite Platform.tsx: replace 3x3 grid with 6-module nav + Import button
-- [ ] Intelligence as home page (root route `/#/`)
-- [ ] Lazy-load all modules
+- [x] 6-module nav with Import button (States, Rates, Forecast, Providers, Workforce + Import + Report)
+- [x] Intelligence as home page (root route `/#/` and `/#/intelligence`)
+- [x] Lazy-load all modules
 - [ ] Old routes redirect (e.g., `/#/cpra` → `/#/rates?tab=cpra`)
-- [ ] Build `AraduneContext` provider (selected state, intelligence panel, imported data, report sections, demo mode)
-- [ ] Build `IntelligencePanel.tsx` — right-side sidebar version for use inside modules
-- [ ] Add "Ask Intelligence" button to all module shells (even before module internals are rebuilt)
+- [x] Build `AraduneContext` provider (selected state, intelligence panel, imported data, report sections — 124 lines)
+- [x] Build `IntelligencePanel.tsx` — right-side sidebar version for use inside modules (271 lines)
+- [x] Add "Ask Intelligence" button to all module shells
 
 ---
 
@@ -708,23 +708,25 @@ Intelligence is the centerpiece. The platform restructure creates the 6-module n
 These are platform-level capabilities that enhance every module. Build them before the module consolidation so modules can integrate them.
 
 **Data import:**
-- [ ] Build `POST /api/import` endpoint (CSV/XLSX/JSON → parsed → DuckDB temp table)
-- [ ] File validation: column type detection, row count, basic sanity checks
-- [ ] Build `ImportPanel.tsx` — drag-and-drop, file preview, column editor, confirmation
-- [ ] Session-scoped storage (temp tables, never persisted, never shared)
-- [ ] Augment Intelligence system prompt when user data is present
-- [ ] Add user temp tables to Intelligence's `query_database` scope
+- [x] Build `POST /api/import` endpoint (CSV/XLSX/JSON → parsed → DuckDB temp table)
+- [x] File validation: column type detection, row count, basic sanity checks
+- [x] Build `ImportPanel.tsx` — drag-and-drop, file preview, column editor, confirmation (534 lines)
+- [x] Session-scoped storage (temp tables, 2h TTL, LRU eviction, 500MB cap, never persisted)
+- [x] Augment Intelligence system prompt when user data is present
+- [x] Add user temp tables to Intelligence's `query_database` scope
 - [ ] Test: upload a state fee schedule → ask Intelligence to compare it to national data → get cross-referenced analysis
 
 **Export pipeline:**
-- [ ] Build `ReportBuilder.tsx` — panel for accumulated sections, reorder, annotate, delete
-- [ ] "Save to Report" button on Intelligence responses → stores to AraduneContext
-- [ ] "Add to Report" button on module views → captures current view as report section
-- [ ] CSV export utility (shared, works on any table data)
-- [ ] Excel export utility (shared, formatted with headers)
-- [ ] Chart export (PNG/SVG from Recharts — `toDataURL()` on the canvas)
-- [ ] DOCX report generation (docx-js — cover page, accumulated sections, citations, branding)
-- [ ] PDF report generation (HTML-to-PDF path, or from DOCX)
+- [x] Build `ReportBuilder.tsx` — panel for accumulated sections, delete, CSV export (372 lines)
+- [x] "Save to Report" button on Intelligence responses → stores to AraduneContext
+- [x] "Add to Report" button on module views (StateProfile, CaseloadForecaster done; remaining modules need wiring)
+- [x] CSV export utility (shared, works on any table data)
+- [x] Excel export utility (reportXlsx.ts — multi-sheet, per-table data sheets, via `xlsx` library)
+- [x] Chart export (chartExport.ts — PNG 2x retina + SVG via Canvas API, ChartActions component)
+- [x] DOCX report generation (reportDocx.ts — cover page, brand bar, sections, tables, via `docx` library)
+- [x] PDF report generation (reportPdf.ts — branded PDF via jspdf + autotable)
+- [x] Shared markdown parser (reportMarkdown.ts — converts Intelligence responses to typed blocks)
+- [x] ChartActions wired into CaseloadForecaster (2 charts) and StateProfile (2 charts)
 
 ---
 
@@ -733,50 +735,56 @@ These are platform-level capabilities that enhance every module. Build them befo
 All 5 modules get built. Each module wraps existing components into a tabbed container, adds Intelligence integration, adds import awareness, adds export buttons.
 
 **Module 2 — Rate Analysis (highest complexity, most tool absorption):**
-- [ ] Build `RateAnalysis.tsx` — wrapper with 5-tab navigation
-- [ ] Browse & Compare tab: wrap TmsisExplorer.tsx. Add shared state connection.
-- [ ] State Fee Schedules tab: wrap FeeScheduleDir.tsx
-- [ ] Rate Builder tab: WIRE StateRateEngine.js (finally). Build the UI connection.
-- [ ] CPRA Compliance tab: wrap CpraGenerator.tsx (both pre-computed and upload modes)
-- [ ] Impact Analysis tab: wrap RateReductionAnalyzer.tsx
-- [ ] Shared state: selected state persists across tabs
-- [ ] "Ask Intelligence" button on every tab with rate context
+- [x] Build `RateAnalysis.tsx` — wrapper with 5-tab navigation (165 lines)
+- [x] Browse & Compare tab: wrap TmsisExplorer.tsx with shared state
+- [x] State Fee Schedules tab: wrap FeeScheduleDir.tsx
+- [x] Rate Builder tab: WIRED StateRateEngine.js
+- [x] CPRA Compliance tab: wrap CpraGenerator.tsx (both modes)
+- [x] Impact Analysis tab: wrap RateReductionAnalyzer.tsx
+- [x] Shared state: selected state persists across tabs
+- [x] "Ask Intelligence" button on every tab with rate context
+- [x] Route redirects for all old rate tool routes
 - [ ] Import integration: "Upload your fee schedule" triggers import, then Browse & Compare shows it alongside national data
 - [ ] Export: per-tab CSV/Excel/Chart export, per-tab "Add to Report"
-- [ ] Route redirects for all old rate tool routes
 
 **Module 1 — State Profiles:**
-- [ ] Comparison mode: multi-state URL (`/#/state/FL+GA+TX`), side-by-side rendering
-- [ ] Cross-dataset insights: post-fetch Intelligence call for proactive observations
-- [ ] "Ask about [state]" button → opens Intelligence sidebar with state context
+- [x] Comparison mode: multi-state URL (`/#/state/FL+GA+TX`), side-by-side rendering (1,640 lines)
+- [x] Cross-dataset insights: 7 client + server insights merged and deduplicated
+- [x] "Ask about [state]" button → opens Intelligence sidebar with state context
 - [ ] Fix 404 fetches (graceful degradation per section)
-- [ ] Section-level export (CSV, Chart, Add to Report)
+- [x] Chart export (ChartActions on enrollment + rate distribution charts)
+- [x] "+ Report" button on toolbar
+- [ ] Section-level CSV export per card
 - [ ] Import overlay: if user data exists, show comparison against state profile data
 
 **Module 3 — Forecasting:**
-- [ ] Dual-mode entry: "Use public data" (auto-populate from fact_enrollment) + "Upload your data" (existing CSV path)
-- [ ] Intelligence integration: "What drove this trend?" button
+- [x] Dual-mode entry: "Use public data" + "Upload your data" (1,100 lines)
+- [x] Intelligence integration: "Ask Aradune" button with forecast context
+- [x] Scenario builder: 4 sliders (unemployment, eligibility, rate change, MC shift)
 - [ ] Historical accuracy overlay (forecasts vs actuals)
-- [ ] Export: chart PNG, data CSV/Excel, narrative as report section
+- [x] Chart export (ChartActions on caseload + expenditure charts)
+- [x] "+ Report" button on toolbar
+- [ ] Data CSV/Excel export from forecast results
 
 **Module 4 — Provider Intelligence:**
-- [ ] Build wrapper with 5-tab navigation
-- [ ] Hospital Search tab (existing search)
-- [ ] Hospital Detail tab (existing CCN lookup + peers)
-- [ ] AHEAD Readiness tab (merge AheadReadiness + AheadCalculator)
-- [ ] Nursing Facilities tab (Five-Star, PBJ, SNF cost)
-- [ ] Facility Directory tab (new — FQHCs, dialysis, hospice, HHA, IRF, LTCH from existing tables)
-- [ ] "Ask Intelligence" on every tab
+- [x] Build wrapper with 5-tab navigation (ProviderIntelligence.tsx)
+- [x] Hospital Readiness tab (AheadReadiness)
+- [x] AHEAD Calculator tab (AheadCalculator)
+- [x] Nursing Facilities tab (Five-Star ratings, PBJ staffing, SNF cost — NursingFacilities.tsx)
+- [x] Facility Directory tab (FQHCs, dialysis, hospice, HHA, IRF, LTCH — FacilityDirectory.tsx)
+- [x] Spending Explorer tab (TmsisExplorer)
+- [x] "Ask Intelligence" on every tab
 - [ ] Import integration: upload hospital/facility data for custom benchmarking
 
 **Module 5 — Workforce & Quality:**
-- [ ] Build wrapper with 5-tab navigation
-- [ ] Wage Comparison tab (wrap WageAdequacy.tsx)
-- [ ] Quality Measures tab (wrap QualityLinkage.tsx)
-- [ ] HCBS Pass-Through tab (wrap HcbsCompTracker.tsx)
-- [ ] Workforce Supply tab (new — HPSA + projections + nursing workforce)
-- [ ] Shortage Areas tab (new — HPSA/MUA visualization)
-- [ ] "Ask Intelligence" on every tab
+- [x] Build wrapper with 6-tab navigation (WorkforceQuality.tsx)
+- [x] Wage Comparison tab (WageAdequacy.tsx)
+- [x] Quality Measures tab (QualityLinkage.tsx)
+- [x] HCBS Pass-Through tab (HcbsTracker.tsx)
+- [x] Workforce Supply tab (BLS wages, NHSC clinicians, HRSA projections — WorkforceSupply.tsx)
+- [x] Shortage Areas tab (HPSA designations, MUA/MUP — ShortageAreas.tsx)
+- [x] Compliance tab (ComplianceReport.tsx)
+- [x] "Ask Intelligence" on every tab
 - [ ] Import integration: upload workforce/quality data for cross-referencing
 
 ---
@@ -784,10 +792,10 @@ All 5 modules get built. Each module wraps existing components into a tabbed con
 ### Phase 4: Demo Preparation
 
 **Demo mode:**
-- [ ] `?demo=true` URL parameter activates demo mode
-- [ ] Pre-cache key API responses in `public/demo/`
-- [ ] Pre-cache 5-10 Intelligence responses for starter prompts
-- [ ] Subtle "DEMO MODE" indicator
+- [x] `?demo=true` URL parameter activates demo mode (AraduneContext.demoMode)
+- [x] Pre-cache key API responses (server/cache_seeds.json has 27 entries, loaded at startup)
+- [x] Pre-cache 5-10 Intelligence responses for starter prompts (scripts/build_cache_seeds.py + server cache_seeds.json loader)
+- [x] Subtle "DEMO" indicator in nav bar when demoMode active
 - [ ] Ensure demo works without live Fly.io (all cached)
 
 **Demo resilience:**
@@ -906,8 +914,8 @@ policy and regulatory context.
 
 ## What you have access to
 
-**The Aradune Data Lake:** 250 fact tables, 9 dimension tables, 9 reference tables —
-115M+ rows of public Medicaid data. Domains include:
+**The Aradune Data Lake:** 669 fact tables, 9 dimension tables, 9 reference tables —
+400M+ rows of public Medicaid data. Domains include:
 
 - Rates & Fee Schedules: Medicaid rates (47 states), Medicare PFS, Medicaid-to-Medicare
   comparisons (45 states)
@@ -983,13 +991,13 @@ The demo flow should show three ways people interact with the platform:
 
 **1. Ask a question, get a real answer.** Open Intelligence. Type (or select) a question about a state they care about. Watch it query real data and produce narrative analysis with tables and charts. Show the query trace. Show the export options. This is the moment.
 
-**2. Bring your data, get it contextualized.** Import a fee schedule or enrollment file. Ask Intelligence to compare it against national data. Watch it cross-reference user data against 250 tables and produce an analysis that would take a team of analysts weeks. Export it as a report section.
+**2. Bring your data, get it contextualized.** Import a fee schedule or enrollment file. Ask Intelligence to compare it against national data. Watch it cross-reference user data against 669 tables and produce an analysis that would take a team of analysts weeks. Export it as a report section.
 
 **3. Use the structured tools for recurring work.** Show Rate Analysis with the CPRA compliance tab. Show State Profiles with comparison mode. Show Forecasting with public data. These aren't replacements for Intelligence — they're focused workflows for people who do the same work repeatedly and want a structured interface for it.
 
 **Then the conversation:**
 
-"Every year, your firm spends thousands of analyst hours assembling this data manually. The data is all public. We've assembled it — 250 tables, 115M rows, every major public dataset. Your analysts can now spend their time on interpretation and strategy instead of data assembly. They can import their working data and cross-reference it against the national landscape instantly. And every output is exportable as a client-ready report.
+"Every year, your firm spends thousands of analyst hours assembling this data manually. The data is all public. We've assembled it — 669 tables, 400M+ rows, every major public dataset. Your analysts can now spend their time on interpretation and strategy instead of data assembly. They can import their working data and cross-reference it against the national landscape instantly. And every output is exportable as a client-ready report.
 
 The question isn't whether this technology will reshape Medicaid consulting. The question is whether your firm is the one offering it to clients, or the one losing clients to the firm that does."
 

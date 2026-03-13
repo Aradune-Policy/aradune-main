@@ -51,6 +51,9 @@ export interface AraduneState {
   removeReportSection: (id: string) => void;
   reorderReportSections: (fromIndex: number, toIndex: number) => void;
   clearReport: () => void;
+
+  // Demo mode
+  demoMode: boolean;
 }
 
 // ── Context ───────────────────────────────────────────────────────────────
@@ -65,12 +68,21 @@ export function useAradune(): AraduneState {
 
 // ── Provider ──────────────────────────────────────────────────────────────
 
+// Check for ?demo=true in URL
+const _isDemoMode = (() => {
+  try {
+    const params = new URLSearchParams(window.location.search);
+    return params.get("demo") === "true";
+  } catch { return false; }
+})();
+
 export function AraduneProvider({ children }: { children: ReactNode }) {
   const [selectedState, setSelectedState] = useState<string | null>(null);
   const [intelligenceOpen, setIntelligenceOpen] = useState(false);
   const [intelligenceContext, setIntelligenceContext] = useState<IntelligenceContext | null>(null);
   const [importedFiles, setImportedFiles] = useState<ImportedFile[]>([]);
   const [reportSections, setReportSections] = useState<ReportSection[]>([]);
+  const demoMode = _isDemoMode;
 
   const openIntelligence = useCallback((ctx?: IntelligenceContext) => {
     if (ctx) setIntelligenceContext(ctx);
@@ -116,6 +128,7 @@ export function AraduneProvider({ children }: { children: ReactNode }) {
       intelligenceOpen, intelligenceContext, openIntelligence, closeIntelligence,
       importedFiles, addImportedFile, removeImportedFile,
       reportSections, addReportSection, removeReportSection, reorderReportSections, clearReport,
+      demoMode,
     }}>
       {children}
     </AraduneCtx.Provider>

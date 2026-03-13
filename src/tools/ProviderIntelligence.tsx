@@ -5,10 +5,14 @@ import { useAradune } from "../context/AraduneContext";
 const AheadReadiness = lazy(() => import("./AheadReadiness"));
 const AheadCalculator = lazy(() => import("./AheadCalculator"));
 const TmsisExplorer = lazy(() => import("./TmsisExplorer"));
+const NursingFacilities = lazy(() => import("./NursingFacilities"));
+const FacilityDirectory = lazy(() => import("./FacilityDirectory"));
 
 const TABS = [
   { key: "readiness", label: "Hospital Readiness", component: AheadReadiness },
   { key: "ahead", label: "AHEAD Calculator", component: AheadCalculator },
+  { key: "nursing", label: "Nursing Facilities", component: NursingFacilities },
+  { key: "directory", label: "Facility Directory", component: FacilityDirectory },
   { key: "spending", label: "Spending Explorer", component: TmsisExplorer },
 ] as const;
 
@@ -18,6 +22,8 @@ const ROUTE_TO_TAB: Record<string, TabKey> = {
   "/hospitals": "readiness",
   "/ahead-readiness": "readiness",
   "/ahead": "ahead",
+  "/nursing-facilities": "nursing",
+  "/directory": "directory",
   "/explorer": "spending",
 };
 
@@ -40,7 +46,7 @@ function parseInitialTab(): TabKey {
 
 export default function ProviderIntelligence() {
   const [active, setActive] = useState<TabKey>(parseInitialTab);
-  const { openIntelligence } = useAradune();
+  const { openIntelligence, addReportSection } = useAradune();
 
   const tabElements = useMemo(
     () =>
@@ -103,26 +109,52 @@ export default function ProviderIntelligence() {
           })}
         </div>
 
-        <button
-          onClick={() =>
-            openIntelligence({
-              summary: "User is viewing Provider Intelligence",
-            })
-          }
-          style={{
-            background: C.brand,
-            color: C.white,
-            border: "none",
-            borderRadius: 4,
-            padding: "5px 12px",
-            fontSize: 11,
-            fontFamily: FONT.body,
-            fontWeight: 500,
-            cursor: "pointer",
-          }}
-        >
-          Ask Aradune
-        </button>
+        <div style={{ display: "flex", gap: 6 }}>
+          <button
+            onClick={() =>
+              openIntelligence({
+                summary: `User is viewing Provider Intelligence — ${active} tab`,
+              })
+            }
+            style={{
+              background: C.brand,
+              color: C.white,
+              border: "none",
+              borderRadius: 4,
+              padding: "5px 12px",
+              fontSize: 11,
+              fontFamily: FONT.body,
+              fontWeight: 500,
+              cursor: "pointer",
+            }}
+          >
+            Ask Aradune
+          </button>
+          <button
+            onClick={() =>
+              addReportSection({
+                id: crypto.randomUUID(),
+                prompt: `Provider Intelligence — ${TABS.find(t => t.key === active)?.label || active}`,
+                response: `Provider Intelligence module snapshot (${active} tab).`,
+                queries: [],
+                createdAt: new Date(),
+              })
+            }
+            style={{
+              background: "none",
+              border: `1px solid ${C.border}`,
+              borderRadius: 4,
+              padding: "5px 12px",
+              fontSize: 11,
+              fontFamily: FONT.body,
+              fontWeight: 500,
+              cursor: "pointer",
+              color: C.inkLight,
+            }}
+          >
+            + Report
+          </button>
+        </div>
       </div>
 
       {/* Tab content — all rendered, toggled via display */}

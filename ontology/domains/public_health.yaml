@@ -29,6 +29,24 @@ primary_tables:
   row_count: 12720
 - table: fact_places_county
   row_count: 229232
+- table: fact_places_county_2025
+  row_count: 114576
+- table: fact_sahie_state
+  row_count: 52
+- table: fact_sahie_county
+  row_count: 3144
+- table: fact_sahie_county_138fpl
+  row_count: 3144
+- table: fact_acs_disability
+  row_count: 52
+- table: fact_acs_language
+  row_count: 52
+- table: fact_provisional_overdose
+  row_count: 81900
+- table: fact_cdc_chronic_disease
+  row_count: 309215
+- table: fact_svi_county
+  row_count: 3144
 - table: fact_pregnancy_outcomes
   row_count: 6360
 - table: fact_pregnant_postpartum
@@ -99,3 +117,7 @@ planned_tables:
   description: BRFSS behavioral risk factors aggregated to state level — smoking, obesity, diabetes, mental health, exercise, healthcare access. Filter from 1GB raw JSON.
   strategy: DuckDB read_json on cdc_brfss_state.json, filter to Medicaid-relevant indicators
   priority: medium
+- table: fact_cdc_behavioral_risk
+  row_count: 50000
+- table: fact_cdc_underlying_cod
+  row_count: 10659

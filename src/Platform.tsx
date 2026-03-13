@@ -6,7 +6,7 @@ import type { ToolDef, NavGroup } from "./types";
 
 import NavDrop from "./components/NavDrop";
 import PlatformSearch from "./components/PlatformSearch";
-import { AraduneProvider } from "./context/AraduneContext";
+import { AraduneProvider, useAradune } from "./context/AraduneContext";
 import IntelligencePanel from "./components/IntelligencePanel";
 import ReportBuilder from "./components/ReportBuilder";
 import Lottie from "lottie-react";
@@ -54,7 +54,6 @@ const WageAdequacy = lazy(() => import("./tools/WageAdequacy"));
 const QualityLinkage = lazy(() => import("./tools/QualityLinkage"));
 const RateDecay = lazy(() => import("./tools/RateDecay"));
 const RateBuilder = lazy(() => import("./tools/RateBuilder"));
-const PolicyAnalyst = lazy(() => import("./tools/PolicyAnalyst"));
 const AheadCalculator = lazy(() => import("./tools/AheadCalculator"));
 const RateReduction = lazy(() => import("./tools/RateReduction"));
 const HcbsTracker = lazy(() => import("./tools/HcbsTracker"));
@@ -65,7 +64,6 @@ const CpraGenerator = lazy(() => import("./tools/CpraGenerator"));
 const AheadReadiness = lazy(() => import("./tools/AheadReadiness"));
 const CaseloadForecaster = lazy(() => import("./tools/CaseloadForecaster"));
 const StateProfile = lazy(() => import("./tools/StateProfile"));
-const DataExplorer = lazy(() => import("./tools/DataExplorer"));
 const DataCatalog = lazy(() => import("./tools/DataCatalog"));
 const IntelligenceChat = lazy(() => import("./tools/IntelligenceChat"));
 const RateAnalysis = lazy(() => import("./tools/RateAnalysis"));
@@ -218,6 +216,7 @@ function PlatformNav({ route }: { route: string }) {
   const activeTool = TOOLS.find(t => route === `/${t.id}`);
   const isMobile = useIsMobile();
   const [mobileOpen, setMobileOpen] = useState(false);
+  const { demoMode } = useAradune();
 
   // Close mobile menu on route change
   useEffect(() => { setMobileOpen(false); }, [route]);
@@ -239,6 +238,13 @@ function PlatformNav({ route }: { route: string }) {
           <a href="#/" style={{ textDecoration: "none", display: "flex", alignItems: "center" }}>
             <span style={{ fontSize: 16, fontWeight: 800, color: C.brand, letterSpacing: 2, fontFamily: FONT.body }}>ARADUNE</span>
           </a>
+          {demoMode && (
+            <span style={{
+              fontSize: 9, fontWeight: 700, fontFamily: FONT.mono,
+              color: C.accent, background: `${C.accent}14`, border: `1px solid ${C.accent}30`,
+              padding: "1px 5px", borderRadius: 3, letterSpacing: 1, lineHeight: 1,
+            }}>DEMO</span>
+          )}
           {activeTool && (
             <>
               <span style={{ color: C.border, fontSize: 13 }}>/</span>
@@ -377,10 +383,11 @@ function Landing() {
   ];
 
   const LANDSCAPE = [
-    { name: "Aradune", tables: "569+", rows: "305M+", states: "54", ai: true, realtime: true, compliance: true, free: true },
-    { name: "Typical consulting engagement", tables: "5-20", rows: "~1M", states: "1-5", ai: false, realtime: false, compliance: false, free: false },
-    { name: "CMS Data.gov", tables: "~50", rows: "~50M", states: "54", ai: false, realtime: false, compliance: false, free: true },
-    { name: "KFF / MACPAC", tables: "~30", rows: "~500K", states: "54", ai: false, realtime: false, compliance: false, free: true },
+    { name: "Aradune", tables: "667+", rows: "400M+", domains: "18", states: "54", crossRef: true, ai: true, compliance: true },
+    { name: "data.medicaid.gov", tables: "~40", rows: "~30M", domains: "6", states: "54", crossRef: false, ai: false, compliance: false },
+    { name: "CMS Data.gov", tables: "~50", rows: "~50M", domains: "8", states: "54", crossRef: false, ai: false, compliance: false },
+    { name: "KFF / MACPAC", tables: "~30", rows: "~500K", domains: "4", states: "54", crossRef: false, ai: false, compliance: false },
+    { name: "ResDAC / VRDC", tables: "100+", rows: "Billions", domains: "5", states: "54", crossRef: false, ai: false, compliance: false },
   ];
 
   const handleChatSubmit = () => {
@@ -409,17 +416,19 @@ function Landing() {
             fontSize: isMobile ? 28 : 42, fontWeight: 800, color: C.ink,
             lineHeight: 1.15, letterSpacing: -1.2, margin: 0, maxWidth: 700,
           }}>
-            Every public Medicaid dataset.{" "}
+            Every public Medicaid dataset.<br />
             <span style={{ color: C.brand }}>One AI-powered platform.</span>
           </h1>
           <p style={{
             fontSize: isMobile ? 14 : 16, color: C.inkLight, lineHeight: 1.7,
-            marginTop: 18, maxWidth: 600,
+            marginTop: 18, maxWidth: 620,
           }}>
-            569 tables. 305 million rows. 18 data domains. Rates, enrollment,
-            hospitals, quality, workforce, pharmacy, expenditure, and more,
-            cross-referenced and queryable through natural language. Built for
-            the people who need to understand how a $1 trillion program works.
+            667+ tables across 18 data domains: rates, enrollment, hospitals, quality,
+            workforce, pharmacy, expenditure, and more. Ingested, normalized, and
+            cross-referenced into a single queryable layer with an AI analyst that
+            reasons across the entire dataset. Not a dashboard. Not a search tool.
+            An intelligence system that reads the data, connects the dots, and
+            writes the analysis. Built for anyone who needs to understand Medicaid.
           </p>
 
           {/* Stats row */}
@@ -428,11 +437,11 @@ function Landing() {
             flexWrap: "wrap",
           }}>
             {([
-              ["569+", "fact tables"],
-              ["305M+", "rows"],
+              ["667+", "fact tables"],
+              ["400M+", "rows"],
               ["54", "jurisdictions"],
               ["18", "data domains"],
-              ["82", "ETL pipelines"],
+              ["100+", "ETL pipelines"],
             ] as const).map(([val, label]) => (
               <div key={label}>
                 <div style={{ fontSize: isMobile ? 20 : 26, fontWeight: 800, fontFamily: FONT.mono, color: C.ink, letterSpacing: -0.5 }}>{val}</div>
@@ -470,7 +479,7 @@ function Landing() {
               <div>
                 <div style={{ fontSize: 18, fontWeight: 700, color: C.white, letterSpacing: -0.3 }}>Ask Aradune anything</div>
                 <div style={{ fontSize: 12, color: "rgba(255,255,255,0.5)", marginTop: 2 }}>
-                  AI analyst with direct query access to 569 tables, policy corpus, and web search
+                  AI analyst with direct query access to 667+ tables, policy corpus, and web search
                 </div>
               </div>
             </div>
@@ -626,13 +635,235 @@ function Landing() {
           </div>
         </div>
 
-        {/* ── COMPETITIVE LANDSCAPE ───────────────────────────────── */}
-        <div style={{ marginBottom: 48 }}>
+        {/* ── ARCHITECTURE VISUAL ────────────────────────────────── */}
+        <div style={{ marginBottom: 56 }}>
           <h2 style={{ fontSize: isMobile ? 18 : 22, fontWeight: 800, color: C.ink, letterSpacing: -0.5, margin: "0 0 6px" }}>
-            How Aradune compares
+            How it works
           </h2>
-          <p style={{ fontSize: 13, color: C.inkLight, margin: "0 0 20px", maxWidth: 520, lineHeight: 1.6 }}>
-            No other platform assembles, normalizes, and cross-references this breadth of Medicaid data with AI-powered query access.
+          <p style={{ fontSize: 13, color: C.inkLight, margin: "0 0 24px", maxWidth: 580, lineHeight: 1.6 }}>
+            Three layers turn scattered public data into actionable Medicaid intelligence.
+          </p>
+
+          {/* Architecture: frozen lake + entity network + intelligence */}
+          {(() => {
+            const ents = [
+              { x: 165, y: 155, l: 'State' }, { x: 305, y: 140, l: 'Procedure' },
+              { x: 440, y: 152, l: 'Provider' }, { x: 570, y: 138, l: 'Hospital' },
+              { x: 235, y: 210, l: 'Drug' }, { x: 370, y: 202, l: 'Rate Cell' },
+              { x: 500, y: 212, l: 'Quality' }, { x: 630, y: 198, l: 'MCO' },
+              { x: 115, y: 242, l: 'Geography' }, { x: 285, y: 250, l: 'HCBS' },
+              { x: 435, y: 246, l: 'Workforce' }, { x: 570, y: 255, l: 'Nursing' },
+            ];
+            const edges: [number, number][] = [
+              [0,1],[0,2],[0,3],[0,8],[1,2],[1,4],[1,5],
+              [2,3],[2,7],[2,11],[3,6],[3,7],[4,5],[5,0],
+              [6,10],[7,11],[8,9],[9,10],[10,11],
+            ];
+            const surfLabels = [
+              { x: 175, y: 374, l: 'Rates' }, { x: 310, y: 370, l: 'Enrollment' },
+              { x: 440, y: 366, l: 'Claims' }, { x: 560, y: 362, l: 'Hospitals' },
+              { x: 660, y: 358, l: 'Pharmacy' },
+              { x: 195, y: 393, l: 'Medicare' }, { x: 330, y: 389, l: 'Quality' },
+              { x: 460, y: 385, l: 'Expenditure' }, { x: 575, y: 381, l: 'BH' },
+              { x: 680, y: 377, l: 'Workforce' },
+              { x: 225, y: 408, l: 'Providers' }, { x: 370, y: 404, l: 'HCBS' },
+              { x: 510, y: 400, l: 'Economic' }, { x: 640, y: 396, l: 'Nursing' },
+            ];
+            const lakeBackY = (x: number) => 352 - (x - 80) * 15 / 600;
+            const particles = [
+              { sx: 180, sy: 372, dur: 3.8 },
+              { sx: 340, sy: 367, dur: 4.2 },
+              { sx: 490, sy: 362, dur: 3.5 },
+              { sx: 620, sy: 358, dur: 4.6 },
+            ];
+
+            return (
+              <div style={{ marginBottom: 32 }}>
+                <style>{`
+                  @keyframes archFlow{0%{stroke-dashoffset:16;opacity:.08}50%{opacity:.15}100%{stroke-dashoffset:0;opacity:.08}}
+                `}</style>
+                <svg viewBox="0 0 1060 500" width="100%" style={{ display: 'block' }}>
+                  <defs>
+                    <linearGradient id="lkTop" x1="0%" y1="0%" x2="100%" y2="100%">
+                      <stop offset="0%" stopColor="#ECF2F8" />
+                      <stop offset="100%" stopColor="#E2EBF4" />
+                    </linearGradient>
+                    <linearGradient id="lkFr" x1="0" y1="0" x2="0" y2="1">
+                      <stop offset="0%" stopColor="#D4DEE8" />
+                      <stop offset="100%" stopColor="#C5D2DF" />
+                    </linearGradient>
+                    <filter id="glw">
+                      <feGaussianBlur stdDeviation="4" result="blur" />
+                      <feMerge><feMergeNode in="blur" /><feMergeNode in="SourceGraphic" /></feMerge>
+                    </filter>
+                  </defs>
+
+                  {/* ── Connection lines: entities to lake surface (behind everything) ── */}
+                  {ents.map((e, i) => (
+                    <line key={`el${i}`}
+                      x1={e.x} y1={e.y + 14} x2={e.x} y2={lakeBackY(e.x) + 8}
+                      stroke="#2E6B4A" strokeWidth={0.7} opacity={0.1}
+                      strokeDasharray="3 5"
+                      style={{ animation: `archFlow 3.5s linear infinite`, animationDelay: `${i * 0.3}s` }}
+                    />
+                  ))}
+
+                  {/* ── Connection lines: entities to intelligence badge ── */}
+                  {ents.map((e, i) => (
+                    <line key={`ei${i}`}
+                      x1={e.x} y1={e.y - 14} x2={390} y2={68}
+                      stroke="#2E6B4A" strokeWidth={0.4} opacity={0.06}
+                    />
+                  ))}
+
+                  {/* ══ FROZEN LAKE SLAB ══ */}
+                  {/* Right side face */}
+                  <path d="M 680,337 L 720,400 L 720,452 L 680,389 Z"
+                    fill="#BFD0DF" stroke="#B0C2D2" strokeWidth={0.5} />
+                  {/* Front face with strata lines */}
+                  <path d="M 120,417 L 720,400 L 720,452 L 120,469 Z"
+                    fill="url(#lkFr)" stroke="#B0C2D2" strokeWidth={0.5} />
+                  {[0.3, 0.55, 0.8].map((f, i) => (
+                    <line key={`st${i}`}
+                      x1={120} y1={417 + (469 - 417) * f}
+                      x2={720} y2={400 + (452 - 400) * f}
+                      stroke="#B8C8D8" strokeWidth={0.3} opacity={0.5} />
+                  ))}
+                  {/* Top surface */}
+                  <path d="M 80,352 L 680,337 L 720,400 L 120,417 Z"
+                    fill="url(#lkTop)" stroke="#C0D0DF" strokeWidth={0.5} />
+
+                  {/* Grid lines on lake surface */}
+                  {[0.2, 0.4, 0.6, 0.8].map((f, i) => (
+                    <line key={`gh${i}`}
+                      x1={80 + 40 * f} y1={352 + 65 * f}
+                      x2={680 + 40 * f} y2={337 + 63 * f}
+                      stroke="#CBD8E5" strokeWidth={0.3} />
+                  ))}
+                  {[0.17, 0.33, 0.5, 0.67, 0.83].map((f, i) => (
+                    <line key={`gv${i}`}
+                      x1={80 + 600 * f} y1={352 - 15 * f}
+                      x2={120 + 600 * f} y2={417 - 17 * f}
+                      stroke="#CBD8E5" strokeWidth={0.3} />
+                  ))}
+
+                  {/* Domain labels etched on surface */}
+                  {surfLabels.map((d, i) => (
+                    <text key={`sl${i}`} x={d.x} y={d.y} textAnchor="middle"
+                      fill="#8A9DB0" fontSize={7}
+                      fontFamily="'SF Mono',Menlo,monospace" fontWeight={500}>
+                      {d.l}
+                    </text>
+                  ))}
+
+                  {/* ══ ENTITY EDGES ══ */}
+                  {edges.map(([a, b], i) => (
+                    <line key={`ee${i}`}
+                      x1={ents[a].x} y1={ents[a].y} x2={ents[b].x} y2={ents[b].y}
+                      stroke="#2E6B4A" strokeWidth={0.8} opacity={0.18} />
+                  ))}
+
+                  {/* ══ ENTITY NODES ══ */}
+                  {ents.map((e, i) => (
+                    <g key={`en${i}`}>
+                      <circle cx={e.x} cy={e.y} r={14}
+                        fill="white" stroke="#2E6B4A" strokeWidth={1.2} />
+                      <text x={e.x} y={e.y + 1} textAnchor="middle" dominantBaseline="middle"
+                        fill="#2E6B4A" fontSize={7} fontWeight={600}
+                        fontFamily="'SF Mono',Menlo,monospace">{e.l}</text>
+                    </g>
+                  ))}
+
+                  {/* ══ INTELLIGENCE BADGE ══ */}
+                  <rect x={280} y={18} width={220} height={48} rx={10}
+                    fill="#0A2540" stroke="#2E6B4A" strokeWidth={1.2} filter="url(#glw)" />
+                  <text x={390} y={36} textAnchor="middle" dominantBaseline="middle"
+                    fill="white" fontSize={11} fontWeight={700}
+                    fontFamily="'Helvetica Neue',sans-serif">Aradune Intelligence</text>
+                  <text x={390} y={52} textAnchor="middle" dominantBaseline="middle"
+                    fill="rgba(255,255,255,0.5)" fontSize={7}
+                    fontFamily="'SF Mono',Menlo,monospace">{`Claude \u00B7 NL\u2192SQL \u00B7 RAG \u00B7 Thinking \u00B7 Web`}</text>
+
+                  {/* ── Animated particles flowing lake → intelligence ── */}
+                  {particles.map((pp, i) => (
+                    <circle key={`ap${i}`} r={2.5} fill="#2E6B4A">
+                      <animateMotion dur={`${pp.dur}s`} repeatCount="indefinite"
+                        path={`M ${pp.sx} ${pp.sy} Q ${pp.sx} 200 390 68`} />
+                      <animate attributeName="opacity" values="0;0.4;0.4;0"
+                        dur={`${pp.dur}s`} repeatCount="indefinite" />
+                    </circle>
+                  ))}
+
+                  {/* ══ RIGHT-SIDE LABELS ══ */}
+                  <text x={760} y={32} fill="#0A2540" fontSize={15} fontWeight={800}
+                    fontFamily="'Helvetica Neue',sans-serif">Intelligence</text>
+                  <text x={760} y={50} fill="#425A70" fontSize={10}
+                    fontFamily="'SF Mono',Menlo,monospace">Ask in natural language. Claude</text>
+                  <text x={760} y={64} fill="#425A70" fontSize={10}
+                    fontFamily="'SF Mono',Menlo,monospace">queries 18 domains, reasons with</text>
+                  <text x={760} y={78} fill="#425A70" fontSize={10}
+                    fontFamily="'SF Mono',Menlo,monospace">extended thinking, cites sources.</text>
+                  <text x={760} y={96} fill="#7A8FA0" fontSize={9}
+                    fontFamily="'SF Mono',Menlo,monospace">Generates CPRAs, rate analyses,</text>
+                  <text x={760} y={109} fill="#7A8FA0" fontSize={9}
+                    fontFamily="'SF Mono',Menlo,monospace">fiscal models, compliance docs.</text>
+
+                  <text x={760} y={170} fill="#0A2540" fontSize={15} fontWeight={800}
+                    fontFamily="'Helvetica Neue',sans-serif">Entity Registry</text>
+                  <text x={760} y={188} fill="#425A70" fontSize={10}
+                    fontFamily="'SF Mono',Menlo,monospace">16 entities, 19 deterministic</text>
+                  <text x={760} y={202} fill="#425A70" fontSize={10}
+                    fontFamily="'SF Mono',Menlo,monospace">metrics, auto-generated joins.</text>
+                  <text x={760} y={220} fill="#7A8FA0" fontSize={9}
+                    fontFamily="'SF Mono',Menlo,monospace">state_code, procedure_code, NPI,</text>
+                  <text x={760} y={233} fill="#7A8FA0" fontSize={9}
+                    fontFamily="'SF Mono',Menlo,monospace">FIPS link everything across domains.</text>
+
+                  <text x={760} y={358} fill="#0A2540" fontSize={15} fontWeight={800}
+                    fontFamily="'Helvetica Neue',sans-serif">Data Lake</text>
+                  <text x={760} y={376} fill="#425A70" fontSize={10}
+                    fontFamily="'SF Mono',Menlo,monospace">667+ tables, 400M+ rows</text>
+                  <text x={760} y={390} fill="#425A70" fontSize={10}
+                    fontFamily="'SF Mono',Menlo,monospace">3.8 GB Parquet, 54 jurisdictions</text>
+                  <text x={760} y={408} fill="#7A8FA0" fontSize={9}
+                    fontFamily="'SF Mono',Menlo,monospace">CMS, BLS, CDC, HRSA, HCRIS,</text>
+                  <text x={760} y={421} fill="#7A8FA0" fontSize={9}
+                    fontFamily="'SF Mono',Menlo,monospace">SDUD, NPPES, KFF, state fee</text>
+                  <text x={760} y={434} fill="#7A8FA0" fontSize={9}
+                    fontFamily="'SF Mono',Menlo,monospace">schedules, and more.</text>
+
+                  {/* ══ DATA SOURCES (bottom pipeline) ══ */}
+                  {[
+                    { x: 150, l: 'data.cms.gov' }, { x: 280, l: 'data.medicaid.gov' },
+                    { x: 420, l: 'BLS/Census' }, { x: 540, l: 'CDC/SAMHSA' },
+                    { x: 660, l: 'KFF/MACPAC' },
+                  ].map((s, i) => (
+                    <g key={`src${i}`}>
+                      <rect x={s.x - 48} y={472} width={96} height={18} rx={4}
+                        fill="none" stroke="#B0C2D2" strokeWidth={0.7} strokeDasharray="3 2" />
+                      <text x={s.x} y={483} textAnchor="middle" dominantBaseline="middle"
+                        fill="#8A9DB0" fontSize={6.5}
+                        fontFamily="'SF Mono',Menlo,monospace" fontWeight={500}>{s.l}</text>
+                      <line x1={s.x} y1={472} x2={s.x} y2={lakeBackY(s.x) + 65}
+                        stroke="#2E6B4A" strokeWidth={0.5} opacity={0.12}
+                        strokeDasharray="2 3"
+                        style={{ animation: `archFlow 4s linear infinite`, animationDelay: `${i * 0.5}s` }} />
+                    </g>
+                  ))}
+                  <text x={60} y={483} fill="#7A8FA0" fontSize={7} fontWeight={600}
+                    fontFamily="'SF Mono',Menlo,monospace">100+ ETL</text>
+                </svg>
+              </div>
+            );
+          })()}
+
+
+          {/* ── DATABASE COMPARISON ──────────────────────────────────── */}
+          <h3 style={{ fontSize: 15, fontWeight: 700, color: C.ink, margin: "0 0 4px", letterSpacing: -0.3 }}>
+            Publicly available Medicaid data sources
+          </h3>
+          <p style={{ fontSize: 12, color: C.inkLight, margin: "0 0 16px", maxWidth: 540, lineHeight: 1.55 }}>
+            No other platform normalizes and cross-references this breadth of Medicaid data into a single queryable layer.
           </p>
           <div style={{ overflowX: "auto" }}>
             <table style={{
@@ -641,7 +872,7 @@ function Landing() {
             }}>
               <thead>
                 <tr>
-                  {["", "Tables", "Rows", "States", "AI query", "Real-time", "Compliance tools", "Free tier"].map(h => (
+                  {["", "Tables", "Rows", "Domains", "States", "Cross-referenced", "AI query", "Compliance output"].map(h => (
                     <th key={h} style={{
                       padding: "10px 14px", borderBottom: `2px solid ${C.border}`,
                       textAlign: "left", fontWeight: 600, color: C.ink, fontSize: 11,
@@ -656,19 +887,24 @@ function Landing() {
                     <td style={{
                       padding: "10px 14px", borderBottom: `1px solid ${C.border}`,
                       fontWeight: i === 0 ? 700 : 400, color: i === 0 ? C.brand : C.ink,
+                      whiteSpace: "nowrap",
                     }}>{row.name}</td>
                     <td style={{ padding: "10px 14px", borderBottom: `1px solid ${C.border}`, fontFamily: FONT.mono, fontSize: 11 }}>{row.tables}</td>
                     <td style={{ padding: "10px 14px", borderBottom: `1px solid ${C.border}`, fontFamily: FONT.mono, fontSize: 11 }}>{row.rows}</td>
+                    <td style={{ padding: "10px 14px", borderBottom: `1px solid ${C.border}`, fontFamily: FONT.mono, fontSize: 11 }}>{row.domains}</td>
                     <td style={{ padding: "10px 14px", borderBottom: `1px solid ${C.border}`, fontFamily: FONT.mono, fontSize: 11 }}>{row.states}</td>
+                    <td style={{ padding: "10px 14px", borderBottom: `1px solid ${C.border}`, color: row.crossRef ? C.brand : C.inkLight }}>{row.crossRef ? "Yes" : "--"}</td>
                     <td style={{ padding: "10px 14px", borderBottom: `1px solid ${C.border}`, color: row.ai ? C.brand : C.inkLight }}>{row.ai ? "Yes" : "--"}</td>
-                    <td style={{ padding: "10px 14px", borderBottom: `1px solid ${C.border}`, color: row.realtime ? C.brand : C.inkLight }}>{row.realtime ? "Yes" : "--"}</td>
                     <td style={{ padding: "10px 14px", borderBottom: `1px solid ${C.border}`, color: row.compliance ? C.brand : C.inkLight }}>{row.compliance ? "Yes" : "--"}</td>
-                    <td style={{ padding: "10px 14px", borderBottom: `1px solid ${C.border}`, color: row.free ? C.brand : C.inkLight }}>{row.free ? "Yes" : "--"}</td>
                   </tr>
                 ))}
               </tbody>
             </table>
           </div>
+          <p style={{ fontSize: 10.5, color: C.inkLight, margin: "10px 0 0", lineHeight: 1.55, maxWidth: 600 }}>
+            ResDAC/VRDC provides access to CMS claims microdata (billions of rows) but requires a Data Use Agreement, IRB approval, and per-project fees.
+            Aradune assembles only publicly available data but normalizes and cross-references it across 18 domains for immediate query access.
+          </p>
         </div>
 
         {/* ── WHY / HOW ──────────────────────────────────────────── */}
@@ -690,8 +926,8 @@ function Landing() {
           <div>
             <div style={{ fontSize: 15, fontWeight: 700, color: C.ink, marginBottom: 10 }}>How it works</div>
             <div style={{ fontSize: 13, color: C.inkLight, lineHeight: 1.75 }}>
-              82 ETL pipelines ingest data from 80+ federal sources into a
-              Hive-partitioned Parquet lake. DuckDB serves 569 fact tables via
+              100+ ETL pipelines ingest data from 80+ federal sources into a
+              Hive-partitioned Parquet lake. DuckDB serves 667+ fact tables via
               FastAPI. Aradune translates natural-language questions into SQL,
               searches a 1,039-document policy corpus, and returns answers
               grounded in real data with full citation and query transparency.
@@ -1015,7 +1251,7 @@ function PlatformInner() {
       // ── Standalone tools ─────────────────────────────────────
       "/ask": <ToolErrorBoundary><Suspense fallback={loadingFallback}><IntelligenceChat /></Suspense></ToolErrorBoundary>,
       "/catalog": <DataCatalog />,
-      "/analyst": <PolicyAnalyst />,
+      "/analyst": <IntelligenceChat />,  // Legacy: was PolicyAnalyst → now Intelligence
       // ── Legacy routes → module wrappers (old bookmarks work) ──
       "/cpra": <RateAnalysis />,
       "/fees": <RateAnalysis />,
@@ -1069,7 +1305,7 @@ function PlatformInner() {
         flexWrap: "wrap", gap: 8,
       }}>
         <span style={{ fontSize: 10, color: C.inkLight }}>Aradune · aradune.co</span>
-        <span style={{ fontSize: 10, color: C.inkLight, fontFamily: FONT.mono }}>569 tables · 305M+ rows · 80+ federal sources</span>
+        <span style={{ fontSize: 10, color: C.inkLight, fontFamily: FONT.mono }}>667 tables · 400M+ rows · 80+ federal sources</span>
       </footer>
     </div>
     </AraduneProvider>

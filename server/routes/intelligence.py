@@ -547,7 +547,49 @@ async def intelligence(req: IntelligenceRequest, user: dict = Depends(require_cl
         except anthropic.APIError as e:
             raise HTTPException(status_code=502, detail=f"Claude API error in tool loop: {e}")
 
-    # If model still wants tools but we hit max rounds, force a text response
+    # Auto-escalation: if model still wants tools, bump to higher tier
+    if response.stop_reason == "tool_use" and route.tier < 4:
+        from server.engines.query_router import TIERS
+        next_tier = min(route.tier + 2, 4)  # Jump aggressively (1→3, 2→4)
+        escalated = TIERS[next_tier]
+        esc_model = escalated.model
+        esc_thinking = (
+            {"type": "enabled", "budget_tokens": escalated.thinking_budget}
+            if escalated.thinking_budget > 0
+            else {"type": "disabled"}
+        )
+        esc_rounds = 0
+        while response.stop_reason == "tool_use" and esc_rounds < escalated.max_queries:
+            esc_rounds += 1
+            tool_uses = [b for b in response.content if b.type == "tool_use"]
+            tool_results = []
+            for tu in tool_uses:
+                output = _execute_tool(tu.name, tu.input)
+                tool_results.append({
+                    "type": "tool_result",
+                    "tool_use_id": tu.id,
+                    "content": output,
+                })
+                tool_call_log.append(ToolCallLog(
+                    name=tu.name,
+                    input=tu.input,
+                    output_preview=output[:500] + ("..." if len(output) > 500 else ""),
+                ))
+            all_messages.append({"role": "assistant", "content": response.content})
+            all_messages.append({"role": "user", "content": tool_results})
+            try:
+                response = client.messages.create(
+                    model=esc_model,
+                    max_tokens=16000,
+                    thinking=esc_thinking,
+                    system=system_prompt,
+                    tools=TOOLS,
+                    messages=all_messages,
+                )
+            except anthropic.APIError as e:
+                raise HTTPException(status_code=502, detail=f"Claude API error in escalation: {e}")
+
+    # Last resort: if still wants tools after escalation, execute final tools and call without tools
     if response.stop_reason == "tool_use":
         tool_uses = [b for b in response.content if b.type == "tool_use"]
         tool_results = []
@@ -566,7 +608,7 @@ async def intelligence(req: IntelligenceRequest, user: dict = Depends(require_cl
                 max_tokens=16000,
                 thinking=thinking_config,
                 system=system_prompt,
-                messages=all_messages,
+                messages=all_messages,  # No tools → forces text response
             )
         except anthropic.APIError as e:
             raise HTTPException(status_code=502, detail=f"Claude API error in final round: {e}")
@@ -674,24 +716,30 @@ async def intelligence_stream(req: IntelligenceRequest, user: dict = Depends(req
             return
 
         # ── Fresh query path ──────────────────────────────────────
+        from server.engines.query_router import TIERS
+
         tool_call_log = []
         queries_executed = []
         total_tool_calls = 0
+        current_tier = route.tier
+        current_model = route.model
+        current_thinking = route.thinking_budget
+        max_rounds = route.max_queries
 
-        # Configure thinking based on route tier
-        thinking_config = (
-            {"type": "enabled", "budget_tokens": route.thinking_budget}
-            if route.thinking_budget > 0
-            else {"type": "disabled"}
-        )
+        def _thinking_config(budget):
+            return (
+                {"type": "enabled", "budget_tokens": budget}
+                if budget > 0
+                else {"type": "disabled"}
+            )
 
-        yield _sse_event("progress", {"pct": 8, "label": f"Thinking (Tier {route.tier}: {route.label})..."})
+        yield _sse_event("progress", {"pct": 8, "label": f"Thinking (Tier {current_tier}: {route.label})..."})
 
         try:
             response = client.messages.create(
-                model=route.model,
+                model=current_model,
                 max_tokens=16000,
-                thinking=thinking_config,
+                thinking=_thinking_config(current_thinking),
                 system=system_prompt,
                 tools=TOOLS,
                 messages=messages,
@@ -700,7 +748,6 @@ async def intelligence_stream(req: IntelligenceRequest, user: dict = Depends(req
             yield _sse_event("error", {"message": str(e)})
             return
 
-        MAX_ROUNDS = route.max_queries
         rounds = 0
         all_messages = list(messages)
 
@@ -710,7 +757,8 @@ async def intelligence_stream(req: IntelligenceRequest, user: dict = Depends(req
         else:
             yield _sse_event("progress", {"pct": 70, "label": "Writing response..."})
 
-        while response.stop_reason == "tool_use" and rounds < MAX_ROUNDS:
+        # ── Main tool loop ─────────────────────────────────────────
+        while response.stop_reason == "tool_use" and rounds < max_rounds:
             rounds += 1
 
             tool_uses = [b for b in response.content if b.type == "tool_use"]
@@ -769,9 +817,9 @@ async def intelligence_stream(req: IntelligenceRequest, user: dict = Depends(req
 
             try:
                 response = client.messages.create(
-                    model=route.model,
+                    model=current_model,
                     max_tokens=16000,
-                    thinking=thinking_config,
+                    thinking=_thinking_config(current_thinking),
                     system=system_prompt,
                     tools=TOOLS,
                     messages=all_messages,
@@ -780,27 +828,115 @@ async def intelligence_stream(req: IntelligenceRequest, user: dict = Depends(req
                 yield _sse_event("error", {"message": str(e)})
                 return
 
-        # ── If the model still wants tools but we hit max rounds, force a text response ──
+        # ── Auto-escalation: if model still wants tools, bump tier ──
+        if response.stop_reason == "tool_use" and current_tier < 4:
+            next_tier = min(current_tier + 2, 4)  # Jump aggressively (1→3, 2→4)
+            escalated = TIERS[next_tier]
+            current_tier = next_tier
+            current_model = escalated.model
+            current_thinking = escalated.thinking_budget
+            extra_rounds = escalated.max_queries
+
+            yield _sse_event("progress", {"pct": 55, "label": f"Escalating to deeper analysis (Tier {next_tier})..."})
+
+            # Continue the tool loop with the escalated tier
+            escalation_rounds = 0
+            while response.stop_reason == "tool_use" and escalation_rounds < extra_rounds:
+                escalation_rounds += 1
+                rounds += 1
+
+                tool_uses = [b for b in response.content if b.type == "tool_use"]
+                tool_results = []
+
+                for tu in tool_uses:
+                    total_tool_calls += 1
+                    pct = min(55 + escalation_rounds * 5, 72)
+                    purpose = tu.input.get("purpose", tu.input.get("filter", tu.input.get("table_name", "")))
+                    label = f"Querying: {purpose}" if purpose else f"Running {tu.name.replace('_', ' ')}..."
+                    yield _sse_event("progress", {"pct": pct, "label": label})
+
+                    output = _execute_tool(tu.name, tu.input)
+                    tool_results.append({
+                        "type": "tool_result",
+                        "tool_use_id": tu.id,
+                        "content": output,
+                    })
+
+                    _row_count = None
+                    _query_ms = None
+                    try:
+                        parsed = json.loads(output)
+                        _row_count = parsed.get("row_count", parsed.get("total"))
+                        _query_ms = parsed.get("query_ms")
+                        tool_call_log.append({
+                            "name": tu.name,
+                            "input": tu.input,
+                            "rows": _row_count,
+                            "ms": _query_ms,
+                        })
+                        if tu.name == "query_database":
+                            queries_executed.append(tu.input.get("sql", ""))
+                    except Exception:
+                        tool_call_log.append({"name": tu.name, "input": tu.input})
+
+                    yield _sse_event("tool_result", {
+                        "name": tu.name,
+                        "rows": _row_count,
+                        "ms": _query_ms,
+                    })
+
+                all_messages.append({"role": "assistant", "content": response.content})
+                all_messages.append({"role": "user", "content": tool_results})
+
+                yield _sse_event("progress", {"pct": min(65 + escalation_rounds * 3, 74), "label": "Analyzing with extended thinking..."})
+
+                try:
+                    response = client.messages.create(
+                        model=current_model,
+                        max_tokens=16000,
+                        thinking=_thinking_config(current_thinking),
+                        system=system_prompt,
+                        tools=TOOLS,
+                        messages=all_messages,
+                    )
+                except anthropic.APIError as e:
+                    yield _sse_event("error", {"message": str(e)})
+                    return
+
+        # ── Last resort: force text if still wanting tools ──────
         if response.stop_reason == "tool_use":
-            # Append what we have and ask again without tools
-            all_messages.append({"role": "assistant", "content": response.content})
             tool_uses = [b for b in response.content if b.type == "tool_use"]
             tool_results = []
             for tu in tool_uses:
+                total_tool_calls += 1
                 output = _execute_tool(tu.name, tu.input)
                 tool_results.append({
                     "type": "tool_result",
                     "tool_use_id": tu.id,
                     "content": output,
                 })
+                try:
+                    parsed = json.loads(output)
+                    tool_call_log.append({
+                        "name": tu.name,
+                        "input": tu.input,
+                        "rows": parsed.get("row_count", parsed.get("total")),
+                        "ms": parsed.get("query_ms"),
+                    })
+                    if tu.name == "query_database":
+                        queries_executed.append(tu.input.get("sql", ""))
+                except Exception:
+                    tool_call_log.append({"name": tu.name, "input": tu.input})
+
+            all_messages.append({"role": "assistant", "content": response.content})
             all_messages.append({"role": "user", "content": tool_results})
             try:
                 response = client.messages.create(
-                    model=route.model,
+                    model=current_model,
                     max_tokens=16000,
-                    thinking=thinking_config,
+                    thinking=_thinking_config(current_thinking),
                     system=system_prompt,
-                    messages=all_messages,
+                    messages=all_messages,  # No tools → forces text response
                 )
             except anthropic.APIError as e:
                 yield _sse_event("error", {"message": str(e)})
@@ -837,9 +973,9 @@ async def intelligence_stream(req: IntelligenceRequest, user: dict = Depends(req
         yield _sse_event("metadata", {
             "tool_calls": tool_call_log,
             "queries": queries_executed,
-            "model": route.model,
-            "tier": route.tier,
-            "tier_label": route.label,
+            "model": current_model,
+            "tier": current_tier,
+            "tier_label": TIERS[current_tier].label,
             "rounds": rounds,
             "cached": False,
         })

@@ -26,6 +26,11 @@ def _latest_snapshot(fact_dir: Path, fact_name: str) -> Path | None:
     fact_path = fact_dir / fact_name
     if not fact_path.exists():
         return None
+    # Check for direct data.parquet first (newer convention)
+    direct = fact_path / "data.parquet"
+    if direct.exists():
+        return direct
+    # Fall back to snapshot partitions
     snapshots = sorted(fact_path.glob("snapshot=*/data.parquet"), reverse=True)
     return snapshots[0] if snapshots else None
 
@@ -73,7 +78,7 @@ FACT_NAMES = [
     "mc_enrollment_pop2",
     "bh_by_condition", "mh_sud_recipients", "maternal_morbidity",
     "dental_services", "telehealth_services",
-    "irf_provider", "ltch_provider", "home_health_agency",
+    "irf_provider", "ltch_provider", "ltch_general", "home_health_agency",
     "physical_among_mh", "physical_among_sud",
     "bh_services", "integrated_care", "1915c_participants",
     "mc_share", "mc_monthly",
@@ -112,7 +117,10 @@ FACT_NAMES = [
     "fair_market_rent",
     "sdud_2025",
     "eligibility_processing", "marketplace_unwinding", "sbm_unwinding",
-    "quality_core_set_2023", "quality_core_set_2024", "hcbs_waitlist",
+    "quality_core_set_2017", "quality_core_set_2018", "quality_core_set_2019",
+    "quality_core_set_2020", "quality_core_set_2021", "quality_core_set_2022",
+    "quality_core_set_2023", "quality_core_set_2024", "quality_core_set_combined",
+    "hcbs_waitlist",
     "ltss_expenditure", "ltss_users", "ltss_rebalancing",
     "vital_stats_monthly", "maternal_mortality_monthly",
     "fmr_fy2024", "new_adult_spending",
@@ -310,9 +318,67 @@ FACT_NAMES = [
     "provider_reassignment",
     "hrsa_awarded_grants", "hrsa_active_grants",
     "sdud_2020", "sdud_2021", "sdud_2022", "sdud_2023", "sdud_combined",
-    "cms64_multiyear",
+    "cms64_multiyear", "cms64_historical",
     "macpac_benefit_spending_fy2024", "macpac_spending_by_elig_fy2023",
     "macpac_mc_enrollment_detail",
+    # Session 20 - Additional data ingestion
+    "promoting_interoperability",
+    "quality_measures_2024_detail",
+    "bls_oews_msa",
+    # MACPAC exhibits + MFCU FY2024
+    "macpac_enrollment_v2", "macpac_hcbs_payment_scan", "macpac_fmap_multiyear",
+    "mfcu_statistical_chart", "mfcu_open_cases", "mfcu_case_outcomes",
+    # Session 21 - CMS March 2026 batch (31 tables)
+    "enrollment_feb2026", "mc_enrollment_by_plan_2024",
+    "cms64_financial_management", "cms64_financial_management_national",
+    "cms64_new_adult_expenditures", "cms64_caa_fmap_expenditures",
+    "eligibility_processing_feb2026",
+    "major_eligibility_group_annual", "dual_status_annual", "program_info_annual",
+    "renewal_outcomes", "chip_enrollment_monthly",
+    "continuous_eligibility_v2", "express_lane_eligibility_v2",
+    "benefit_package_annual", "medicaid_chip_eligibility_levels",
+    "mc_programs_by_state_2023", "mc_features_enrollment_2024",
+    "mc_share_enrollees_2024", "mc_enrollment_pop_2024",
+    "mltss_enrollment_2024", "mc_enrollment_summary_2024_v2",
+    "mlr_summary_dec2025",
+    "nadac_mar2026", "nadac_comparison_mar2026",
+    "drug_amp_q4_2025", "mdrp_drug_products_q4_2025",
+    "dsh_reporting_latest",
+    "hcgov_transitions_unwinding", "medicaid_enterprise_system",
+    "1915c_waiver_participants_v2",
+    # DMEPOS detail + ambulance geographic (7 tables)
+    "dmepos_detail", "dmepos_pen", "dmepos_cba",
+    "dmepos_cba_mailorder", "dmepos_cba_zipcodes",
+    "dmepos_rural_zipcodes", "ambulance_geographic",
+    # Session 21: CMS Provider Data API + agent ingestions
+    "340b_covered_entities", "aca_effectuated_enrollment",
+    "eligibility_enrollment_snapshot", "mhbg_fy23_allotments",
+    # Session 21: Previously blocked + new downloads
+    "svi_county", "mips_performance",
+    "kff_1115_approved_waivers", "kff_1115_pending_waivers", "kff_1115_work_requirements",
+    "state_mac_ny", "state_mac_tx",
+    "nsduh_2022_state",
+    # Section 1115 Medicaid waivers (665 waivers, 54 states)
+    "section_1115_waivers", "kff_1115_waivers",
+    # Session 22: SDUD historical backfill (1991-2019, 40M+ rows)
+    "sdud_1991", "sdud_1992", "sdud_1993", "sdud_1994", "sdud_1995",
+    "sdud_1996", "sdud_1997", "sdud_1998", "sdud_1999", "sdud_2000",
+    "sdud_2001", "sdud_2002", "sdud_2003", "sdud_2004", "sdud_2005",
+    "sdud_2006", "sdud_2007", "sdud_2008", "sdud_2009", "sdud_2010",
+    "sdud_2011", "sdud_2012", "sdud_2013", "sdud_2014", "sdud_2015",
+    "sdud_2016", "sdud_2017", "sdud_2018", "sdud_2019",
+    # Session 22: CMS-64 historical backfill (FY1997-2017)
+    "cms64_historical",
+    # Session 22: SDUD historical combined (1991-2019, 41.8M rows)
+    "sdud_historical_combined",
+    # Session 22: Gap analysis — Census/CDC/SAMHSA new tables
+    "acs_disability", "acs_language",
+    "sahie_state", "sahie_county", "sahie_county_138fpl",
+    "places_county_2025", "provisional_overdose",
+    "mc_enrollment_by_plan", "nsumhss_facility",
+    "teds_admissions_2023",
+    "cdc_chronic_disease",
+    "cdc_behavioral_risk", "cdc_underlying_cod",
 ]
 
 

@@ -3,6 +3,7 @@ import { ScatterChart, Scatter, XAxis, YAxis, Tooltip, ResponsiveContainer, Cart
 import type { QualData, LinkedMeasure, MeasureHcpcsInfo, MeasureMeta, SafeTipProps, TooltipEntry, QualHcpcsRecord } from "../types";
 import { API_BASE } from "../lib/api";
 import { LoadingBar } from "../components/LoadingBar";
+import ChartActions from "../components/ChartActions";
 
 // ── Design System (matches Aradune) ─────────────────────────────────────
 const A = "#0A2540";
@@ -340,6 +341,7 @@ export default function QualityLinkage() {
           <CH t="Rate → Quality Relationship" b={withRates.length>0?`${withRates.length} states with both rate + quality data`:`Quality data only (no T-MSIS rate match)`} r={correlation?`r = ${correlation.r.toFixed(3)}`:""}/>
           {withRates.length >= 3 ? (
             <div style={{ padding:"0 8px 8px" }}>
+              <ChartActions filename="quality-scatter">
               <ResponsiveContainer width="100%" height={260}>
                 <ScatterChart margin={{ left:8,right:16,top:8,bottom:8 }}>
                   <CartesianGrid strokeDasharray="3 3" stroke={BD}/>
@@ -359,6 +361,7 @@ export default function QualityLinkage() {
                   </Scatter>
                 </ScatterChart>
               </ResponsiveContainer>
+              </ChartActions>
               {correlation && <div style={{ padding:"4px 8px",fontSize:10,color:AL,lineHeight:1.6 }}>
                 {Math.abs(correlation.r) < 0.2 && "Weak or no linear relationship between reimbursement rates and quality outcomes for this measure. Other factors (eligibility, outreach, provider networks) likely dominate."}
                 {Math.abs(correlation.r) >= 0.2 && Math.abs(correlation.r) < 0.4 && `Modest ${correlation.r>0?"positive":"negative"} correlation (r=${correlation.r.toFixed(2)}). States paying more for these services ${correlation.r>0?"tend to":"don't necessarily"} score better on this measure, but the relationship is not strong.`}
@@ -378,6 +381,7 @@ export default function QualityLinkage() {
       {stateRanking.length > 0 && curMeasure && <Card>
         <CH t={`State Rankings: ${curMeasure.id}`} b={`${stateRanking.length} states`} r={`Higher = better for this measure`}/>
         <div style={{ padding:"0 14px 8px" }}>
+          <ChartActions filename="quality-rankings">
           <ResponsiveContainer width="100%" height={Math.max(200, Math.min(stateRanking.length * 12, 500))}>
             <BarChart data={stateRanking} layout="vertical" margin={{ left:52,right:16 }}>
               <CartesianGrid strokeDasharray="3 3" stroke={BD} horizontal={false}/>
@@ -396,6 +400,7 @@ export default function QualityLinkage() {
               </Bar>
             </BarChart>
           </ResponsiveContainer>
+          </ChartActions>
           <div style={{ display:"flex",gap:12,fontSize:9,color:AL,padding:"4px 0" }}>
             <span><span style={{ display:"inline-block",width:8,height:8,borderRadius:"50%",background:cO,verticalAlign:"middle",marginRight:3 }}/>{STATE_NAMES[highlightState]}</span>
             <span><span style={{ display:"inline-block",width:8,height:8,borderRadius:"50%",background:WARN,verticalAlign:"middle",marginRight:3 }}/>National median ({curMeasure.median}%)</span>

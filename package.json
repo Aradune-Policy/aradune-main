@@ -13,6 +13,8 @@
     "@anthropic-ai/sdk": "^0.78.0",
     "@clerk/clerk-react": "^5.61.3",
     "@duckdb/duckdb-wasm": "^1.33.1-dev20.0",
+    "docx": "^9.6.1",
+    "file-saver": "^2.0.5",
     "jspdf": "^2.5.2",
     "jspdf-autotable": "^3.8.4",
     "lottie-react": "^2.4.1",
@@ -23,6 +25,7 @@
     "xlsx": "^0.18.5"
   },
   "devDependencies": {
+    "@types/file-saver": "^2.0.7",
     "@types/react": "^19.2.14",
     "@types/react-dom": "^19.2.3",
     "@vitejs/plugin-react": "^4.2.0",

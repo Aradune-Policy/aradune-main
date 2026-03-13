@@ -11,6 +11,7 @@ import {
 import { STATE_NAMES } from "../data/states";
 import { API_BASE } from "../lib/api";
 import { useAradune } from "../context/AraduneContext";
+import ChartActions from "../components/ChartActions";
 
 // ── Design tokens ───────────────────────────────────────────────────────
 const A = "#0A2540", AL = "#425A70", POS = "#2E6B4A", NEG = "#A4262C", WARN = "#B8860B";
@@ -641,6 +642,7 @@ function ComparisonEnrollmentChart({ states, dataMap }: { states: string[]; data
   return (
     <Card>
       <CH title="Enrollment Trends" sub={`${states.join(" vs ")} — last 60 data points`} />
+      <ChartActions filename={`${states.join("-")}-enrollment`}>
       <ResponsiveContainer width="100%" height={300}>
         <ComposedChart data={combined} margin={{ left: 10, right: 20, top: 5, bottom: 5 }}>
           <CartesianGrid strokeDasharray="3 3" stroke={BD} vertical={false} />
@@ -655,6 +657,7 @@ function ComparisonEnrollmentChart({ states, dataMap }: { states: string[]; data
           <Legend wrapperStyle={{ fontSize: 10, fontFamily: FB }} />
         </ComposedChart>
       </ResponsiveContainer>
+      </ChartActions>
     </Card>
   );
 }
@@ -688,6 +691,7 @@ function ComparisonRateChart({ states, dataMap }: { states: string[]; dataMap: R
   return (
     <Card>
       <CH title="Rate Distribution Comparison" sub="% of Medicare — code distribution by bucket" />
+      <ChartActions filename={`${states.join("-")}-rate-distribution`}>
       <ResponsiveContainer width="100%" height={260}>
         <BarChart data={chartData} margin={{ left: 5, right: 5, top: 5, bottom: 5 }}>
           <CartesianGrid strokeDasharray="3 3" stroke={BD} vertical={false} />
@@ -701,6 +705,7 @@ function ComparisonRateChart({ states, dataMap }: { states: string[]; dataMap: R
           <Legend wrapperStyle={{ fontSize: 10, fontFamily: FB }} />
         </BarChart>
       </ResponsiveContainer>
+      </ChartActions>
       <div style={{ display: "flex", gap: 20, justifyContent: "center", marginTop: 8, fontSize: 10, color: AL }}>
         {states.map((s, i) => {
           const d = dataMap[s];
@@ -964,7 +969,7 @@ function ComparisonView({ states, dataMap, loading, onChangeStates }: {
 // Main component
 // ═══════════════════════════════════════════════════════════════════════
 export default function StateProfile() {
-  const { openIntelligence } = useAradune();
+  const { openIntelligence, addReportSection } = useAradune();
   const [stateCodes, setStateCodes] = useState<string[]>(parseStatesFromHash);
   const [loading, setLoading] = useState(false);
   const [dataMap, setDataMap] = useState<Record<string, any>>({});
@@ -1089,6 +1094,24 @@ export default function StateProfile() {
             padding: "8px 14px", borderRadius: 8, border: `1px solid ${BD}`,
             background: WH, color: AL, fontSize: 12, cursor: "pointer", fontFamily: FM,
           }}>Export CSV</button>}
+          {d && <button onClick={() => {
+            const summary = [
+              `State Profile: ${STATE_NAMES[state] || state}`,
+              d.enrollment?.total ? `Enrollment: ${d.enrollment.total.toLocaleString()}` : null,
+              d.cpraRates?.length ? `Rate codes: ${d.cpraRates.length}` : null,
+              d.hospitals?.length ? `Hospitals: ${d.hospitals.length}` : null,
+            ].filter(Boolean).join(". ");
+            addReportSection({
+              id: crypto.randomUUID(),
+              prompt: `State Profile for ${STATE_NAMES[state] || state}`,
+              response: summary,
+              queries: [],
+              createdAt: new Date(),
+            });
+          }} style={{
+            padding: "8px 14px", borderRadius: 8, border: `1px solid ${BD}`,
+            background: WH, color: AL, fontSize: 12, cursor: "pointer", fontFamily: FM,
+          }}>+ Report</button>}
         </div>
       </div>
 

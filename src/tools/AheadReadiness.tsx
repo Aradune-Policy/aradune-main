@@ -14,6 +14,7 @@ import {
 } from "../utils/aheadScoring";
 import { createAradunePDF, addSection, addFooter, loadJsPDF } from "../utils/pdfReport";
 import { API_BASE } from "../lib/api";
+import ChartActions from "../components/ChartActions";
 
 // ── Constants ───────────────────────────────────────────────────────────
 const BD = C.border, WH = C.white, SH = SHADOW, AL = C.inkLight;
@@ -215,6 +216,7 @@ function PeerPanel({ hospital, peers, d1, d2, d3, d4 }: {
       {scatterData.length >= 2 && (
         <div style={{ marginBottom: 20 }}>
           <div style={{ fontSize: 12, fontWeight: 600, color: C.ink, marginBottom: 8 }}>Operating Margin vs. Supplemental Exposure</div>
+          <ChartActions filename="ahead-peer-scatter">
           <ResponsiveContainer width="100%" height={240}>
             <ScatterChart margin={{ top: 10, right: 20, bottom: 20, left: 20 }}>
               <CartesianGrid strokeDasharray="3 3" stroke={BD} />
@@ -229,6 +231,7 @@ function PeerPanel({ hospital, peers, d1, d2, d3, d4 }: {
               {peerOM != null && <ReferenceLine y={peerOM} stroke={AL} strokeDasharray="3 3" />}
             </ScatterChart>
           </ResponsiveContainer>
+          </ChartActions>
           <div style={{ display: "flex", gap: 16, justifyContent: "center", fontSize: 10, color: AL }}>
             <span><span style={{ display: "inline-block", width: 8, height: 8, borderRadius: "50%", background: C.brand, marginRight: 4 }} />Your Hospital</span>
             <span><span style={{ display: "inline-block", width: 8, height: 8, borderRadius: "50%", background: BD, marginRight: 4 }} />State Peer Median</span>
@@ -280,6 +283,7 @@ function SupplementalCliffChart({ m }: { m: HospitalMetrics }) {
   return (
     <div style={{ marginTop: 12 }}>
       <div style={{ fontSize: 12, fontWeight: 600, color: C.ink, marginBottom: 8 }}>Supplemental Payment Cliff Analysis</div>
+      <ChartActions filename="ahead-supplemental">
       <ResponsiveContainer width="100%" height={140}>
         <BarChart data={data} layout="vertical" margin={{ left: 160, right: 20 }}>
           <CartesianGrid strokeDasharray="3 3" stroke={BD} horizontal={false} />
@@ -293,6 +297,7 @@ function SupplementalCliffChart({ m }: { m: HospitalMetrics }) {
           </Bar>
         </BarChart>
       </ResponsiveContainer>
+      </ChartActions>
       <div style={{ padding: "10px 14px", background: "#FEF3C7", borderRadius: 8, fontSize: 11, color: "#92400E", lineHeight: 1.6, marginTop: 8 }}>
         If supplemental payments ({fmtD(supp)}) are restructured at transition, the estimated revenue impact is approximately <strong>{fmtD(delta)}</strong> ({((delta / npr) * 100).toFixed(1)}% of current revenue).
         Hospitals entering global budget models typically negotiate supplemental payment preservation in the first 2–3 years.
@@ -317,6 +322,7 @@ function RevenueMixChart({ m }: { m: HospitalMetrics }) {
   return (
     <div style={{ marginTop: 12 }}>
       <div style={{ fontSize: 12, fontWeight: 600, color: C.ink, marginBottom: 8 }}>Payer Mix (Patient Days)</div>
+      <ChartActions filename="ahead-payer-mix">
       <ResponsiveContainer width="100%" height={60}>
         <BarChart data={[{ medicare: mcr, medicaid: mcd, other }]} layout="horizontal" barSize={24}>
           <XAxis type="number" hide domain={[0, tot]} />
@@ -325,6 +331,7 @@ function RevenueMixChart({ m }: { m: HospitalMetrics }) {
           <Bar dataKey="other" stackId="a" fill={colors[2]} />
         </BarChart>
       </ResponsiveContainer>
+      </ChartActions>
       <div style={{ display: "flex", gap: 16, fontSize: 10, color: AL, marginTop: 4 }}>
         {data.map((d, i) => (
           <span key={d.name}><span style={{ display: "inline-block", width: 8, height: 8, borderRadius: 2, background: colors[i], marginRight: 4 }} />{d.name} {d.pct}%</span>

@@ -296,3 +296,54 @@ async def hpsa_by_state(state_code: str, discipline: str = Query(None)):
             "county_name", "provider_type",
         ]
         return [dict(zip(columns, r)) for r in rows]
+
+
+# ── Medically Underserved Areas ──────────────────────────────────────────
+
+@router.get("/api/mua/summary")
+async def mua_summary():
+    """State-level MUA/MUP designation summary."""
+    with get_cursor() as cur:
+        rows = cur.execute("""
+            SELECT "State Abbreviation" AS state_code,
+                   COUNT(*) AS designations,
+                   COUNT(DISTINCT "County Equivalent Name") AS counties
+            FROM fact_mua_designation
+            GROUP BY "State Abbreviation"
+            ORDER BY "State Abbreviation"
+        """).fetchall()
+        columns = ["state_code", "designations", "counties"]
+        return [dict(zip(columns, r)) for r in rows]
+
+
+@router.get("/api/mua/{state_code}")
+async def mua_by_state(state_code: str):
+    """MUA/MUP designations for a state."""
+    state_code = state_code.upper()
+    with get_cursor() as cur:
+        rows = cur.execute("""
+            SELECT "MUA/P ID" AS mua_id,
+                   "MUA/P Service Area Name" AS service_area,
+                   "Designation Type" AS designation_type,
+                   "MUA/P Status Description" AS status,
+                   "Designation Date" AS designation_date,
+                   "IMU Score" AS imu_score,
+                   "Population Type" AS population_type,
+                   "County Equivalent Name" AS county,
+                   "Rural Status Description" AS rural_status,
+                   "Percent of Population with Incomes at or Below 100 Percent of the U.S. Federal Poverty Level" AS pct_poverty,
+                   "Percentage of Population Age 65 and Over" AS pct_age_65_over,
+                   "Infant Mortality Rate" AS infant_mortality_rate,
+                   "Designation Population in a Medically Underserved Area/Population (MUA/P)" AS designation_pop,
+                   "Providers per 1000 Population" AS providers_per_1000
+            FROM fact_mua_designation
+            WHERE "State Abbreviation" = $1
+            ORDER BY "County Equivalent Name"
+        """, [state_code]).fetchall()
+        columns = [
+            "mua_id", "service_area", "designation_type", "status",
+            "designation_date", "imu_score", "population_type", "county",
+            "rural_status", "pct_poverty", "pct_age_65_over",
+            "infant_mortality_rate", "designation_pop", "providers_per_1000",
+        ]
+        return [dict(zip(columns, r)) for r in rows]

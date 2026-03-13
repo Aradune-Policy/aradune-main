@@ -59,7 +59,7 @@ const LOADING_FALLBACK = (
 
 export default function RateAnalysis() {
   const [active, setActive] = useState<TabKey>(parseInitialTab);
-  const { openIntelligence } = useAradune();
+  const { openIntelligence, addReportSection } = useAradune();
 
   // Track which tabs have been activated so we mount them once and keep them alive
   const [mounted, setMounted] = useState<Set<TabKey>>(
@@ -135,27 +135,52 @@ export default function RateAnalysis() {
           })}
         </div>
 
-        {/* Ask Aradune button */}
-        <button
-          onClick={() =>
-            openIntelligence({ summary: "User is viewing Rate Analysis" })
-          }
-          style={{
-            background: C.brand,
-            color: C.white,
-            border: "none",
-            borderRadius: 4,
-            padding: "6px 14px",
-            fontSize: 11,
-            fontFamily: FONT.body,
-            fontWeight: 500,
-            cursor: "pointer",
-            marginRight: 8,
-            letterSpacing: "0.02em",
-          }}
-        >
-          Ask Aradune
-        </button>
+        {/* Action buttons */}
+        <div style={{ display: "flex", gap: 6, marginRight: 8 }}>
+          <button
+            onClick={() =>
+              openIntelligence({ summary: `User is viewing Rate Analysis — ${active} tab` })
+            }
+            style={{
+              background: C.brand,
+              color: C.white,
+              border: "none",
+              borderRadius: 4,
+              padding: "6px 14px",
+              fontSize: 11,
+              fontFamily: FONT.body,
+              fontWeight: 500,
+              cursor: "pointer",
+              letterSpacing: "0.02em",
+            }}
+          >
+            Ask Aradune
+          </button>
+          <button
+            onClick={() =>
+              addReportSection({
+                id: crypto.randomUUID(),
+                prompt: `Rate Analysis — ${TABS.find(t => t.key === active)?.label || active}`,
+                response: `Rate Analysis module snapshot (${active} tab).`,
+                queries: [],
+                createdAt: new Date(),
+              })
+            }
+            style={{
+              background: "none",
+              border: `1px solid ${C.border}`,
+              borderRadius: 4,
+              padding: "6px 14px",
+              fontSize: 11,
+              fontFamily: FONT.body,
+              fontWeight: 500,
+              cursor: "pointer",
+              color: C.inkLight,
+            }}
+          >
+            + Report
+          </button>
+        </div>
       </div>
 
       {/* Tab content */}

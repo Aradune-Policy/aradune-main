@@ -2,6 +2,7 @@ import { useState, useMemo, useCallback, useEffect } from "react";
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Cell, Legend, Line, LineChart, ReferenceLine, ScatterChart, Scatter, ComposedChart, Area } from "recharts";
 import { C, FONT, SHADOW } from "../design";
 import { useProAccess, ProBadge, ProGateModal } from "../components/ProGate";
+import ChartActions from "../components/ChartActions";
 
 // ═══════════════════════════════════════════════════════════════════
 // AHEAD GLOBAL BUDGET CALCULATOR
@@ -974,13 +975,13 @@ export default function AheadCalculator(){
           <div style={{display:"grid",gap:6}}>
             <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:12}}>
               <div><Tbl cols={["Scenario","Combined","Δ","Δ%"]} rows={scComp.map(sc=>[{v:sc.nm,s:{fontWeight:600}},{v:fmt(sc.fin),s:{fontFamily:FONT.mono}},{v:fmt(sc.delta),s:{color:sc.delta>0?C.pos:C.neg,fontWeight:600}},{v:fP(sc.pct),s:{color:sc.pct>0?C.pos:C.neg}}])}/></div>
-              <div><ResponsiveContainer width="100%" height={scComp.length*22+10}><BarChart data={scComp} layout="vertical" margin={{left:70}}>
+              <div><ChartActions filename="ahead-scenario"><ResponsiveContainer width="100%" height={scComp.length*22+10}><BarChart data={scComp} layout="vertical" margin={{left:70}}>
                 <CartesianGrid strokeDasharray="3 3" stroke={C.border} horizontal={false}/>
                 <XAxis type="number" tick={{fontSize:11,fill:C.inkLight,fontFamily:FONT.mono}} tickFormatter={v=>fmt(v as number)}/>
                 <YAxis type="category" dataKey="nm" tick={{fontSize:13,fill:C.ink}} width={65}/>
                 <ReferenceLine x={0} stroke={cR} strokeDasharray="3 2"/>
                 <Bar dataKey="delta" radius={[0,3,3,0]}>{scComp.map((sc,i)=><Cell key={i} fill={sc.delta>0?C.pos:C.neg}/>)}</Bar>
-              </BarChart></ResponsiveContainer></div>
+              </BarChart></ResponsiveContainer></ChartActions></div>
             </div>
             <div style={{fontSize:11,color:C.inkLight}}>Range: {fmt(Math.min(...scComp.map(s=>s.delta)))} to {fmt(Math.max(...scComp.map(s=>s.delta)))} · Spread: {fmt(Math.max(...scComp.map(s=>s.delta))-Math.min(...scComp.map(s=>s.delta)))}</div>
           </div>
@@ -1038,7 +1039,7 @@ export default function AheadCalculator(){
         </Card>
 
         <div style={{display:"grid",gridTemplateColumns:compact?"1fr":"1fr 1fr",gap:8}}>
-          <Card><CH title="Projection Fan" badge={`${yrs}Y`}/><div style={{padding:"0 16px 10px"}}><ResponsiveContainer width="100%" height={200}><ComposedChart data={mc}>
+          <Card><CH title="Projection Fan" badge={`${yrs}Y`}/><div style={{padding:"0 16px 10px"}}><ChartActions filename="ahead-projection"><ResponsiveContainer width="100%" height={200}><ComposedChart data={mc}>
             <CartesianGrid strokeDasharray="3 3" stroke={C.border} vertical={false}/>
             <XAxis dataKey="cY" tick={{fontSize:12,fill:C.inkLight,fontFamily:FONT.mono}}/><YAxis tick={{fontSize:11,fill:C.inkLight,fontFamily:FONT.mono}} tickFormatter={v=>fmt(v as number)}/>
             <Area type="monotone" dataKey="cp10" stackId="f1" fill="transparent" stroke="transparent"/>
@@ -1049,16 +1050,16 @@ export default function AheadCalculator(){
             <Line type="monotone" dataKey="cffs" stroke="#9CA3AF" strokeWidth={1.5} strokeDasharray="5 3" dot={false} name="FFS"/>
             <Tooltip content={<MCTip/>}/>
             <Legend wrapperStyle={{fontSize:18}}/>
-          </ComposedChart></ResponsiveContainer></div>
+          </ComposedChart></ResponsiveContainer></ChartActions></div>
           <div style={{padding:"6px 16px 10px"}}><div style={{fontSize:18,color:C.inkLight,marginBottom:4,fontWeight:500}}>PY1 Delta Distribution (200 simulations)</div><MCHist mc={mc} pyIdx={0}/></div></Card>
-          <Card><CH title="Cumulative Delta" badge="EROSION TRACKER"/><div style={{padding:"0 16px 10px"}}>{(()=>{let cum=0;const eros=mp.map((m,i)=>{const d=dp[i];cum+=m.delta+d.delta;return{cY:m.cY,py:m.delta+d.delta,cum};});return <ResponsiveContainer width="100%" height={200}><ComposedChart data={eros}>
+          <Card><CH title="Cumulative Delta" badge="EROSION TRACKER"/><div style={{padding:"0 16px 10px"}}>{(()=>{let cum=0;const eros=mp.map((m,i)=>{const d=dp[i];cum+=m.delta+d.delta;return{cY:m.cY,py:m.delta+d.delta,cum};});return <ChartActions filename="ahead-cumulative"><ResponsiveContainer width="100%" height={200}><ComposedChart data={eros}>
             <CartesianGrid strokeDasharray="3 3" stroke={C.border} vertical={false}/>
             <XAxis dataKey="cY" tick={{fontSize:12,fill:C.inkLight,fontFamily:FONT.mono}}/><YAxis tick={{fontSize:11,fill:C.inkLight,fontFamily:FONT.mono}} tickFormatter={v=>fmt(v as number)}/>
             <ReferenceLine y={0} stroke={cR} strokeDasharray="3 2"/>
             <Bar dataKey="py" fill={`${cB}44`} name="Annual" radius={[2,2,0,0]}/>
             <Line type="monotone" dataKey="cum" stroke={cG} strokeWidth={2.5} dot={{r:2,fill:cG}} name="Cumulative"/>
             <Legend wrapperStyle={{fontSize:18}}/>
-          </ComposedChart></ResponsiveContainer>})()}</div></Card>
+          </ComposedChart></ResponsiveContainer></ChartActions>})()}</div></Card>
         </div>
 
         <Card><CH title="Integrated Analysis" badge="12 ENGINES" right={`${synth.signals.length} signals`}/><div style={{padding:"0 16px 12px"}}>

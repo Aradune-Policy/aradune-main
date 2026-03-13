@@ -3,6 +3,7 @@ import { BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer, CartesianGri
 import type { SafeTipProps, TooltipEntry, DecayHcpcs } from "../types";
 import { API_BASE } from "../lib/api";
 import { LoadingBar } from "../components/LoadingBar";
+import ChartActions from "../components/ChartActions";
 
 // ── Design System ───────────────────────────────────────────────────────
 const A = "#0A2540";
@@ -308,6 +309,7 @@ export default function RateDecay() {
       {withBoth.length > 0 && <Card>
         <CH t={`${STATE_NAMES[s1]} Rates as % of Medicare`} b={`${withBoth.length} codes · CY2026 Medicare PFS`} r="100% = Medicare parity"/>
         <div style={{ padding:"0 14px 8px" }}>
+          <ChartActions filename="rate-decay">
           <ResponsiveContainer width="100%" height={Math.max(200, withBoth.length * 18)}>
             <BarChart data={[...withBoth].sort((a,b)=>(a.pctMedicare??0)-(b.pctMedicare??0))} layout="vertical" margin={{ left:90,right:16 }}>
               <CartesianGrid strokeDasharray="3 3" stroke={BD} horizontal={false}/>
@@ -340,6 +342,7 @@ export default function RateDecay() {
               </Bar>
             </BarChart>
           </ResponsiveContainer>
+          </ChartActions>
           <div style={{ display:"flex",gap:12,fontSize:9,color:AL,padding:"4px 0",flexWrap:"wrap" }}>
             <span><span style={{ display:"inline-block",width:8,height:8,borderRadius:"50%",background:NEG,verticalAlign:"middle",marginRight:3 }}/>&lt;50%</span>
             <span><span style={{ display:"inline-block",width:8,height:8,borderRadius:"50%",background:WARN,verticalAlign:"middle",marginRight:3 }}/>50-75%</span>
@@ -390,6 +393,7 @@ export default function RateDecay() {
           <span style={{ fontSize:9,color:AL }}>Click any code above to compare across states</span>
         </div>
         <div style={{ padding:"0 14px 8px" }}>
+          <ChartActions filename="rate-decay-comparison">
           <ResponsiveContainer width="100%" height={Math.max(200, multiState.length * 12)}>
             <BarChart data={multiState} layout="vertical" margin={{ left:52,right:16 }}>
               <CartesianGrid strokeDasharray="3 3" stroke={BD} horizontal={false}/>
@@ -412,6 +416,7 @@ export default function RateDecay() {
               </Bar>
             </BarChart>
           </ResponsiveContainer>
+          </ChartActions>
         </div>
       </Card>}
 

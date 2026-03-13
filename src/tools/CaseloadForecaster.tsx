@@ -11,6 +11,7 @@ import {
 import { STATE_NAMES } from "../data/states";
 import { API_BASE } from "../lib/api";
 import { useAradune } from "../context/AraduneContext";
+import ChartActions from "../components/ChartActions";
 
 // ── Design tokens ───────────────────────────────────────────────────────
 const A = "#0A2540", AL = "#425A70", POS = "#2E6B4A", NEG = "#A4262C", WARN = "#B8860B";
@@ -140,7 +141,7 @@ const ForecastTooltip = ({ active, payload, label }: any) => {
 // Main component
 // ═══════════════════════════════════════════════════════════════════════
 export default function CaseloadForecaster() {
-  const { openIntelligence } = useAradune();
+  const { openIntelligence, addReportSection } = useAradune();
   // Upload state
   const [state, setState] = useState("FL");
   const [caseloadFile, setCaseloadFile] = useState<File | null>(null);
@@ -350,10 +351,31 @@ export default function CaseloadForecaster() {
             Upload monthly enrollment data by category. SARIMAX + ETS model competition with intervention detection and economic enrichment.
           </p>
         </div>
-        <button onClick={() => openIntelligence({ summary: `User is viewing Caseload Forecaster for ${STATE_NAMES[state] || state}` })} style={{
-          padding: "8px 14px", borderRadius: 8, border: "none",
-          background: cB, color: WH, fontSize: 12, cursor: "pointer", fontFamily: FB, fontWeight: 600,
-        }}>Ask Aradune</button>
+        <div style={{ display: "flex", gap: 8 }}>
+          <button onClick={() => openIntelligence({ summary: `User is viewing Caseload Forecaster for ${STATE_NAMES[state] || state}` })} style={{
+            padding: "8px 14px", borderRadius: 8, border: "none",
+            background: cB, color: WH, fontSize: 12, cursor: "pointer", fontFamily: FB, fontWeight: 600,
+          }}>Ask Aradune</button>
+          {result && <button onClick={() => {
+            const r = result as any;
+            const summary = [
+              `Caseload Forecast: ${STATE_NAMES[state] || state}`,
+              r.model ? `Model: ${r.model}` : null,
+              r.holdout_mape ? `MAPE: ${(r.holdout_mape * 100).toFixed(1)}%` : null,
+              r.forecast?.length ? `${r.forecast.length}-month forecast` : null,
+            ].filter(Boolean).join(". ");
+            addReportSection({
+              id: crypto.randomUUID(),
+              prompt: `Caseload forecast for ${STATE_NAMES[state] || state}`,
+              response: summary,
+              queries: [],
+              createdAt: new Date(),
+            });
+          }} style={{
+            padding: "8px 14px", borderRadius: 8, border: `1px solid ${BD}`,
+            background: WH, color: AL, fontSize: 12, cursor: "pointer", fontFamily: FM,
+          }}>+ Report</button>}
+        </div>
       </div>
 
       {/* ─── Upload Form ──────────────────────────────────────────────── */}
@@ -544,6 +566,7 @@ export default function CaseloadForecaster() {
                   <Pill label="No CI" active={showCI === "none"} onClick={() => setShowCI("none")} />
                 </div>
               </div>
+              <ChartActions filename={`${state || "forecast"}-caseload`}>
               <ResponsiveContainer width="100%" height={360}>
                 <ComposedChart data={chartData} margin={{ left: 10, right: 20, top: 10, bottom: 5 }}>
                   <CartesianGrid strokeDasharray="3 3" stroke={BD} vertical={false} />
@@ -599,6 +622,7 @@ export default function CaseloadForecaster() {
                   />
                 </ComposedChart>
               </ResponsiveContainer>
+              </ChartActions>
               {/* Event legend below chart */}
               {selectedEvents.length > 0 && (
                 <div style={{ display: "flex", gap: 12, flexWrap: "wrap", marginTop: 8, paddingTop: 8, borderTop: `1px solid ${BD}` }}>
@@ -758,6 +782,7 @@ export default function CaseloadForecaster() {
                       <Pill label="No CI" active={showCI === "none"} onClick={() => setShowCI("none")} color="#C4590A" />
                     </div>
                   </div>
+                  <ChartActions filename={`${state || "forecast"}-expenditure`}>
                   <ResponsiveContainer width="100%" height={360}>
                     <ComposedChart data={expChartData} margin={{ left: 10, right: 20, top: 10, bottom: 5 }}>
                       <CartesianGrid strokeDasharray="3 3" stroke={BD} vertical={false} />
@@ -800,6 +825,7 @@ export default function CaseloadForecaster() {
                       <Legend wrapperStyle={{ fontSize: 10, fontFamily: FB }} />
                     </ComposedChart>
                   </ResponsiveContainer>
+                  </ChartActions>
                 </Card>
 
                 {/* Per-category expenditure table */}

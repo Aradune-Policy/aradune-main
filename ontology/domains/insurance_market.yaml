@@ -11,4 +11,6 @@ primary_tables:
   row_count: 730
 - table: fact_meps_employer_insurance
   row_count: 415
+- table: fact_aca_effectuated_enrollment
+  row_count: 254
 supporting_tables: []

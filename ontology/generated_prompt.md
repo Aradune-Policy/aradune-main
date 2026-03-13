@@ -23,6 +23,9 @@ NSDUH prevalence and state estimates, TEDS admissions and discharges, MH/SUD fac
 - **fact_nsduh_state_2023**: 29,736 rows
 - **fact_nsduh_state_2024**: 28,112 rows
 - **fact_nsumhss_2024**: 27,957 rows
+- **fact_nsumhss_facility**: 27,957 rows
+- **fact_teds_admissions_2023**: 1,625,833 rows
+- **fact_nsduh_2022_state**: 1,600 rows
 - **fact_mh_facility_survey**: 27,957 rows
 - **fact_mh_sud_services**: 216 rows
 - **fact_opioid_prescribing_geo**: 539,181 rows
@@ -30,7 +33,9 @@ NSDUH prevalence and state estimates, TEDS admissions and discharges, MH/SUD fac
 - **fact_medicaid_opioid_geo**: 539,181 rows
 - **fact_otp_providers_v2**: 1,533 rows
 - **fact_bh_services_detail**: 31,800 rows
-- Supporting: fact_block_grant, fact_ipf_quality_state, fact_mh_sud_recipients, fact_teds_admissions
+- **fact_ipf_quality_state**: 52 rows
+- **fact_mhbg_fy23_allotments**: 59 rows
+- Supporting: fact_block_grant, fact_mh_sud_recipients, fact_teds_admissions
 
 ### Economic & Social Context
 BLS CPI/unemployment, Census ACS and health insurance coverage, BEA GDP/income/transfers, SAIPE poverty, HUD FMR/SAFMR, food environment, county health rankings
@@ -113,7 +118,8 @@ Monthly Medicaid enrollment, eligibility groups, managed care programs, CHIP, un
 - **fact_express_lane_eligibility**: 15 rows
 - **fact_hcgov_transitions**: 59,527 rows
 - **fact_pi_performance**: 10,404 rows
-- Supporting: fact_chip_eligibility, fact_chip_enrollment_unwinding, fact_continuous_eligibility, fact_eligibility_levels, fact_hcbs_waiver_enrollment, fact_macpac_enrollment, fact_marketplace_oep, fact_mc_enroll_duals, fact_mc_enroll_pop, fact_mc_enrollment_pop2 (+26 more)
+- **fact_eligibility_enrollment_snapshot**: 5,000 rows
+- Supporting: fact_chip_eligibility, fact_chip_enrollment_unwinding, fact_continuous_eligibility, fact_eligibility_levels, fact_hcbs_waiver_enrollment, fact_macpac_enrollment, fact_marketplace_oep, fact_mc_enroll_duals, fact_mc_enroll_pop, fact_mc_enrollment_pop2 (+27 more)
 
 **Named metrics (use these for consistency):**
 - `enrollment_change_pct`: Month-over-month or year-over-year enrollment change = `(current_enrollment - prior_enrollment) / prior_enrollment`
@@ -128,6 +134,7 @@ CMS-64 expenditure (FY2016 + multi-year FY2018-2024 by service category, 117K ro
 - **fact_ffcra_fmap**: 1,197 rows
 - **fact_financial_mgmt**: 15,511 rows
 - **fact_cms64_multiyear**: 117,936 rows
+- **fact_cms64_historical**: 175,688 rows
 - **fact_fmr_fy2024**: 19,095 rows
 - **fact_fmr_supplemental**: 1,553 rows
 - **fact_nhe_state**: 117,000 rows
@@ -200,6 +207,7 @@ Medical loss ratios by market type, risk adjustment transfers, MA Star ratings, 
 - **fact_mlr_market**: 12,285 rows
 - **fact_risk_adjustment**: 730 rows
 - **fact_meps_employer_insurance**: 415 rows
+- **fact_aca_effectuated_enrollment**: 254 rows
 
 ### LTSS & HCBS
 HCBS waitlists, waiver enrollment, LTSS expenditure/rebalancing, 1915(c) waivers, MLTSS
@@ -317,6 +325,36 @@ State Drug Utilization (SDUD 2020-2025, 28.3M rows, $1.05T pre-rebate), NADAC pr
 - **fact_sdud_2024**: 5,201,667 rows
 - **fact_sdud_2025**: 2,637,009 rows
 - **fact_sdud_combined**: 28,307,998 rows
+- **fact_sdud_1991**: 1,778,209 rows
+- **fact_sdud_1992**: 84,029 rows
+- **fact_sdud_1993**: 2,779,620 rows
+- **fact_sdud_1994**: 194,447 rows
+- **fact_sdud_1995**: 1,602,114 rows
+- **fact_sdud_1996**: 1,739,622 rows
+- **fact_sdud_1997**: 1,756,324 rows
+- **fact_sdud_1998**: 1,370,611 rows
+- **fact_sdud_1999**: 1,792,560 rows
+- **fact_sdud_2000**: 1,207,428 rows
+- **fact_sdud_2001**: 1,427,501 rows
+- **fact_sdud_2002**: 1,448,825 rows
+- **fact_sdud_2003**: 1,714,785 rows
+- **fact_sdud_2004**: 1,170,182 rows
+- **fact_sdud_2005**: 1,773,955 rows
+- **fact_sdud_2006**: 1,568,821 rows
+- **fact_sdud_2007**: 1,278,375 rows
+- **fact_sdud_2008**: 321,366 rows
+- **fact_sdud_2009**: 1,325,855 rows
+- **fact_sdud_2010**: 943,785 rows
+- **fact_sdud_2011**: 1,158,886 rows
+- **fact_sdud_2012**: 1,175,670 rows
+- **fact_sdud_2013**: 1,350,237 rows
+- **fact_sdud_2014**: 948,288 rows
+- **fact_sdud_2015**: 2,092,261 rows
+- **fact_sdud_2016**: 1,135,712 rows
+- **fact_sdud_2017**: 1,068,356 rows
+- **fact_sdud_2018**: 664,047 rows
+- **fact_sdud_2019**: 4,961,100 rows
+- **fact_sdud_historical_combined**: 41,832,971 rows
 - **ref_drug_rebate**: 1,907,607 rows
 - **fact_drug_amp_monthly**: 3,400,944 rows
 - **fact_drug_amp_quarterly**: 2,126,520 rows
@@ -334,6 +372,7 @@ State Drug Utilization (SDUD 2020-2025, 28.3M rows, $1.05T pre-rebate), NADAC pr
 - **fact_open_payments**: 36,152 rows
 - **fact_open_payments_v2**: 12,224,199 rows
 - **fact_first_time_nadac**: 1,269 rows
+- **fact_340b_covered_entities**: 26,290 rows
 - Supporting: fact_clotting_factor, fact_exclusive_pediatric, fact_pharmacy_releases, fact_drug_mfr_contacts, fact_drug_rebate_state_contacts
 
 **Named metrics (use these for consistency):**
@@ -381,6 +420,7 @@ NPPES full provider registry, PECOS enrollment, physician compare, revalidation,
 - **fact_hospice_quality**: 465,181 rows
 - **fact_hospice_state**: 1,100 rows
 - **fact_irf_provider**: 79,365 rows
+- **fact_ltch_general**: 319 rows
 - **fact_ltch_provider**: 24,882 rows
 - **fact_pac_hha_utilization**: 8,519 rows
 - **fact_pac_irf_utilization**: 1,205 rows
@@ -431,6 +471,15 @@ CDC PLACES, BRFSS, vital statistics, maternal health/mortality, natality, infant
 - **fact_mortality_trend**: 10,868 rows
 - **fact_perinatal_care**: 12,720 rows
 - **fact_places_county**: 229,232 rows
+- **fact_places_county_2025**: 114,576 rows
+- **fact_sahie_state**: 52 rows
+- **fact_sahie_county**: 3,144 rows
+- **fact_sahie_county_138fpl**: 3,144 rows
+- **fact_acs_disability**: 52 rows
+- **fact_acs_language**: 52 rows
+- **fact_provisional_overdose**: 81,900 rows
+- **fact_cdc_chronic_disease**: 309,215 rows
+- **fact_svi_county**: 3,144 rows
 - **fact_pregnancy_outcomes**: 6,360 rows
 - **fact_pregnant_postpartum**: 1,060 rows
 - **fact_respiratory_conditions**: 28,620 rows
@@ -469,6 +518,13 @@ CMS Core Set quality measures (2023-2024), Scorecard with detailed stratificatio
 - **fact_performance_indicator**: 10,404 rows
 - **fact_quality_core_set_2023**: 5,555 rows
 - **fact_quality_core_set_2024**: 10,972 rows
+- **fact_quality_core_set_2017**: 2,058 rows
+- **fact_quality_core_set_2018**: 2,826 rows
+- **fact_quality_core_set_2019**: 3,096 rows
+- **fact_quality_core_set_2020**: 3,450 rows
+- **fact_quality_core_set_2021**: 3,830 rows
+- **fact_quality_core_set_2022**: 4,206 rows
+- **fact_quality_core_set_combined**: 35,993 rows
 - **fact_quality_measure**: 5,236 rows
 - **fact_scorecard**: 90,165 rows
 - **fact_quality_measures_2024_full**: 11,100 rows
@@ -509,6 +565,13 @@ Medicaid provider payment rates, Medicare benchmarks, rate comparisons, PFS RVUs
 - **fact_clfs**: 2,162 rows
 - **fact_dmepos**: 222,076 rows
 - **fact_drug_spending_trend**: 71,333 rows
+- **fact_dmepos_detail**: 372,590 rows
+- **fact_dmepos_pen**: 5,300 rows
+- **fact_dmepos_cba**: 79,927 rows
+- **fact_dmepos_cba_mailorder**: 8 rows
+- **fact_dmepos_cba_zipcodes**: 16,124 rows
+- **fact_dmepos_rural_zipcodes**: 15,911 rows
+- **fact_ambulance_geographic**: 109 rows
 - Supporting: fact_integrated_care, fact_nas_rates, fact_doge_state_hcpcs, fact_doge_state_taxonomy, fact_doge_state_monthly, fact_doge_state_category, fact_doge_top_providers, fact_kff_fee_index
 
 **Named metrics (use these for consistency):**

@@ -40,6 +40,8 @@ primary_tables:
   row_count: 1100
 - table: fact_irf_provider
   row_count: 79365
+- table: fact_ltch_general
+  row_count: 319
 - table: fact_ltch_provider
   row_count: 24882
 - table: fact_pac_hha_utilization

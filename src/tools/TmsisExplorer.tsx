@@ -8,6 +8,7 @@ import { query as rawQuery, hasMonthlyData } from "../lib/duckdb";
 import { listPresets } from "../lib/presets";
 import { runFullCcbhcAnalysis, exportAnalysisCSV, MILLIMAN_ESTIMATES } from "../lib/ccbhcAnalysis";
 import type { CcbhcAnalysisResult } from "../lib/ccbhcAnalysis";
+import ChartActions from "../components/ChartActions";
 
 // ── Design System (Aradune v13) ──────────────────────────────────────────
 const A = "#0A2540";
@@ -1162,6 +1163,7 @@ export default function TmsisExplorer() {
           {(() => {
             const cmData = SL.map(k=>({k,n:(states[k]?.name||k).substring(0,12),pi:safe(states[k]?.pi,1),mi:safe(states[k]?.mi,1),pe:safe(states[k]?.pe)})).filter(s=>s.pi>0.5&&s.pi<2&&s.mi>0.5&&s.mi<2);
             return cmData.length > 5 ? <Card x><CH t="Case Mix: Price vs Utilization" b="1.0 = national avg"/><div style={{ padding:"0 14px 8px" }}>
+              <ChartActions filename="casemix-scatter">
               <ResponsiveContainer width="100%" height={220}>
                 <ScatterChart margin={{top:10,right:10,bottom:5,left:5}}>
                   <CartesianGrid strokeDasharray="3 3" stroke={B}/>
@@ -1175,12 +1177,14 @@ export default function TmsisExplorer() {
                   </Scatter>
                 </ScatterChart>
               </ResponsiveContainer>
+              </ChartActions>
               <div style={{ fontSize:9,color:AL,lineHeight:1.5,padding:"4px 0" }}>
                 <b>Top-right:</b> pays more AND uses costlier services · <b>Bottom-left:</b> pays less AND lighter mix
               </div>
             </div></Card> : null;
           })()}
           {trends.length > 2 && <Card x><CH t="National Trend (Indexed)" b={`${trends[0]?.y||2018}=100`}/><div style={{ padding:"0 14px 8px" }}>
+            <ChartActions filename="national-trend">
             <ResponsiveContainer width="100%" height={220}>
               <LineChart margin={{right:20}} data={trends.map(d=>({...d,si:+(safe(d.s)/safe(trends[0]?.s,1)*100).toFixed(1),ei:+(safe(d.e)/safe(trends[0]?.e,1)*100).toFixed(1),pi:+(safe(d.pe)/safe(trends[0]?.pe,1)*100).toFixed(1)}))}>
                 <CartesianGrid strokeDasharray="3 3" stroke={B} vertical={false}/>
@@ -1193,6 +1197,7 @@ export default function TmsisExplorer() {
                 <Legend wrapperStyle={{fontSize:9}}/>
               </LineChart>
             </ResponsiveContainer>
+            </ChartActions>
           </div></Card>}
         </div>
         {/* Insights */}
@@ -2060,6 +2065,7 @@ export default function TmsisExplorer() {
               <div style={{ background:`${cB}06`,borderRadius:6,padding:"6px 10px",marginBottom:8,fontSize:10,color:A,lineHeight:1.5,borderLeft:`3px solid ${cB}` }}>
                 <strong>Proxy method:</strong> Monthly claim counts / working days per month. This is not a true daily visit count (which requires beneficiary x date deduplication) but provides a reasonable operational estimate.
               </div>
+              <ChartActions filename="spending-trend">
               <ResponsiveContainer width="100%" height={180}>
                 <AreaChart data={r.enhanced.daily_visits} margin={{ left:10,right:10,top:10,bottom:5 }}>
                   <CartesianGrid strokeDasharray="3 3" stroke={B}/>
@@ -2076,6 +2082,7 @@ export default function TmsisExplorer() {
                   <Area type="monotone" dataKey="daily_claims" stroke={cB} fill={`${cB}30`} strokeWidth={2}/>
                 </AreaChart>
               </ResponsiveContainer>
+              </ChartActions>
             </div>
             {r.enhanced.daily_visits.length > 0 && (() => {
               const recent = r.enhanced.daily_visits.filter(d => d.month >= "2023-01" && d.month <= "2023-12");
@@ -2774,6 +2781,7 @@ export default function TmsisExplorer() {
           const s2Data = has2 ? bench.filter(d=>d.nc>0&&d.g2!=null&&Math.abs(d.g2)<500).map(d=>({...d,g1:d.g2,_r:d.r2,_st:states[s2]?.name||s2})) : [];
           const s3Data = has3 ? bench.filter(d=>d.nc>0&&d.g3!=null&&Math.abs(d.g3)<500).map(d=>({...d,g1:d.g3,_r:d.r3,_st:states[s3]?.name||s3})) : [];
           return <Card x><CH t="Where the Money Is" b={`Rate gap × claims volume${mixAdj?" (mix-adjusted)":""}`} r={compLabel}/><div style={{ padding:"0 14px 8px" }}>
+          <ChartActions filename="rate-distribution">
           <ResponsiveContainer width="100%" height={300}>
             <ScatterChart margin={{top:10,right:20,bottom:5,left:10}}>
               <CartesianGrid strokeDasharray="3 3" stroke={B}/>
@@ -2807,6 +2815,7 @@ export default function TmsisExplorer() {
               </Scatter>}
             </ScatterChart>
           </ResponsiveContainer>
+          </ChartActions>
           <div style={{ display:"flex",gap:12,fontSize:9,color:AL,padding:"2px 0",flexWrap:"wrap" }}>
             <span><span style={{ display:"inline-block",width:8,height:8,borderRadius:"50%",background:POS,verticalAlign:"middle",marginRight:3 }}/>{states[s1]?.name||s1} (above avg)</span>
             <span><span style={{ display:"inline-block",width:8,height:8,borderRadius:"50%",background:NEG,verticalAlign:"middle",marginRight:3 }}/>{states[s1]?.name||s1} (below avg)</span>

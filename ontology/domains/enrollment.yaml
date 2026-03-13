@@ -127,6 +127,8 @@ primary_tables:
   row_count: 59527
 - table: fact_pi_performance
   row_count: 10404
+- table: fact_eligibility_enrollment_snapshot
+  row_count: 5000
 supporting_tables:
 - fact_chip_eligibility
 - fact_chip_enrollment_unwinding
@@ -164,3 +166,4 @@ supporting_tables:
 - fact_macpac_mc_enrollment_pct
 - fact_macpac_spending_by_elig
 - fact_ma_enrollment_plan
+- fact_mc_enrollment_by_plan

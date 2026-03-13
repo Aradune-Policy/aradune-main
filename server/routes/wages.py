@@ -155,3 +155,108 @@ async def national_wages(
                     "hourly_median", "annual_median",
                     "hourly_p10", "hourly_p90", "annual_p10", "annual_p90"]
         return [dict(zip(columns, r)) for r in rows]
+
+
+# ── Workforce Supply ─────────────────────────────────────────────────────
+
+@router.get("/api/workforce/projections")
+async def workforce_projections(state: str = None):
+    """HRSA workforce supply/demand projections 2023-2038.
+
+    Filter by full state name (e.g. ?state=Florida).
+    """
+    with get_cursor() as cur:
+        if state:
+            rows = cur.execute("""
+                SELECT year, profession_group, profession, state, rurality,
+                       supply_fte, demand_fte, pct_adequacy, region
+                FROM fact_workforce_projections
+                WHERE state = $1
+                ORDER BY year, profession
+            """, [state]).fetchall()
+        else:
+            rows = cur.execute("""
+                SELECT year, profession_group, profession, state, rurality,
+                       supply_fte, demand_fte, pct_adequacy, region
+                FROM fact_workforce_projections
+                ORDER BY year, profession
+                LIMIT 1000
+            """).fetchall()
+        columns = ["year", "profession_group", "profession", "state", "rurality",
+                    "supply_fte", "demand_fte", "pct_adequacy", "region"]
+        data = [dict(zip(columns, r)) for r in rows]
+        return {"rows": data, "count": len(data)}
+
+
+@router.get("/api/workforce/projections/summary")
+async def workforce_projections_summary():
+    """State-level workforce projection summary."""
+    with get_cursor() as cur:
+        rows = cur.execute("""
+            SELECT state,
+                   COUNT(DISTINCT profession) AS occupations,
+                   MIN(year) AS min_year,
+                   MAX(year) AS max_year,
+                   COUNT(*) AS records
+            FROM fact_workforce_projections
+            GROUP BY state
+            ORDER BY state
+        """).fetchall()
+        columns = ["state", "occupations", "min_year", "max_year", "records"]
+        data = [dict(zip(columns, r)) for r in rows]
+        return {"rows": data, "count": len(data)}
+
+
+@router.get("/api/workforce/nursing")
+async def nursing_workforce(state_name: str = None):
+    """NSSRN nursing workforce demographics by state.
+
+    Filter by full state name (e.g. ?state_name=Florida).
+    """
+    with get_cursor() as cur:
+        if state_name:
+            rows = cur.execute("""
+                SELECT license_type, state_name, status, age, sex,
+                       race_ethnicity, veteran_status, languages, weighted_count
+                FROM fact_nursing_workforce
+                WHERE state_name = $1
+                ORDER BY license_type, status
+            """, [state_name]).fetchall()
+        else:
+            rows = cur.execute("""
+                SELECT license_type, state_name, status, age, sex,
+                       race_ethnicity, veteran_status, languages, weighted_count
+                FROM fact_nursing_workforce
+                LIMIT 500
+            """).fetchall()
+        columns = ["license_type", "state_name", "status", "age", "sex",
+                    "race_ethnicity", "veteran_status", "languages", "weighted_count"]
+        data = [dict(zip(columns, r)) for r in rows]
+        return {"rows": data, "count": len(data)}
+
+
+@router.get("/api/workforce/nhsc")
+async def nhsc_field_strength(state_code: str = None):
+    """NHSC clinician counts by state and discipline."""
+    with get_cursor() as cur:
+        if state_code:
+            rows = cur.execute("""
+                SELECT state_name, discipline, fiscal_year, total_clinicians,
+                       nhsc_lrp, nhsc_sud_lrp, nhsc_rc_lrp, nhsc_sp,
+                       s2s_lrp, slrp, non_rural, rural
+                FROM fact_nhsc_field_strength
+                WHERE state_name = $1
+            """, [state_code.upper()]).fetchall()
+        else:
+            rows = cur.execute("""
+                SELECT state_name, discipline, fiscal_year, total_clinicians,
+                       nhsc_lrp, nhsc_sud_lrp, nhsc_rc_lrp, nhsc_sp,
+                       s2s_lrp, slrp, non_rural, rural
+                FROM fact_nhsc_field_strength
+                ORDER BY state_name
+            """).fetchall()
+        columns = ["state_name", "discipline", "fiscal_year", "total_clinicians",
+                    "nhsc_lrp", "nhsc_sud_lrp", "nhsc_rc_lrp", "nhsc_sp",
+                    "s2s_lrp", "slrp", "non_rural", "rural"]
+        data = [dict(zip(columns, r)) for r in rows]
+        return {"rows": data, "count": len(data)}

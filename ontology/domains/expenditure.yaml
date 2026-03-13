@@ -15,6 +15,8 @@ primary_tables:
   row_count: 15511
 - table: fact_cms64_multiyear
   row_count: 117936
+- table: fact_cms64_historical
+  row_count: 175688
 - table: fact_fmr_fy2024
   row_count: 19095
 - table: fact_fmr_supplemental

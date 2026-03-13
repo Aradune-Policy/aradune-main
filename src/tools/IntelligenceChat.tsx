@@ -351,7 +351,7 @@ function QueryTrace({ meta }: { meta: MessageMeta }) {
   );
 }
 
-// ── CSV Export ───────────────────────────────────────────────────────────
+// ── Response Export ──────────────────────────────────────────────────────
 
 function exportResponseCSV(content: string) {
   const lines = content.split("\n");
@@ -369,6 +369,22 @@ function exportResponseCSV(content: string) {
   a.download = `aradune-export-${new Date().toISOString().slice(0, 10)}.csv`;
   a.click();
   URL.revokeObjectURL(url);
+}
+
+async function exportResponseXLSX(content: string) {
+  const { extractAllTables } = await import("../utils/reportMarkdown");
+  const XLSX = await import("xlsx");
+  const tables = extractAllTables(content);
+  if (tables.length === 0) return;
+
+  const wb = XLSX.utils.book_new();
+  tables.forEach((t, idx) => {
+    const data = [t.columns, ...t.rows];
+    const ws = XLSX.utils.aoa_to_sheet(data);
+    ws["!cols"] = t.columns.map(c => ({ wch: Math.max(c.length + 2, 12) }));
+    XLSX.utils.book_append_sheet(wb, ws, tables.length > 1 ? `Table ${idx + 1}` : "Data");
+  });
+  XLSX.writeFile(wb, `aradune-export-${new Date().toISOString().slice(0, 10)}.xlsx`);
 }
 
 // ── Error classification ─────────────────────────────────────────────────
@@ -752,16 +768,28 @@ export default function IntelligenceChat() {
                           Copy
                         </button>
                         {msg.content.includes("|") && (
-                          <button
-                            onClick={() => exportResponseCSV(msg.content)}
-                            style={{
-                              background: "none", border: `1px solid ${C.border}`, borderRadius: 4,
-                              padding: "3px 8px", fontSize: 10, color: C.inkLight, cursor: "pointer",
-                              fontFamily: FONT.mono,
-                            }}
-                          >
-                            Export CSV
-                          </button>
+                          <>
+                            <button
+                              onClick={() => exportResponseCSV(msg.content)}
+                              style={{
+                                background: "none", border: `1px solid ${C.border}`, borderRadius: 4,
+                                padding: "3px 8px", fontSize: 10, color: C.inkLight, cursor: "pointer",
+                                fontFamily: FONT.mono,
+                              }}
+                            >
+                              CSV
+                            </button>
+                            <button
+                              onClick={() => exportResponseXLSX(msg.content)}
+                              style={{
+                                background: "none", border: `1px solid ${C.border}`, borderRadius: 4,
+                                padding: "3px 8px", fontSize: 10, color: C.inkLight, cursor: "pointer",
+                                fontFamily: FONT.mono,
+                              }}
+                            >
+                              Excel
+                            </button>
+                          </>
                         )}
                         <button
                           onClick={() => {

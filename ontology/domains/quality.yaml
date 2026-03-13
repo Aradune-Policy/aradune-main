@@ -13,6 +13,21 @@ primary_tables:
   row_count: 5555
 - table: fact_quality_core_set_2024
   row_count: 10972
+# Quality Core Set historical backfill (2017-2022)
+- table: fact_quality_core_set_2017
+  row_count: 2058
+- table: fact_quality_core_set_2018
+  row_count: 2826
+- table: fact_quality_core_set_2019
+  row_count: 3096
+- table: fact_quality_core_set_2020
+  row_count: 3450
+- table: fact_quality_core_set_2021
+  row_count: 3830
+- table: fact_quality_core_set_2022
+  row_count: 4206
+- table: fact_quality_core_set_combined
+  row_count: 35993
 - table: fact_quality_measure
   row_count: 5236
 - table: fact_scorecard

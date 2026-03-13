@@ -6,11 +6,15 @@ const WageAdequacy = lazy(() => import("./WageAdequacy"));
 const QualityLinkage = lazy(() => import("./QualityLinkage"));
 const HcbsTracker = lazy(() => import("./HcbsTracker"));
 const ComplianceReport = lazy(() => import("./ComplianceReport"));
+const WorkforceSupply = lazy(() => import("./WorkforceSupply"));
+const ShortageAreas = lazy(() => import("./ShortageAreas"));
 
 const TABS = [
   { key: "wages", label: "Wage Comparison", component: WageAdequacy },
   { key: "quality", label: "Quality Measures", component: QualityLinkage },
   { key: "hcbs", label: "HCBS Pass-Through", component: HcbsTracker },
+  { key: "supply", label: "Workforce Supply", component: WorkforceSupply },
+  { key: "shortage", label: "Shortage Areas", component: ShortageAreas },
   { key: "compliance", label: "Compliance", component: ComplianceReport },
 ] as const;
 
@@ -21,6 +25,8 @@ const ROUTE_TO_TAB: Record<string, TabKey> = {
   "/adequacy": "wages",
   "/quality": "quality",
   "/hcbs8020": "hcbs",
+  "/supply": "supply",
+  "/shortage": "shortage",
   "/compliance": "compliance",
 };
 
@@ -43,7 +49,7 @@ function parseTabFromHash(): TabKey {
 
 export default function WorkforceQuality() {
   const [active, setActive] = useState<TabKey>(parseTabFromHash);
-  const { openIntelligence } = useAradune();
+  const { openIntelligence, addReportSection } = useAradune();
 
   const tabBarStyle: React.CSSProperties = useMemo(
     () => ({
@@ -94,28 +100,54 @@ export default function WorkforceQuality() {
           })}
         </div>
 
-        <button
-          onClick={() =>
-            openIntelligence({
-              summary: "User is viewing Workforce & Quality data",
-            })
-          }
-          style={{
-            background: C.brand,
-            color: C.white,
-            border: "none",
-            borderRadius: 4,
-            padding: "5px 12px",
-            fontSize: 11,
-            fontFamily: FONT.body,
-            fontWeight: 500,
-            cursor: "pointer",
-            marginBottom: 6,
-            whiteSpace: "nowrap",
-          }}
-        >
-          Ask Aradune
-        </button>
+        <div style={{ display: "flex", gap: 6, marginBottom: 6 }}>
+          <button
+            onClick={() =>
+              openIntelligence({
+                summary: `User is viewing Workforce & Quality — ${active} tab`,
+              })
+            }
+            style={{
+              background: C.brand,
+              color: C.white,
+              border: "none",
+              borderRadius: 4,
+              padding: "5px 12px",
+              fontSize: 11,
+              fontFamily: FONT.body,
+              fontWeight: 500,
+              cursor: "pointer",
+              whiteSpace: "nowrap",
+            }}
+          >
+            Ask Aradune
+          </button>
+          <button
+            onClick={() =>
+              addReportSection({
+                id: crypto.randomUUID(),
+                prompt: `Workforce & Quality — ${TABS.find(t => t.key === active)?.label || active}`,
+                response: `Workforce & Quality module snapshot (${active} tab).`,
+                queries: [],
+                createdAt: new Date(),
+              })
+            }
+            style={{
+              background: "none",
+              border: `1px solid ${C.border}`,
+              borderRadius: 4,
+              padding: "5px 12px",
+              fontSize: 11,
+              fontFamily: FONT.body,
+              fontWeight: 500,
+              cursor: "pointer",
+              color: C.inkLight,
+              whiteSpace: "nowrap",
+            }}
+          >
+            + Report
+          </button>
+        </div>
       </div>
 
       {/* Tab content — display:none/block to preserve state */}

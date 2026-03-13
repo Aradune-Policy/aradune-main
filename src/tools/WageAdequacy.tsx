@@ -4,6 +4,7 @@ import type { SafeTipProps, TooltipEntry, WageCategory } from "../types";
 import { API_BASE } from "../lib/api";
 import { LoadingBar } from "../components/LoadingBar";
 import { useAradune } from "../context/AraduneContext";
+import ChartActions from "../components/ChartActions";
 
 // ── Design System (matches Aradune v14) ─────────────────────────────────
 const A = "#0A2540";
@@ -497,6 +498,7 @@ export default function WageAdequacy() {
       {allStates.length > 0 && <Card x>
         <CH t="Rate-Wage Gap by State" b={`${curCat?.codes.find((c: CrosswalkCode)=>c.units_per_hour)?.hcpcs||curCat?.codes[0]?.hcpcs} · ${allStates.length} states`} r={`Negative = Medicaid can't match market`}/>
         <div style={{ padding:"0 14px 8px" }}>
+          <ChartActions filename="wage-comparison">
           <ResponsiveContainer width="100%" height={Math.max(240,allStates.length*13)}>
             <BarChart data={allStates} layout="vertical" margin={{ left:52,right:16 }}>
               <CartesianGrid strokeDasharray="3 3" stroke={BD} horizontal={false}/>
@@ -518,6 +520,7 @@ export default function WageAdequacy() {
               </Bar>
             </BarChart>
           </ResponsiveContainer>
+          </ChartActions>
           <div style={{ display:"flex",gap:12,fontSize:9,color:AL,padding:"4px 0",flexWrap:"wrap" }}>
             <span><span style={{ display:"inline-block",width:8,height:8,borderRadius:"50%",background:cO,verticalAlign:"middle",marginRight:3 }}/>{STATE_NAMES[s1]||s1}</span>
             <span><span style={{ display:"inline-block",width:8,height:8,borderRadius:"50%",background:NEG,verticalAlign:"middle",marginRight:3 }}/>Below market (Medicaid can't match)</span>

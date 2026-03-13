@@ -52,6 +52,20 @@ primary_tables:
   row_count: 222076
 - table: fact_drug_spending_trend
   row_count: 71333
+- table: fact_dmepos_detail
+  row_count: 372590
+- table: fact_dmepos_pen
+  row_count: 5300
+- table: fact_dmepos_cba
+  row_count: 79927
+- table: fact_dmepos_cba_mailorder
+  row_count: 8
+- table: fact_dmepos_cba_zipcodes
+  row_count: 16124
+- table: fact_dmepos_rural_zipcodes
+  row_count: 15911
+- table: fact_ambulance_geographic
+  row_count: 109
 supporting_tables:
 - fact_integrated_care
 - fact_nas_rates

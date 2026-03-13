@@ -10,6 +10,7 @@ import {
 import { query } from "../lib/duckdb";
 import { getPreset } from "../lib/presets";
 import { STATES_LIST, STATE_NAMES } from "../data/states";
+import ChartActions from "../components/ChartActions";
 
 // ── Constants ───────────────────────────────────────────────────────────
 const DATA_YEAR = 2023; // T-MSIS data year in claims.parquet
@@ -325,6 +326,7 @@ export default function RateReduction() {
                   );
                 }} />
               } />
+              <ChartActions filename="rate-reduction-impact">
               <ResponsiveContainer width="100%" height={Math.max(300, chartData.length * 28)}>
                 <BarChart data={chartData} layout="vertical" margin={{ left: 60, right: 20, top: 5, bottom: 5 }}>
                   <XAxis type="number" tickFormatter={v => f$(v as number)} style={{ fontSize: 11 }} />
@@ -338,6 +340,7 @@ export default function RateReduction() {
                   </Bar>
                 </BarChart>
               </ResponsiveContainer>
+              </ChartActions>
             </Card>
           )}
 

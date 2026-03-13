@@ -1,5 +1,9 @@
-// /api/chat.js — Vercel Serverless Function
-// Proxies requests to Anthropic API with tool use for Aradune data access
+// /api/chat.js — DEPRECATED — Vercel Serverless Function
+// Replaced by /api/intelligence (server/routes/intelligence.py) which has:
+// SSE streaming, DuckDB tools, RAG policy search, web search, query routing.
+// This file is kept for backwards compatibility only. Remove after verification.
+//
+// Original: Proxies requests to Anthropic API with tool use for Aradune data access
 // Rate-limited, token-gated, with smart context management
 
 import Anthropic from "@anthropic-ai/sdk";

@@ -38,6 +38,67 @@ primary_tables:
   row_count: 2637009
 - table: fact_sdud_combined
   row_count: 28307998
+# SDUD historical backfill (1991-2019)
+- table: fact_sdud_1991
+  row_count: 1778209
+- table: fact_sdud_1992
+  row_count: 84029
+- table: fact_sdud_1993
+  row_count: 2779620
+- table: fact_sdud_1994
+  row_count: 194447
+- table: fact_sdud_1995
+  row_count: 1602114
+- table: fact_sdud_1996
+  row_count: 1739622
+- table: fact_sdud_1997
+  row_count: 1756324
+- table: fact_sdud_1998
+  row_count: 1370611
+- table: fact_sdud_1999
+  row_count: 1792560
+- table: fact_sdud_2000
+  row_count: 1207428
+- table: fact_sdud_2001
+  row_count: 1427501
+- table: fact_sdud_2002
+  row_count: 1448825
+- table: fact_sdud_2003
+  row_count: 1714785
+- table: fact_sdud_2004
+  row_count: 1170182
+- table: fact_sdud_2005
+  row_count: 1773955
+- table: fact_sdud_2006
+  row_count: 1568821
+- table: fact_sdud_2007
+  row_count: 1278375
+- table: fact_sdud_2008
+  row_count: 321366
+- table: fact_sdud_2009
+  row_count: 1325855
+- table: fact_sdud_2010
+  row_count: 943785
+- table: fact_sdud_2011
+  row_count: 1158886
+- table: fact_sdud_2012
+  row_count: 1175670
+- table: fact_sdud_2013
+  row_count: 1350237
+- table: fact_sdud_2014
+  row_count: 948288
+- table: fact_sdud_2015
+  row_count: 2092261
+- table: fact_sdud_2016
+  row_count: 1135712
+- table: fact_sdud_2017
+  row_count: 1068356
+- table: fact_sdud_2018
+  row_count: 664047
+- table: fact_sdud_2019
+  row_count: 4961100
+- table: fact_sdud_historical_combined
+  row_count: 41832971
 - table: ref_drug_rebate
   row_count: 1907607
 - table: fact_drug_amp_monthly
@@ -72,6 +133,8 @@ primary_tables:
   row_count: 12224199
 - table: fact_first_time_nadac
   row_count: 1269
+- table: fact_340b_covered_entities
+  row_count: 26290
 supporting_tables:
 - fact_clotting_factor
 - fact_exclusive_pediatric

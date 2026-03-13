@@ -34,8 +34,8 @@ class RouteResult:
 
 # Tier definitions
 TIERS = {
-    1: RouteResult(tier=1, model="claude-sonnet-4-6", thinking_budget=0, max_queries=4, label="Lookup"),
-    2: RouteResult(tier=2, model="claude-sonnet-4-6", thinking_budget=0, max_queries=6, label="Comparison"),
+    1: RouteResult(tier=1, model="claude-sonnet-4-6", thinking_budget=0, max_queries=2, label="Lookup"),
+    2: RouteResult(tier=2, model="claude-sonnet-4-6", thinking_budget=0, max_queries=4, label="Comparison"),
     3: RouteResult(tier=3, model="claude-sonnet-4-6", thinking_budget=5000, max_queries=8, label="Analysis"),
     4: RouteResult(tier=4, model="claude-sonnet-4-6", thinking_budget=10000, max_queries=15, label="Synthesis"),
 }

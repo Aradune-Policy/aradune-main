@@ -1,6 +1,7 @@
 import { useState, useCallback } from "react";
 import { C, FONT, SHADOW_LG } from "../design";
 import { useAradune } from "../context/AraduneContext";
+import type { ReportSection } from "../context/AraduneContext";
 
 function formatTimestamp(date: Date): string {
   const d = date instanceof Date ? date : new Date(date);
@@ -34,10 +35,26 @@ function exportCSV(sections: { id: string; prompt: string; response: string; cre
   URL.revokeObjectURL(url);
 }
 
+async function exportDOCX(sections: ReportSection[]) {
+  const { generateReportDocx } = await import("../utils/reportDocx");
+  await generateReportDocx(sections);
+}
+
+async function exportPDF(sections: ReportSection[]) {
+  const { generateReportPdf } = await import("../utils/reportPdf");
+  await generateReportPdf(sections);
+}
+
+async function exportXLSX(sections: ReportSection[]) {
+  const { generateReportXlsx } = await import("../utils/reportXlsx");
+  await generateReportXlsx(sections);
+}
+
 export default function ReportBuilder() {
   const { reportSections, removeReportSection, clearReport } = useAradune();
   const [reportBuilderOpen, setReportBuilderOpen] = useState(false);
   const [confirmClear, setConfirmClear] = useState(false);
+  const [exporting, setExporting] = useState<string | null>(null);
 
   const handleClear = useCallback(() => {
     if (confirmClear) {
@@ -303,46 +320,98 @@ export default function ReportBuilder() {
                 padding: "12px 16px",
                 borderTop: `1px solid ${C.border}`,
                 display: "flex",
-                gap: 8,
+                gap: 6,
                 flexWrap: "wrap",
+                alignItems: "center",
               }}
             >
-              {/* Export CSV */}
+              {/* Export DOCX */}
               <button
-                onClick={() => exportCSV(reportSections)}
+                onClick={async () => {
+                  setExporting("docx");
+                  try { await exportDOCX(reportSections); } finally { setExporting(null); }
+                }}
+                disabled={!!exporting}
                 style={{
                   background: C.brand,
                   color: C.white,
                   border: "none",
                   borderRadius: 6,
-                  padding: "7px 14px",
+                  padding: "7px 12px",
                   fontSize: 12,
                   fontWeight: 600,
-                  cursor: "pointer",
+                  cursor: exporting ? "wait" : "pointer",
                   fontFamily: FONT.body,
+                  opacity: exporting && exporting !== "docx" ? 0.5 : 1,
                 }}
               >
-                Export CSV
+                {exporting === "docx" ? "..." : "DOCX"}
               </button>
 
-              {/* Export DOCX — disabled */}
+              {/* Export PDF */}
               <button
-                disabled
-                title="Coming soon"
+                onClick={async () => {
+                  setExporting("pdf");
+                  try { await exportPDF(reportSections); } finally { setExporting(null); }
+                }}
+                disabled={!!exporting}
                 style={{
-                  background: C.border,
-                  color: C.inkLight,
+                  background: C.brand,
+                  color: C.white,
                   border: "none",
                   borderRadius: 6,
-                  padding: "7px 14px",
+                  padding: "7px 12px",
                   fontSize: 12,
                   fontWeight: 600,
-                  cursor: "not-allowed",
+                  cursor: exporting ? "wait" : "pointer",
                   fontFamily: FONT.body,
-                  opacity: 0.6,
+                  opacity: exporting && exporting !== "pdf" ? 0.5 : 1,
                 }}
               >
-                Export DOCX
+                {exporting === "pdf" ? "..." : "PDF"}
+              </button>
+
+              {/* Export Excel */}
+              <button
+                onClick={async () => {
+                  setExporting("xlsx");
+                  try { await exportXLSX(reportSections); } finally { setExporting(null); }
+                }}
+                disabled={!!exporting}
+                style={{
+                  background: C.white,
+                  color: C.brand,
+                  border: `1px solid ${C.brand}`,
+                  borderRadius: 6,
+                  padding: "7px 12px",
+                  fontSize: 12,
+                  fontWeight: 600,
+                  cursor: exporting ? "wait" : "pointer",
+                  fontFamily: FONT.body,
+                  opacity: exporting && exporting !== "xlsx" ? 0.5 : 1,
+                }}
+              >
+                {exporting === "xlsx" ? "..." : "Excel"}
+              </button>
+
+              {/* Export CSV */}
+              <button
+                onClick={() => exportCSV(reportSections)}
+                disabled={!!exporting}
+                style={{
+                  background: C.white,
+                  color: C.brand,
+                  border: `1px solid ${C.brand}`,
+                  borderRadius: 6,
+                  padding: "7px 12px",
+                  fontSize: 12,
+                  fontWeight: 600,
+                  cursor: exporting ? "wait" : "pointer",
+                  fontFamily: FONT.body,
+                  opacity: exporting ? 0.5 : 1,
+                }}
+              >
+                CSV
               </button>
 
               {/* Clear All */}
@@ -353,7 +422,7 @@ export default function ReportBuilder() {
                   color: confirmClear ? C.neg : C.inkLight,
                   border: `1px solid ${confirmClear ? C.neg : C.border}`,
                   borderRadius: 6,
-                  padding: "7px 14px",
+                  padding: "7px 12px",
                   fontSize: 12,
                   fontWeight: 600,
                   cursor: "pointer",
@@ -361,7 +430,7 @@ export default function ReportBuilder() {
                   marginLeft: "auto",
                 }}
               >
-                {confirmClear ? "Confirm Clear" : "Clear All"}
+                {confirmClear ? "Confirm" : "Clear"}
               </button>
             </div>
           )}

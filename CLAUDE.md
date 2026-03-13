@@ -113,7 +113,7 @@ ARADUNE  [⌕ Intelligence]  States  Rates  Forecast  Providers  Workforce  [↑
 
 **Intelligence** is the home page (`/#/`). Full-page Claude-powered chat. Every question starts here. Structured tools are accessible from the nav and linked from Intelligence responses.
 
-### Structured Tools (8 on-ramps)
+### Structured Tools (14 on-ramps)
 
 Purpose-built workflows for recurring work. Each has "Ask Intelligence" (opens sidebar with full context), export (CSV, Excel, PDF, DOCX), and accepts imported user data.
 
@@ -123,8 +123,14 @@ Purpose-built workflows for recurring work. Each has "Ask Intelligence" (opens s
 | **Rate Analysis & Fee Setting** | `/#/rates` | 4 tabs: Browse & Compare, CPRA Compliance, Rate Builder (StateRateEngine), Rate Lookup & Directory | fact_medicaid_rate (597K), fact_rate_comparison (302K), dim_procedure (16,978) |
 | **CPRA Compliance** | `/#/cpra` | Pre-computed cross-state (45 states) + user-upload generator. Dual-mode. PDF/Excel. Regulatory-correct (68 codes, $32.3465 CF, many-to-many). | fact_rate_comparison, CPRA reference data |
 | **Caseload & Fiscal Forecasting** | `/#/forecast` | SARIMAX+ETS forecasting, expenditure modeling, scenario builder. Dual-mode: public data or upload. | fact_enrollment, fact_expenditure, FMAP, economic |
+| **Spending Efficiency** | `/#/spending` | 3 tabs: Per-Enrollee Spending (MACPAC), Total Expenditure (CMS-64 FY2018-2024), Efficiency Metrics (scatter: spending vs MC penetration). | fact_cms64_multiyear (118K), fact_macpac_spending_per_enrollee |
 | **AHEAD Readiness** | `/#/ahead` | Hospital readiness scoring + calculator. HCRIS financials, payer mix, peer benchmarks. | fact_hospital_cost, fact_dsh_hospital, fact_hospital_rating |
 | **Provider & Hospital Intelligence** | `/#/providers` | 3 tabs: Hospitals (search + CCN detail + peers), Nursing Facilities (Five-Star, PBJ, deficiencies), Directory (FQHCs, dialysis, hospice, HHA, IRF, LTCH). | HCRIS, Five-Star, PBJ (65M+), SNF cost, facility dirs |
+| **Hospital Rate Setting** | `/#/hospital-rates` | 3 tabs: Hospital Financials (HCRIS cost reports), DSH & Supplemental (MACPAC Exhibit 24), State Directed Payments (34 states). | fact_hospital_cost (18K), fact_dsh_hospital (6K), fact_macpac_supplemental, fact_sdp_preprint |
+| **Nursing Facility** | `/#/nursing` | 3 tabs: Quality Ratings (Five-Star summary), Staffing (PBJ nurse staffing), State Detail (facility-level). | fact_five_star (14.7K), fact_pbj_nurse_staffing (1.3M) |
+| **Behavioral Health & SUD** | `/#/behavioral-health` | 4 tabs: Prevalence (NSDUH 26 measures), Treatment Network (facilities/beds, IPF quality, block grants), Opioid Crisis (prescribing rates), Conditions & Services. | fact_nsduh_prevalence (5.9K), fact_mh_facility (28K), fact_opioid_prescribing (539K), fact_bh_by_condition (4.2K) |
+| **Pharmacy Intelligence** | `/#/pharmacy` | 3 tabs: Spending Overview (SDUD 2025 state summary), Top Drugs (by spending, filterable by state), NADAC Pricing (drug name search). | fact_sdud_2025 (2.6M), fact_nadac (1.9M) |
+| **Program Integrity** | `/#/integrity` | 3 tabs: Exclusions (LEIE 82K), Open Payments ($13B), MFCU & PERM (error rates 2020-2025). | fact_leie (83K), fact_open_payments (36K), fact_mfcu_stats, fact_perm_rates |
 | **Workforce & HCBS** | `/#/workforce` | 4 tabs: Wage Adequacy, Quality Linkage, HCBS Waitlists & Compensation (80% pass-through tracking), Shortage Areas (HPSA + MUA map). | fact_bls_wage, fact_hpsa (69K), fact_hcbs_waitlist (607K), quality |
 | **Rate Lookup & Directory** | `/#/lookup` | Code-level Medicaid rate lookup across 47 states. State fee schedule directory with download links. Quick trust-building tool. | fact_medicaid_rate, fee schedule files |
 
@@ -148,6 +154,18 @@ All `<table>` elements wrapped with `overflowX: "auto"` containers. Recharts cha
 **CPRA:** `/api/cpra/states`, `/api/cpra/rates/{state}`, `/api/cpra/dq/{state}`, `/api/cpra/compare`, `/api/cpra/upload/generate`, `/api/cpra/upload/generate/csv`, `/api/cpra/upload/generate/report`
 
 **Forecast:** `/api/forecast/templates/caseload`, `/api/forecast/templates/events`, `/api/forecast/generate`, `/api/forecast/generate/csv`, `/api/forecast/enrollment/public`, `/api/forecast/expenditure/*`
+
+**Spending:** `/api/spending/by-state` (CMS-64 multiyear), `/api/spending/per-enrollee` (MACPAC)
+
+**Hospital Rates:** `/api/hospitals/summary`, `/api/supplemental/dsh/summary`, `/api/supplemental/summary`, `/api/supplemental/sdp`
+
+**Nursing:** `/api/five-star/summary`, `/api/five-star/{state}`, `/api/staffing/summary`, `/api/staffing/{state}`
+
+**Behavioral Health:** `/api/behavioral-health/nsduh/measures`, `/api/behavioral-health/nsduh/ranking`, `/api/behavioral-health/facilities/summary`, `/api/behavioral-health/ipf-facility/summary`, `/api/behavioral-health/block-grants`, `/api/behavioral-health/conditions/summary`, `/api/behavioral-health/services/summary`, `/api/opioid/prescribing/summary`
+
+**Pharmacy:** `/api/pharmacy/sdud-2025/state-summary`, `/api/pharmacy/sdud-2025/top-drugs`, `/api/pharmacy/nadac`
+
+**Integrity:** `/api/integrity/leie-summary`, `/api/integrity/open-payments-summary`, `/api/integrity/mfcu`, `/api/integrity/perm`
 
 **Intelligence:** `/api/intelligence` (POST, SSE streaming)
 
@@ -875,6 +893,12 @@ Aradune/
 │   │   ├── FeeScheduleDir.tsx       ← 535 lines. → Rate Lookup: Directory
 │   │   ├── RateLookup.tsx           ← → Rate Lookup
 │   │   ├── RateReductionAnalyzer.tsx ← 411 lines. → Rates (integrate)
+│   │   ├── BehavioralHealth.tsx      ← 627 lines. → BH/SUD (4 tabs: prevalence, treatment, opioid, conditions)
+│   │   ├── PharmacyIntelligence.tsx  ← 408 lines. → Pharmacy (3 tabs: spending, top drugs, NADAC)
+│   │   ├── NursingFacility.tsx      ← 662 lines. → Nursing (3 tabs: quality, staffing, detail)
+│   │   ├── SpendingEfficiency.tsx   ← 752 lines. → Spending (3 tabs: per-enrollee, total, efficiency)
+│   │   ├── HospitalRateSetting.tsx  ← 436 lines. → Hospital Rates (3 tabs: financials, DSH, SDP)
+│   │   ├── ProgramIntegrity.tsx     ← 654 lines. → Integrity (3 tabs: LEIE, Open Payments, MFCU/PERM)
 │   │   ├── PolicyAnalyst.tsx        ← 378 lines. DEPRECATED → Intelligence
 │   │   └── DataExplorer.tsx         ← DEPRECATED → Intelligence
 │   ├── engine/
@@ -1056,7 +1080,7 @@ python scripts/generate_ontology.py           # Regenerates system prompt + Duck
 
 ## 21. What Success Looks Like
 
-**Now (March 2026):** 698 views (667 fact + 9 dim + 22 ref), 400M+ rows, 4.9 GB, 258+ endpoints across 25 route files, 4 engines, 18 ontology domains, Intelligence with SSE + DuckDB + RAG + web search, 9 standalone modules behind password gate, CPRA regulatory-correct both modes. 115+ ETL scripts. Export pipeline: DOCX/PDF/Excel/CSV + chart PNG/SVG. Demo mode with 27 pre-cached Intelligence responses. Comprehensive audit complete: 14+ crash risks fixed, data accuracy verified across 5 states (FL/TX/CA/NY/OH), fact_fmap rebuilt from MACPAC, enrollment deduplicated, all SQL injection vectors parameterized. Mobile-responsive: shared `useIsMobile` hook, all tables wrapped with `overflowX: auto`, responsive padding/grids across all tools. "Ask Aradune" homepage passthrough working (ref-based guard + sessionStorage fallback). Deployed to Fly.io + R2 + Vercel.
+**Now (March 2026):** 698 views (667 fact + 9 dim + 22 ref), 400M+ rows, 4.9 GB, 280+ endpoints across 25 route files, 4 engines, 18 ontology domains, Intelligence with SSE + DuckDB + RAG + web search, 15 standalone modules behind password gate, CPRA regulatory-correct both modes. 115+ ETL scripts. Export pipeline: DOCX/PDF/Excel/CSV + chart PNG/SVG. Demo mode with 27 pre-cached Intelligence responses. Comprehensive audit complete: 14+ crash risks fixed, 4 data accuracy bugs fixed in session 28 (CMS-64 FY2016→FY2024, MACPAC footnote cleanup, opioid FIPS→state codes, SDUD XX filter), data accuracy verified across 5 states (FL/TX/CA/NY/OH), fact_fmap rebuilt from MACPAC, enrollment deduplicated, all SQL injection vectors parameterized. Mobile-responsive: shared `useIsMobile` hook, all tables wrapped with `overflowX: auto`, responsive padding/grids across all tools. "Ask Aradune" homepage passthrough working (ref-based guard + sessionStorage fallback). Deployed to Fly.io + R2 + Vercel.
 
 **Demo milestone (~April 2026):** End-to-end demo flow tested. Import → cross-reference → export polished. Visual polish pass. Demo walkthrough script written.
 

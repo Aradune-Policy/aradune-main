@@ -81,7 +81,7 @@ Routing:        Hash-based in Platform.tsx
 Data store:     DuckDB-WASM (browser-side client queries)
 Data lake:      Hive-partitioned Parquet (data/lake/) — 400M+ rows, 698 views
                 DuckDB in-memory views over Parquet files, 4.9 GB on disk
-                S3/R2 sync (scripts/sync_lake_wrangler.py, Cloudflare R2 bucket: aradune-datalake)
+                S3/R2 sync (scripts/sync_lake_wrangler.py --remote, Cloudflare R2 bucket: aradune-datalake)
 Backend:        Python FastAPI (server/) — 258+ endpoints across 25 route files, DuckDB-backed
 AI:             Intelligence (server/routes/intelligence.py) — Claude Sonnet 4.6 + SSE streaming
                 + extended thinking + DuckDB tools + RAG policy corpus + web search
@@ -961,7 +961,8 @@ Aradune/
 │   ├── generate_ontology.py         ← Reads YAML → generates system prompt + DuckPGQ SQL
 │   ├── introspect_lake.py           ← DuckDB introspection → raw_inventory.json
 │   ├── validate_ontology.py         ← CI: validates YAML against schema + lake
-│   ├── sync_lake_wrangler.py        ← R2 upload via wrangler (bypasses boto3 SSL)
+│   ├── sync_lake_wrangler.py        ← R2 upload via wrangler --remote (bypasses boto3 SSL)
+│   ├── sync_lake.py                 ← R2 download via boto3 (used by Fly.io entrypoint, incremental)
 │   ├── build_cache_seeds.py         ← Populates server/cache_seeds.json for demo mode
 │   └── build_lake_*.py              ← 115+ ETL scripts across all data domains
 ├── .github/workflows/ci.yml        ← Build, lint, deploy Vercel + Fly.io
@@ -1035,9 +1036,23 @@ git add . && git commit -m "describe change" && git push
 # Ontology (run after any data lake changes)
 python scripts/validate_ontology.py           # CI check — must pass
 python scripts/generate_ontology.py           # Regenerates system prompt + DuckPGQ SQL
+
+# R2 sync (upload new lake data to Cloudflare R2 for Fly.io)
+python3 scripts/sync_lake_wrangler.py                       # upload all (uses --remote)
+python3 scripts/sync_lake_wrangler.py --only "fact/my_table" # upload specific table
+python3 scripts/sync_lake_wrangler.py --dry-run              # preview only
+
+# Fly.io deploy (from project root, NOT from server/)
+fly deploy --remote-only --config server/fly.toml --dockerfile server/Dockerfile
 ```
 
-**Env vars:** Vercel: `ANTHROPIC_API_KEY`, `VITE_MONTHLY_PARQUET_URL`. Fly.io: `ANTHROPIC_API_KEY`, R2 creds.
+**R2 sync notes:**
+- `sync_lake_wrangler.py` uses `npx wrangler r2 object put --remote`. The `--remote` flag is **critical** -- without it wrangler uploads to a local emulator.
+- `sync_lake.py` (used by Fly.io entrypoint) downloads via boto3. Skips existing files with matching size (incremental).
+- Fly.io entrypoint always runs background R2 sync + sends reload signal via Python urllib after download completes.
+- After uploading new tables to R2, restart Fly.io machines or trigger reload: `fly ssh console --app aradune-api --command "python3 -c \"import urllib.request; urllib.request.urlopen(urllib.request.Request('http://localhost:8000/internal/reload-lake', method='POST'))\""`
+
+**Env vars:** Vercel: `ANTHROPIC_API_KEY`, `VITE_MONTHLY_PARQUET_URL`. Fly.io: `ANTHROPIC_API_KEY`, R2 creds (`ARADUNE_S3_BUCKET`, `ARADUNE_S3_ENDPOINT`, `AWS_ACCESS_KEY_ID`, `AWS_SECRET_ACCESS_KEY`).
 
 ---
 
@@ -1063,24 +1078,27 @@ python scripts/generate_ontology.py           # Regenerates system prompt + Duck
 | 2 | db.py fact_names must match filesystem (667 entries synced) | Synced |
 | 3 | api/chat.js is legacy | Deprecate after Intelligence verified |
 | 4 | Password gate is client-side only | Not a security boundary |
-| 5 | GitHub CI secrets (VERCEL_TOKEN, FLY_API_TOKEN) not set | Open — deploy locally works |
+| 5 | GitHub CI secrets (VERCEL_TOKEN, FLY_API_TOKEN) not set | Open -- deploy locally works |
 | 6 | Clerk auth needs env vars (VITE_CLERK_PUBLISHABLE_KEY, CLERK_SECRET_KEY) | Open |
 | 7 | AHRQ SDOH / CDC SVI blocked by WAF | Cannot download programmatically |
-| 8 | 4 state fee schedules missing (KS, NJ, TN, WI) | Blocked — portal/login required |
-| 9 | Remaining raw files: HCRIS full worksheets (260 MB), MACPAC exhibits (small), SAMHSA NSDUH 2022 (HTML/blocked) | Session 19 — major gaps closed |
+| 8 | 4 state fee schedules missing (KS, NJ, TN, WI) | Blocked -- portal/login required |
+| 9 | Remaining raw files: HCRIS full worksheets (260 MB), MACPAC exhibits (small), SAMHSA NSDUH 2022 (HTML/blocked) | Session 19 -- major gaps closed |
 | 10 | 17 empty/broken raw files in data/raw/ (header-only stubs, WAF failures) | Cleanup candidate |
 | 11 | Duplicate raw files in data/raw/ (_v2 pairs, dme26a=dmepos) | Cleanup candidate |
-| 12 | HPSA count shows row count not unique HPSA count | Minor — cosmetic |
+| 12 | HPSA count shows row count not unique HPSA count | Minor -- cosmetic |
 | 13 | pharmacy/enrollment/wages routes lack error handling | Returns 500 instead of structured error |
 | 14 | AHEAD module hardcoded to 6 states/12 hospitals | Save for last per James |
-| 15 | "Ask Aradune" homepage button was broken in dev (StrictMode) | **Fixed** — Session 27 |
-| 16 | Mobile: tables overflowed on small screens | **Fixed** — Session 27, all tables wrapped |
+| 15 | R2 has ~253/667 parquet files | Need full `sync_lake_wrangler.py` run to upload remaining tables |
+| 16 | "Ask Aradune" homepage button was broken in dev (StrictMode) | **Fixed** -- Session 27 |
+| 17 | Mobile: tables overflowed on small screens | **Fixed** -- Session 27, all tables wrapped |
+| 18 | sync_lake_wrangler.py missing --remote flag | **Fixed** -- Session 28 |
+| 19 | entrypoint.sh used curl (not in slim image) | **Fixed** -- Session 28, uses Python urllib |
 
 ---
 
 ## 21. What Success Looks Like
 
-**Now (March 2026):** 698 views (667 fact + 9 dim + 22 ref), 400M+ rows, 4.9 GB, 280+ endpoints across 25 route files, 4 engines, 18 ontology domains, Intelligence with SSE + DuckDB + RAG + web search, 15 standalone modules behind password gate, CPRA regulatory-correct both modes. 115+ ETL scripts. Export pipeline: DOCX/PDF/Excel/CSV + chart PNG/SVG. Demo mode with 27 pre-cached Intelligence responses. Comprehensive audit complete: 14+ crash risks fixed, 4 data accuracy bugs fixed in session 28 (CMS-64 FY2016→FY2024, MACPAC footnote cleanup, opioid FIPS→state codes, SDUD XX filter), data accuracy verified across 5 states (FL/TX/CA/NY/OH), fact_fmap rebuilt from MACPAC, enrollment deduplicated, all SQL injection vectors parameterized. Mobile-responsive: shared `useIsMobile` hook, all tables wrapped with `overflowX: auto`, responsive padding/grids across all tools. "Ask Aradune" homepage passthrough working (ref-based guard + sessionStorage fallback). Deployed to Fly.io + R2 + Vercel.
+**Now (March 2026):** 698 views (667 fact + 9 dim + 22 ref), 400M+ rows, 4.9 GB, 280+ endpoints across 25 route files, 4 engines, 18 ontology domains, Intelligence with SSE + DuckDB + RAG + web search, 15 standalone modules behind password gate, CPRA regulatory-correct both modes. 115+ ETL scripts. Export pipeline: DOCX/PDF/Excel/CSV + chart PNG/SVG. Demo mode with 27 pre-cached Intelligence responses. Comprehensive audit complete: 14+ crash risks fixed, 4 data accuracy bugs fixed in session 28 (CMS-64 FY2016->FY2024, MACPAC footnote cleanup, opioid FIPS->state codes, SDUD XX filter), data accuracy verified across 5 states (FL/TX/CA/NY/OH), fact_fmap rebuilt from MACPAC, enrollment deduplicated, all SQL injection vectors parameterized. Mobile-responsive: shared `useIsMobile` hook, all tables wrapped with `overflowX: auto`, responsive padding/grids across all tools. "Ask Aradune" homepage passthrough working (ref-based guard + sessionStorage fallback). R2 sync infrastructure fixed (--remote flag, incremental downloads, Python urllib reload). Fully deployed: Fly.io (245 views registered, all new module endpoints live) + Vercel + R2.
 
 **Demo milestone (~April 2026):** End-to-end demo flow tested. Import → cross-reference → export polished. Visual polish pass. Demo walkthrough script written.
 

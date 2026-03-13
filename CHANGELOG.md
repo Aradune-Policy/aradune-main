@@ -1,5 +1,36 @@
 # Changelog
 
+## Session 28 (2026-03-13): 6 New Modules + Data Accuracy Audit + R2 Fix
+
+### New Modules (6)
+- **BH/SUD** (`/#/behavioral-health`, 627 lines) -- 4 tabs: Prevalence (NSDUH 26 measures), Treatment Network (facilities/IPF/block grants), Opioid Crisis (prescribing rates), Conditions & Services.
+- **Pharmacy Intelligence** (`/#/pharmacy`, 408 lines) -- 3 tabs: Spending Overview (SDUD 2025 state summary), Top Drugs (by spending), NADAC Pricing (drug search).
+- **Nursing Facility** (`/#/nursing`, 662 lines) -- 3 tabs: Quality Ratings (Five-Star), Staffing (PBJ), State Detail (facility-level).
+- **Spending Efficiency** (`/#/spending`, 752 lines) -- 3 tabs: Per-Enrollee (MACPAC), Total Expenditure (CMS-64 FY2018-2024), Efficiency Metrics (scatter).
+- **Hospital Rate Setting** (`/#/hospital-rates`, 436 lines) -- 3 tabs: Hospital Financials (HCRIS), DSH & Supplemental (MACPAC Exhibit 24), State Directed Payments.
+- **Program Integrity** (`/#/integrity`, 654 lines) -- 3 tabs: Exclusions (LEIE 82K), Open Payments ($13B), MFCU & PERM.
+
+### Data Accuracy Fixes (4)
+- **CMS-64 spending** -- `/api/spending/by-state` switched from `fact_expenditure` (FY2016 only) to `fact_cms64_multiyear` (FY2018-2024, 118K rows). Added `state_code != 'US'` filter.
+- **MACPAC per-enrollee** -- `/api/spending/per-enrollee` now strips footnote superscripts from state names (`REGEXP_REPLACE`) and filters footnote rows with 5 NOT LIKE clauses + LENGTH check.
+- **Opioid prescribing** -- `/api/opioid/prescribing/summary` now JOINs dim_state on `state_name = geo_desc` to resolve FIPS codes to state abbreviations.
+- **SDUD pharmacy** -- `/api/pharmacy/sdud-2025/state-summary` now filters `WHERE state_code != 'XX'` to exclude national total row.
+
+### R2 Sync Infrastructure Fix
+- **Root cause found**: `sync_lake_wrangler.py` was missing `--remote` flag, causing all wrangler uploads to go to local emulator instead of actual Cloudflare R2 bucket.
+- **sync_lake_wrangler.py** -- Added `--remote` flag to all `wrangler r2 object put` calls.
+- **sync_lake.py** -- Added incremental download (skips files with matching local size).
+- **entrypoint.sh** -- Replaced `curl` with Python `urllib` for reload signal (curl not available in python:slim Docker image). Now always runs incremental R2 sync even when pre-baked data exists.
+- **Re-uploaded 22 fact tables + 9 dimension tables** to remote R2. All 20 new module endpoints verified returning 200 in production.
+
+### Deployment
+- 4 commits pushed to GitHub.
+- Vercel: frontend deployed (aradune.co).
+- Fly.io: backend deployed (aradune-api.fly.dev), 245 views registered, all endpoints live.
+- `.dockerignore`: Added `data/lake/` and `data/ontology/` to exclude 4.9GB from Docker build context.
+
+---
+
 ## Session 27 (2026-03-13): Comprehensive Audit + Mobile Pass + Deploy
 
 ### Bug Fixes (12 changes across 10 files)

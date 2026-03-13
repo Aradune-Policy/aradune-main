@@ -1,7 +1,9 @@
-# Exclude large raw data files from Docker build context
+# Exclude large data files from Docker build context
 data/raw/
 data/processed/
 data/sources/
+data/lake/
+data/ontology/
 
 # Exclude heavy dev/build artifacts
 tools/mfs_scraper/aradune.db
@@ -19,8 +21,8 @@ pipeline/
 *.zip
 *.gz
 
-# Lake data is pre-baked into the Docker image (785MB)
-# This eliminates the 60s cold start R2 sync
+# Lake data is NOT baked into image — entrypoint.sh downloads from R2 on startup
+# data/lake/ excluded above to keep build context small
 
 __pycache__/
 .vite/

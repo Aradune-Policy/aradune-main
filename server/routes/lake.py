@@ -190,3 +190,55 @@ async def lake_stats():
             "tables": stats,
             "total_rows": sum(v for v in stats.values() if v),
         }
+
+
+@router.get("/api/spending/by-state")
+async def spending_by_state():
+    """CMS-64 total expenditure by state for latest FY (from cms64_multiyear, FY2018-2024)."""
+    with get_cursor() as cur:
+        rows = cur.execute("""
+            SELECT state_code, fiscal_year,
+                   SUM(total_computable) AS total_computable,
+                   SUM(federal_share) AS federal_share,
+                   SUM(total_computable) - SUM(federal_share) AS state_share
+            FROM fact_cms64_multiyear
+            WHERE fiscal_year = (SELECT MAX(fiscal_year) FROM fact_cms64_multiyear)
+              AND state_code != 'US'
+            GROUP BY state_code, fiscal_year
+            ORDER BY state_code
+        """).fetchall()
+        columns = ["state_code", "fiscal_year", "total_computable",
+                    "federal_share", "state_share"]
+        return {
+            "rows": [dict(zip(columns, r)) for r in rows],
+            "count": len(rows),
+        }
+
+
+@router.get("/api/spending/per-enrollee")
+async def spending_per_enrollee():
+    """MACPAC per-enrollee spending by state and eligibility group."""
+    with get_cursor() as cur:
+        rows = cur.execute("""
+            SELECT REGEXP_REPLACE(state_name, '[0-9,]+$', '') AS state_name,
+                   fiscal_year,
+                   total_all, total_full_benefit,
+                   child_all, new_adult_all,
+                   disabled_all, aged_all
+            FROM fact_macpac_spending_per_enrollee
+            WHERE state_name NOT LIKE '%Includes%'
+              AND state_name NOT LIKE '%State reported%'
+              AND state_name NOT LIKE '%Spending total%'
+              AND state_name NOT LIKE '%State has%'
+              AND state_name NOT LIKE '%Due to%'
+              AND state_name NOT LIKE '%In this%'
+              AND LENGTH(state_name) < 50
+            ORDER BY state_name
+        """).fetchall()
+        columns = ["state_name", "fiscal_year", "total_all",
+                    "total_full_benefit", "child_all", "new_adult_all",
+                    "disabled_all", "aged_all"]
+        return {
+            "rows": [dict(zip(columns, r)) for r in rows],
+            "count": len(rows),
+        }

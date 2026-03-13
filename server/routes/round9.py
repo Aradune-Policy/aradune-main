@@ -146,15 +146,16 @@ async def opioid_prescribing_summary(
             year_filter = "AND year = ?"
             params.append(year)
         cur.execute(f"""
-            SELECT geo_code AS state,
-                   year,
-                   plan_type,
-                   opioid_prescribing_rate,
-                   opioid_claims,
-                   total_claims
-            FROM fact_opioid_prescribing
-            WHERE geo_level = 'State' AND plan_type = 'All' {year_filter}
-            ORDER BY year DESC, opioid_prescribing_rate DESC
+            SELECT COALESCE(d.state_code, o.geo_code) AS state,
+                   o.year,
+                   o.plan_type,
+                   o.opioid_prescribing_rate,
+                   o.opioid_claims,
+                   o.total_claims
+            FROM fact_opioid_prescribing o
+            LEFT JOIN dim_state d ON d.state_name = o.geo_desc
+            WHERE o.geo_level = 'State' AND o.plan_type = 'All' {year_filter}
+            ORDER BY o.year DESC, o.opioid_prescribing_rate DESC
         """, params)
         cols = [d[0] for d in cur.description]
         rows = cur.fetchall()
@@ -585,6 +586,7 @@ async def sdud_2025_state_summary():
                    ROUND(SUM(total_amount_reimbursed), 2) AS total_reimbursed,
                    ROUND(SUM(medicaid_amount_reimbursed), 2) AS medicaid_reimbursed
             FROM fact_sdud_2025
+            WHERE state_code != 'XX'
             GROUP BY state_code
             ORDER BY total_reimbursed DESC
         """)
@@ -645,6 +647,139 @@ async def medicare_provider_by_type(
             GROUP BY provider_type, provider_type_code
             ORDER BY provider_count DESC
         """, params)
+        cols = [d[0] for d in cur.description]
+        rows = cur.fetchall()
+    return {"rows": [dict(zip(cols, r)) for r in rows], "count": len(rows)}
+
+
+# ─── Program Integrity: LEIE, Open Payments, MFCU, PERM ─────────────
+
+
+@router.get("/api/integrity/leie-summary")
+async def leie_summary(
+    state: Optional[str] = Query(None),
+):
+    """LEIE exclusion summary by state — counts by entity type and exclusion type."""
+    with get_cursor() as cur:
+        where = "WHERE state_code IS NOT NULL"
+        params = []
+        if state:
+            where += " AND state_code = ?"
+            params.append(state)
+        cur.execute(f"""
+            SELECT state_code,
+                   entity_type,
+                   exclusion_type,
+                   COUNT(*) AS exclusion_count,
+                   COUNT(DISTINCT npi) FILTER (WHERE npi IS NOT NULL) AS npi_count
+            FROM fact_leie
+            {where}
+            GROUP BY state_code, entity_type, exclusion_type
+            ORDER BY exclusion_count DESC
+        """, params)
+        cols = [d[0] for d in cur.description]
+        rows = cur.fetchall()
+
+        # Also get state-level totals
+        cur.execute(f"""
+            SELECT state_code,
+                   COUNT(*) AS total_exclusions,
+                   SUM(CASE WHEN entity_type = 'individual' THEN 1 ELSE 0 END) AS individual_count,
+                   SUM(CASE WHEN entity_type = 'entity' THEN 1 ELSE 0 END) AS entity_count,
+                   COUNT(DISTINCT npi) FILTER (WHERE npi IS NOT NULL) AS unique_npis
+            FROM fact_leie
+            {where}
+            GROUP BY state_code
+            ORDER BY total_exclusions DESC
+        """, params)
+        state_cols = [d[0] for d in cur.description]
+        state_rows = cur.fetchall()
+
+    return {
+        "detail": [dict(zip(cols, r)) for r in rows],
+        "by_state": [dict(zip(state_cols, r)) for r in state_rows],
+        "count": len(rows),
+    }
+
+
+@router.get("/api/integrity/open-payments-summary")
+async def open_payments_summary(
+    state: Optional[str] = Query(None),
+):
+    """Open Payments state-level summary — total amounts, physician counts."""
+    with get_cursor() as cur:
+        where = "WHERE state_code IS NOT NULL AND LENGTH(TRIM(state_code)) = 2"
+        params = []
+        if state:
+            where += " AND state_code = ?"
+            params.append(state)
+        cur.execute(f"""
+            SELECT state_code,
+                   SUM(payment_count) AS total_payments,
+                   ROUND(SUM(total_amount), 2) AS total_amount,
+                   ROUND(AVG(avg_amount), 2) AS avg_payment,
+                   SUM(unique_physicians) AS unique_physicians,
+                   SUM(unique_companies) AS unique_companies
+            FROM fact_open_payments
+            {where}
+            GROUP BY state_code
+            ORDER BY total_amount DESC
+        """, params)
+        cols = [d[0] for d in cur.description]
+        rows = cur.fetchall()
+
+        # Top payment types nationally
+        cur.execute(f"""
+            SELECT payment_nature,
+                   SUM(payment_count) AS total_payments,
+                   ROUND(SUM(total_amount), 2) AS total_amount
+            FROM fact_open_payments
+            {where}
+            GROUP BY payment_nature
+            ORDER BY total_amount DESC
+            LIMIT 10
+        """, params)
+        type_cols = [d[0] for d in cur.description]
+        type_rows = cur.fetchall()
+
+    return {
+        "by_state": [dict(zip(cols, r)) for r in rows],
+        "by_payment_type": [dict(zip(type_cols, r)) for r in type_rows],
+        "count": len(rows),
+    }
+
+
+@router.get("/api/integrity/mfcu")
+async def mfcu_stats(
+    state: Optional[str] = Query(None),
+):
+    """MFCU statistics — investigations, convictions, recoveries by state (FY 2024)."""
+    with get_cursor() as cur:
+        sql = "SELECT * FROM fact_mfcu_stats WHERE 1=1"
+        params = []
+        if state:
+            sql += " AND state_code = ?"
+            params.append(state)
+        sql += " ORDER BY total_recoveries DESC"
+        cur.execute(sql, params)
+        cols = [d[0] for d in cur.description]
+        rows = cur.fetchall()
+    return {"rows": [dict(zip(cols, r)) for r in rows], "count": len(rows)}
+
+
+@router.get("/api/integrity/perm")
+async def perm_rates(
+    program: Optional[str] = Query(None),
+):
+    """PERM payment error rates — Medicaid and CHIP (2020-2025)."""
+    with get_cursor() as cur:
+        sql = "SELECT * FROM fact_perm_rates WHERE 1=1"
+        params = []
+        if program:
+            sql += " AND program = ?"
+            params.append(program)
+        sql += " ORDER BY program, year DESC"
+        cur.execute(sql, params)
         cols = [d[0] for d in cur.description]
         rows = cur.fetchall()
     return {"rows": [dict(zip(cols, r)) for r in rows], "count": len(rows)}

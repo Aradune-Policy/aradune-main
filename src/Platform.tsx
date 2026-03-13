@@ -67,6 +67,12 @@ const StateProfile = lazy(() => import("./tools/StateProfile"));
 const DataCatalog = lazy(() => import("./tools/DataCatalog"));
 const IntelligenceChat = lazy(() => import("./tools/IntelligenceChat"));
 const FiscalImpact = lazy(() => import("./tools/FiscalImpact"));
+const BehavioralHealth = lazy(() => import("./tools/BehavioralHealth"));
+const PharmacyIntelligence = lazy(() => import("./tools/PharmacyIntelligence"));
+const NursingFacility = lazy(() => import("./tools/NursingFacility"));
+const SpendingEfficiency = lazy(() => import("./tools/SpendingEfficiency"));
+const ProgramIntegrity = lazy(() => import("./tools/ProgramIntegrity"));
+const HospitalRateSetting = lazy(() => import("./tools/HospitalRateSetting"));
 // Module wrappers (RateAnalysis, ProviderIntelligence, WorkforceQuality) removed from routing
 // All tools are standalone now — kept in src/tools/ for reference
 
@@ -122,6 +128,12 @@ const TOOLS: ToolDef[] = [
     desc: "Model rate increases: federal match at FMAP, UPL headroom check, biennial state/federal cost split from CMS-64 and enrollment data.",
     status: "live", icon: "◑", color: C.teal,
   },
+  {
+    id: "spending", group: "forecast", name: "Spending Efficiency",
+    tagline: "Per-enrollee spending, CMS-64 expenditure, and efficiency metrics",
+    desc: "Compare Medicaid spending across states: per-enrollee costs by eligibility group, CMS-64 federal/state split, and spending efficiency vs managed care penetration.",
+    status: "live", icon: "◑", color: C.teal,
+  },
   // ── PROVIDERS ─────────────────────────────────────────────────────────
   {
     id: "hospitals", group: "providers", name: "Hospital Intelligence",
@@ -134,6 +146,12 @@ const TOOLS: ToolDef[] = [
     tagline: "AHEAD model savings and global budget projections",
     desc: "Model hospital participation in the CMS AHEAD model. Project savings, global budgets, and readiness.",
     status: "live", icon: "△", color: C.accent,
+  },
+  {
+    id: "hospital-rates", group: "providers", name: "Hospital Rate Setting",
+    tagline: "HCRIS financials, DSH, supplemental payments, and SDPs",
+    desc: "Hospital cost reports, DSH allotments, MACPAC supplemental payment analysis, and state directed payment programs across all states.",
+    status: "live", icon: "▲", color: C.accent,
   },
   // ── WORKFORCE ─────────────────────────────────────────────────────────
   {
@@ -148,6 +166,34 @@ const TOOLS: ToolDef[] = [
     desc: "Rate transparency, HCBS pass-through tracking, rate reduction analysis for the July 2026 Ensuring Access deadline.",
     status: "live", icon: "◇", color: C.teal,
   },
+  // ── PHARMACY ─────────────────────────────────────────────────────────
+  {
+    id: "pharmacy", group: "pharmacy", name: "Pharmacy Intelligence",
+    tagline: "Medicaid drug spending, utilization, and NADAC pricing",
+    desc: "SDUD drug utilization across all states, top drugs by Medicaid spending, NADAC pricing benchmarks, and drug rebate program data. 28.3M rows of SDUD data.",
+    status: "live", icon: "◎", color: "#7C3AED",
+  },
+  // ── BEHAVIORAL HEALTH ───────────────────────────────────────────────
+  {
+    id: "behavioral-health", group: "behavioral-health", name: "Behavioral Health & SUD",
+    tagline: "Mental health prevalence, treatment access, and opioid prescribing",
+    desc: "NSDUH prevalence rankings, MH/SUD treatment facility network, opioid prescribing patterns, SAMHSA block grants, IPF quality, and BH service utilization across all states.",
+    status: "live", icon: "◈", color: "#6366F1",
+  },
+  // ── NURSING ───────────────────────────────────────────────────────
+  {
+    id: "nursing", group: "nursing", name: "Nursing Facility",
+    tagline: "Five-Star quality ratings and PBJ staffing data",
+    desc: "CMS Five-Star nursing home quality ratings, PBJ nurse staffing hours per resident day, deficiency tracking, and facility-level detail for all certified SNFs.",
+    status: "live", icon: "\u25EB", color: "#D97706",
+  },
+  // ── INTEGRITY ───────────────────────────────────────────────────────
+  {
+    id: "integrity", group: "integrity", name: "Program Integrity",
+    tagline: "LEIE exclusions, Open Payments, MFCU stats, and PERM error rates",
+    desc: "OIG LEIE exclusion list (82K+ records), CMS Open Payments ($13B+ in industry payments), MFCU fraud investigation statistics, and PERM improper payment rates.",
+    status: "live", icon: "\u25C7", color: "#DC2626",
+  },
 ];
 
 const NAV_GROUPS: NavGroup[] = [
@@ -156,11 +202,16 @@ const NAV_GROUPS: NavGroup[] = [
   { key: "forecast", label: "Forecast", tools: TOOLS.filter(t => t.group === "forecast") },
   { key: "providers", label: "Providers", tools: TOOLS.filter(t => t.group === "providers") },
   { key: "workforce", label: "Workforce", tools: TOOLS.filter(t => t.group === "workforce") },
+  { key: "pharmacy", label: "Pharmacy", tools: TOOLS.filter(t => t.group === "pharmacy") },
+  { key: "behavioral-health", label: "BH/SUD", tools: TOOLS.filter(t => t.group === "behavioral-health") },
+  { key: "nursing", label: "Nursing", tools: TOOLS.filter(t => t.group === "nursing") },
+  { key: "integrity", label: "Integrity", tools: TOOLS.filter(t => t.group === "integrity") },
 ];
 
 const GROUP_COLORS: Record<string, string> = {
   states: C.brand, rates: C.brand, forecast: C.teal,
-  providers: C.accent, workforce: C.teal,
+  providers: C.accent, workforce: C.teal, pharmacy: "#7C3AED", "behavioral-health": "#6366F1",
+  nursing: "#D97706", integrity: "#DC2626",
 };
 const GROUP_DESCS: Record<string, string> = {
   states: "State profiles with enrollment, rates, hospitals, quality, and economic context.",
@@ -168,6 +219,10 @@ const GROUP_DESCS: Record<string, string> = {
   forecast: "Caseload and expenditure projections with scenario modeling.",
   providers: "Hospital intelligence, AHEAD readiness, and provider spending analysis.",
   workforce: "Wage adequacy, quality linkage, HCBS tracking, and compliance.",
+  pharmacy: "Medicaid drug spending, utilization, NADAC pricing, and drug rebate data.",
+  "behavioral-health": "Mental health prevalence, SUD treatment, opioid prescribing, and BH services.",
+  nursing: "Nursing facility Five-Star quality ratings, PBJ staffing, and facility-level detail.",
+  integrity: "LEIE exclusions, Open Payments, MFCU fraud statistics, and PERM error rates.",
 };
 
 // ── Platform Nav ─────────────────────────────────────────────────────────
@@ -379,12 +434,11 @@ function Landing() {
             fontSize: isMobile ? 14 : 16, color: C.inkLight, lineHeight: 1.7,
             marginTop: 18, maxWidth: 620,
           }}>
-            667+ tables across 18 data domains: rates, enrollment, hospitals, quality,
-            workforce, pharmacy, expenditure, and more. Ingested, normalized, and
-            cross-referenced into a single queryable layer with an AI analyst that
-            reasons across the entire dataset. Not a dashboard. Not a search tool.
-            An intelligence system that reads the data, connects the dots, and
-            writes the analysis. Built for anyone who needs to understand Medicaid.
+            667+ tables across 18 data domains. Upload your own data to cross-reference
+            against the national layer. An AI analyst that reads the data, connects the
+            dots, and writes the analysis. Full audit trails. Submission-ready compliance
+            output. Not a dashboard. An intelligence system built for anyone who needs
+            to understand Medicaid.
           </p>
 
           {/* Stats row */}
@@ -600,219 +654,266 @@ function Landing() {
             Three layers turn scattered public data into actionable Medicaid intelligence.
           </p>
 
-          {/* Architecture: frozen lake + entity network + intelligence */}
-          {(() => {
-            const ents = [
-              { x: 165, y: 155, l: 'State' }, { x: 305, y: 140, l: 'Procedure' },
-              { x: 440, y: 152, l: 'Provider' }, { x: 570, y: 138, l: 'Hospital' },
-              { x: 235, y: 210, l: 'Drug' }, { x: 370, y: 202, l: 'Rate Cell' },
-              { x: 500, y: 212, l: 'Quality' }, { x: 630, y: 198, l: 'MCO' },
-              { x: 115, y: 242, l: 'Geography' }, { x: 285, y: 250, l: 'HCBS' },
-              { x: 435, y: 246, l: 'Workforce' }, { x: 570, y: 255, l: 'Nursing' },
-            ];
-            const edges: [number, number][] = [
-              [0,1],[0,2],[0,3],[0,8],[1,2],[1,4],[1,5],
-              [2,3],[2,7],[2,11],[3,6],[3,7],[4,5],[5,0],
-              [6,10],[7,11],[8,9],[9,10],[10,11],
-            ];
-            const surfLabels = [
-              { x: 175, y: 374, l: 'Rates' }, { x: 310, y: 370, l: 'Enrollment' },
-              { x: 440, y: 366, l: 'Claims' }, { x: 560, y: 362, l: 'Hospitals' },
-              { x: 660, y: 358, l: 'Pharmacy' },
-              { x: 195, y: 393, l: 'Medicare' }, { x: 330, y: 389, l: 'Quality' },
-              { x: 460, y: 385, l: 'Expenditure' }, { x: 575, y: 381, l: 'BH' },
-              { x: 680, y: 377, l: 'Workforce' },
-              { x: 225, y: 408, l: 'Providers' }, { x: 370, y: 404, l: 'HCBS' },
-              { x: 510, y: 400, l: 'Economic' }, { x: 640, y: 396, l: 'Nursing' },
-            ];
-            const lakeBackY = (x: number) => 352 - (x - 80) * 15 / 600;
-            const particles = [
-              { sx: 180, sy: 372, dur: 3.8 },
-              { sx: 340, sy: 367, dur: 4.2 },
-              { sx: 490, sy: 362, dur: 3.5 },
-              { sx: 620, sy: 358, dur: 4.6 },
-            ];
+          <div style={{ maxWidth: 680, margin: "0 auto" }}>
 
-            return (
-              <div style={{ marginBottom: 32 }}>
-                <style>{`
-                  @keyframes archFlow{0%{stroke-dashoffset:16;opacity:.08}50%{opacity:.15}100%{stroke-dashoffset:0;opacity:.08}}
-                `}</style>
-                <svg viewBox="0 0 1060 500" width="100%" style={{ display: 'block' }}>
-                  <defs>
-                    <linearGradient id="lkTop" x1="0%" y1="0%" x2="100%" y2="100%">
-                      <stop offset="0%" stopColor="#ECF2F8" />
-                      <stop offset="100%" stopColor="#E2EBF4" />
-                    </linearGradient>
-                    <linearGradient id="lkFr" x1="0" y1="0" x2="0" y2="1">
-                      <stop offset="0%" stopColor="#D4DEE8" />
-                      <stop offset="100%" stopColor="#C5D2DF" />
-                    </linearGradient>
-                    <filter id="glw">
-                      <feGaussianBlur stdDeviation="4" result="blur" />
-                      <feMerge><feMergeNode in="blur" /><feMergeNode in="SourceGraphic" /></feMerge>
-                    </filter>
-                  </defs>
-
-                  {/* ── Connection lines: entities to lake surface (behind everything) ── */}
-                  {ents.map((e, i) => (
-                    <line key={`el${i}`}
-                      x1={e.x} y1={e.y + 14} x2={e.x} y2={lakeBackY(e.x) + 8}
-                      stroke="#2E6B4A" strokeWidth={0.7} opacity={0.1}
-                      strokeDasharray="3 5"
-                      style={{ animation: `archFlow 3.5s linear infinite`, animationDelay: `${i * 0.3}s` }}
-                    />
-                  ))}
-
-                  {/* ── Connection lines: entities to intelligence badge ── */}
-                  {ents.map((e, i) => (
-                    <line key={`ei${i}`}
-                      x1={e.x} y1={e.y - 14} x2={390} y2={68}
-                      stroke="#2E6B4A" strokeWidth={0.4} opacity={0.06}
-                    />
-                  ))}
-
-                  {/* ══ FROZEN LAKE SLAB ══ */}
-                  {/* Right side face */}
-                  <path d="M 680,337 L 720,400 L 720,452 L 680,389 Z"
-                    fill="#BFD0DF" stroke="#B0C2D2" strokeWidth={0.5} />
-                  {/* Front face with strata lines */}
-                  <path d="M 120,417 L 720,400 L 720,452 L 120,469 Z"
-                    fill="url(#lkFr)" stroke="#B0C2D2" strokeWidth={0.5} />
-                  {[0.3, 0.55, 0.8].map((f, i) => (
-                    <line key={`st${i}`}
-                      x1={120} y1={417 + (469 - 417) * f}
-                      x2={720} y2={400 + (452 - 400) * f}
-                      stroke="#B8C8D8" strokeWidth={0.3} opacity={0.5} />
-                  ))}
-                  {/* Top surface */}
-                  <path d="M 80,352 L 680,337 L 720,400 L 120,417 Z"
-                    fill="url(#lkTop)" stroke="#C0D0DF" strokeWidth={0.5} />
-
-                  {/* Grid lines on lake surface */}
-                  {[0.2, 0.4, 0.6, 0.8].map((f, i) => (
-                    <line key={`gh${i}`}
-                      x1={80 + 40 * f} y1={352 + 65 * f}
-                      x2={680 + 40 * f} y2={337 + 63 * f}
-                      stroke="#CBD8E5" strokeWidth={0.3} />
-                  ))}
-                  {[0.17, 0.33, 0.5, 0.67, 0.83].map((f, i) => (
-                    <line key={`gv${i}`}
-                      x1={80 + 600 * f} y1={352 - 15 * f}
-                      x2={120 + 600 * f} y2={417 - 17 * f}
-                      stroke="#CBD8E5" strokeWidth={0.3} />
-                  ))}
-
-                  {/* Domain labels etched on surface */}
-                  {surfLabels.map((d, i) => (
-                    <text key={`sl${i}`} x={d.x} y={d.y} textAnchor="middle"
-                      fill="#8A9DB0" fontSize={7}
-                      fontFamily="'SF Mono',Menlo,monospace" fontWeight={500}>
-                      {d.l}
-                    </text>
-                  ))}
-
-                  {/* ══ ENTITY EDGES ══ */}
-                  {edges.map(([a, b], i) => (
-                    <line key={`ee${i}`}
-                      x1={ents[a].x} y1={ents[a].y} x2={ents[b].x} y2={ents[b].y}
-                      stroke="#2E6B4A" strokeWidth={0.8} opacity={0.18} />
-                  ))}
-
-                  {/* ══ ENTITY NODES ══ */}
-                  {ents.map((e, i) => (
-                    <g key={`en${i}`}>
-                      <circle cx={e.x} cy={e.y} r={14}
-                        fill="white" stroke="#2E6B4A" strokeWidth={1.2} />
-                      <text x={e.x} y={e.y + 1} textAnchor="middle" dominantBaseline="middle"
-                        fill="#2E6B4A" fontSize={7} fontWeight={600}
-                        fontFamily="'SF Mono',Menlo,monospace">{e.l}</text>
-                    </g>
-                  ))}
-
-                  {/* ══ INTELLIGENCE BADGE ══ */}
-                  <rect x={280} y={18} width={220} height={48} rx={10}
-                    fill="#0A2540" stroke="#2E6B4A" strokeWidth={1.2} filter="url(#glw)" />
-                  <text x={390} y={36} textAnchor="middle" dominantBaseline="middle"
-                    fill="white" fontSize={11} fontWeight={700}
-                    fontFamily="'Helvetica Neue',sans-serif">Aradune Intelligence</text>
-                  <text x={390} y={52} textAnchor="middle" dominantBaseline="middle"
-                    fill="rgba(255,255,255,0.5)" fontSize={7}
-                    fontFamily="'SF Mono',Menlo,monospace">{`Claude \u00B7 NL\u2192SQL \u00B7 RAG \u00B7 Thinking \u00B7 Web`}</text>
-
-                  {/* ── Animated particles flowing lake → intelligence ── */}
-                  {particles.map((pp, i) => (
-                    <circle key={`ap${i}`} r={2.5} fill="#2E6B4A">
-                      <animateMotion dur={`${pp.dur}s`} repeatCount="indefinite"
-                        path={`M ${pp.sx} ${pp.sy} Q ${pp.sx} 200 390 68`} />
-                      <animate attributeName="opacity" values="0;0.4;0.4;0"
-                        dur={`${pp.dur}s`} repeatCount="indefinite" />
-                    </circle>
-                  ))}
-
-                  {/* ══ RIGHT-SIDE LABELS ══ */}
-                  <text x={760} y={32} fill="#0A2540" fontSize={15} fontWeight={800}
-                    fontFamily="'Helvetica Neue',sans-serif">Intelligence</text>
-                  <text x={760} y={50} fill="#425A70" fontSize={10}
-                    fontFamily="'SF Mono',Menlo,monospace">Ask in natural language. Claude</text>
-                  <text x={760} y={64} fill="#425A70" fontSize={10}
-                    fontFamily="'SF Mono',Menlo,monospace">queries 18 domains, reasons with</text>
-                  <text x={760} y={78} fill="#425A70" fontSize={10}
-                    fontFamily="'SF Mono',Menlo,monospace">extended thinking, cites sources.</text>
-                  <text x={760} y={96} fill="#7A8FA0" fontSize={9}
-                    fontFamily="'SF Mono',Menlo,monospace">Generates CPRAs, rate analyses,</text>
-                  <text x={760} y={109} fill="#7A8FA0" fontSize={9}
-                    fontFamily="'SF Mono',Menlo,monospace">fiscal models, compliance docs.</text>
-
-                  <text x={760} y={170} fill="#0A2540" fontSize={15} fontWeight={800}
-                    fontFamily="'Helvetica Neue',sans-serif">Entity Registry</text>
-                  <text x={760} y={188} fill="#425A70" fontSize={10}
-                    fontFamily="'SF Mono',Menlo,monospace">16 entities, 19 deterministic</text>
-                  <text x={760} y={202} fill="#425A70" fontSize={10}
-                    fontFamily="'SF Mono',Menlo,monospace">metrics, auto-generated joins.</text>
-                  <text x={760} y={220} fill="#7A8FA0" fontSize={9}
-                    fontFamily="'SF Mono',Menlo,monospace">state_code, procedure_code, NPI,</text>
-                  <text x={760} y={233} fill="#7A8FA0" fontSize={9}
-                    fontFamily="'SF Mono',Menlo,monospace">FIPS link everything across domains.</text>
-
-                  <text x={760} y={358} fill="#0A2540" fontSize={15} fontWeight={800}
-                    fontFamily="'Helvetica Neue',sans-serif">Data Lake</text>
-                  <text x={760} y={376} fill="#425A70" fontSize={10}
-                    fontFamily="'SF Mono',Menlo,monospace">667+ tables, 400M+ rows</text>
-                  <text x={760} y={390} fill="#425A70" fontSize={10}
-                    fontFamily="'SF Mono',Menlo,monospace">3.8 GB Parquet, 54 jurisdictions</text>
-                  <text x={760} y={408} fill="#7A8FA0" fontSize={9}
-                    fontFamily="'SF Mono',Menlo,monospace">CMS, BLS, CDC, HRSA, HCRIS,</text>
-                  <text x={760} y={421} fill="#7A8FA0" fontSize={9}
-                    fontFamily="'SF Mono',Menlo,monospace">SDUD, NPPES, KFF, state fee</text>
-                  <text x={760} y={434} fill="#7A8FA0" fontSize={9}
-                    fontFamily="'SF Mono',Menlo,monospace">schedules, and more.</text>
-
-                  {/* ══ DATA SOURCES (bottom pipeline) ══ */}
-                  {[
-                    { x: 150, l: 'data.cms.gov' }, { x: 280, l: 'data.medicaid.gov' },
-                    { x: 420, l: 'BLS/Census' }, { x: 540, l: 'CDC/SAMHSA' },
-                    { x: 660, l: 'KFF/MACPAC' },
-                  ].map((s, i) => (
-                    <g key={`src${i}`}>
-                      <rect x={s.x - 48} y={472} width={96} height={18} rx={4}
-                        fill="none" stroke="#B0C2D2" strokeWidth={0.7} strokeDasharray="3 2" />
-                      <text x={s.x} y={483} textAnchor="middle" dominantBaseline="middle"
-                        fill="#8A9DB0" fontSize={6.5}
-                        fontFamily="'SF Mono',Menlo,monospace" fontWeight={500}>{s.l}</text>
-                      <line x1={s.x} y1={472} x2={s.x} y2={lakeBackY(s.x) + 65}
-                        stroke="#2E6B4A" strokeWidth={0.5} opacity={0.12}
-                        strokeDasharray="2 3"
-                        style={{ animation: `archFlow 4s linear infinite`, animationDelay: `${i * 0.5}s` }} />
-                    </g>
-                  ))}
-                  <text x={60} y={483} fill="#7A8FA0" fontSize={7} fontWeight={600}
-                    fontFamily="'SF Mono',Menlo,monospace">100+ ETL</text>
-                </svg>
+            {/* ── Intelligence Layer ── */}
+            <div style={{
+              borderRadius: 12, padding: isMobile ? "14px 12px" : "14px 16px",
+              background: "#085041", color: "#E1F5EE", marginBottom: 10,
+            }}>
+              <div style={{ fontSize: 10, letterSpacing: 2, textTransform: "uppercase", opacity: 0.7, marginBottom: 8 }}>
+                Intelligence layer
               </div>
-            );
-          })()}
+              <div style={{
+                display: "flex", gap: isMobile ? 6 : 8, flexWrap: "wrap", justifyContent: "center", marginBottom: 10,
+              }}>
+                {[
+                  { label: "Extended\nthinking", icon: <svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="#9FE1CB" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="12" r="9"/><path d="M12 8v4l2 2"/></svg> },
+                  { label: "DuckDB\ntools", icon: <svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="#9FE1CB" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"><rect x="4" y="4" width="16" height="16" rx="2"/><path d="M8 8h8M8 12h5"/></svg> },
+                  { label: "AI nucleus\nClaude 4.6", icon: <svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="#9FE1CB" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"><path d="M12 3a7 7 0 017 7c0 3-2 5-4 7l-3 4-3-4c-2-2-4-4-4-7a7 7 0 017-7z"/><circle cx="12" cy="10" r="2"/></svg> },
+                  { label: "RAG\nengine", icon: <svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="#9FE1CB" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"><path d="M4 6h16M4 12h16M4 18h10"/><circle cx="19" cy="18" r="3"/></svg> },
+                  { label: "Web\nsearch", icon: <svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="#9FE1CB" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="12" r="9"/><path d="M3 12h18M12 3a15 15 0 014 9 15 15 0 01-4 9 15 15 0 01-4-9 15 15 0 014-9z"/></svg> },
+                ].map((cap, i) => (
+                  <div key={i} style={{ display: "flex", flexDirection: "column", alignItems: "center", gap: 4, minWidth: 60 }}>
+                    <div style={{
+                      width: 40, height: 40, borderRadius: "50%", background: "rgba(255,255,255,0.12)",
+                      display: "flex", alignItems: "center", justifyContent: "center",
+                    }}>{cap.icon}</div>
+                    <div style={{ fontSize: 10, opacity: 0.7, textAlign: "center", lineHeight: 1.2, whiteSpace: "pre-line" }}>{cap.label}</div>
+                  </div>
+                ))}
+              </div>
+              <div style={{
+                background: "rgba(255,255,255,0.1)", borderRadius: 6, padding: "6px 12px",
+                textAlign: "center", fontSize: 11, letterSpacing: 0.5,
+              }}>
+                {`Sonnet for analysis \u00B7 Haiku for routing \u00B7 Opus for complex reasoning \u00B7 1,039 CMS policy docs \u00B7 6,058 RAG chunks`}
+              </div>
+            </div>
 
+            {/* Connector */}
+            <div style={{ height: 16, display: "flex", justifyContent: "center", alignItems: "center" }}>
+              <div style={{ display: "flex", gap: 3 }}>
+                {["#5DCAA5", "#1D9E75", "#0F6E56", "#085041"].map((c, i) => (
+                  <div key={i} style={{ width: 2, height: 16, borderRadius: 1, background: c }} />
+                ))}
+              </div>
+            </div>
+
+            {/* ── Structured Tools ── */}
+            <div style={{
+              borderRadius: 12, padding: isMobile ? "14px 12px" : "14px 16px",
+              background: "#0F6E56", color: "#E1F5EE", marginBottom: 10,
+            }}>
+              <div style={{ fontSize: 10, letterSpacing: 2, textTransform: "uppercase", opacity: 0.7, marginBottom: 8 }}>
+                {`Structured tools \u00B7 258+ API endpoints \u00B7 Fly.io`}
+              </div>
+              <div style={{
+                display: "flex", gap: 6, flexWrap: "wrap", justifyContent: "center",
+              }}>
+                {[
+                  { name: "States", sub: "50-state profiles" },
+                  { name: "Rates", sub: "Fee schedules" },
+                  { name: "CPRA", sub: "Compliance" },
+                  { name: "Forecast", sub: "Caseload/spend" },
+                  { name: "AHEAD", sub: "Readiness" },
+                  { name: "Providers", sub: "Network gaps" },
+                  { name: "Workforce", sub: "HCBS supply" },
+                  { name: "Lookup", sub: "Rate search" },
+                ].map(t => (
+                  <div key={t.name} style={{
+                    background: "rgba(255,255,255,0.1)", borderRadius: 8,
+                    padding: "8px 10px", flex: 1, minWidth: 70, maxWidth: 110, textAlign: "center",
+                  }}>
+                    <div style={{ fontSize: 11, fontWeight: 500, marginBottom: 2 }}>{t.name}</div>
+                    <div style={{ fontSize: 9, opacity: 0.6 }}>{t.sub}</div>
+                  </div>
+                ))}
+              </div>
+              <div style={{ textAlign: "center", fontSize: 10, opacity: 0.5, marginTop: 6 }}>
+                {`Every tool has: Ask Intelligence sidebar \u00B7 export (DOCX/PDF/Excel/CSV) \u00B7 user data import`}
+              </div>
+            </div>
+
+            {/* Connector */}
+            <div style={{ height: 16, display: "flex", justifyContent: "center", alignItems: "center" }}>
+              <div style={{ display: "flex", gap: 3 }}>
+                {["#5DCAA5", "#1D9E75", "#0F6E56", "#085041"].map((c, i) => (
+                  <div key={i} style={{ width: 2, height: 16, borderRadius: 1, background: c }} />
+                ))}
+              </div>
+            </div>
+
+            {/* ── Entity Registry / Ontology ── */}
+            <div style={{
+              borderRadius: 12, padding: isMobile ? "14px 12px" : "14px 16px",
+              background: "#1D9E75", color: "#E1F5EE", marginBottom: 10,
+            }}>
+              <div style={{ fontSize: 10, letterSpacing: 2, textTransform: "uppercase", opacity: 0.7, marginBottom: 8 }}>
+                {`Entity registry \u00B7 Ontology layer`}
+              </div>
+              <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
+                {[
+                  { title: "YAML entities", items: "State \u00B7 Procedure \u00B7 Provider\nHospital \u00B7 MCO \u00B7 Rate Cell\nDrug \u00B7 Quality \u00B7 Policy Doc" },
+                  { title: "DuckPGQ graph", items: "Auto-generated property graph\nSQL/PGQ queries over\nsame underlying tables" },
+                  { title: "Named metrics", items: "Deterministic calcs\npct_of_medicare \u00B7 per_enrollee\ncpra_ratio \u00B7 rate_decay" },
+                ].map(b => (
+                  <div key={b.title} style={{
+                    flex: 1, minWidth: 130, background: "rgba(255,255,255,0.1)",
+                    borderRadius: 6, padding: "8px 10px",
+                  }}>
+                    <div style={{ fontSize: 11, fontWeight: 500, marginBottom: 3 }}>{b.title}</div>
+                    <div style={{ fontSize: 10, opacity: 0.7, lineHeight: 1.4, whiteSpace: "pre-line" }}>{b.items}</div>
+                  </div>
+                ))}
+              </div>
+            </div>
+
+            {/* Connector */}
+            <div style={{ height: 16, display: "flex", justifyContent: "center", alignItems: "center" }}>
+              <div style={{ display: "flex", gap: 3 }}>
+                {["#5DCAA5", "#1D9E75", "#0F6E56", "#085041"].map((c, i) => (
+                  <div key={i} style={{ width: 2, height: 16, borderRadius: 1, background: c }} />
+                ))}
+              </div>
+            </div>
+
+            {/* ── Data Lake ── */}
+            <div style={{
+              borderRadius: 12, padding: isMobile ? "14px 12px" : "14px 16px",
+              background: C.ink, color: "#E1F5EE", marginBottom: 10,
+            }}>
+              <div style={{ fontSize: 10, letterSpacing: 2, textTransform: "uppercase", opacity: 0.7, marginBottom: 8 }}>
+                The data lake
+              </div>
+              <div style={{
+                display: "flex", alignItems: "center", justifyContent: "center", gap: 6, marginBottom: 10,
+              }}>
+                <div style={{ borderRadius: 6, padding: "6px 14px", fontSize: 11, fontWeight: 500, textAlign: "center", background: "#412402", color: "#FAC775" }}>
+                  Bronze<br /><span style={{ fontSize: 9, fontWeight: 400, opacity: 0.7 }}>Raw ingestion</span>
+                </div>
+                <div style={{ fontSize: 14, opacity: 0.5 }}>{"\u2192"}</div>
+                <div style={{ borderRadius: 6, padding: "6px 14px", fontSize: 11, fontWeight: 500, textAlign: "center", background: "#2C2C2A", color: "#D3D1C7" }}>
+                  Silver<br /><span style={{ fontSize: 9, fontWeight: 400, opacity: 0.7 }}>Normalized</span>
+                </div>
+                <div style={{ fontSize: 14, opacity: 0.5 }}>{"\u2192"}</div>
+                <div style={{ borderRadius: 6, padding: "6px 14px", fontSize: 11, fontWeight: 500, textAlign: "center", background: "#854F0B", color: "#FAEEDA" }}>
+                  Gold<br /><span style={{ fontSize: 9, fontWeight: 400, opacity: 0.7 }}>Analytics-ready</span>
+                </div>
+              </div>
+              <div style={{
+                display: "flex", gap: 8, justifyContent: "center", flexWrap: "wrap", marginBottom: 6,
+              }}>
+                {[
+                  { val: "667+", dim: "tables" },
+                  { val: "400M+", dim: "rows" },
+                  { val: "4.9", dim: "GB" },
+                  { val: "50", dim: "states" },
+                ].map(s => (
+                  <div key={s.dim} style={{ fontSize: 13, fontWeight: 500, opacity: 0.9 }}>
+                    {s.val}<span style={{ fontSize: 11, opacity: 0.5, marginLeft: 2 }}>{s.dim}</span>
+                  </div>
+                ))}
+              </div>
+              <div style={{
+                background: "rgba(255,255,255,0.1)", borderRadius: 6, padding: "6px 12px",
+                textAlign: "center", fontSize: 11, opacity: 0.6,
+              }}>
+                {`Hive-partitioned Parquet \u00B7 DuckDB in-memory \u00B7 Cloudflare R2 \u00B7 User session data (isolated)`}
+              </div>
+            </div>
+
+            {/* Connector */}
+            <div style={{ height: 16, display: "flex", justifyContent: "center", alignItems: "center" }}>
+              <div style={{ display: "flex", gap: 3 }}>
+                {["#5DCAA5", "#1D9E75", "#0F6E56", "#085041"].map((c, i) => (
+                  <div key={i} style={{ width: 2, height: 16, borderRadius: 1, background: c }} />
+                ))}
+              </div>
+            </div>
+
+            {/* ── Infrastructure ── */}
+            <div style={{
+              borderRadius: 12, padding: isMobile ? "14px 12px" : "14px 16px",
+              background: C.surface, color: C.ink, border: `0.5px solid ${C.border}`,
+            }}>
+              <div style={{ fontSize: 10, letterSpacing: 2, textTransform: "uppercase", opacity: 0.7, marginBottom: 8, color: C.inkLight }}>
+                Infrastructure + validation
+              </div>
+              <div style={{ display: "flex", gap: 6, flexWrap: "wrap", justifyContent: "center" }}>
+                {["115+ ETL scripts", "Dagster", "Soda Core", "dbt", "Pandera", "React 18 \u00B7 Vercel", "FastAPI \u00B7 Fly.io", "Clerk auth", "GitHub CI/CD"].map(tag => (
+                  <div key={tag} style={{
+                    fontSize: 10, padding: "4px 10px", borderRadius: 4,
+                    background: C.white, color: C.inkLight, border: `0.5px solid ${C.border}`,
+                  }}>{tag}</div>
+                ))}
+              </div>
+            </div>
+
+            {/* Tagline */}
+            <div style={{
+              textAlign: "center", marginTop: 12, fontSize: 10,
+              color: C.inkLight, letterSpacing: 1, fontStyle: "italic",
+            }}>
+              {`The data is the moat \u00B7 Intelligence is the interface \u00B7 Compliance is the wedge`}
+            </div>
+
+          </div>
+
+          {/* ── YOUR DATA + OUR INTELLIGENCE ─────────────────────── */}
+          <div style={{
+            margin: "0 0 40px",
+            padding: isMobile ? "24px 18px 20px" : "28px 28px 24px",
+            background: C.white, borderRadius: 12, boxShadow: SHADOW,
+            border: `1px solid ${C.brand}15`,
+          }}>
+            <div style={{ marginBottom: 20 }}>
+              <div style={{
+                fontSize: 10, fontWeight: 700, color: C.brand, fontFamily: FONT.mono,
+                letterSpacing: 1.5, textTransform: "uppercase", marginBottom: 8,
+              }}>YOUR DATA + OUR INTELLIGENCE</div>
+              <h3 style={{ fontSize: isMobile ? 15 : 17, fontWeight: 800, color: C.ink, margin: "0 0 6px", letterSpacing: -0.3 }}>
+                Upload your data. Cross-reference everything.
+              </h3>
+              <p style={{ fontSize: 13, color: C.inkLight, margin: 0, lineHeight: 1.6, maxWidth: 560 }}>
+                Bring your fee schedules, enrollment projections, or claims data.
+                Aradune cross-references your files against 667+ national tables in real time,
+                inside your session.
+              </p>
+            </div>
+            <div style={{
+              display: "grid",
+              gridTemplateColumns: `repeat(auto-fit, minmax(${isMobile ? "260px" : "200px"}, 1fr))`,
+              gap: 12,
+            }}>
+              {[
+                {
+                  title: "Upload & Cross-Reference",
+                  desc: "CSV, Excel, or JSON up to 50 MB. Your data becomes a queryable table alongside the entire national layer.",
+                },
+                {
+                  title: "Full Audit Trail",
+                  desc: "Every query logged. Every number traceable to source table, row, and data vintage. Nothing is a black box.",
+                },
+                {
+                  title: "Professional Output",
+                  desc: "Generate submission-ready CPRAs, SPA methodology documents, fiscal impact analyses, and rate adequacy reports.",
+                },
+                {
+                  title: "Session-Scoped & Secure",
+                  desc: "Your data never persists beyond your session. Never shared. Encrypted in transit. Fully isolated.",
+                },
+              ].map(item => (
+                <div key={item.title} style={{
+                  padding: "14px 16px",
+                  background: C.surface, borderRadius: 8, border: `1px solid ${C.border}`,
+                }}>
+                  <div style={{ fontSize: 12, fontWeight: 700, color: C.ink, marginBottom: 4 }}>{item.title}</div>
+                  <div style={{ fontSize: 11, color: C.inkLight, lineHeight: 1.55 }}>{item.desc}</div>
+                </div>
+              ))}
+            </div>
+          </div>
 
           {/* ── DATABASE COMPARISON ──────────────────────────────────── */}
           <h3 style={{ fontSize: 15, fontWeight: 700, color: C.ink, margin: "0 0 4px", letterSpacing: -0.3 }}>
@@ -899,18 +1000,6 @@ function Landing() {
               are adequate.
             </div>
           </div>
-        </div>
-
-        {/* ── DATA SOURCES ───────────────────────────────────────── */}
-        <div style={{
-          display: "flex", gap: 12, flexWrap: "wrap", padding: "16px 0 20px",
-          borderTop: `1px solid ${C.border}`, marginBottom: 32,
-          alignItems: "center",
-        }}>
-          <span style={{ fontSize: 9, fontFamily: FONT.mono, color: C.inkLight, letterSpacing: 0.5, fontWeight: 700 }}>SOURCES:</span>
-          {["T-MSIS/TAF", "Medicare PFS", "BLS OEWS", "CMS Core Set", "HCRIS", "PBJ", "Five Star", "NADAC", "SDUD", "BRFSS", "SAMHSA", "CDC PLACES", "MACPAC", "HRSA", "NPPES", "CMS-64 FMR", "DOGE Spending", "KFF", "Census/BEA", "HUD FMR", "47 State Fee Schedules"].map(src => (
-            <span key={src} style={{ fontSize: 9, fontFamily: FONT.mono, color: C.inkLight, letterSpacing: 0.2 }}>{src}</span>
-          ))}
         </div>
 
         {/* ── CTA ────────────────────────────────────────────────── */}
@@ -1205,10 +1294,16 @@ function PlatformInner() {
       "/lookup": <RateLookup />,
       "/forecast": <CaseloadForecaster />,
       "/fiscal-impact": <FiscalImpact />,
+      "/spending": <SpendingEfficiency />,
       "/hospitals": <AheadReadiness />,
       "/ahead": <AheadCalculator />,
       "/wages": <WageAdequacy />,
       "/compliance": <ComplianceReport />,
+      "/behavioral-health": <BehavioralHealth />,
+      "/pharmacy": <PharmacyIntelligence />,
+      "/nursing": <NursingFacility />,
+      "/hospital-rates": <HospitalRateSetting />,
+      "/integrity": <ProgramIntegrity />,
       // ── Utility tools ──────────────────────────────────────────
       "/ask": <ToolErrorBoundary><Suspense fallback={loadingFallback}><IntelligenceChat /></Suspense></ToolErrorBoundary>,
       "/catalog": <DataCatalog />,

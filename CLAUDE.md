@@ -1045,12 +1045,15 @@ python scripts/generate_ontology.py           # Regenerates system prompt + Duck
 | 9 | Remaining raw files: HCRIS full worksheets (260 MB), MACPAC exhibits (small), SAMHSA NSDUH 2022 (HTML/blocked) | Session 19 — major gaps closed |
 | 10 | 17 empty/broken raw files in data/raw/ (header-only stubs, WAF failures) | Cleanup candidate |
 | 11 | Duplicate raw files in data/raw/ (_v2 pairs, dme26a=dmepos) | Cleanup candidate |
+| 12 | HPSA count shows row count not unique HPSA count | Minor — cosmetic |
+| 13 | pharmacy/enrollment/wages routes lack error handling | Returns 500 instead of structured error |
+| 14 | AHEAD module hardcoded to 6 states/12 hospitals | Save for last per James |
 
 ---
 
 ## 21. What Success Looks Like
 
-**Now (March 2026):** 698 views (667 fact + 9 dim + 22 ref), 400M+ rows, 4.9 GB, 258+ endpoints across 24 route files, 4 engines, 18 ontology domains, Intelligence with SSE + DuckDB + RAG + web search, 6 modules (26 tool components, 11 components, 16 utility files) behind password gate, CPRA regulatory-correct both modes. 115+ ETL scripts. Export pipeline: DOCX/PDF/Excel/CSV + chart PNG/SVG. Demo mode with 27 pre-cached Intelligence responses. Deployed to Fly.io + R2 + Vercel.
+**Now (March 2026):** 698 views (667 fact + 9 dim + 22 ref), 400M+ rows, 4.9 GB, 258+ endpoints across 25 route files, 4 engines, 18 ontology domains, Intelligence with SSE + DuckDB + RAG + web search, 9 standalone modules behind password gate, CPRA regulatory-correct both modes. 115+ ETL scripts. Export pipeline: DOCX/PDF/Excel/CSV + chart PNG/SVG. Demo mode with 27 pre-cached Intelligence responses. Comprehensive audit complete: 14+ crash risks fixed, data accuracy verified across 5 states (FL/TX/CA/NY/OH), fact_fmap rebuilt from MACPAC, enrollment deduplicated, all SQL injection vectors parameterized. Deployed to Fly.io + R2 + Vercel.
 
 **Demo milestone (~April 2026):** End-to-end demo flow tested. Import → cross-reference → export polished. Visual polish pass. Demo walkthrough script written.
 

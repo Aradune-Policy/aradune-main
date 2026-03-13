@@ -7,9 +7,7 @@ on:
     branches: [main]
 
 jobs:
-  # ─────────────────────────────────────────────
   # Build & Lint checks (run on every push/PR)
-  # ─────────────────────────────────────────────
   frontend:
     name: Frontend Build & Typecheck
     runs-on: ubuntu-latest
@@ -37,16 +35,13 @@ jobs:
       - name: Import check
         run: python -c "from server.main import app; print('FastAPI app loads OK')"
       - name: Config check
-        run: python -c "from server.config import settings; print(f'Lake dir: {settings.lake_dir}')"
+        run: "python -c \"from server.config import settings; print(f'Lake dir: {settings.lake_dir}')\""
       - name: Ontology validation
         run: python scripts/validate_ontology.py
       - name: Unit & adversarial tests
         run: python -m pytest tests/unit/ tests/adversarial/ -v --tb=short
 
-  # ─────────────────────────────────────────────
   # Deploy (only on push to main, after checks pass)
-  # Vercel and Fly.io deploy in parallel
-  # ─────────────────────────────────────────────
   deploy-frontend:
     name: Deploy Frontend (Vercel)
     needs: [frontend, api]

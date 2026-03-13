@@ -29,7 +29,8 @@ def upload_file(local_path: Path, r2_key: str) -> tuple[str, bool, str]:
         result = subprocess.run(
             ["npx", "wrangler", "r2", "object", "put",
              f"{BUCKET}/{r2_key}",
-             "--file", str(local_path)],
+             "--file", str(local_path),
+             "--remote"],
             capture_output=True, text=True, timeout=120
         )
         if result.returncode == 0:

@@ -90,6 +90,10 @@ def download(dry_run: bool = False, only: str = None):
             local_path = LAKE_DIR / rel
             size_mb = obj["Size"] / (1024 * 1024)
 
+            # Skip files that already exist locally with same size
+            if local_path.exists() and local_path.stat().st_size == obj["Size"]:
+                continue
+
             if dry_run:
                 print(f"  [dry-run] s3://{S3_BUCKET}/{key} ({size_mb:.1f} MB) -> {rel}")
             else:

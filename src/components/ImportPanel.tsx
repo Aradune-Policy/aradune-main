@@ -2,8 +2,9 @@ import { useState, useRef, useCallback } from "react";
 import { useAradune } from "../context/AraduneContext";
 import type { ImportedFile } from "../context/AraduneContext";
 import { C, FONT, SHADOW_LG } from "../design";
+import { API_BASE } from "../lib/api";
 
-const API = import.meta.env.VITE_API_URL || "";
+const API = API_BASE;
 
 interface ImportPanelProps {
   open: boolean;

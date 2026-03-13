@@ -9,9 +9,9 @@
 import { useState, useRef, useEffect, useCallback } from "react";
 import { C, FONT, SHADOW } from "../design";
 import { useAradune } from "../context/AraduneContext";
-import { getAuthHeaders } from "../lib/api";
+import { getAuthHeaders, API_BASE } from "../lib/api";
 
-const API = import.meta.env.VITE_API_URL || "";
+const API = API_BASE;
 
 // ── Types ───────────────────────────────────────────────────────────────
 

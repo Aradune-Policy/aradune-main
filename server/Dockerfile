@@ -11,11 +11,13 @@ COPY scripts/sync_lake.py ./scripts/sync_lake.py
 # CPRA upload tool needs reference CSVs (68 E/M codes, code-category map, GPCI)
 COPY data/reference/cpra/ ./data/reference/cpra/
 
-# Pre-bake lake data (785MB of Parquet) — eliminates 60s cold start R2 sync
-COPY data/lake/ ./data/lake/
-
 COPY server/entrypoint.sh .
 RUN chmod +x entrypoint.sh
+
+# Lake data is NOT baked into the image -- entrypoint.sh downloads from R2
+# on startup (adds ~60s cold start). To pre-bake for faster starts, build
+# locally with: docker build --build-arg PREBAKE_LAKE=1 ...
+RUN mkdir -p data/lake
 
 EXPOSE 8000
 

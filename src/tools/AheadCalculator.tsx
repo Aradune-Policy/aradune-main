@@ -20,10 +20,11 @@ const fP=(n:number|null|undefined):string=>{if(n==null)return"—";return(n>=0?"
 interface AheadHospital {
   id:string;nm:string;st:string;co:number;ty:string;beds:number;tch:string;sn:boolean;cah:boolean;
   wi:number;ms:number;bn:number;dp:number;cdi:number;hcc:number;
-  bl:{ip:number;op:number;uc:number};
+  bl:[{ip:number;op:number;uc:number},{ip:number;op:number;uc:number},{ip:number;op:number;uc:number}];
   q:{vbp:number;hrrp:number;hacrp:number;ra:number;pqi:number;ed:number};
   tcoc:{t:number;a:number};cost:number;
   mcd:{ip:number;op:number;supp:{dsh:number;dir:number};bn:number;hedis:{pre:number;ed:number;dia:number;fu:number}};
+  comm:{rev:number;trend:number;participationPY:number};
 }
 interface StateParams {fmap:number;mcPct:number;ipT:number;opT:number;mt:string;md:string;upl:number;sdoh:number;}
 interface WaterfallStep {n:string;v:number;c:number;}
@@ -53,24 +54,24 @@ const SP:Record<string,StateParams>={
 const spGet=(st:string):StateParams=>SP[st]||{fmap:.50,mcPct:.70,ipT:1.036,opT:1.042,mt:"FFS",md:"Fee-for-Service",upl:1.50,sdoh:1.03};
 
 const H:AheadHospital[]=[
-  {id:"210009",nm:"Johns Hopkins",st:"MD",co:1,ty:"ACH",beds:1059,tch:"MAJOR",sn:false,cah:false,wi:1.0396,ms:.155,bn:38000,dp:.22,cdi:54,hcc:1.42,bl:{ip:738e6,op:458e6,uc:19e6},q:{vbp:1.018,hrrp:.9921,hacrp:1.0,ra:.123,pqi:.032,ed:.41},tcoc:{t:1380,a:1345},cost:0,mcd:{ip:280e6,op:180e6,supp:{dsh:45e6,dir:12e6},bn:42000,hedis:{pre:.82,ed:.72,dia:.78,fu:.68}}},
-  {id:"210002",nm:"Univ of Maryland",st:"MD",co:1,ty:"ACH",beds:757,tch:"MAJOR",sn:true,cah:false,wi:1.0396,ms:.098,bn:24000,dp:.42,cdi:78,hcc:1.55,bl:{ip:442e6,op:266e6,uc:24e6},q:{vbp:.965,hrrp:.9750,hacrp:.98,ra:.168,pqi:.058,ed:.56},tcoc:{t:1520,a:1580},cost:0,mcd:{ip:195e6,op:120e6,supp:{dsh:58e6,dir:22e6},bn:35000,hedis:{pre:.62,ed:.50,dia:.56,fu:.44}}},
-  {id:"210022",nm:"Suburban Hospital",st:"MD",co:1,ty:"ACH",beds:228,tch:"NONE",sn:false,cah:false,wi:1.071,ms:.146,bn:9500,dp:.08,cdi:22,hcc:1.08,bl:{ip:106e6,op:90e6,uc:2.7e6},q:{vbp:1.008,hrrp:.9965,hacrp:1.0,ra:.138,pqi:.038,ed:.44},tcoc:{t:1050,a:1020},cost:0,mcd:{ip:28e6,op:22e6,supp:{dsh:3e6,dir:0},bn:4500,hedis:{pre:.88,ed:.80,dia:.85,fu:.76}}},
-  {id:"471001",nm:"Grace Cottage",st:"VT",co:2,ty:"CAH",beds:19,tch:"NONE",sn:false,cah:true,wi:.9685,ms:.224,bn:850,dp:.20,cdi:52,hcc:1.02,bl:{ip:4.1e6,op:4.6e6,uc:.38e6},q:{vbp:.975,hrrp:.9850,hacrp:.99,ra:.165,pqi:.055,ed:.58},tcoc:{t:980,a:1010},cost:8.6e6,mcd:{ip:1.8e6,op:2.1e6,supp:{dsh:.5e6,dir:0},bn:600,hedis:{pre:.62,ed:.52,dia:.58,fu:.45}}},
-  {id:"330059",nm:"Montefiore",st:"NY",co:3,ty:"ACH",beds:1491,tch:"MAJOR",sn:true,cah:false,wi:1.3652,ms:.108,bn:52000,dp:.52,cdi:88,hcc:1.62,bl:{ip:845e6,op:555e6,uc:49e6},q:{vbp:.955,hrrp:.9700,hacrp:.98,ra:.182,pqi:.068,ed:.62},tcoc:{t:1580,a:1780},cost:0,mcd:{ip:520e6,op:340e6,supp:{dsh:85e6,dir:45e6},bn:78000,hedis:{pre:.58,ed:.45,dia:.50,fu:.40}}},
-  {id:"070022",nm:"Yale New Haven",st:"CT",co:2,ty:"ACH",beds:1541,tch:"MAJOR",sn:true,cah:false,wi:1.2318,ms:.25,bn:45000,dp:.24,cdi:58,hcc:1.35,bl:{ip:998e6,op:632e6,uc:34e6},q:{vbp:1.012,hrrp:.9908,hacrp:1.0,ra:.128,pqi:.035,ed:.43},tcoc:{t:1320,a:1290},cost:0,mcd:{ip:380e6,op:240e6,supp:{dsh:52e6,dir:18e6},bn:48000,hedis:{pre:.84,ed:.76,dia:.80,fu:.72}}},
-  {id:"120001",nm:"Queen's Medical",st:"HI",co:2,ty:"ACH",beds:575,tch:"MAJOR",sn:false,cah:false,wi:1.214,ms:.253,bn:24000,dp:.14,cdi:38,hcc:1.10,bl:{ip:335e6,op:224e6,uc:10.6e6},q:{vbp:1.006,hrrp:.9928,hacrp:1.0,ra:.135,pqi:.038,ed:.46},tcoc:{t:1150,a:1120},cost:0,mcd:{ip:120e6,op:85e6,supp:{dsh:15e6,dir:0},bn:22000,hedis:{pre:.86,ed:.78,dia:.82,fu:.74}}},
-  {id:"410007",nm:"Rhode Island Hosp",st:"RI",co:3,ty:"ACH",beds:713,tch:"MAJOR",sn:true,cah:false,wi:1.1425,ms:.265,bn:18000,dp:.28,cdi:62,hcc:1.32,bl:{ip:374e6,op:250e6,uc:17e6},q:{vbp:.994,hrrp:.9868,hacrp:.99,ra:.162,pqi:.054,ed:.55},tcoc:{t:1300,a:1340},cost:0,mcd:{ip:145e6,op:95e6,supp:{dsh:28e6,dir:10e6},bn:20000,hedis:{pre:.77,ed:.68,dia:.73,fu:.62}}},
-  {id:"070038",nm:"CT Children's",st:"CT",co:2,ty:"ACH",beds:187,tch:"MAJOR",sn:false,cah:false,wi:1.2318,ms:.31,bn:12000,dp:.18,cdi:35,hcc:.95,bl:{ip:165e6,op:142e6,uc:8e6},q:{vbp:1.022,hrrp:.9975,hacrp:1.0,ra:.095,pqi:.022,ed:.38},tcoc:{t:1080,a:1040},cost:0,mcd:{ip:210e6,op:168e6,supp:{dsh:18e6,dir:8e6},bn:65000,hedis:{pre:.90,ed:.82,dia:.88,fu:.80}}},
-  {id:"410012",nm:"Westerly Hosp",st:"RI",co:3,ty:"ACH",beds:84,tch:"NONE",sn:false,cah:false,wi:1.1425,ms:.19,bn:3200,dp:.16,cdi:42,hcc:1.05,bl:{ip:32e6,op:28e6,uc:1.5e6},q:{vbp:1.004,hrrp:.9952,hacrp:1.0,ra:.142,pqi:.045,ed:.48},tcoc:{t:1020,a:1000},cost:0,mcd:{ip:12e6,op:9.5e6,supp:{dsh:2.5e6,dir:0},bn:2800,hedis:{pre:.80,ed:.74,dia:.78,fu:.70}}},
-  {id:"330201",nm:"Bellevue",st:"NY",co:3,ty:"ACH",beds:828,tch:"MAJOR",sn:true,cah:false,wi:1.3652,ms:.06,bn:22000,dp:.58,cdi:92,hcc:1.68,bl:{ip:385e6,op:275e6,uc:42e6},q:{vbp:.948,hrrp:.9650,hacrp:.97,ra:.22,pqi:.09,ed:.78},tcoc:{t:1600,a:1920},cost:0,mcd:{ip:445e6,op:310e6,supp:{dsh:110e6,dir:55e6},bn:88000,hedis:{pre:.52,ed:.40,dia:.45,fu:.35}}},
-  {id:"210048",nm:"MedStar Good Sam",st:"MD",co:1,ty:"ACH",beds:302,tch:"MINOR",sn:false,cah:false,wi:1.0396,ms:.12,bn:11000,dp:.25,cdi:48,hcc:1.22,bl:{ip:145e6,op:112e6,uc:5.5e6},q:{vbp:1.005,hrrp:.9912,hacrp:1.0,ra:.148,pqi:.042,ed:.46},tcoc:{t:1180,a:1160},cost:0,mcd:{ip:52e6,op:38e6,supp:{dsh:8e6,dir:3e6},bn:8500,hedis:{pre:.81,ed:.73,dia:.77,fu:.69}}},
-  {id:"060024",nm:"UCHealth Univ of CO",st:"CO",co:2,ty:"ACH",beds:620,tch:"MAJOR",sn:true,cah:false,wi:1.0508,ms:.18,bn:28000,dp:.20,cdi:52,hcc:1.28,bl:{ip:510e6,op:385e6,uc:22e6},q:{vbp:1.015,hrrp:.9935,hacrp:1.0,ra:.118,pqi:.030,ed:.40},tcoc:{t:1200,a:1170},cost:0,mcd:{ip:155e6,op:110e6,supp:{dsh:25e6,dir:8e6},bn:24000,hedis:{pre:.85,ed:.78,dia:.82,fu:.74}}},
-  {id:"060115",nm:"Denver Health",st:"CO",co:2,ty:"ACH",beds:525,tch:"MAJOR",sn:true,cah:false,wi:1.0508,ms:.06,bn:18000,dp:.48,cdi:82,hcc:1.52,bl:{ip:328e6,op:245e6,uc:38e6},q:{vbp:.972,hrrp:.9780,hacrp:.98,ra:.175,pqi:.062,ed:.58},tcoc:{t:1450,a:1520},cost:0,mcd:{ip:210e6,op:155e6,supp:{dsh:55e6,dir:22e6},bn:42000,hedis:{pre:.60,ed:.48,dia:.55,fu:.42}}},
-  {id:"310025",nm:"Robert Wood Johnson",st:"NJ",co:3,ty:"ACH",beds:610,tch:"MAJOR",sn:true,cah:false,wi:1.1945,ms:.22,bn:22000,dp:.22,cdi:50,hcc:1.25,bl:{ip:425e6,op:318e6,uc:18e6},q:{vbp:1.008,hrrp:.9910,hacrp:1.0,ra:.130,pqi:.036,ed:.42},tcoc:{t:1250,a:1220},cost:0,mcd:{ip:160e6,op:115e6,supp:{dsh:32e6,dir:12e6},bn:26000,hedis:{pre:.83,ed:.75,dia:.79,fu:.72}}},
-  {id:"310001",nm:"Newark Beth Israel",st:"NJ",co:3,ty:"ACH",beds:669,tch:"MAJOR",sn:true,cah:false,wi:1.1945,ms:.08,bn:16000,dp:.52,cdi:85,hcc:1.58,bl:{ip:380e6,op:265e6,uc:35e6},q:{vbp:.958,hrrp:.9720,hacrp:.98,ra:.188,pqi:.065,ed:.60},tcoc:{t:1520,a:1620},cost:0,mcd:{ip:285e6,op:195e6,supp:{dsh:72e6,dir:30e6},bn:55000,hedis:{pre:.55,ed:.42,dia:.48,fu:.38}}},
-  {id:"320001",nm:"UNM Hospital",st:"NM",co:2,ty:"ACH",beds:537,tch:"MAJOR",sn:true,cah:false,wi:.9742,ms:.10,bn:15000,dp:.45,cdi:75,hcc:1.48,bl:{ip:295e6,op:215e6,uc:32e6},q:{vbp:.968,hrrp:.9760,hacrp:.98,ra:.178,pqi:.060,ed:.56},tcoc:{t:1420,a:1480},cost:0,mcd:{ip:225e6,op:165e6,supp:{dsh:48e6,dir:18e6},bn:52000,hedis:{pre:.58,ed:.46,dia:.52,fu:.40}}},
-  {id:"320014",nm:"Presbyterian",st:"NM",co:2,ty:"ACH",beds:448,tch:"MINOR",sn:false,cah:false,wi:.9742,ms:.16,bn:20000,dp:.18,cdi:40,hcc:1.15,bl:{ip:245e6,op:195e6,uc:12e6},q:{vbp:1.010,hrrp:.9920,hacrp:1.0,ra:.135,pqi:.038,ed:.44},tcoc:{t:1180,a:1150},cost:0,mcd:{ip:135e6,op:105e6,supp:{dsh:18e6,dir:5e6},bn:32000,hedis:{pre:.82,ed:.74,dia:.78,fu:.70}}},
+  {id:"210009",nm:"Johns Hopkins",st:"MD",co:1,ty:"ACH",beds:1059,tch:"MAJOR",sn:false,cah:false,wi:1.0396,ms:.155,bn:38000,dp:.22,cdi:54,hcc:1.42,bl:[{ip:680e6,op:422e6,uc:17.5e6},{ip:708e6,op:440e6,uc:18.2e6},{ip:738e6,op:458e6,uc:19e6}],q:{vbp:1.018,hrrp:.9921,hacrp:1.0,ra:.123,pqi:.032,ed:.41},tcoc:{t:1380,a:1345},cost:0,mcd:{ip:280e6,op:180e6,supp:{dsh:45e6,dir:12e6},bn:42000,hedis:{pre:.82,ed:.72,dia:.78,fu:.68}},comm:{rev:450e6,trend:1.035,participationPY:2}},
+  {id:"210002",nm:"Univ of Maryland",st:"MD",co:1,ty:"ACH",beds:757,tch:"MAJOR",sn:true,cah:false,wi:1.0396,ms:.098,bn:24000,dp:.42,cdi:78,hcc:1.55,bl:[{ip:407e6,op:245e6,uc:22.1e6},{ip:424e6,op:255e6,uc:23e6},{ip:442e6,op:266e6,uc:24e6}],q:{vbp:.965,hrrp:.9750,hacrp:.98,ra:.168,pqi:.058,ed:.56},tcoc:{t:1520,a:1580},cost:0,mcd:{ip:195e6,op:120e6,supp:{dsh:58e6,dir:22e6},bn:35000,hedis:{pre:.62,ed:.50,dia:.56,fu:.44}},comm:{rev:280e6,trend:1.035,participationPY:2}},
+  {id:"210022",nm:"Suburban Hospital",st:"MD",co:1,ty:"ACH",beds:228,tch:"NONE",sn:false,cah:false,wi:1.071,ms:.146,bn:9500,dp:.08,cdi:22,hcc:1.08,bl:[{ip:97.5e6,op:82.8e6,uc:2.5e6},{ip:101.8e6,op:86.4e6,uc:2.6e6},{ip:106e6,op:90e6,uc:2.7e6}],q:{vbp:1.008,hrrp:.9965,hacrp:1.0,ra:.138,pqi:.038,ed:.44},tcoc:{t:1050,a:1020},cost:0,mcd:{ip:28e6,op:22e6,supp:{dsh:3e6,dir:0},bn:4500,hedis:{pre:.88,ed:.80,dia:.85,fu:.76}},comm:{rev:75e6,trend:1.035,participationPY:2}},
+  {id:"471001",nm:"Grace Cottage",st:"VT",co:2,ty:"CAH",beds:19,tch:"NONE",sn:false,cah:true,wi:.9685,ms:.224,bn:850,dp:.20,cdi:52,hcc:1.02,bl:[{ip:3.77e6,op:4.23e6,uc:.35e6},{ip:3.94e6,op:4.42e6,uc:.36e6},{ip:4.1e6,op:4.6e6,uc:.38e6}],q:{vbp:.975,hrrp:.9850,hacrp:.99,ra:.165,pqi:.055,ed:.58},tcoc:{t:980,a:1010},cost:8.6e6,mcd:{ip:1.8e6,op:2.1e6,supp:{dsh:.5e6,dir:0},bn:600,hedis:{pre:.62,ed:.52,dia:.58,fu:.45}},comm:{rev:3.5e6,trend:1.035,participationPY:2}},
+  {id:"330059",nm:"Montefiore",st:"NY",co:3,ty:"ACH",beds:1491,tch:"MAJOR",sn:true,cah:false,wi:1.3652,ms:.108,bn:52000,dp:.52,cdi:88,hcc:1.62,bl:[{ip:777e6,op:511e6,uc:45.1e6},{ip:811e6,op:533e6,uc:47e6},{ip:845e6,op:555e6,uc:49e6}],q:{vbp:.955,hrrp:.9700,hacrp:.98,ra:.182,pqi:.068,ed:.62},tcoc:{t:1580,a:1780},cost:0,mcd:{ip:520e6,op:340e6,supp:{dsh:85e6,dir:45e6},bn:78000,hedis:{pre:.58,ed:.45,dia:.50,fu:.40}},comm:{rev:550e6,trend:1.035,participationPY:2}},
+  {id:"070022",nm:"Yale New Haven",st:"CT",co:2,ty:"ACH",beds:1541,tch:"MAJOR",sn:true,cah:false,wi:1.2318,ms:.25,bn:45000,dp:.24,cdi:58,hcc:1.35,bl:[{ip:918e6,op:581e6,uc:31.3e6},{ip:958e6,op:607e6,uc:32.6e6},{ip:998e6,op:632e6,uc:34e6}],q:{vbp:1.012,hrrp:.9908,hacrp:1.0,ra:.128,pqi:.035,ed:.43},tcoc:{t:1320,a:1290},cost:0,mcd:{ip:380e6,op:240e6,supp:{dsh:52e6,dir:18e6},bn:48000,hedis:{pre:.84,ed:.76,dia:.80,fu:.72}},comm:{rev:620e6,trend:1.035,participationPY:2}},
+  {id:"120001",nm:"Queen's Medical",st:"HI",co:2,ty:"ACH",beds:575,tch:"MAJOR",sn:false,cah:false,wi:1.214,ms:.253,bn:24000,dp:.14,cdi:38,hcc:1.10,bl:[{ip:308e6,op:206e6,uc:9.8e6},{ip:322e6,op:215e6,uc:10.2e6},{ip:335e6,op:224e6,uc:10.6e6}],q:{vbp:1.006,hrrp:.9928,hacrp:1.0,ra:.135,pqi:.038,ed:.46},tcoc:{t:1150,a:1120},cost:0,mcd:{ip:120e6,op:85e6,supp:{dsh:15e6,dir:0},bn:22000,hedis:{pre:.86,ed:.78,dia:.82,fu:.74}},comm:{rev:210e6,trend:1.035,participationPY:2}},
+  {id:"410007",nm:"Rhode Island Hosp",st:"RI",co:3,ty:"ACH",beds:713,tch:"MAJOR",sn:true,cah:false,wi:1.1425,ms:.265,bn:18000,dp:.28,cdi:62,hcc:1.32,bl:[{ip:344e6,op:230e6,uc:15.6e6},{ip:359e6,op:240e6,uc:16.3e6},{ip:374e6,op:250e6,uc:17e6}],q:{vbp:.994,hrrp:.9868,hacrp:.99,ra:.162,pqi:.054,ed:.55},tcoc:{t:1300,a:1340},cost:0,mcd:{ip:145e6,op:95e6,supp:{dsh:28e6,dir:10e6},bn:20000,hedis:{pre:.77,ed:.68,dia:.73,fu:.62}},comm:{rev:245e6,trend:1.035,participationPY:2}},
+  {id:"070038",nm:"CT Children's",st:"CT",co:2,ty:"ACH",beds:187,tch:"MAJOR",sn:false,cah:false,wi:1.2318,ms:.31,bn:12000,dp:.18,cdi:35,hcc:.95,bl:[{ip:152e6,op:131e6,uc:7.4e6},{ip:158e6,op:136e6,uc:7.7e6},{ip:165e6,op:142e6,uc:8e6}],q:{vbp:1.022,hrrp:.9975,hacrp:1.0,ra:.095,pqi:.022,ed:.38},tcoc:{t:1080,a:1040},cost:0,mcd:{ip:210e6,op:168e6,supp:{dsh:18e6,dir:8e6},bn:65000,hedis:{pre:.90,ed:.82,dia:.88,fu:.80}},comm:{rev:120e6,trend:1.035,participationPY:2}},
+  {id:"410012",nm:"Westerly Hosp",st:"RI",co:3,ty:"ACH",beds:84,tch:"NONE",sn:false,cah:false,wi:1.1425,ms:.19,bn:3200,dp:.16,cdi:42,hcc:1.05,bl:[{ip:29.4e6,op:25.8e6,uc:1.38e6},{ip:30.7e6,op:26.9e6,uc:1.44e6},{ip:32e6,op:28e6,uc:1.5e6}],q:{vbp:1.004,hrrp:.9952,hacrp:1.0,ra:.142,pqi:.045,ed:.48},tcoc:{t:1020,a:1000},cost:0,mcd:{ip:12e6,op:9.5e6,supp:{dsh:2.5e6,dir:0},bn:2800,hedis:{pre:.80,ed:.74,dia:.78,fu:.70}},comm:{rev:23e6,trend:1.035,participationPY:2}},
+  {id:"330201",nm:"Bellevue",st:"NY",co:3,ty:"ACH",beds:828,tch:"MAJOR",sn:true,cah:false,wi:1.3652,ms:.06,bn:22000,dp:.58,cdi:92,hcc:1.68,bl:[{ip:354e6,op:253e6,uc:38.6e6},{ip:370e6,op:264e6,uc:40.3e6},{ip:385e6,op:275e6,uc:42e6}],q:{vbp:.948,hrrp:.9650,hacrp:.97,ra:.22,pqi:.09,ed:.78},tcoc:{t:1600,a:1920},cost:0,mcd:{ip:445e6,op:310e6,supp:{dsh:110e6,dir:55e6},bn:88000,hedis:{pre:.52,ed:.40,dia:.45,fu:.35}},comm:{rev:265e6,trend:1.035,participationPY:2}},
+  {id:"210048",nm:"MedStar Good Sam",st:"MD",co:1,ty:"ACH",beds:302,tch:"MINOR",sn:false,cah:false,wi:1.0396,ms:.12,bn:11000,dp:.25,cdi:48,hcc:1.22,bl:[{ip:133e6,op:103e6,uc:5.1e6},{ip:139e6,op:107.5e6,uc:5.3e6},{ip:145e6,op:112e6,uc:5.5e6}],q:{vbp:1.005,hrrp:.9912,hacrp:1.0,ra:.148,pqi:.042,ed:.46},tcoc:{t:1180,a:1160},cost:0,mcd:{ip:52e6,op:38e6,supp:{dsh:8e6,dir:3e6},bn:8500,hedis:{pre:.81,ed:.73,dia:.77,fu:.69}},comm:{rev:100e6,trend:1.035,participationPY:2}},
+  {id:"060024",nm:"UCHealth Univ of CO",st:"CO",co:2,ty:"ACH",beds:620,tch:"MAJOR",sn:true,cah:false,wi:1.0508,ms:.18,bn:28000,dp:.20,cdi:52,hcc:1.28,bl:[{ip:469e6,op:354e6,uc:20.2e6},{ip:490e6,op:370e6,uc:21.1e6},{ip:510e6,op:385e6,uc:22e6}],q:{vbp:1.015,hrrp:.9935,hacrp:1.0,ra:.118,pqi:.030,ed:.40},tcoc:{t:1200,a:1170},cost:0,mcd:{ip:155e6,op:110e6,supp:{dsh:25e6,dir:8e6},bn:24000,hedis:{pre:.85,ed:.78,dia:.82,fu:.74}},comm:{rev:350e6,trend:1.035,participationPY:2}},
+  {id:"060115",nm:"Denver Health",st:"CO",co:2,ty:"ACH",beds:525,tch:"MAJOR",sn:true,cah:false,wi:1.0508,ms:.06,bn:18000,dp:.48,cdi:82,hcc:1.52,bl:[{ip:302e6,op:225e6,uc:35e6},{ip:315e6,op:235e6,uc:36.5e6},{ip:328e6,op:245e6,uc:38e6}],q:{vbp:.972,hrrp:.9780,hacrp:.98,ra:.175,pqi:.062,ed:.58},tcoc:{t:1450,a:1520},cost:0,mcd:{ip:210e6,op:155e6,supp:{dsh:55e6,dir:22e6},bn:42000,hedis:{pre:.60,ed:.48,dia:.55,fu:.42}},comm:{rev:230e6,trend:1.035,participationPY:2}},
+  {id:"310025",nm:"Robert Wood Johnson",st:"NJ",co:3,ty:"ACH",beds:610,tch:"MAJOR",sn:true,cah:false,wi:1.1945,ms:.22,bn:22000,dp:.22,cdi:50,hcc:1.25,bl:[{ip:391e6,op:293e6,uc:16.6e6},{ip:408e6,op:305e6,uc:17.3e6},{ip:425e6,op:318e6,uc:18e6}],q:{vbp:1.008,hrrp:.9910,hacrp:1.0,ra:.130,pqi:.036,ed:.42},tcoc:{t:1250,a:1220},cost:0,mcd:{ip:160e6,op:115e6,supp:{dsh:32e6,dir:12e6},bn:26000,hedis:{pre:.83,ed:.75,dia:.79,fu:.72}},comm:{rev:290e6,trend:1.035,participationPY:2}},
+  {id:"310001",nm:"Newark Beth Israel",st:"NJ",co:3,ty:"ACH",beds:669,tch:"MAJOR",sn:true,cah:false,wi:1.1945,ms:.08,bn:16000,dp:.52,cdi:85,hcc:1.58,bl:[{ip:350e6,op:244e6,uc:32.2e6},{ip:365e6,op:254e6,uc:33.6e6},{ip:380e6,op:265e6,uc:35e6}],q:{vbp:.958,hrrp:.9720,hacrp:.98,ra:.188,pqi:.065,ed:.60},tcoc:{t:1520,a:1620},cost:0,mcd:{ip:285e6,op:195e6,supp:{dsh:72e6,dir:30e6},bn:55000,hedis:{pre:.55,ed:.42,dia:.48,fu:.38}},comm:{rev:260e6,trend:1.035,participationPY:2}},
+  {id:"320001",nm:"UNM Hospital",st:"NM",co:2,ty:"ACH",beds:537,tch:"MAJOR",sn:true,cah:false,wi:.9742,ms:.10,bn:15000,dp:.45,cdi:75,hcc:1.48,bl:[{ip:271e6,op:198e6,uc:29.4e6},{ip:283e6,op:206e6,uc:30.7e6},{ip:295e6,op:215e6,uc:32e6}],q:{vbp:.968,hrrp:.9760,hacrp:.98,ra:.178,pqi:.060,ed:.56},tcoc:{t:1420,a:1480},cost:0,mcd:{ip:225e6,op:165e6,supp:{dsh:48e6,dir:18e6},bn:52000,hedis:{pre:.58,ed:.46,dia:.52,fu:.40}},comm:{rev:205e6,trend:1.035,participationPY:2}},
+  {id:"320014",nm:"Presbyterian",st:"NM",co:2,ty:"ACH",beds:448,tch:"MINOR",sn:false,cah:false,wi:.9742,ms:.16,bn:20000,dp:.18,cdi:40,hcc:1.15,bl:[{ip:225e6,op:179e6,uc:11e6},{ip:235e6,op:187e6,uc:11.5e6},{ip:245e6,op:195e6,uc:12e6}],q:{vbp:1.010,hrrp:.9920,hacrp:1.0,ra:.135,pqi:.038,ed:.44},tcoc:{t:1180,a:1150},cost:0,mcd:{ip:135e6,op:105e6,supp:{dsh:18e6,dir:5e6},bn:32000,hedis:{pre:.82,ed:.74,dia:.78,fu:.70}},comm:{rev:170e6,trend:1.035,participationPY:2}},
 ];
 const COH:Record<number,{py1:number;by:number[]}>={1:{py1:2026,by:[2023,2024,2025]},2:{py1:2028,by:[2025,2026,2027]},3:{py1:2028,by:[2025,2026,2027]}};
 const APA:Record<number,{ip:number;op:number;uc:number}>={2026:{ip:1.028,op:1.031,uc:1.025},2027:{ip:1.030,op:1.032,uc:1.025},2028:{ip:1.029,op:1.030,uc:1.025},2029:{ip:1.028,op:1.029,uc:1.025},2030:{ip:1.027,op:1.028,uc:1.025}};
@@ -87,12 +88,13 @@ function calcMcr(h:AheadHospital,py:number,vA=0):McrResult{
   let ic1=1,oc1=1,uc1=1,ic2=1,oc2=1,uc2=1;
   for(let y=co.by[0]+1;y<=b3;y++){const f=APA[y]||APA[2030];ic1*=f.ip;oc1*=f.op;uc1*=f.uc;}
   for(let y=co.by[1]+1;y<=b3;y++){const f=APA[y]||APA[2030];ic2*=f.ip;oc2*=f.op;uc2*=f.uc;}
-  const wI=bl.ip*.1*ic1+bl.ip*1.02*.3*ic2+bl.ip*1.04*.6,wO=bl.op*.1*oc1+bl.op*1.02*.3*oc2+bl.op*1.04*.6,wU=bl.uc*.1*uc1+bl.uc*1.01*.3*uc2+bl.uc*1.02*.6;
+  const wI=bl[0].ip*.1*ic1+bl[1].ip*.3*ic2+bl[2].ip*.6,wO=bl[0].op*.1*oc1+bl[1].op*.3*oc2+bl[2].op*.6,wU=bl[0].uc*.1*uc1+bl[1].uc*.3*uc2+bl[2].uc*.6;
   const wT=wI+wO+wU;const seed=h.id.split("").reduce((a,c)=>a+c.charCodeAt(0),0);const opt=.998+(seed%10)*.001;
   let iA=1,oA=1,uA=1;for(let y=b3+1;y<=cY;y++){const f=APA[y]||APA[2030];iA*=f.ip;oA*=f.op;uA*=f.uc;}
   const cmi=Math.min(1.05,Math.max(.95,1+(h.hcc-1)*.03*(cY-b3)));const wia=1+(h.wi-1)*.05;
   const pI=wI*opt*iA*cmi*wia,pO=wO*opt*oA*wia,pU=wU*opt*uA;const pA=pI+pO+pU;
-  const tia=py<=2?1.01:1.00;const msa=(1+vA*.5)*tia,dem=1.006,out=wT*opt*.03;const pV=pA*msa*dem+out;
+  const corridorPct=0.02;const effectiveVA=Math.abs(vA)<=corridorPct?0:vA>corridorPct?(vA-corridorPct)*0.5:(vA+corridorPct)*0.75;
+  const tia=py<=2?1.01:1.00;const msa=(1+effectiveVA)*tia,dem=1.006,out=wT*opt*.03;const pV=pA*msa*dem+out;
   const srs=(h.cdi*.7+h.dp*100*.3)/100;const srP=srs>.3?Math.min(.02,srs*.025):0;const sra=pV*srP;
   const qB=h.q.vbp*h.q.hrrp*h.q.hacrp;const qD=(qB-1)*pV;const qF=h.cah?Math.max(0,qD):qD;
   const pau=(1-h.q.ra/.2)*.4+(1-h.q.pqi/.08)*.3+(1-h.q.ed/.65)*.3;const eff=(pau-.5)*.03*(1+srs*.5)*pV;
@@ -131,8 +133,18 @@ function calcMcd(h:AheadHospital,py:number,vA=0,mV:number|null=null):McdResult{
   return{py,cY,wB,wI,wO,sB,wT:wB+sB,tI,tO,pT,pV,sT,sdA,hC,hA,mcS,fin,ffs,delta:fin-ffs,pct:(fin-ffs)/ffs,uC,uOn,fSh,stS,wf};
 }
 
-function pjMcr(h:AheadHospital,y:number,v=0){const r:McrResult[]=[];for(let p=1;p<=y;p++)r.push(calcMcr(p===1?h:{...h,bl:{ip:r[p-2].pI/r[p-2].opt,op:r[p-2].pO/r[p-2].opt,uc:r[p-2].pU/r[p-2].opt}},p,v));return r;}
+interface CommResult {py:number;commBudget:number;commFFS:number;delta:number;}
+function calcComm(h:AheadHospital,py:number):{commBudget:number;commFFS:number}{
+  if(py<h.comm.participationPY||h.comm.rev<=0)return{commBudget:0,commFFS:0};
+  const activePY=py-h.comm.participationPY+1;
+  const trended=h.comm.rev*Math.pow(h.comm.trend,activePY);
+  const budget=trended*0.98;
+  return{commBudget:budget,commFFS:trended};
+}
+
+function pjMcr(h:AheadHospital,y:number,v=0){const r:McrResult[]=[];for(let p=1;p<=y;p++){const prev=p>1?{ip:r[p-2].pI/r[p-2].opt,op:r[p-2].pO/r[p-2].opt,uc:r[p-2].pU/r[p-2].opt}:null;r.push(calcMcr(p===1?h:{...h,bl:[prev!,prev!,prev!] as AheadHospital["bl"]},p,v));}return r;}
 function pjMcd(h:AheadHospital,y:number,v=0,mv:number|null=null){const r:McdResult[]=[];for(let p=1;p<=y;p++)r.push(calcMcd(p===1?h:{...h,mcd:{...h.mcd,ip:r[p-2].tI,op:r[p-2].tO}},p,v,mv));return r;}
+function pjComm(h:AheadHospital,y:number):CommResult[]{const r:CommResult[]=[];for(let p=1;p<=y;p++){const c=calcComm(h,p);r.push({py:p,...c,delta:c.commBudget-c.commFFS});}return r;}
 
 // ═══════════════════════════════════════════════════════════════════
 // MONTE CARLO
@@ -144,7 +156,7 @@ function runMC(h:AheadHospital,yrs:number,vA:number,n=200):McYearResult[]{
   const g=()=>{const u=rng(),v=rng();return Math.sqrt(-2*Math.log(u))*Math.cos(2*Math.PI*v);};
   const all:{m:McrResult;d:McdResult;c:number;mD:number;dD:number;cD:number;cahB:boolean;uplB:boolean}[][]=[];
   for(let s=0;s<n;s++){const aS=1+g()*.008,vS=vA+g()*.03,mS=g()*.012;const sr:{m:McrResult;d:McdResult;c:number;mD:number;dD:number;cD:number;cahB:boolean;uplB:boolean}[]=[];
-    for(let p=1;p<=yrs;p++){const bh=p===1?h:{...h,bl:{ip:sr[p-2].m.pI/sr[p-2].m.opt,op:sr[p-2].m.pO/sr[p-2].m.opt,uc:sr[p-2].m.pU/sr[p-2].m.opt}};
+    for(let p=1;p<=yrs;p++){const prevBl=p>1?{ip:sr[p-2].m.pI/sr[p-2].m.opt,op:sr[p-2].m.pO/sr[p-2].m.opt,uc:sr[p-2].m.pU/sr[p-2].m.opt}:null;const bh=p===1?h:{...h,bl:[prevBl!,prevBl!,prevBl!] as AheadHospital["bl"]};
       const mr=calcMcr(bh,p,vS),dr=calcMcd(bh,p,vS);const mf=mr.fin*aS,df=dr.fin*(1+mS);
       sr.push({m:{...mr,fin:mf},d:{...dr,fin:df},c:mf+df,mD:mf-mr.ffs,dD:df-dr.ffs,cD:mf+df-mr.ffs-dr.ffs,cahB:mr.cOn,uplB:dr.uOn});}
     all.push(sr);}
@@ -180,7 +192,7 @@ function runSens(h:AheadHospital,bD:number,mV:number|null){
     {nm:"Enrollment",lo:ev(h,bD,(mV||0)-8),hi:ev(h,bD,(mV||0)+8),p:"MCD"},
     {nm:"HEDIS",lo:ev({...h,mcd:{...h.mcd,hedis:{pre:Math.max(.5,h.mcd.hedis.pre-.08),ed:Math.max(.5,h.mcd.hedis.ed-.08),dia:Math.max(.5,h.mcd.hedis.dia-.08),fu:Math.max(.5,h.mcd.hedis.fu-.08)}}}),hi:ev({...h,mcd:{...h.mcd,hedis:{pre:Math.min(.95,h.mcd.hedis.pre+.08),ed:Math.min(.95,h.mcd.hedis.ed+.08),dia:Math.min(.95,h.mcd.hedis.dia+.08),fu:Math.min(.95,h.mcd.hedis.fu+.08)}}}),p:"MCD"},
     {nm:"DSH",lo:ev({...h,mcd:{...h.mcd,supp:{...h.mcd.supp,dsh:h.mcd.supp.dsh*.8}}}),hi:ev({...h,mcd:{...h.mcd,supp:{...h.mcd.supp,dsh:h.mcd.supp.dsh*1.2}}}),p:"MCD"},
-    {nm:"IP Rev",lo:ev({...h,bl:{...h.bl,ip:h.bl.ip*.95}}),hi:ev({...h,bl:{...h.bl,ip:h.bl.ip*1.05}}),p:"MCR"},
+    {nm:"IP Rev",lo:ev({...h,bl:[{...h.bl[0],ip:h.bl[0].ip*.95},{...h.bl[1],ip:h.bl[1].ip*.95},{...h.bl[2],ip:h.bl[2].ip*.95}]}),hi:ev({...h,bl:[{...h.bl[0],ip:h.bl[0].ip*1.05},{...h.bl[1],ip:h.bl[1].ip*1.05},{...h.bl[2],ip:h.bl[2].ip*1.05}]}),p:"MCR"},
     {nm:"Wage Idx",lo:ev({...h,wi:h.wi-.05}),hi:ev({...h,wi:h.wi+.05}),p:"MCR"},
     {nm:"HCC",lo:ev({...h,hcc:h.hcc-.15}),hi:ev({...h,hcc:h.hcc+.15}),p:"MCR"},
     {nm:"Dual%",lo:ev({...h,dp:Math.max(0,h.dp-.1)}),hi:ev({...h,dp:Math.min(1,h.dp+.1)}),p:"Both"},
@@ -228,7 +240,7 @@ function decompYoY(mp:McrResult[],dp:McdResult[]){const r:{cY:number;apaD:number
 // ═══════════════════════════════════════════════════════════════════
 
 function calcPortfolio(hs:AheadHospital[]){return hs.map(h=>{const mc=runMC(h,5,0,80);const mr=calcMcr(h,1),dr=calcMcd(h,1);const ret=((mr.fin+dr.fin)-(mr.ffs+dr.ffs))/(mr.ffs+dr.ffs)*100;const risk=mc[0]?mc[0].spread/(mr.ffs+dr.ffs)*100:5;return{nm:h.nm.length>14?h.nm.slice(0,14):h.nm,id:h.id,ret,risk,sharpe:risk>0?ret/risk:0,st:h.st};});}
-function svcLine(h:AheadHospital){const mr=calcMcr(h,1),dr=calcMcd(h,1);return[{nm:"MCR IP",v:mr.pI-h.bl.ip*1.035,c:cB},{nm:"MCR OP",v:mr.pO-h.bl.op*1.035,c:`${cB}AA`},{nm:"MCR Adj",v:mr.sra+mr.qD+mr.eff+mr.tA+mr.hb,c:"#48639c"},{nm:"MCD IP",v:dr.tI*1.008-dr.wI*1.04,c:cM},{nm:"MCD OP",v:dr.tO*1.008-dr.wO*1.04,c:`${cM}AA`},{nm:"MCD Supp",v:dr.sT-(dr.sB||0)*1.04,c:`${cM}66`},{nm:"MCD Adj",v:dr.sdA+dr.hA-dr.mcS,c:cP}].sort((a,b)=>Math.abs(b.v)-Math.abs(a.v));}
+function svcLine(h:AheadHospital){const mr=calcMcr(h,1),dr=calcMcd(h,1);return[{nm:"MCR IP",v:mr.pI-h.bl[2].ip*1.035,c:cB},{nm:"MCR OP",v:mr.pO-h.bl[2].op*1.035,c:`${cB}AA`},{nm:"MCR Adj",v:mr.sra+mr.qD+mr.eff+mr.tA+mr.hb,c:"#48639c"},{nm:"MCD IP",v:dr.tI*1.008-dr.wI*1.04,c:cM},{nm:"MCD OP",v:dr.tO*1.008-dr.wO*1.04,c:`${cM}AA`},{nm:"MCD Supp",v:dr.sT-(dr.sB||0)*1.04,c:`${cM}66`},{nm:"MCD Adj",v:dr.sdA+dr.hA-dr.mcS,c:cP}].sort((a,b)=>Math.abs(b.v)-Math.abs(a.v));}
 function cohortTime(h:AheadHospital){return[1,2,3].map(co=>{const hc={...h,co};const mr=pjMcr(hc,5),dr=pjMcd(hc,5);return{co,py1:COH[co].py1,res:mr.map((m,i)=>({py:m.py,d:m.delta+dr[i].delta,pct:(m.fin+dr[i].fin-m.ffs-dr[i].ffs)/(m.ffs+dr[i].ffs)}))};});}
 function calcCred(h:AheadHospital,mp:McrResult[],dp:McdResult[],mc:McYearResult[]){const n=h.bn;const peers=H.filter(x=>x.tch===h.tch&&x.id!==h.id);if(peers.length<2)return{z:1,adj:mp.map((m,i)=>({py:m.py,cY:m.cY,raw:m.delta+dp[i].delta,cred:m.delta+dp[i].delta,peer:0})),peers:0,k:0};const pD=peers.map(p=>{const r=calcMcr(p,1),d=calcMcd(p,1);return r.delta+d.delta;});const pM=pD.reduce((s,x)=>s+x,0)/pD.length;const pV=pD.reduce((s,x)=>s+(x-pM)**2,0)/pD.length;const iV=mc[0]?mc[0].spread**2/16:pV;const k=pV>0?iV/pV*1000:5000;const z=Math.min(1,n/(n+k));return{z,adj:mp.map((m,i)=>{const raw=m.delta+dp[i].delta;const sc=pM*Math.pow(1.02,i);return{py:m.py,cY:m.cY,raw,cred:z*raw+(1-z)*sc,peer:sc};}),peers:peers.length,k:Math.round(k)};}
 
@@ -484,7 +496,7 @@ function calcStress(h:AheadHospital,bD:number,mV:number|null){
 }
 
 function calcAPM(h:AheadHospital,mr:McrResult,dr:McdResult,mp:McrResult[],dp:McdResult[],mc:McYearResult[],opts:ReturnType<typeof calcOpts>){
-  const ffs=mr.ffs+dr.ffs,fin=mr.fin+dr.fin;const rev=h.bl.ip+h.bl.op+h.bl.uc;
+  const ffs=mr.ffs+dr.ffs,fin=mr.fin+dr.fin;const rev=h.bl[2].ip+h.bl[2].op+h.bl[2].uc;
   const qC=h.q.vbp*h.q.hrrp*h.q.hacrp;const hC=(h.mcd.hedis.pre+h.mcd.hedis.ed+h.mcd.hedis.dia+h.mcd.hedis.fu)/4;
   const aheadCum=mp.reduce((s,m,i)=>s+m.delta+dp[i].delta,0);const aheadP=mc[0]?.pA||.5;
   const aheadVar=mc[0]?.var5||0;const aheadSig=mc[0]?mc[0].spread/ffs:.1;
@@ -492,7 +504,7 @@ function calcAPM(h:AheadHospital,mr:McrResult,dr:McdResult,mp:McrResult[],dp:Mcd
   const reachShare=reachSav>0?.75:1;const reachCap=reachSav<0?Math.max(reachSav,-.05):reachSav;
   const reachDelta=reachCap*reachShare*reachBench;const reachRisk=Math.abs(reachSav)*reachBench*.3;
   const reach5=reachDelta*4.2;const reachDownP=reachSav<0?.65:reachSav<.01?.45:.25;
-  const epVol=Math.round(h.bn*.12);const epCost=h.bl.ip/h.bn*1.8;
+  const epVol=Math.round(h.bn*.12);const epCost=h.bl[2].ip/h.bn*1.8;
   const bpciTarget=epCost*.97;const bpciAct=epCost*(1+(h.q.ra-.15)*.5+(h.q.pqi-.05)*.3);
   const bpciSav=bpciTarget-bpciAct;const bpciDelta=bpciSav*epVol;
   const bpci5=bpciDelta*4.5;const bpciRisk=Math.abs(bpciDelta)*.4;
@@ -545,6 +557,7 @@ function buildAudit(key:string,mr:McrResult,dr:McdResult,hosp:AheadHospital,mp?:
     add(0,"Delta %",null,fP(((mr.fin+dr.fin)-(mr.ffs+dr.ffs))/(mr.ffs+dr.ffs)));
     add(1,"MCR Component",mr.delta,"Medicare contribution to delta");
     add(1,"MCD Component",dr.delta,"Medicaid contribution to delta");
+    const commR=calcComm(hosp,1);if(commR.commBudget>0){add(1,"Comm Budget",commR.commBudget,"Commercial payer global budget");add(1,"Comm FFS",commR.commFFS,"Commercial trend baseline");add(1,"Comm Delta",commR.commBudget-commR.commFFS,"Commercial savings target");}
   }
   if(key==="mcr"||key==="combined"||key==="all"){
     const p=key==="mcr"?0:1;
@@ -733,7 +746,7 @@ function genTemplate(){
 }
 
 const defC:CustomFormData={name:"My Hospital",state:"MD",cohort:1,beds:300,teaching:"NONE",safetyNet:false,wageIndex:1,benes:8000,dualPct:.15,cdi:45,hcc:1.1,ipRev:120e6,opRev:80e6,ucRev:4e6,vbp:1,hrrp:.99,hacrp:1,readmit:.15,pqi:.05,ed:.5,tcocT:1100,tcocA:1100,cahCost:0,mcdIp:40e6,mcdOp:25e6,mcdDsh:5e6,mcdDir:0,mcdBn:6000,hPre:.75,hEd:.72,hDia:.75,hFu:.68};
-function cToH(c:CustomFormData):AheadHospital{return{id:"CUSTOM",nm:c.name,st:c.state,co:c.cohort,ty:c.cahCost>0?"CAH":"ACH",beds:c.beds,tch:c.teaching,sn:c.safetyNet,cah:c.cahCost>0,wi:c.wageIndex,ms:.1,bn:c.benes,dp:c.dualPct,cdi:c.cdi,hcc:c.hcc,bl:{ip:c.ipRev,op:c.opRev,uc:c.ucRev},q:{vbp:c.vbp,hrrp:c.hrrp,hacrp:c.hacrp,ra:c.readmit,pqi:c.pqi,ed:c.ed},tcoc:{t:c.tcocT,a:c.tcocA},cost:c.cahCost,mcd:{ip:c.mcdIp,op:c.mcdOp,supp:{dsh:c.mcdDsh,dir:c.mcdDir},bn:c.mcdBn,hedis:{pre:c.hPre,ed:c.hEd,dia:c.hDia,fu:c.hFu}}};}
+function cToH(c:CustomFormData):AheadHospital{const y3={ip:c.ipRev,op:c.opRev,uc:c.ucRev};const y1={ip:y3.ip*.92,op:y3.op*.92,uc:y3.uc*.92};const y2={ip:y3.ip*.96,op:y3.op*.96,uc:y3.uc*.96};return{id:"CUSTOM",nm:c.name,st:c.state,co:c.cohort,ty:c.cahCost>0?"CAH":"ACH",beds:c.beds,tch:c.teaching,sn:c.safetyNet,cah:c.cahCost>0,wi:c.wageIndex,ms:.1,bn:c.benes,dp:c.dualPct,cdi:c.cdi,hcc:c.hcc,bl:[y1,y2,y3],q:{vbp:c.vbp,hrrp:c.hrrp,hacrp:c.hacrp,ra:c.readmit,pqi:c.pqi,ed:c.ed},tcoc:{t:c.tcocT,a:c.tcocA},cost:c.cahCost,mcd:{ip:c.mcdIp,op:c.mcdOp,supp:{dsh:c.mcdDsh,dir:c.mcdDir},bn:c.mcdBn,hedis:{pre:c.hPre,ed:c.hEd,dia:c.hDia,fu:c.hFu}},comm:{rev:0,trend:1.035,participationPY:2}};}
 
 function DataImport({onImport}:{onImport:(hosps:AheadHospital[])=>void}){
   const[mode,setMode]=useState("json");const[raw,setRaw]=useState("");const[result,setResult]=useState<ReturnType<typeof parseImport>|null>(null);
@@ -783,7 +796,7 @@ function DataImport({onImport}:{onImport:(hosps:AheadHospital[])=>void}){
       {result.errs.length>0&&<div style={{fontSize:13,color:C.neg,fontWeight:600}}>✗ {result.errs.join("; ")}</div>}
       {result.errs.length===0&&<div style={{fontSize:13,color:C.pos,fontWeight:600}}>✓ {result.hosps.length} hospital{result.hosps.length>1?"s":""} imported</div>}
       {result.errs.length===0&&result.hosps.length>0&&<div style={{marginTop:2}}>
-        {result.hosps.map((h,i)=><div key={i} style={{fontSize:12,fontFamily:FONT.mono,padding:"1px 0"}}>{h.nm} · {h.st} · {h.beds} beds · MCR {fmt(h.bl.ip+h.bl.op)} · MCD {fmt(h.mcd.ip+h.mcd.op)}</div>)}
+        {result.hosps.map((h,i)=><div key={i} style={{fontSize:12,fontFamily:FONT.mono,padding:"1px 0"}}>{h.nm} · {h.st} · {h.beds} beds · MCR {fmt(h.bl[2].ip+h.bl[2].op)} · MCD {fmt(h.mcd.ip+h.mcd.op)}</div>)}
       </div>}
     </div>}
     {fieldReport&&<Card><CH title="Field Validation" badge={`${fieldReport.nM}/${fieldReport.total} matched`}/><div style={{padding:"0 12px 12px"}}>
@@ -870,8 +883,10 @@ export default function AheadCalculator(){
   const modH=useMemo(()=>{const x={...hosp,q:{...hosp.q}};if(vO!==null)x.q.vbp=vO;if(hO!==null)x.q.hrrp=hO;if(aO!==null)x.q.hacrp=aO;return x;},[hosp,vO,hO,aO]);
   const mr=useMemo(()=>calcMcr(modH,1,bD/100),[modH,bD]);
   const dr=useMemo(()=>calcMcd(modH,1,bD/100,mV!=null?mV/100:null),[modH,bD,mV]);
+  const cr=useMemo(()=>calcComm(modH,1),[modH]);
   const mp=useMemo(()=>pjMcr(modH,yrs,bD/100),[modH,yrs,bD]);
   const dp=useMemo(()=>pjMcd(modH,yrs,bD/100,mV!=null?mV/100:null),[modH,yrs,bD,mV]);
+  const cp=useMemo(()=>pjComm(modH,yrs),[modH,yrs]);
   const mc=useMemo(()=>runMC(modH,yrs,bD/100),[modH,yrs,bD]);
   const dec=useMemo(()=>calcSc(modH,mr,dr,mp,dp,mc,wts),[modH,mr,dr,mp,dp,mc,wts]);
   const sens=useMemo(()=>runSens(modH,bD,mV),[modH,bD,mV]);
@@ -896,11 +911,11 @@ export default function AheadCalculator(){
   const interventions=useMemo(()=>calcInterventions(modH,mr,dr,bD,mV),[modH,mr,dr,bD,mV]);
   const stress=useMemo(()=>calcStress(modH,bD,mV),[modH,bD,mV]);
   const apm=useMemo(()=>calcAPM(modH,mr,dr,mp,dp,mc,opts),[modH,mr,dr,mp,dp,mc,opts]);
-  const sp=spGet(hosp.st);const cF=mr.fin+dr.fin,cFF=mr.ffs+dr.ffs,cD=cF-cFF,cPct=cD/cFF;
+  const sp=spGet(hosp.st);const commD=cr.commBudget-cr.commFFS;const cF=mr.fin+dr.fin+cr.commBudget,cFF=mr.ffs+dr.ffs+cr.commFFS,cD=cF-cFF,cPct=cFF>0?cD/cFF:0;
   const peerBench=useMemo(()=>{const all=allH.map(x=>{const r=calcMcr(x,1),d=calcMcd(x,1);return{id:x.id,nm:x.nm,delta:r.delta+d.delta,pct:(r.fin+d.fin-r.ffs-d.ffs)/(r.ffs+d.ffs)};}).sort((a,b)=>b.delta-a.delta);const rank=all.findIndex(x=>x.id===modH.id)+1;const vals=all.map(x=>x.delta);const mu=vals.reduce((s,v)=>s+v,0)/vals.length;const sig=Math.sqrt(vals.reduce((s,v)=>s+(v-mu)**2,0)/vals.length);const z=sig>0?(cD-mu)/sig:0;return{rank,of:all.length,pctile:Math.round((1-rank/all.length)*100),z,mu,sig};},[modH,cD,allH]);
   const sensTS=useMemo(()=>runSensTS(modH,yrs,bD,mV),[modH,yrs,bD,mV]);
   const sparks=useMemo(()=>{const m:Record<string,number[]>={};allH.forEach(x=>{const p=pjMcr(x,5),d=pjMcd(x,5);m[x.id]=p.map((r,i)=>r.delta+d[i].delta);});return m;},[allH]);
-  void sp;
+  void sp;void cp;
 
   // ─── Sidebar ───
   const Sidebar=()=><>{compact&&<button onClick={()=>setShowSB(!showSB)} style={{background:C.surface,border:`1px solid ${C.border}`,borderRadius:6,padding:"6px 12px",fontSize:12,color:C.ink,cursor:"pointer",marginBottom:4,fontFamily:FONT.mono}}>{showSB?"▲ Hide sidebar":"▼ "+hosp.nm+" · "+hosp.st}</button>}
@@ -1027,7 +1042,7 @@ export default function AheadCalculator(){
         </div></Card>}
 
         <div style={{display:"grid",gridTemplateColumns:"repeat(auto-fit, minmax(140px, 1fr))",gap:8}}>
-          {[{l:"Combined",v:fmt(cF),d:fP(cPct),cl:cPct>0?C.pos:C.neg,k:"combined"},{l:"MCR",v:fmt(mr.fin),d:fP(mr.pct),cl:mr.pct>0?C.pos:C.neg,k:"mcr"},{l:"MCD",v:fmt(dr.fin),d:fP(dr.pct),cl:dr.pct>0?C.pos:C.neg,k:"mcd"},{l:"P(>FFS)",v:((mc[0]?.pA||0)*100).toFixed(0)+"%",d:"200 sims",cl:(mc[0]?.pA||0)>.6?C.pos:C.neg,k:"mc"},{l:"Peer Rank",v:`#${peerBench.rank}/${peerBench.of}`,d:`${peerBench.z>0?"+":""}${peerBench.z.toFixed(1)}σ · p${peerBench.pctile}`,cl:peerBench.z>0?C.pos:C.neg},{l:"Best APM",v:apm.best.nm,d:`Sharpe ${apm.best.sharpe.toFixed(2)}`,cl:apm.best.delta>0?C.pos:C.neg}].map((m,i)=>
+          {[{l:"Combined",v:fmt(cF),d:fP(cPct),cl:cPct>0?C.pos:C.neg,k:"combined"},{l:"MCR",v:fmt(mr.fin),d:fP(mr.pct),cl:mr.pct>0?C.pos:C.neg,k:"mcr"},{l:"MCD",v:fmt(dr.fin),d:fP(dr.pct),cl:dr.pct>0?C.pos:C.neg,k:"mcd"},...(cr.commBudget>0?[{l:"Comm",v:fmt(cr.commBudget),d:fmt(commD),cl:commD<=0?C.pos:C.neg,k:null as string|null}]:[]),{l:"P(>FFS)",v:((mc[0]?.pA||0)*100).toFixed(0)+"%",d:"200 sims",cl:(mc[0]?.pA||0)>.6?C.pos:C.neg,k:"mc"},{l:"Peer Rank",v:`#${peerBench.rank}/${peerBench.of}`,d:`${peerBench.z>0?"+":""}${peerBench.z.toFixed(1)}σ · p${peerBench.pctile}`,cl:peerBench.z>0?C.pos:C.neg},{l:"Best APM",v:apm.best.nm,d:`Sharpe ${apm.best.sharpe.toFixed(2)}`,cl:apm.best.delta>0?C.pos:C.neg}].map((m,i)=>
             <Card key={i} style={{boxShadow:"none",background:C.surface,cursor:m.k?"pointer":"default"}} onClick={m.k?()=>setDrill(drill===m.k?null:m.k):undefined}><div style={{padding:"10px 12px",textAlign:"center"}}><div style={{fontSize:11,color:C.inkLight,textTransform:"uppercase"}}>{m.l}</div><div style={{fontSize:16,fontWeight:300,color:m.cl}}>{m.k?<DV onClick={()=>setDrill(drill===m.k?null:m.k)}>{m.v}</DV>:m.v}</div><div style={{fontSize:11,color:C.inkLight,fontFamily:FONT.mono}}>{m.d}{m.k&&<span style={{marginLeft:2}}>▾</span>}</div></div></Card>)}
         </div>
         {drill&&<DrillPanel drill={drill} onClose={()=>setDrill(null)} mr={mr} dr={dr} hosp={modH} mp={mp} dp={dp} mc={mc}/>}
@@ -1271,7 +1286,7 @@ export default function AheadCalculator(){
       <div style={{display:"grid",gap:4,alignContent:"start"}}>
         {xH.length>0&&<Card><CH title="Imported Hospitals" badge={xH.length} right={<button onClick={()=>setXH([])} style={{background:C.surface,border:`1px solid ${C.border}`,borderRadius:3,padding:"1px 4px",fontSize:11,cursor:"pointer",color:C.neg,fontFamily:FONT.mono}}>Clear All</button>}/><div style={{padding:"0 16px 12px"}}>
           {xH.map((h,i)=><div key={h.id} style={{display:"flex",justifyContent:"space-between",alignItems:"center",padding:"8px 0",borderBottom:i<xH.length-1?`1px solid ${C.border}`:"none"}}>
-            <div><div style={{fontSize:14,fontWeight:500}}>{h.nm}</div><div style={{fontSize:12,color:C.inkLight,fontFamily:FONT.mono}}>{h.st} · {h.beds} beds · MCR {fmt(h.bl.ip+h.bl.op)} · MCD {fmt(h.mcd.ip+h.mcd.op)}</div></div>
+            <div><div style={{fontSize:14,fontWeight:500}}>{h.nm}</div><div style={{fontSize:12,color:C.inkLight,fontFamily:FONT.mono}}>{h.st} · {h.beds} beds · MCR {fmt(h.bl[2].ip+h.bl[2].op)} · MCD {fmt(h.mcd.ip+h.mcd.op)}</div></div>
             <div style={{display:"flex",gap:6}}>
               <button onClick={()=>{setSelId(h.id);setUseCust(false);setView("brief");reset();}} style={{background:C.ink,color:"#fff",border:"none",borderRadius:3,padding:"2px 5px",fontSize:11,cursor:"pointer",fontWeight:600}}>Analyze →</button>
               <button onClick={()=>setXH(p=>p.filter(x=>x.id!==h.id))} style={{background:C.surface,border:`1px solid ${C.border}`,borderRadius:3,padding:"2px 4px",fontSize:11,cursor:"pointer",color:C.neg}}>✗</button>

@@ -75,6 +75,16 @@ const ProgramIntegrity = lazy(() => import("./tools/ProgramIntegrity"));
 const HospitalRateSetting = lazy(() => import("./tools/HospitalRateSetting"));
 // Module wrappers (RateAnalysis, ProviderIntelligence, WorkforceQuality) removed from routing
 // All tools are standalone now — kept in src/tools/ for reference
+const RateQualityNexus = lazy(() => import("./tools/research/RateQualityNexus"));
+const ManagedCareValue = lazy(() => import("./tools/research/ManagedCareValue"));
+const TreatmentGap = lazy(() => import("./tools/research/TreatmentGap"));
+const SafetyNetStress = lazy(() => import("./tools/research/SafetyNetStress"));
+const IntegrityRisk = lazy(() => import("./tools/research/IntegrityRisk"));
+const FiscalCliff = lazy(() => import("./tools/research/FiscalCliff"));
+const MaternalHealth = lazy(() => import("./tools/research/MaternalHealth"));
+const PharmacySpread = lazy(() => import("./tools/research/PharmacySpread"));
+const NursingOwnership = lazy(() => import("./tools/research/NursingOwnership"));
+const WaiverImpact = lazy(() => import("./tools/research/WaiverImpact"));
 
 // ── Hash Router ──────────────────────────────────────────────────────────
 function useRoute() {
@@ -194,6 +204,67 @@ const TOOLS: ToolDef[] = [
     desc: "OIG LEIE exclusion list (82K+ records), CMS Open Payments ($13B+ in industry payments), MFCU fraud investigation statistics, and PERM improper payment rates.",
     status: "live", icon: "\u25C7", color: "#DC2626",
   },
+  // ── RESEARCH ───────────────────────────────────────────────────────
+  {
+    id: "research/rate-quality", group: "research", name: "Rate-Quality Nexus",
+    tagline: "Does paying more improve outcomes?",
+    desc: "Cross-domain analysis of Medicaid rate adequacy, quality measures, workforce supply, and provider access. OLS with controls, panel fixed effects, and difference-in-differences.",
+    status: "live" as const, icon: "R", color: "#2E6B4A",
+  },
+  {
+    id: "research/mc-value", group: "research", name: "Managed Care Value",
+    tagline: "Is managed care saving money?",
+    desc: "Evaluates whether Medicaid managed care delivers lower costs and better outcomes. MCO MLR analysis, spending regression, quality panel fixed effects.",
+    status: "live" as const, icon: "M", color: "#3A7D5C",
+  },
+  {
+    id: "research/treatment-gap", group: "research", name: "Opioid Treatment Gap",
+    tagline: "Where does prevalence outstrip treatment?",
+    desc: "Maps the demand-supply-spending pipeline for OUD treatment. NSDUH prevalence, MAT drug spending, facility capacity, and block grant alignment.",
+    status: "live" as const, icon: "T", color: "#6366F1",
+  },
+  {
+    id: "research/safety-net", group: "research", name: "Safety Net Stress Test",
+    tagline: "Which states are buckling?",
+    desc: "Multi-dimensional safety net strain: hospital margins, nursing quality, PBJ staffing, HCBS waitlists, and composite stress index.",
+    status: "live" as const, icon: "S", color: "#A4262C",
+  },
+  {
+    id: "research/integrity-risk", group: "research", name: "Integrity Risk Index",
+    tagline: "Composite fraud risk scoring",
+    desc: "State-level program integrity risk combining Open Payments ($13B), LEIE exclusions, PERM error rates, and MFCU enforcement capacity.",
+    status: "live" as const, icon: "I", color: "#B8860B",
+  },
+  {
+    id: "research/fiscal-cliff", group: "research", name: "Fiscal Cliff Analysis",
+    tagline: "Which states hit the wall first?",
+    desc: "Comparative fiscal pressure as enhanced FMAP expires. CMS-64 state share vs tax revenue, GDP growth, FMAP trends, vulnerability ranking.",
+    status: "live" as const, icon: "F", color: "#C4590A",
+  },
+  {
+    id: "research/maternal-health", group: "research", name: "Maternal Health Deserts",
+    tagline: "Multi-factor maternal risk",
+    desc: "Maternal mortality, social vulnerability, HPSA shortages, and quality measure performance. Identifies compound maternal health deserts.",
+    status: "live" as const, icon: "H", color: "#9333EA",
+  },
+  {
+    id: "research/pharmacy-spread", group: "research", name: "Pharmacy Spread Analysis",
+    tagline: "The $3B overpayment gap",
+    desc: "NADAC acquisition cost vs SDUD Medicaid reimbursement. Drug-level, state-level, and therapeutic tier analysis with full robustness checks.",
+    status: "live" as const, icon: "P", color: "#0891B2",
+  },
+  {
+    id: "research/nursing-ownership", group: "research", name: "Nursing Ownership & Quality",
+    tagline: "For-profit chain quality gap",
+    desc: "Ownership-quality relationship with state FE, interaction models, and size-matched comparisons. Cohen's d=0.59 across 14,710 facilities.",
+    status: "live" as const, icon: "N", color: "#059669",
+  },
+  {
+    id: "research/waiver-impact", group: "research", name: "Section 1115 Waiver Impact",
+    tagline: "Do waivers actually work?",
+    desc: "Before/after evaluation of 647 Section 1115 waivers. Enrollment, spending, and quality trajectories with waiver-type comparisons.",
+    status: "live" as const, icon: "W", color: "#4F46E5",
+  },
 ];
 
 const NAV_GROUPS: NavGroup[] = [
@@ -206,12 +277,13 @@ const NAV_GROUPS: NavGroup[] = [
   { key: "behavioral-health", label: "BH/SUD", tools: TOOLS.filter(t => t.group === "behavioral-health") },
   { key: "nursing", label: "Nursing", tools: TOOLS.filter(t => t.group === "nursing") },
   { key: "integrity", label: "Integrity", tools: TOOLS.filter(t => t.group === "integrity") },
+  { key: "research", label: "Research", tools: TOOLS.filter(t => t.group === "research") },
 ];
 
 const GROUP_COLORS: Record<string, string> = {
   states: C.brand, rates: C.brand, forecast: C.teal,
   providers: C.accent, workforce: C.teal, pharmacy: "#7C3AED", "behavioral-health": "#6366F1",
-  nursing: "#D97706", integrity: "#DC2626",
+  nursing: "#D97706", integrity: "#DC2626", research: "#6366F1",
 };
 const GROUP_DESCS: Record<string, string> = {
   states: "State profiles with enrollment, rates, hospitals, quality, and economic context.",
@@ -223,6 +295,7 @@ const GROUP_DESCS: Record<string, string> = {
   "behavioral-health": "Mental health prevalence, SUD treatment, opioid prescribing, and BH services.",
   nursing: "Nursing facility Five-Star quality ratings, PBJ staffing, and facility-level detail.",
   integrity: "LEIE exclusions, Open Payments, MFCU fraud statistics, and PERM error rates.",
+  research: "Cross-domain research modules: rate-quality nexus, managed care value, treatment gaps, safety net stress, and more.",
 };
 
 // ── Platform Nav ─────────────────────────────────────────────────────────
@@ -1304,6 +1377,17 @@ function PlatformInner() {
       "/nursing": <NursingFacility />,
       "/hospital-rates": <HospitalRateSetting />,
       "/integrity": <ProgramIntegrity />,
+      // ── Research modules ──────────────────────────────────────
+      "/research/rate-quality": <RateQualityNexus />,
+      "/research/mc-value": <ManagedCareValue />,
+      "/research/treatment-gap": <TreatmentGap />,
+      "/research/safety-net": <SafetyNetStress />,
+      "/research/integrity-risk": <IntegrityRisk />,
+      "/research/fiscal-cliff": <FiscalCliff />,
+      "/research/maternal-health": <MaternalHealth />,
+      "/research/pharmacy-spread": <PharmacySpread />,
+      "/research/nursing-ownership": <NursingOwnership />,
+      "/research/waiver-impact": <WaiverImpact />,
       // ── Utility tools ──────────────────────────────────────────
       "/ask": <ToolErrorBoundary><Suspense fallback={loadingFallback}><IntelligenceChat /></Suspense></ToolErrorBoundary>,
       "/catalog": <DataCatalog />,

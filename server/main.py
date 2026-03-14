@@ -4,6 +4,11 @@ from fastapi.middleware.cors import CORSMiddleware
 from server.config import settings
 from server.db import init_db, close_db, is_lake_ready, reload_lake
 from server.routes import query, meta, presets, cpra, lake, pipeline, pharmacy, policy, wages, hospitals, enrollment, staffing, quality, context, bulk, supplemental, behavioral_health, round9, forecast, nl2sql, intelligence, import_data, search, insights
+from server.routes.research import (
+    rate_quality, mc_value, treatment_gap, safety_net,
+    integrity_risk, fiscal_cliff, maternal_health,
+    pharmacy_spread, nursing_ownership, waiver_impact,
+)
 
 
 @asynccontextmanager
@@ -52,6 +57,16 @@ app.include_router(intelligence.router)
 app.include_router(import_data.router)
 app.include_router(search.router)
 app.include_router(insights.router)
+app.include_router(rate_quality.router)
+app.include_router(mc_value.router)
+app.include_router(treatment_gap.router)
+app.include_router(safety_net.router)
+app.include_router(integrity_risk.router)
+app.include_router(fiscal_cliff.router)
+app.include_router(maternal_health.router)
+app.include_router(pharmacy_spread.router)
+app.include_router(nursing_ownership.router)
+app.include_router(waiver_impact.router)
 
 
 @app.get("/health")

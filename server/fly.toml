@@ -6,22 +6,24 @@ primary_region = "iad"
   [build.args]
 
 [env]
-  ARADUNE_LAKE_DIR = "/app/data/lake"
-  # S3 bucket kept as env var for fallback sync, but data is pre-baked in Docker image
+  ARADUNE_LAKE_DIR = "/data/lake"
   ARADUNE_S3_BUCKET = "aradune-datalake"
   ARADUNE_S3_PREFIX = "lake/"
   ARADUNE_S3_ENDPOINT = "https://8b6e7d89eb4e759c5dd59fe9a5cd028e.r2.cloudflarestorage.com"
   ARADUNE_CORS_ORIGINS = '["https://aradune.co","https://www.aradune.co","http://localhost:5173"]'
+
+[mounts]
+  source = "aradune_lake"
+  destination = "/data/lake"
 
 [http_service]
   internal_port = 8000
   force_https = true
   auto_stop_machines = true
   auto_start_machines = true
-  min_machines_running = 0
+  min_machines_running = 1
 
   [[http_service.checks]]
-    # Lightweight /health returns 200 immediately, even during view registration
     port = 8000
     type = "http"
     method = "GET"

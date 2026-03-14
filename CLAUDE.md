@@ -2,7 +2,7 @@
 > **The operating system for Medicaid intelligence.**
 > Read this file at the start of every session. It defines what Aradune is, how it's built, and the rules for building it.
 > Build plan: See ARADUNE_BUILD_GUIDE.md for the phased build plan, module specs, and data import architecture.
-> Last updated: 2026-03-13 · Live: https://www.aradune.co
+> Last updated: 2026-03-14 · Live: https://www.aradune.co
 
 ---
 
@@ -1098,7 +1098,23 @@ fly deploy --remote-only --config server/fly.toml --dockerfile server/Dockerfile
 
 ## 21. What Success Looks Like
 
-**Now (March 2026):** 698 views (667 fact + 9 dim + 22 ref), 400M+ rows, 4.9 GB, 280+ endpoints across 25 route files, 4 engines, 18 ontology domains, Intelligence with SSE + DuckDB + RAG + web search, 15 standalone modules behind password gate, CPRA regulatory-correct both modes. 115+ ETL scripts. Export pipeline: DOCX/PDF/Excel/CSV + chart PNG/SVG. Demo mode with 27 pre-cached Intelligence responses. Comprehensive audit complete: 14+ crash risks fixed, 4 data accuracy bugs fixed in session 28 (CMS-64 FY2016->FY2024, MACPAC footnote cleanup, opioid FIPS->state codes, SDUD XX filter), data accuracy verified across 5 states (FL/TX/CA/NY/OH), fact_fmap rebuilt from MACPAC, enrollment deduplicated, all SQL injection vectors parameterized. Mobile-responsive: shared `useIsMobile` hook, all tables wrapped with `overflowX: auto`, responsive padding/grids across all tools. "Ask Aradune" homepage passthrough working (ref-based guard + sessionStorage fallback). R2 sync infrastructure fixed (--remote flag, incremental downloads, Python urllib reload). Fully deployed: Fly.io (245 views registered, all new module endpoints live) + Vercel + R2.
+**Now (March 2026):** 700 views (669 fact + 9 dim + 22 ref), 400M+ rows, 4.9 GB, 325+ endpoints across 35 route files, 7 engines, 18 ontology domains with 28 relationship edges, Intelligence with SSE + DuckDB + RAG + web search + DOGE quarantine + FL Medicaid context, 25 standalone modules (15 core + 10 research) behind password gate, CPRA regulatory-correct both modes. 107 ETL scripts. Export pipeline: DOCX/PDF/Excel/CSV + chart PNG/SVG. Demo mode with 27 pre-cached Intelligence responses.
+
+**Session 29 (2026-03-14) — Full forensic audit + research integration:**
+- 8-prompt forensic audit completed (ARADUNE_AUDIT_GUIDE.md): data integrity sweep, Gold table spot-check, DOGE quarantine, ontology graph, tool functional audit, AHEAD validation, Intelligence regression (30 queries, 22 pass), end-to-end workflow smoke test (6/6 pass).
+- 30+ bugs fixed: 17 critical ETL bugs, 18 stale snapshot cleanups, SDUD schema standardization, HCRIS CHOW dedup, FMAP dynamic header detection, Medicare PUF Socrata discovery, scorecard explicit columns, CCW validation, eligibility API pagination.
+- AHEAD calculator architectural rework: 3-year 10/30/60 CMS baseline (was single-year + synthetic growth), ±2% volume corridor, commercial payer engine (PY2+), TIA PY1/PY2 limited, TCOC PY4 upside-only.
+- DOGE quarantine: 3-layer controls (Intelligence system prompt, ontology QUARANTINE tags, ETL docstring). OT-only, provider state, MC distortion, Nov/Dec 2024 incomplete.
+- Ontology overhaul: 28 relationship edges, entity blast-lists pruned (5 entities: 107→10-19 tables each), MCO entity connected, 680 tables covered (was 632).
+- 10 research modules integrated: Rate-Quality Nexus, Managed Care Value, Opioid Treatment Gap, Safety Net Stress, Integrity Risk, Fiscal Cliff, Maternal Health Deserts, Pharmacy Spread ($2-3B overpayment), Nursing Ownership (-0.67 star for-profit penalty), Waiver Impact.
+- UX: search parser (67 synonyms), ExplainButton, QuickStart landing cards, AHEAD overview + interpretation guide.
+- Open Payments: $2.2B → $10.83B (all 3 CMS categories).
+- R2 fully synced: 826 files, ~5GB.
+- Intelligence: FL Medicaid context (SMMC 3.0/9 regions, MPIP, rate stacking), Tier 4 → Opus, Tier 3 max_queries 8→12.
+- Wage adequacy: fee schedule rates preferred over T-MSIS per-claim averages.
+- 16 commits deployed. All live at aradune.co + aradune-api.fly.dev.
+
+**Previous session 28 fixes:** CMS-64 FY2016→FY2024, MACPAC footnote cleanup, opioid FIPS→state codes, SDUD XX filter, R2 sync --remote flag, 14 crash risks fixed, data accuracy verified across 5 states, mobile-responsive across all tools.
 
 **Demo milestone (~April 2026):** End-to-end demo flow tested. Import → cross-reference → export polished. Visual polish pass. Demo walkthrough script written.
 

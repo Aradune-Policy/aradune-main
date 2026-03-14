@@ -5,6 +5,7 @@ import { API_BASE } from "../lib/api";
 import { LoadingBar } from "../components/LoadingBar";
 import { useAradune } from "../context/AraduneContext";
 import ChartActions from "../components/ChartActions";
+import { useIsMobile } from "../design";
 
 // ── Design System (matches Aradune v14) ─────────────────────────────────
 const A = "#0A2540";
@@ -147,8 +148,6 @@ const ExportBtn = ({ onClick, label }: { onClick: () => void; label?: string }) 
   <button onClick={onClick} style={{ fontSize:9,color:AL,background:SF,border:`1px solid ${BD}`,borderRadius:5,padding:"3px 8px",cursor:"pointer",fontFamily:FM }}>{label||"Export CSV"}</button>
 );
 
-const isMobile = typeof window !== "undefined" && window.innerWidth < 768;
-
 // ── Merged State Data ────────────────────────────────────────────────
 interface MergedState {
   st: string;
@@ -171,6 +170,7 @@ interface MergedState {
 
 // ── Main Component ──────────────────────────────────────────────────────
 export default function SpendingEfficiency() {
+  const isMobile = useIsMobile();
   const { openIntelligence } = useAradune();
   const [tab, setTab] = useState<"per-enrollee"|"total"|"efficiency">("per-enrollee");
   const [sortBy, setSortBy] = useState<"perEnrollee"|"totalComputable"|"name">("perEnrollee");
@@ -263,7 +263,8 @@ export default function SpendingEfficiency() {
     }
 
     // Overlay MC penetration from fact_mc_share (latest year)
-    const latestMcYear = Math.max(...mcShareData.map(m => m.year || 0));
+    const mcYears = mcShareData.map(m => m.year || 0);
+    const latestMcYear = mcYears.length ? Math.max(...mcYears) : 0;
     for (const mc of mcShareData) {
       if (mc.year !== latestMcYear) continue;
       const abbr = STATE_ABBREVS[mc.state] || STATE_ABBREVS[mc.state?.toLowerCase?.() ?? ""];
@@ -348,7 +349,7 @@ export default function SpendingEfficiency() {
       <Card><div style={{ padding:24,textAlign:"center" }}>
         <div style={{ fontSize:16,fontWeight:600,marginBottom:8 }}>No spending data available</div>
         <div style={{ fontSize:12,color:AL,lineHeight:1.7 }}>
-          Ensure the data lake has <code style={{ fontFamily:FM,background:SF,padding:"2px 6px",borderRadius:3 }}>fact_expenditure</code> and <code style={{ fontFamily:FM,background:SF,padding:"2px 6px",borderRadius:3 }}>fact_macpac_spending_per_enrollee</code> loaded.
+          Ensure the data lake has <code style={{ fontFamily:FM,background:SF,padding:"2px 6px",borderRadius:3 }}>fact_cms64_multiyear</code> and <code style={{ fontFamily:FM,background:SF,padding:"2px 6px",borderRadius:3 }}>fact_macpac_spending_per_enrollee</code> loaded.
         </div>
       </div></Card>
     </div>

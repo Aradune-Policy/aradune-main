@@ -5,6 +5,7 @@ import { API_BASE } from "../lib/api";
 import { LoadingBar } from "../components/LoadingBar";
 import { useAradune } from "../context/AraduneContext";
 import ChartActions from "../components/ChartActions";
+import { useIsMobile } from "../design";
 
 // ── Design System (matches Aradune v14) ─────────────────────────────────
 const A = "#0A2540";
@@ -153,12 +154,11 @@ const ExportBtn = ({ onClick, label }: { onClick: () => void; label?: string }) 
   <button onClick={onClick} style={{ fontSize:9,color:AL,background:SF,border:`1px solid ${BD}`,borderRadius:5,padding:"3px 8px",cursor:"pointer",fontFamily:FM }}>{label||"Export CSV"}</button>
 );
 
-const isMobile = typeof window !== "undefined" && window.innerWidth < 768;
-
 type TabKey = "leie" | "open-payments" | "mfcu-perm";
 
 // ── Main Component ──────────────────────────────────────────────────────
 export default function ProgramIntegrity() {
+  const isMobile = useIsMobile();
   const { openIntelligence } = useAradune();
   const [tab, setTab] = useState<TabKey>("leie");
   const [leieData, setLeieData] = useState<LeieData | null>(null);
@@ -326,8 +326,8 @@ export default function ProgramIntegrity() {
           </div>
           <div style={{ display:"grid",gridTemplateColumns:"repeat(auto-fit,minmax(120px,1fr))",padding:"0 6px 12px" }}>
             <Met l="Total Exclusions" v={fN(leieNational.total)} cl={NEG} />
-            <Met l="Individuals" v={fN(leieNational.individuals)} sub={`${((leieNational.individuals/leieNational.total)*100).toFixed(0)}% of total`} />
-            <Met l="Entities" v={fN(leieNational.entities)} sub={`${((leieNational.entities/leieNational.total)*100).toFixed(0)}% of total`} />
+            <Met l="Individuals" v={fN(leieNational.individuals)} sub={leieNational.total ? `${((leieNational.individuals/leieNational.total)*100).toFixed(0)}% of total` : ""} />
+            <Met l="Entities" v={fN(leieNational.entities)} sub={leieNational.total ? `${((leieNational.entities/leieNational.total)*100).toFixed(0)}% of total` : ""} />
             <Met l="With NPI" v={fN(leieNational.npis)} sub="Linked to provider NPIs" />
           </div>
         </Card>}

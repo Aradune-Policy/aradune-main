@@ -742,9 +742,27 @@ async def open_payments_summary(
         type_cols = [d[0] for d in cur.description]
         type_rows = cur.fetchall()
 
+        # Category breakdown (General/Research/Ownership)
+        try:
+            cur.execute(f"""
+                SELECT payment_category,
+                       SUM(payment_count) AS total_payments,
+                       ROUND(SUM(total_amount), 2) AS total_amount
+                FROM fact_open_payments
+                {where}
+                GROUP BY payment_category
+                ORDER BY total_amount DESC
+            """, params)
+            cat_cols = [d[0] for d in cur.description]
+            cat_rows = cur.fetchall()
+            by_category = [dict(zip(cat_cols, r)) for r in cat_rows]
+        except Exception:
+            by_category = []
+
     return {
         "by_state": [dict(zip(cols, r)) for r in rows],
         "by_payment_type": [dict(zip(type_cols, r)) for r in type_rows],
+        "by_category": by_category,
         "count": len(rows),
     }
 

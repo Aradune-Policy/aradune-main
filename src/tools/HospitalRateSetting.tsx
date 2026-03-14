@@ -146,7 +146,7 @@ export default function HospitalRateSetting() {
   const totalUcAllStates = useMemo(() => dshSummary.reduce((s, r) => s + (r.total_uc_m || 0), 0), [dshSummary]);
 
   const dshChart = useMemo(() =>
-    dshSummary.slice(0, 25).map(r => ({
+    [...dshSummary].sort((a, b) => (b.total_dsh_m || 0) - (a.total_dsh_m || 0)).slice(0, 25).map(r => ({
       state: r.state,
       name: STATE_NAMES[r.state] || r.state,
       dsh: r.total_dsh_m || 0,

@@ -19,8 +19,8 @@ def generate_intelligence_prompt_section() -> str:
     # Fallback: minimal description
     return (
         "## The Aradune Data Lake\n\n"
-        "300+ tables with 115M+ rows of public Medicaid data across rates, enrollment, "
+        "667+ tables with 400M+ rows of public Medicaid data across rates, enrollment, "
         "hospitals, quality, workforce, pharmacy, behavioral health, LTSS/HCBS, expenditure, "
-        "economic, Medicare, providers, and public health domains.\n\n"
+        "economic, Medicare, providers, and public health domains organized into 18 domains.\n\n"
         "Use `list_tables` to discover available tables and `describe_table` for schemas.\n"
     )

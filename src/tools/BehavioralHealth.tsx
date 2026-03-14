@@ -4,6 +4,7 @@ import { API_BASE } from "../lib/api";
 import { LoadingBar } from "../components/LoadingBar";
 import { useAradune } from "../context/AraduneContext";
 import ChartActions from "../components/ChartActions";
+import { useIsMobile } from "../design";
 
 // ── Design System (matches Aradune v14) ─────────────────────────────────
 const A = "#0A2540";
@@ -85,7 +86,7 @@ export default function BehavioralHealth() {
   const [tab, setTab] = useState<Tab>("Prevalence");
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const isMobile = typeof window !== "undefined" && window.innerWidth < 768;
+  const isMobile = useIsMobile();
 
   // ── Prevalence state ──
   const [measures, setMeasures] = useState<NsduhMeasure[]>([]);
@@ -199,17 +200,18 @@ export default function BehavioralHealth() {
     return Math.max(...opioidData.map(r => r.year));
   }, [opioidData]);
 
-  const opioidLatest = useMemo(() =>
+  const opioidAllLatest = useMemo(() =>
     opioidData
       .filter(r => r.year === latestOpioidYear)
-      .sort((a, b) => b.opioid_prescribing_rate - a.opioid_prescribing_rate)
-      .slice(0, 30),
+      .sort((a, b) => b.opioid_prescribing_rate - a.opioid_prescribing_rate),
   [opioidData, latestOpioidYear]);
 
+  const opioidLatest = useMemo(() => opioidAllLatest.slice(0, 30), [opioidAllLatest]);
+
   const opioidNatAvg = useMemo(() => {
-    if (!opioidLatest.length) return 0;
-    return opioidLatest.reduce((s, r) => s + r.opioid_prescribing_rate, 0) / opioidLatest.length;
-  }, [opioidLatest]);
+    if (!opioidAllLatest.length) return 0;
+    return opioidAllLatest.reduce((s, r) => s + r.opioid_prescribing_rate, 0) / opioidAllLatest.length;
+  }, [opioidAllLatest]);
 
   // ── Render ────────────────────────────────────────────────────────
   const measureName = measures.find(m => m.id === selectedMeasure)?.name || selectedMeasure;
@@ -464,13 +466,13 @@ export default function BehavioralHealth() {
               <Met l="Highest Rate" v={opioidLatest.length ? `${fmt(opioidLatest[0].opioid_prescribing_rate)}%` : "—"} sub={opioidLatest.length ? STATE_NAMES[opioidLatest[0].state] : ""} />
             </Card>
             <Card accent={POS}>
-              <Met l="Lowest Rate" v={opioidLatest.length ? `${fmt(opioidLatest[opioidLatest.length - 1].opioid_prescribing_rate)}%` : "—"} sub={opioidLatest.length ? STATE_NAMES[opioidLatest[opioidLatest.length - 1].state] : ""} />
+              <Met l="Lowest Rate" v={opioidAllLatest.length ? `${fmt(opioidAllLatest[opioidAllLatest.length - 1].opioid_prescribing_rate)}%` : "—"} sub={opioidAllLatest.length ? STATE_NAMES[opioidAllLatest[opioidAllLatest.length - 1].state] : ""} />
             </Card>
             <Card accent={cB}>
               <Met l="National Avg" v={`${fmt(opioidNatAvg)}%`} sub={latestOpioidYear ? `CY${latestOpioidYear}` : ""} />
             </Card>
             <Card accent={WARN}>
-              <Met l="States Reporting" v={opioidLatest.length} sub={latestOpioidYear ? `Year: ${latestOpioidYear}` : ""} />
+              <Met l="States Reporting" v={opioidAllLatest.length} sub={latestOpioidYear ? `Year: ${latestOpioidYear}` : ""} />
             </Card>
           </div>
 

@@ -5,6 +5,7 @@ import { API_BASE } from "../lib/api";
 import { LoadingBar } from "../components/LoadingBar";
 import { useAradune } from "../context/AraduneContext";
 import ChartActions from "../components/ChartActions";
+import { useIsMobile } from "../design";
 
 // ── Design System (matches Aradune v14) ─────────────────────────────────
 const A = "#0A2540";
@@ -20,8 +21,6 @@ const FM = "'SF Mono',Menlo,monospace";
 const SH = "0 1px 3px rgba(0,0,0,.04),0 4px 12px rgba(0,0,0,.03)";
 
 const STATE_NAMES: Record<string, string> = {AL:"Alabama",AK:"Alaska",AZ:"Arizona",AR:"Arkansas",CA:"California",CO:"Colorado",CT:"Connecticut",DE:"Delaware",DC:"D.C.",FL:"Florida",GA:"Georgia",HI:"Hawaii",ID:"Idaho",IL:"Illinois",IN:"Indiana",IA:"Iowa",KS:"Kansas",KY:"Kentucky",LA:"Louisiana",ME:"Maine",MD:"Maryland",MA:"Massachusetts",MI:"Michigan",MN:"Minnesota",MS:"Mississippi",MO:"Missouri",MT:"Montana",NE:"Nebraska",NV:"Nevada",NH:"New Hampshire",NJ:"New Jersey",NM:"New Mexico",NY:"New York",NC:"N. Carolina",ND:"N. Dakota",OH:"Ohio",OK:"Oklahoma",OR:"Oregon",PA:"Pennsylvania",RI:"Rhode Island",SC:"S. Carolina",SD:"S. Dakota",TN:"Tennessee",TX:"Texas",UT:"Utah",VT:"Vermont",VA:"Virginia",WA:"Washington",WV:"W. Virginia",WI:"Wisconsin",WY:"Wyoming",PR:"Puerto Rico",GU:"Guam",VI:"Virgin Islands"};
-
-const isMobile = typeof window !== "undefined" && window.innerWidth < 768;
 
 // ── Data Shape Interfaces ─────────────────────────────────────────────
 interface FiveStarSummary {
@@ -169,6 +168,7 @@ function ratingColor(v: number): string {
 
 // ── Main Component ──────────────────────────────────────────────────────
 export default function NursingFacility() {
+  const isMobile = useIsMobile();
   const { openIntelligence } = useAradune();
   const [tab, setTab] = useState<"quality" | "staffing" | "detail">("quality");
   const [detailState, setDetailState] = useState("FL");
@@ -362,7 +362,7 @@ export default function NursingFacility() {
             <Met l="Facilities" v={fN(natlQuality.facilities)} />
             <Met l="Certified Beds" v={fN(natlQuality.beds)} />
             <Met l="Avg Overall Rating" v={natlQuality.avgOverall.toFixed(2)} cl={ratingColor(natlQuality.avgOverall)} sub="Weighted by facility count" />
-            <Met l="Five-Star Facilities" v={fN(natlQuality.fiveStar)} cl={POS} sub={`${((natlQuality.fiveStar/natlQuality.facilities)*100).toFixed(1)}%`} />
+            <Met l="Five-Star Facilities" v={fN(natlQuality.fiveStar)} cl={POS} sub={natlQuality.facilities ? `${((natlQuality.fiveStar/natlQuality.facilities)*100).toFixed(1)}%` : ""} />
             <Met l="One-Star Facilities" v={fN(natlQuality.oneStar)} cl={NEG} sub={`${((natlQuality.oneStar/natlQuality.facilities)*100).toFixed(1)}%`} />
             <Met l="Total Fines" v={f$(natlQuality.fines)} cl={NEG} />
           </div>

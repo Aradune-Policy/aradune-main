@@ -7,6 +7,7 @@ RUN pip install --no-cache-dir -r requirements.txt
 
 COPY server/ ./server/
 COPY scripts/sync_lake.py ./scripts/sync_lake.py
+COPY ontology/generated_prompt.md ./ontology/generated_prompt.md
 
 # CPRA upload tool needs reference CSVs (68 E/M codes, code-category map, GPCI)
 COPY data/reference/cpra/ ./data/reference/cpra/

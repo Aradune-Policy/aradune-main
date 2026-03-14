@@ -112,8 +112,8 @@ export default function PharmacyIntelligence() {
           const d = await fetchJson("/api/pharmacy/sdud-2025/state-summary");
           setStateSummary(d.rows || []);
         } else if (tab === "Top Drugs") {
-          const stateParam = selectedState ? `?state=${selectedState}` : "";
-          const d = await fetchJson(`/api/pharmacy/sdud-2025/top-drugs${stateParam}&limit=50`);
+          const params = selectedState ? `?state=${selectedState}&limit=50` : "?limit=50";
+          const d = await fetchJson(`/api/pharmacy/sdud-2025/top-drugs${params}`);
           setTopDrugs(d.rows || []);
         }
       } catch (e: unknown) {

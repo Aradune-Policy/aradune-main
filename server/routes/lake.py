@@ -222,9 +222,19 @@ async def spending_per_enrollee():
         rows = cur.execute("""
             SELECT REGEXP_REPLACE(state_name, '[0-9,]+$', '') AS state_name,
                    fiscal_year,
-                   total_all, total_full_benefit,
-                   child_all, new_adult_all,
-                   disabled_all, aged_all
+                   total_all,
+                   CASE WHEN total_full_benefit = 10.0 AND child_all = 10.0 AND aged_all = 10.0
+                        THEN NULL ELSE total_full_benefit END AS total_full_benefit,
+                   CASE WHEN child_all = 10.0 AND disabled_all = 10.0 AND aged_all = 10.0
+                        THEN NULL ELSE child_all END AS child_all,
+                   CASE WHEN new_adult_all = 10.0 AND child_all = 10.0 AND aged_all = 10.0
+                        THEN NULL
+                        WHEN new_adult_all > 50000 THEN NULL
+                        ELSE new_adult_all END AS new_adult_all,
+                   CASE WHEN disabled_all = 10.0 AND child_all = 10.0 AND aged_all = 10.0
+                        THEN NULL ELSE disabled_all END AS disabled_all,
+                   CASE WHEN aged_all = 10.0 AND child_all = 10.0 AND disabled_all = 10.0
+                        THEN NULL ELSE aged_all END AS aged_all
             FROM fact_macpac_spending_per_enrollee
             WHERE state_name NOT LIKE '%Includes%'
               AND state_name NOT LIKE '%State reported%'
@@ -232,6 +242,8 @@ async def spending_per_enrollee():
               AND state_name NOT LIKE '%State has%'
               AND state_name NOT LIKE '%Due to%'
               AND state_name NOT LIKE '%In this%'
+              AND state_name NOT LIKE '%Dash%'
+              AND state_name NOT LIKE '%–%'
               AND LENGTH(state_name) < 50
             ORDER BY state_name
         """).fetchall()

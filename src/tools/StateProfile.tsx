@@ -463,7 +463,7 @@ async function loadStateData(code: string): Promise<any> {
   const stateHospSummary = rows(hospitalSummary).find((r: any) => r.state_code === code) || null;
   const stateFsSummary = rows(fiveStarSummary).find((r: any) => r.state_code === code) || null;
   const stateStaffSummary = rows(staffingSummary).find((r: any) => r.state_code === code) || null;
-  const stateSuppSummary = rows(supplementalSummary).find((r: any) => r.state_code === code) || null;
+  const stateSuppSummary = rows(supplementalSummary).find((r: any) => (r.state_code || r.state) === code) || null;
 
   const cpraRows = rows(cpraRates);
   const emRows = cpraRows.filter((r: any) => r.is_em === true || r.is_em === 1 || r.em_category || r.category_447);

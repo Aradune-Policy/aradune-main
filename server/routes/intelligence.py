@@ -78,7 +78,7 @@ CUSTOM_TOOLS = [
         "name": "query_database",
         "description": (
             "Run a SELECT-only SQL query against the Aradune DuckDB data lake. "
-            "Contains 569+ Medicaid fact tables with 305M+ rows. "
+            "Contains 667+ Medicaid fact tables with 400M+ rows. "
             "Always include a LIMIT clause (max 200). "
             "Use DuckDB syntax (ILIKE for case-insensitive, :: for casts)."
         ),
@@ -181,11 +181,7 @@ def _execute_tool(name: str, inp: dict) -> str:
                 for name_val, size in rows:
                     if filt and filt not in name_val.lower():
                         continue
-                    try:
-                        cnt = cur.execute(f"SELECT COUNT(*) FROM {name_val}").fetchone()[0]
-                    except Exception:
-                        cnt = None
-                    tables.append({"table": name_val, "rows": cnt})
+                    tables.append({"table": name_val, "rows": size})
             return json.dumps({"tables": tables, "total": len(tables)}, default=str)
 
         elif name == "describe_table":
@@ -282,7 +278,7 @@ def _cache_set(key: str, response: str, tool_calls: list, queries: list):
 # System prompt
 # ---------------------------------------------------------------------------
 
-_SYSTEM_PROMPT_STATIC = """You are Aradune, an AI analyst with direct access to the most comprehensive public Medicaid data lake ever assembled: 569+ tables, 305M+ rows, covering rates, enrollment, hospitals, quality, workforce, pharmacy, expenditure, behavioral health, and economics for all 54 jurisdictions, organized into 18 domains.
+_SYSTEM_PROMPT_STATIC = """You are Aradune, an AI analyst with direct access to the most comprehensive public Medicaid data lake ever assembled: 667+ tables, 400M+ rows, covering rates, enrollment, hospitals, quality, workforce, pharmacy, expenditure, behavioral health, and economics for all 54 jurisdictions, organized into 18 domains.
 
 ## How to Handle Questions
 
@@ -949,7 +945,7 @@ async def intelligence_stream(req: IntelligenceRequest, user: dict = Depends(req
         for block in response.content:
             if block.type == "text":
                 text = block.text
-                final_text = text
+                final_text += text
                 text_len = len(text)
                 chunk_size = 20
                 chunks_emitted = 0

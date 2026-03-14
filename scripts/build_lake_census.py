@@ -238,7 +238,7 @@ def build_fact_acs_state(con, dry_run: bool) -> int:
             TRY_CAST(pct_poverty AS DOUBLE) AS pct_poverty,
             TRY_CAST(pct_poverty_under18 AS DOUBLE) AS pct_poverty_under18,
             TRY_CAST(pct_poverty_under5 AS DOUBLE) AS pct_poverty_under5,
-            TRY_CAST(pct_poverty_65plus AS DOUBLE) AS pct_poverty_65plus,
+            NULLIF(TRY_CAST(pct_poverty_65plus AS DOUBLE), -888888888) AS pct_poverty_65plus,
             TRY_CAST(pct_uninsured AS DOUBLE) AS pct_uninsured,
             TRY_CAST(children_in_households AS BIGINT) AS children_in_households,
             TRY_CAST(insured_under19 AS BIGINT) AS insured_under19,

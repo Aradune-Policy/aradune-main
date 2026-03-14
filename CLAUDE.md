@@ -2,7 +2,7 @@
 > **The operating system for Medicaid intelligence.**
 > Read this file at the start of every session. It defines what Aradune is, how it's built, and the rules for building it.
 > Build plan: See ARADUNE_BUILD_GUIDE.md for the phased build plan, module specs, and data import architecture.
-> Last updated: 2026-03-14 · Live: https://www.aradune.co
+> Last updated: 2026-03-14 (Session 29 final) · Live: https://www.aradune.co
 
 ---
 

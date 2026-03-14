@@ -53,7 +53,7 @@ async def bulk_medicare_rates():
             if desc:
                 entry["d"] = desc
             rates[code] = entry
-        return {"rates": rates, "cf": 33.4009, "year": 2025}
+        return {"rates": rates, "cf": 33.4009, "year": 2026}
     return _cached("medicare_rates", compute)
 
 
@@ -154,7 +154,39 @@ async def bulk_quality_measures():
             vals = sorted(v for v in rates.get(mid, {}).values() if v is not None)
             measures[mid]["n_states"] = len(vals)
             measures[mid]["median"] = round(vals[len(vals) // 2], 2) if vals else 0
-        return {"measures": measures, "rates": rates, "measure_hcpcs": {}}
+        # Quality-HCPCS linkage: maps Core Set measures to the HCPCS/CPT codes
+        # that deliver the services each measure tracks.  Sourced from CMS Core
+        # Set technical specifications (2024 Adult + Child Core Sets).
+        measure_hcpcs = {
+            "WCV-CH": {"codes":["99393","99394","99395","99392","99391"],"desc":"Well-child visits linked to preventive E&M codes","name":"Child and Adolescent Well-Care Visits: Ages 3 to 21","domain":"Primary Care Access and Preventive Care"},
+            "SFM-CH": {"codes":["D1351"],"desc":"Dental sealant application","name":"Sealant Receipt on Permanent First Molars: Age 10","domain":"Dental and Oral Health Services"},
+            "OEV-CH": {"codes":["D0120","D0150"],"desc":"Periodic and comprehensive oral evaluations","name":"Oral Evaluation, Dental Services: Ages <1 through 20","domain":"Dental and Oral Health Services"},
+            "TFL-CH": {"codes":["D1206","D1208"],"desc":"Topical fluoride application","name":"Topical Fluoride for Children: Ages 1 through 20","domain":"Dental and Oral Health Services"},
+            "FUH-AD": {"codes":["90834","90837","90832","90847"],"desc":"Post-hospitalization follow-up psychotherapy","name":"Follow-Up After Hospitalization for Mental Illness: Age 18 and Older","domain":"Behavioral Health Care"},
+            "FUH-CH": {"codes":["90834","90837","90832"],"desc":"Post-hospitalization follow-up psychotherapy (child)","name":"Follow-Up After Hospitalization for Mental Illness: Ages 6 to 17","domain":"Behavioral Health Care"},
+            "FUM-AD": {"codes":["90834","90837","99213","99214"],"desc":"Post-ED follow-up for mental illness","name":"Follow-Up After Emergency Department Visit for Mental Illness: Age 18 and Older","domain":"Behavioral Health Care"},
+            "FUM-CH": {"codes":["90834","90837","99213","99214"],"desc":"Post-ED follow-up for mental illness (child)","name":"Follow-Up After Emergency Department Visit for Mental Illness: Ages 6 to 17","domain":"Behavioral Health Care"},
+            "FUA-AD": {"codes":["99213","99214","H0004","H0015"],"desc":"Post-ED follow-up for substance use","name":"Follow-Up After Emergency Department Visit for Substance Use: Age 18 and Older","domain":"Behavioral Health Care"},
+            "FUA-CH": {"codes":["99213","99214","H0004"],"desc":"Post-ED follow-up for substance use (child)","name":"Follow-Up After Emergency Department Visit for Substance Use: Ages 13 to 17","domain":"Behavioral Health Care"},
+            "ADD-CH": {"codes":["99213","99214","99215"],"desc":"ADHD medication follow-up E&M visits","name":"Follow-Up Care for Children Prescribed Attention-Deficit/Hyperactivity Disorder (ADHD) Medication: Ages 6 to 12","domain":"Behavioral Health Care"},
+            "CIS-CH": {"codes":["90460","90461","90471","90472"],"desc":"Childhood immunization administration","name":"Childhood Immunization Status: Age 2","domain":"Primary Care Access and Preventive Care"},
+            "PPC2-AD": {"codes":["59400","59425","59430"],"desc":"Prenatal/postpartum OB care","name":"Prenatal and Postpartum Care: Age 21 and Older","domain":"Maternal and Perinatal Health"},
+            "PPC2-CH": {"codes":["59400","59425","59430"],"desc":"Prenatal/postpartum OB care (under 21)","name":"Prenatal and Postpartum Care: Under Age 21","domain":"Maternal and Perinatal Health"},
+            "IET-AD": {"codes":["H0004","H0015","90834","90837"],"desc":"Substance use treatment initiation","name":"Initiation and Engagement of Substance Use Disorder Treatment: Age 18 and Older","domain":"Behavioral Health Care"},
+            "AMR-AD": {"codes":["J7613","J7620","J7611"],"desc":"Asthma controller medications","name":"Asthma Medication Ratio: Ages 19 to 64","domain":"Care of Acute and Chronic Conditions"},
+            "AMR-CH": {"codes":["J7613","J7620","J7611"],"desc":"Asthma controller medications (child)","name":"Asthma Medication Ratio: Ages 5 to 18","domain":"Care of Acute and Chronic Conditions"},
+            "CHL-AD": {"codes":["87491","87591","87801"],"desc":"Chlamydia screening lab codes","name":"Chlamydia Screening in Women Ages 21 to 24","domain":"Primary Care Access and Preventive Care"},
+            "BCS-AD": {"codes":["77067","77066"],"desc":"Mammography screening","name":"Breast Cancer Screening: Ages 50 to 74","domain":"Primary Care Access and Preventive Care"},
+            "SAA-AD": {"codes":["J2426","J1631","H0033"],"desc":"Antipsychotic medications for schizophrenia","name":"Adherence to Antipsychotic Medications for Individuals with Schizophrenia: Age 18 and Older","domain":"Behavioral Health Care"},
+            "OUD-AD": {"codes":["H0020","J0571","J0572","J0573","J0574","J0575"],"desc":"MAT pharmacotherapy for opioid use disorder","name":"Use of Pharmacotherapy for Opioid Use Disorder: Ages 18 to 64","domain":"Behavioral Health Care"},
+        }
+        # Enrich each linkage entry with median and n_states from the
+        # measures dict so the frontend can display them without a join.
+        for mid, info in measure_hcpcs.items():
+            if mid in measures:
+                info["median"] = measures[mid].get("median", 0)
+                info["n_states"] = measures[mid].get("n_states", 0)
+        return {"measures": measures, "rates": rates, "measure_hcpcs": measure_hcpcs}
     return _cached("quality_measures", compute)
 
 

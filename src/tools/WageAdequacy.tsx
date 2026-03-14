@@ -442,6 +442,7 @@ export default function WageAdequacy() {
           )}
           <div style={{ padding:"4px 16px 10px",fontSize:9,color:AL,lineHeight:1.6 }}>
             <b>How this works:</b> {analysis.primary.hcpcs} ({analysis.primary.desc || "—"}) pays ${safe(analysis.primary.tmsisRate).toFixed(2)} per {analysis.primary.unit || "unit"} in T-MSIS actual-paid data. At {analysis.primary.units_per_hour ?? "—"} units/hour = ${(safe(analysis.primary.tmsisRate)*safe(analysis.primary.units_per_hour)).toFixed(2)}/hr gross. After {overhead}% agency overhead → ${safe(analysis.primary.impliedHourly).toFixed(2)}/hr worker wage. BLS reports the median {(analysis.wage.title ?? "worker")?.toLowerCase()} in {analysis.stateName} earns ${safe(analysis.wage.h_median).toFixed(2)}/hr.
+            <br/><b>Note:</b> T-MSIS rates are per-claim averages which may bundle multiple service units into a single claim. Implied wages are directional estimates, not exact.
           </div>
         </Card>
 
@@ -511,7 +512,7 @@ export default function WageAdequacy() {
             </tbody>
           </table>
           <div style={{ fontSize:9,color:AL,marginTop:6,lineHeight:1.6 }}>
-            T-MSIS rates = avg paid per claim (actual Medicaid payments, not fee schedule). {curCat?.overhead_note}
+            T-MSIS rates = avg paid per claim (actual Medicaid payments, not fee schedule). Per-claim averages may bundle multiple service units into a single claim, so implied hourly wages could overstate what a single unit of service pays. {curCat?.overhead_note}
           </div>
         </div>
       </Card>}
@@ -566,11 +567,11 @@ export default function WageAdequacy() {
 
       {/* About */}
       <Card><CH t="Data Sources & Methodology"/><div style={{ padding:"4px 16px 12px",fontSize:11,color:A,lineHeight:1.8 }}>
-        <b>Wages:</b> Bureau of Labor Statistics, Occupational Employment and Wage Statistics (OES), May 2024. State-level employment, median wages, and 10th-90th percentile wage distributions for SOC codes mapped to Medicaid service categories. OES data covers 145 healthcare occupations across 52 states.<br/>
+        <b>Wages:</b> Bureau of Labor Statistics, Occupational Employment and Wage Statistics (OES), May 2024. State-level employment, median wages, and 10th-90th percentile wage distributions for SOC codes mapped to Medicaid service categories. This tool uses 16 healthcare occupations across 51 states mapped to Medicaid service categories.<br/>
         <b>Medicaid rates:</b> T-MSIS actual-paid rates from HHS Medicaid Provider Spending data. These are blended rates across all modifiers, places of service, and managed care encounters, not fee schedule rates.<br/>
         <b>Implied wage calculation:</b> (Medicaid rate × units per hour) × (1 − overhead %). For 15-minute codes, units per hour = 4. Overhead covers employer payroll taxes, workers' comp, admin, benefits, and agency margin.<br/>
         <b>Minimum wages:</b> State minimum wages as of 2024. Federal minimum ($7.25) used where state has no higher minimum.<br/>
-        <b>Limitations:</b> T-MSIS rates are averages across all claim types and may not reflect rates for specific programs (e.g., waiver rates vs. state plan rates). The overhead model is a simplification. Actual overhead varies by agency size, geography, and program requirements. BLS wage data covers all employers, not just Medicaid-funded positions. This tool provides directional analysis for rate adequacy discussions, not definitive cost modeling.
+        <b>Limitations:</b> T-MSIS rates are per-claim averages which may bundle multiple service units into a single claim, potentially overstating the per-unit reimbursement. These rates are averages across all claim types and may not reflect rates for specific programs (e.g., waiver rates vs. state plan rates). The overhead model is a simplification. Actual overhead varies by agency size, geography, and program requirements. BLS wage data covers all employers, not just Medicaid-funded positions. This tool provides directional analysis for rate adequacy discussions, not definitive cost modeling.
       </div></Card>
 
       <div style={{ fontSize:10,color:AL,marginTop:8 }}>Aradune Rate & Wage Comparison v1.0 · BLS OEWS May 2024 + T-MSIS</div>

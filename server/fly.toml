@@ -28,7 +28,7 @@ primary_region = "iad"
     path = "/health"
     interval = "15s"
     timeout = "5s"
-    grace_period = "15s"
+    grace_period = "600s"
 
 [[vm]]
   cpu_kind = "shared"

@@ -15,9 +15,8 @@ COPY data/reference/cpra/ ./data/reference/cpra/
 COPY server/entrypoint.sh .
 RUN chmod +x entrypoint.sh
 
-# Lake data is NOT baked into the image -- entrypoint.sh downloads from R2
-# on startup (adds ~60s cold start). To pre-bake for faster starts, build
-# locally with: docker build --build-arg PREBAKE_LAKE=1 ...
+# Lake data is downloaded from R2 on startup via entrypoint.sh.
+# The download completes BEFORE the server starts to ensure all views are available.
 RUN mkdir -p data/lake
 
 EXPOSE 8000

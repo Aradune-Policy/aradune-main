@@ -468,6 +468,7 @@ export default function AheadReadiness() {
   const [ccn, setCcn] = useState("");
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [showGuide, setShowGuide] = useState(false);
   const [hospital, setHospital] = useState<HospitalData | null>(null);
   const [peers, setPeers] = useState<{ state_peers: PeerBenchmarks | null; national_peers: PeerBenchmarks | null } | null>(null);
   const [selfReport, setSelfReport] = useState<SelfReportAnswers>({
@@ -587,16 +588,60 @@ export default function AheadReadiness() {
   // ── Entry screen ──────────────────────────────────────────────────
   if (!hospital) {
     return (
-      <div style={{ maxWidth: 560, margin: "0 auto", padding: "80px 20px", fontFamily: FONT.body }}>
-        <div style={{ textAlign: "center", marginBottom: 32 }}>
+      <div style={{ maxWidth: 640, margin: "0 auto", padding: "40px 20px", fontFamily: FONT.body }}>
+        <div style={{ textAlign: "center", marginBottom: 28 }}>
           <div style={{ fontSize: 22, fontWeight: 800, color: C.ink, letterSpacing: -0.5, marginBottom: 8 }}>AHEAD Readiness Score</div>
           <div style={{ fontSize: 13, color: AL, lineHeight: 1.6, marginBottom: 12 }}>
-            Search for your hospital by name, city, or CCN. Aradune scores readiness from public CMS data.
+            Assess any hospital's financial readiness for CMS global budget models using public HCRIS data.
           </div>
           <button onClick={() => openIntelligence({ summary: "User is viewing AHEAD Readiness scoring tool" })} style={{
             padding: "8px 14px", borderRadius: 8, border: "none",
             background: C.brand, color: "#fff", fontSize: 12, cursor: "pointer", fontWeight: 600,
           }}>Ask Aradune</button>
+        </div>
+
+        {/* Overview card */}
+        <div style={{ background: C.surface, borderRadius: 10, border: `1px solid ${BD}`, padding: "20px 24px", marginBottom: 28, lineHeight: 1.7, fontSize: 12, color: C.ink }}>
+          <div style={{ fontWeight: 700, fontSize: 14, marginBottom: 10 }}>What is AHEAD?</div>
+          <p style={{ margin: "0 0 10px" }}>
+            The <strong>AHEAD</strong> (All-payer Health Equity Approaches and Development) model is a CMS initiative testing
+            statewide hospital global budgets. Participating states shift hospitals from volume-based (fee-for-service) to
+            value-based payment, where hospitals receive a fixed annual budget regardless of patient volume. The model currently
+            operates in <strong>8 states</strong>: Maryland, Connecticut, Vermont, Hawaii, New York, Rhode Island, Colorado, and New Mexico.
+          </p>
+          <div style={{ fontWeight: 700, fontSize: 13, marginBottom: 8 }}>How this tool works</div>
+          <p style={{ margin: "0 0 10px" }}>
+            Aradune scores hospital readiness across <strong>four dimensions</strong> using public CMS cost report (HCRIS) data:
+          </p>
+          <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "6px 16px", marginBottom: 12 }}>
+            <div><strong style={{ color: C.brand }}>Financial Stability</strong> (0-25 pts) — Operating margin, current ratio, cost-to-charge, net income</div>
+            <div><strong style={{ color: C.accent }}>Revenue Concentration</strong> (0-25 pts) — Government payer mix, uncompensated care burden, IP/OP balance</div>
+            <div><strong style={{ color: "#5B21B6" }}>Supplemental Exposure</strong> (0-25 pts) — DSH + IME payments as a share of total revenue</div>
+            <div><strong style={{ color: C.teal }}>Volume Stability</strong> (0-25 pts) — Discharges per bed, occupancy rate, cost per discharge</div>
+          </div>
+          <div style={{ fontWeight: 700, fontSize: 13, marginBottom: 8 }}>How to interpret your score</div>
+          <div style={{ display: "flex", gap: 12, flexWrap: "wrap", marginBottom: 10 }}>
+            <span style={{ padding: "3px 10px", borderRadius: 4, fontSize: 11, fontWeight: 700, background: "#ECFDF5", color: "#059669" }}>70-100: Low risk</span>
+            <span style={{ padding: "3px 10px", borderRadius: 4, fontSize: 11, fontWeight: 700, background: "#FEF3C7", color: "#D97706" }}>40-69: Moderate risk</span>
+            <span style={{ padding: "3px 10px", borderRadius: 4, fontSize: 11, fontWeight: 700, background: "#FEE2E2", color: "#DC2626" }}>0-39: High risk</span>
+          </div>
+          <p style={{ margin: "0 0 8px" }}>
+            <strong>Low risk</strong> hospitals have strong margins, diversified revenue, and low reliance on supplemental payments — they're
+            well-positioned for a transition to global budgets. <strong>High risk</strong> hospitals depend heavily on volume or supplemental
+            payments and may need significant support during transition.
+          </p>
+          <div style={{ fontWeight: 700, fontSize: 13, marginBottom: 8 }}>Directions</div>
+          <ol style={{ margin: 0, paddingLeft: 20 }}>
+            <li>Search for your hospital by name, city, or CMS Certification Number (CCN)</li>
+            <li>Review the four-dimension breakdown and composite score</li>
+            <li>Optionally answer 8 self-report questions for up to 15 bonus points</li>
+            <li>Compare against state and national peer benchmarks</li>
+            <li>Export results as CSV, PDF, or Excel for stakeholder presentations</li>
+          </ol>
+          <p style={{ margin: "10px 0 0", fontSize: 10, color: AL }}>
+            Data source: CMS Hospital Cost Report Information System (HCRIS), FY2023. Scores are informational
+            and do not represent CMS assessments. All data is publicly available via CMS.gov.
+          </p>
         </div>
 
         {/* Hospital name search */}
@@ -775,6 +820,51 @@ export default function AheadReadiness() {
           </div>
         </Card>
       )}
+
+      {/* Interpretation guide (collapsible) */}
+      <div style={{ marginBottom: 16 }}>
+        <button
+          onClick={() => setShowGuide(!showGuide)}
+          style={{
+            background: "none", border: "none", cursor: "pointer", padding: 0,
+            fontSize: 11, fontWeight: 600, color: C.brand, fontFamily: FONT.body,
+          }}
+        >
+          {showGuide ? "Hide" : "How to interpret this score"}
+        </button>
+        {showGuide && (
+          <div style={{
+            marginTop: 8, padding: "14px 18px", background: C.surface, borderRadius: 8,
+            border: `1px solid ${BD}`, fontSize: 12, color: C.ink, lineHeight: 1.6,
+          }}>
+            <p style={{ margin: "0 0 8px" }}>
+              <strong>What this score means:</strong> The readiness score estimates how well-positioned your hospital is
+              for a transition to global budgets. It is <em>not</em> a CMS assessment. It reflects financial resilience,
+              revenue diversification, supplemental payment dependency, and volume stability using public cost report data.
+            </p>
+            <p style={{ margin: "0 0 8px" }}>
+              <strong>Low risk (70+):</strong> Strong financial foundation. These hospitals can absorb volume fluctuations
+              and reduced supplemental payments without destabilizing operations. Good candidates for early cohorts.
+            </p>
+            <p style={{ margin: "0 0 8px" }}>
+              <strong>Moderate risk (40-69):</strong> Viable but with pressure points. Review the dimension breakdown
+              to identify specific vulnerabilities. Consider targeted interventions before global budget participation.
+            </p>
+            <p style={{ margin: "0 0 8px" }}>
+              <strong>High risk (0-39):</strong> Significant financial or structural challenges. These hospitals may need
+              transition support, enhanced DSH/IME protections, or phased implementation timelines.
+            </p>
+            <p style={{ margin: "0 0 8px" }}>
+              <strong>Self-report bonus (+15 max):</strong> Answer 8 operational questions to refine your score. Hospitals
+              with downside risk experience, strong cost accounting, or ACO participation earn bonus points reflecting
+              organizational preparedness beyond what financial data alone can capture.
+            </p>
+            <p style={{ margin: 0, fontSize: 10, color: AL }}>
+              Source: CMS HCRIS FY{hospital.report_year}. Peer benchmarks computed from all hospitals in {hospital.state_code} and nationally.
+            </p>
+          </div>
+        )}
+      </div>
 
       {/* 2×2 Dimension Score Grid */}
       {dims.length === 4 && (

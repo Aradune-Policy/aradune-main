@@ -966,6 +966,27 @@ export default function AheadCalculator(){
       </div>
       <button onClick={()=>setShowDemo(false)} style={{background:"none",border:"none",color:C.warn,cursor:"pointer",fontSize:14,padding:0,flexShrink:0,opacity:.6}}>✕</button>
     </div>}
+    {view==="brief"&&showDemo&&<div style={{padding:"14px 18px",marginBottom:10,borderRadius:8,background:C.surface,border:`1px solid ${C.border}`,fontSize:12,color:C.ink,lineHeight:1.6}}>
+      <div style={{fontWeight:700,fontSize:13,marginBottom:6}}>AHEAD Global Budget Modeler</div>
+      <p style={{margin:"0 0 8px"}}>
+        This tool models the financial impact of CMS global budget programs on individual hospitals. It projects
+        Medicare and Medicaid revenue trajectories under fixed annual budgets, quantifies savings/loss risk, and
+        runs Monte Carlo simulations across economic scenarios.
+      </p>
+      <p style={{margin:"0 0 8px"}}>
+        <strong>9 states supported:</strong> Maryland (TCOC), Connecticut (VBP), Vermont (All-Payer ACO),
+        Hawaii (QUEST), New York (VBP Roadmap), Rhode Island (Accountable Entity), Colorado (Hospital Transformation),
+        New Jersey (VBP), and New Mexico (Centennial Care 2.0).
+      </p>
+      <p style={{margin:"0 0 8px"}}>
+        <strong>How to use:</strong> Select a hospital from the sidebar, then explore the Executive Brief for a strategic summary,
+        the Dashboard for detailed projections, or the Intervene tab to model specific policy scenarios. Use the APM Compare
+        tab to evaluate across payment models (MSSP, BPCI-A, ACO REACH). Import your own hospital data via the Import tab for production analysis.
+      </p>
+      <p style={{margin:0,fontSize:10,color:C.inkLight}}>
+        Sample hospitals use illustrative data calibrated to public CMS sources. Import your own data for production-grade analysis.
+      </p>
+    </div>}
     <Fade k={view}>
 
     {/* ═══════════════ EXECUTIVE BRIEF ═══════════════ */}

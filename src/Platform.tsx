@@ -649,33 +649,53 @@ function Landing() {
           </div>
         </div>
 
-        {/* ── NOVEL FINDINGS ─────────────────────────────────────── */}
-        <div style={{ marginTop: 48, maxWidth: 780 }}>
-          <h2 style={{ fontSize: isMobile ? 18 : 22, fontWeight: 800, color: C.ink, letterSpacing: -0.5, margin: "0 0 12px" }}>
-            What the data reveals
+        {/* ── RESEARCH INSIGHTS ─────────────────────────────────── */}
+        <div style={{ marginTop: 56, maxWidth: 780 }}>
+          <h2 style={{ fontSize: isMobile ? 18 : 22, fontWeight: 800, color: C.ink, letterSpacing: -0.5, margin: "0 0 6px" }}>
+            Cross-domain research
           </h2>
-          <p style={{ fontSize: 13, color: C.inkLight, margin: "0 0 16px", lineHeight: 1.6 }}>
-            Cross-domain findings from 700 integrated tables. These results require joining datasets that have never been analyzed together.
+          <p style={{ fontSize: 13, color: C.inkLight, margin: "0 0 20px", lineHeight: 1.6, maxWidth: 560 }}>
+            Findings that require joining datasets no one else has assembled. Full methodology, regression tables, and replication code in each brief.
           </p>
-          <div style={{ display: "grid", gridTemplateColumns: isMobile ? "1fr" : "1fr 1fr", gap: 12 }}>
+
+          {/* Headline stats row */}
+          <div style={{ display: "grid", gridTemplateColumns: isMobile ? "1fr 1fr" : "repeat(4, 1fr)", gap: 10, marginBottom: 20 }}>
             {[
-              { color: "#D93025", title: "Rates don't predict quality", desc: "Medicaid payment levels show no significant relationship with quality outcomes after controlling for state wealth (p=0.21). The bivariate correlation is a confound driven by richer states.", link: "research/rate-quality" },
-              { color: "#D97706", title: "Managed care's quality paradox", desc: "MC states look better in cross-section, but within states, increasing MC penetration is associated with declining quality (p=0.004). A textbook Simpson's Paradox.", link: "research/mc-value" },
-              { color: "#059669", title: "For-profit nursing homes: -0.67 stars", desc: "The ownership-quality gap survives state fixed effects, size controls, and matched comparisons across 14,710 facilities. Cohen's d = 0.59.", link: "research/nursing-ownership" },
-              { color: "#3A7CC4", title: "$3B+ pharmacy overpayment", desc: "Medicaid reimburses pharmacies $2-3B above drug acquisition cost (NADAC), concentrated in low-cost generics at 2.75x median markup.", link: "research/pharmacy-spread" },
-              { color: "#7B4EA3", title: "Quality declining everywhere", desc: "National Medicaid quality scores are falling 1.3 percentage points per year regardless of state characteristics, payment levels, or fiscal burden (p=0.006).", link: "research/rate-quality" },
-              { color: "#0891B2", title: "20 states in compound safety net failure", desc: "States where hospitals, nursing homes, AND HCBS are all failing simultaneously. Only visible through cross-domain joins.", link: "research/safety-net" },
-            ].map(f => (
-              <a key={f.title} href={`#/${f.link}`} style={{ display: "block", background: "#fff", borderRadius: 8, border: "1px solid #E2E8F0", borderLeft: `3px solid ${f.color}`, padding: "14px 16px", textDecoration: "none", transition: "box-shadow 0.2s", cursor: "pointer" }}
-                onMouseEnter={e => { (e.currentTarget as HTMLElement).style.boxShadow = "0 2px 8px rgba(0,0,0,0.08)"; }}
-                onMouseLeave={e => { (e.currentTarget as HTMLElement).style.boxShadow = "none"; }}>
-                <div style={{ fontSize: 13, fontWeight: 700, color: C.ink, marginBottom: 4 }}>{f.title}</div>
-                <div style={{ fontSize: 11, color: C.inkLight, lineHeight: 1.5 }}>{f.desc}</div>
+              { val: "$3.4B", label: "Pharmacy overpayment above acquisition cost", src: "NADAC vs SDUD", color: C.brand, link: "research/pharmacy-spread" },
+              { val: "$113B", label: "MCO admin & profit retention per year", src: "MCO MLR filings", color: "#3A7CC4", link: "research/mc-value" },
+              { val: "607K", label: "People on HCBS waitlists", src: "CMS-372 / KFF", color: "#C4590A", link: "research/safety-net" },
+              { val: "-1.3pp", label: "Annual quality decline, all states", src: "Core Set panel FE", color: "#7B4EA3", link: "research/rate-quality" },
+            ].map(s => (
+              <a key={s.val} href={`#/${s.link}`} style={{ display: "block", background: "#fff", borderRadius: 8, boxShadow: SHADOW, borderTop: `3px solid ${s.color}`, padding: "14px 14px 10px", textDecoration: "none" }}>
+                <div style={{ fontSize: 22, fontWeight: 700, color: C.ink, fontFamily: FONT.mono, lineHeight: 1 }}>{s.val}</div>
+                <div style={{ fontSize: 10, color: C.ink, marginTop: 6, lineHeight: 1.4 }}>{s.label}</div>
+                <div style={{ fontSize: 8, color: C.inkLight, fontFamily: FONT.mono, marginTop: 4 }}>{s.src}</div>
               </a>
             ))}
           </div>
-          <div style={{ marginTop: 10, fontSize: 9, color: "#94A3B8" }}>
-            Methods: OLS with controls, panel fixed effects (2017-2024), difference-in-differences, size-matched facility comparisons. <a href="#/research/rate-quality" style={{ color: C.brand }}>Explore all research modules</a>
+
+          {/* Key findings — condensed, clickable */}
+          <div style={{ display: "grid", gap: 8 }}>
+            {[
+              { color: "#D93025", finding: "Paying more doesn't improve quality", detail: "p=0.178 after controlling for state wealth, MC penetration, income, FMAP, SVI, poverty", link: "research/rate-quality" },
+              { color: "#D97706", finding: "Managed care's quality paradox", detail: "Within states, increasing MC penetration worsens quality (p=0.004). Cross-sectional correlation is Simpson's Paradox.", link: "research/mc-value" },
+              { color: "#059669", finding: "For-profit nursing homes: -0.67 stars", detail: "Survives state FE, size controls, matched comparisons. Cohen's d=0.59, p<0.0001. 14,710 facilities.", link: "research/nursing-ownership" },
+              { color: "#3A7CC4", finding: "$2-3B pharmacy overpayment", detail: "NADAC vs SDUD. Concentrated in low-cost generics (2.75x median markup). Survives all robustness checks.", link: "research/pharmacy-spread" },
+              { color: "#7B4EA3", finding: "Quality declining everywhere", detail: "-1.3pp/year (2017-2024). Uniform across all states regardless of payment levels or fiscal burden. p=0.006.", link: "research/rate-quality" },
+            ].map(f => (
+              <a key={f.finding} href={`#/${f.link}`} style={{ display: "flex", alignItems: "baseline", gap: 10, padding: "8px 12px", borderRadius: 6, background: "#FAFBFC", border: "1px solid #E2E8F0", textDecoration: "none", transition: "background 0.15s", cursor: "pointer" }}
+                onMouseEnter={e => { (e.currentTarget as HTMLElement).style.background = "#F1F5F9"; }}
+                onMouseLeave={e => { (e.currentTarget as HTMLElement).style.background = "#FAFBFC"; }}>
+                <span style={{ width: 4, height: 4, borderRadius: 2, background: f.color, flexShrink: 0, marginTop: 5 }} />
+                <div>
+                  <span style={{ fontSize: 12, fontWeight: 700, color: C.ink }}>{f.finding}</span>
+                  <span style={{ fontSize: 11, color: C.inkLight, marginLeft: 6 }}>{f.detail}</span>
+                </div>
+              </a>
+            ))}
+          </div>
+          <div style={{ marginTop: 8, fontSize: 9, color: "#94A3B8" }}>
+            Methods: OLS, panel fixed effects, difference-in-differences, size-matched comparisons. <a href="#/research/rate-quality" style={{ color: C.brand }}>Full methodology and replication code</a>
           </div>
         </div>
 

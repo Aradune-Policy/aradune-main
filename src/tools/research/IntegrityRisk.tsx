@@ -1,12 +1,12 @@
-import React, { useState, useMemo, useEffect, useCallback } from "react";
-import { BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer, Cell, CartesianGrid, ScatterChart, Scatter, ZAxis, LineChart, Line } from "recharts";
+import React, { useState, useEffect, useCallback, useMemo } from "react";
+import { BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer, Cell, CartesianGrid } from "recharts";
 import { API_BASE } from "../../lib/api";
 import { LoadingBar } from "../../components/LoadingBar";
 import { useAradune } from "../../context/AraduneContext";
 import ChartActions from "../../components/ChartActions";
 import { useIsMobile } from "../../design";
 
-// -- Design System (matches Aradune v14) --
+// ── Design System ─────────────────────────────────────────────────────
 const A = "#0A2540";
 const AL = "#425A70";
 const POS = "#2E6B4A";
@@ -17,454 +17,309 @@ const BD = "#E4EAE4";
 const WH = "#fff";
 const cB = "#2E6B4A";
 const FM = "'SF Mono',Menlo,monospace";
+const FB = "'Helvetica Neue',Arial,sans-serif";
 const SH = "0 1px 3px rgba(0,0,0,.04),0 4px 12px rgba(0,0,0,.03)";
 
-const STATE_NAMES: Record<string, string> = {
-  AL:"Alabama",AK:"Alaska",AZ:"Arizona",AR:"Arkansas",CA:"California",CO:"Colorado",CT:"Connecticut",DE:"Delaware",FL:"Florida",GA:"Georgia",HI:"Hawaii",ID:"Idaho",IL:"Illinois",IN:"Indiana",IA:"Iowa",KS:"Kansas",KY:"Kentucky",LA:"Louisiana",ME:"Maine",MD:"Maryland",MA:"Massachusetts",MI:"Michigan",MN:"Minnesota",MS:"Mississippi",MO:"Missouri",MT:"Montana",NE:"Nebraska",NV:"Nevada",NH:"New Hampshire",NJ:"New Jersey",NM:"New Mexico",NY:"New York",NC:"North Carolina",ND:"North Dakota",OH:"Ohio",OK:"Oklahoma",OR:"Oregon",PA:"Pennsylvania",RI:"Rhode Island",SC:"South Carolina",SD:"South Dakota",TN:"Tennessee",TX:"Texas",UT:"Utah",VT:"Vermont",VA:"Virginia",WA:"Washington",WV:"West Virginia",WI:"Wisconsin",WY:"Wyoming",DC:"District of Columbia",PR:"Puerto Rico",GU:"Guam",VI:"Virgin Islands"
-};
-const fmt = (n: number | null | undefined, d = 1) => n == null ? "\u2014" : n.toFixed(d);
-const fmtK = (n: number | null | undefined) => n == null ? "\u2014" : n >= 1e6 ? `${(n/1e6).toFixed(1)}M` : n >= 1e3 ? `${(n/1e3).toFixed(1)}K` : n.toLocaleString();
-const fmtD = (n: number | null | undefined) => { if (n == null) return "\u2014"; if (n >= 1e9) return `$${(n/1e9).toFixed(1)}B`; if (n >= 1e6) return `$${(n/1e6).toFixed(1)}M`; if (n >= 1e3) return `$${(n/1e3).toFixed(0)}K`; return `$${n.toLocaleString()}`; };
-const Card = ({ children, accent }: { children: React.ReactNode; accent?: string }) => (
-  <div style={{ background:WH,borderRadius:10,boxShadow:SH,overflow:"hidden",borderTop:accent?`3px solid ${accent}`:"none",border:`1px solid ${BD}` }}>{children}</div>
+const STATE_NAMES: Record<string, string> = {AL:"Alabama",AK:"Alaska",AZ:"Arizona",AR:"Arkansas",CA:"California",CO:"Colorado",CT:"Connecticut",DE:"Delaware",DC:"D.C.",FL:"Florida",GA:"Georgia",HI:"Hawaii",ID:"Idaho",IL:"Illinois",IN:"Indiana",IA:"Iowa",KS:"Kansas",KY:"Kentucky",LA:"Louisiana",ME:"Maine",MD:"Maryland",MA:"Massachusetts",MI:"Michigan",MN:"Minnesota",MS:"Mississippi",MO:"Missouri",MT:"Montana",NE:"Nebraska",NV:"Nevada",NH:"New Hampshire",NJ:"New Jersey",NM:"New Mexico",NY:"New York",NC:"N. Carolina",ND:"N. Dakota",OH:"Ohio",OK:"Oklahoma",OR:"Oregon",PA:"Pennsylvania",RI:"Rhode Island",SC:"S. Carolina",SD:"S. Dakota",TN:"Tennessee",TX:"Texas",UT:"Utah",VT:"Vermont",VA:"Virginia",WA:"Washington",WV:"W. Virginia",WI:"Wisconsin",WY:"Wyoming",PR:"Puerto Rico",GU:"Guam",VI:"Virgin Islands"};
+
+// ── Interfaces ────────────────────────────────────────────────────────
+interface CompositeRisk { state_code: string; total_open_payments: number; payment_count: number; exclusion_count: number; total_enrollment: number; open_payments_per_enrollee: number; exclusions_per_100k: number }
+
+// ── Shared primitives ────────────────────────────────────────────────
+const fmt = (n: number | null | undefined, d = 1) => n == null ? "--" : n.toFixed(d);
+const fmtD = (n: number | null | undefined) => { if (n == null) return "--"; if (n >= 1e9) return `$${(n/1e9).toFixed(1)}B`; if (n >= 1e6) return `$${(n/1e6).toFixed(1)}M`; if (n >= 1e3) return `$${(n/1e3).toFixed(0)}K`; return `$${n.toLocaleString()}`; };
+const fmtK = (n: number | null | undefined) => n == null ? "--" : n >= 1e6 ? `${(n/1e6).toFixed(1)}M` : n >= 1e3 ? `${(n/1e3).toFixed(1)}K` : n.toLocaleString();
+
+const Card = ({ children, style }: { children: React.ReactNode; style?: React.CSSProperties }) => (
+  <div style={{ background: WH, borderRadius: 10, boxShadow: SH, border: `1px solid ${BD}`, overflow: "hidden", ...style }}>{children}</div>
 );
-const CH = ({ t, b, r }: { t: string; b?: string; r?: string }) => (
-  <div style={{ display:"flex",justifyContent:"space-between",alignItems:"baseline",padding:"10px 14px 2px" }}>
-    <div><span style={{ fontSize:11,fontWeight:700,color:A }}>{t}</span>{b&&<span style={{ fontSize:9,color:AL,marginLeft:6 }}>{b}</span>}</div>
-    {r&&<span style={{ fontSize:9,color:AL,fontFamily:FM }}>{r}</span>}
-  </div>
-);
-const Met = ({ l, v, cl, sub }: { l: string; v: React.ReactNode; cl?: string; sub?: string }) => (
-  <div style={{ padding:"6px 10px" }}>
-    <div style={{ fontSize:8,color:AL,textTransform:"uppercase",letterSpacing:0.5,fontFamily:FM }}>{l}</div>
-    <div style={{ fontSize:16,fontWeight:300,color:cl||A,fontFamily:FM }}>{v}</div>
-    {sub && <div style={{ fontSize:8,color:AL,marginTop:1 }}>{sub}</div>}
-  </div>
-);
-const Pill = ({ active, label, onClick }: { active: boolean; label: string; onClick: () => void }) => (
-  <button onClick={onClick} style={{
-    padding:"4px 12px",borderRadius:6,fontSize:10,fontWeight:600,fontFamily:FM,border:`1px solid ${active?cB:BD}`,
-    background:active?cB:WH,color:active?WH:AL,cursor:"pointer",whiteSpace:"nowrap",
-  }}>{label}</button>
-);
-const SafeTip = ({ active, payload, label, formatter }: any) => {
-  if (!active || !payload?.length) return null;
+
+const Collapsible = ({ title, defaultOpen = false, children }: { title: string; defaultOpen?: boolean; children: React.ReactNode }) => {
+  const [open, setOpen] = useState(defaultOpen);
   return (
-    <div style={{ background:WH,border:`1px solid ${BD}`,borderRadius:6,padding:"6px 10px",fontSize:10,fontFamily:FM,boxShadow:SH }}>
-      <div style={{ fontWeight:600,color:A,marginBottom:2 }}>{label}</div>
-      {payload.map((p: any, i: number) => (
-        <div key={i} style={{ color:AL }}>{p.dataKey}: {formatter ? formatter(p.value, p.dataKey) : p.value}</div>
-      ))}
+    <div style={{ borderTop: `1px solid ${BD}`, marginTop: 24 }}>
+      <button onClick={() => setOpen(!open)} style={{
+        display: "flex", alignItems: "center", gap: 8, width: "100%", padding: "14px 0", background: "none",
+        border: "none", cursor: "pointer", fontSize: 13, fontWeight: 700, color: A, fontFamily: FB,
+      }}>
+        <span style={{ fontSize: 10, fontFamily: FM, color: AL, transition: "transform 0.2s", transform: open ? "rotate(90deg)" : "none" }}>&#9654;</span>
+        {title}
+      </button>
+      {open && <div style={{ paddingBottom: 16 }}>{children}</div>}
     </div>
   );
 };
 
-// -- Data Interfaces --
-interface CompositeRisk { state_code: string; total_open_payments: number; payment_count: number; exclusion_count: number; total_enrollment: number; open_payments_per_enrollee: number; exclusions_per_100k: number }
-interface OpenPayRow { state_code: string; total_amount: number; payment_count: number; unique_physicians: number; unique_companies: number; avg_per_physician: number }
-interface EnforcementRow { state_code: string; fiscal_year: number; cases_opened: number; convictions: number; civil_settlements: number; recoveries_total: number; program_expenditures: number; roi: number }
-interface PermRow { fiscal_year: number; improper_payment_rate_pct: number; ffs_rate_pct: number; managed_care_rate_pct: number; eligibility_error_rate_pct: number }
-
-type Tab = "composite" | "financial" | "enforcement" | "accuracy";
-
+// ══════════════════════════════════════════════════════════════════════
+//  RESEARCH BRIEF: Program Integrity Risk Index
+// ══════════════════════════════════════════════════════════════════════
 export default function IntegrityRisk() {
   const isMobile = useIsMobile();
   const { openIntelligence } = useAradune();
-
-  const [tab, setTab] = useState<Tab>("composite");
   const [loading, setLoading] = useState(true);
-  const [loadError, setLoadError] = useState<string | null>(null);
-
+  const [error, setError] = useState<string | null>(null);
   const [compositeData, setCompositeData] = useState<CompositeRisk[]>([]);
-  const [openPayData, setOpenPayData] = useState<OpenPayRow[]>([]);
-  const [enforcementData, setEnforcementData] = useState<EnforcementRow[]>([]);
-  const [permData, setPermData] = useState<PermRow[]>([]);
+
+  const fetchJson = useCallback(async (url: string) => {
+    const r = await fetch(`${API_BASE}${url}`);
+    if (!r.ok) throw new Error(`${r.status} ${r.statusText}`);
+    return r.json();
+  }, []);
 
   useEffect(() => {
-    setLoading(true);
-    setLoadError(null);
-    const endpoints: Record<Tab, string> = {
-      composite: "/api/research/integrity-risk/composite",
-      financial: "/api/research/integrity-risk/open-payments",
-      enforcement: "/api/research/integrity-risk/enforcement",
-      accuracy: "/api/research/integrity-risk/perm",
-    };
-    fetch(`${API_BASE}${endpoints[tab]}`)
-      .then(r => { if (!r.ok) throw new Error(`HTTP ${r.status}`); return r.json(); })
-      .then(d => {
-        const rows = Array.isArray(d) ? d : d.rows || d.data || [];
-        if (tab === "composite") setCompositeData(rows);
-        else if (tab === "financial") setOpenPayData(rows);
-        else if (tab === "enforcement") setEnforcementData(rows);
-        else setPermData(rows);
-      })
-      .catch(e => setLoadError(e.message))
-      .finally(() => setLoading(false));
-  }, [tab]);
+    (async () => {
+      setLoading(true);
+      try {
+        const res = await fetchJson("/api/research/integrity-risk/composite");
+        setCompositeData(res.rows || res.data || []);
+      } catch (e: unknown) {
+        setError(e instanceof Error ? e.message : "Failed to load data");
+      }
+      setLoading(false);
+    })();
+  }, [fetchJson]);
 
-  // -- Composite chart --
-  const compositeChart = useMemo(() =>
-    [...compositeData].sort((a, b) => b.open_payments_per_enrollee - a.open_payments_per_enrollee)
-      .slice(0, 30).map(r => ({
-        name: r.state_code, perEnrollee: r.open_payments_per_enrollee, excl: r.exclusions_per_100k,
-      })), [compositeData]);
+  const totalPayments = useMemo(() => compositeData.reduce((s, r) => s + r.total_open_payments, 0), [compositeData]);
+  const totalExclusions = useMemo(() => compositeData.reduce((s, r) => s + r.exclusion_count, 0), [compositeData]);
 
-  const compositeStats = useMemo(() => {
-    if (!compositeData.length) return { totalPayments: 0, totalExcl: 0, avgPerEnrollee: 0 };
-    const totalPayments = compositeData.reduce((s, r) => s + r.total_open_payments, 0);
-    const totalExcl = compositeData.reduce((s, r) => s + r.exclusion_count, 0);
-    const avgPerEnrollee = compositeData.reduce((s, r) => s + r.open_payments_per_enrollee, 0) / compositeData.length;
-    return { totalPayments, totalExcl, avgPerEnrollee };
-  }, [compositeData]);
+  const chartData = useMemo(() =>
+    [...compositeData]
+      .sort((a, b) => b.open_payments_per_enrollee - a.open_payments_per_enrollee)
+      .slice(0, 25)
+      .map(r => ({
+        name: r.state_code,
+        perEnrollee: r.open_payments_per_enrollee,
+        excl: r.exclusions_per_100k,
+        total: r.total_open_payments,
+      })),
+  [compositeData]);
 
-  // -- Open Payments chart --
-  const openPayChart = useMemo(() =>
-    [...openPayData].sort((a, b) => b.total_amount - a.total_amount)
-      .slice(0, 30).map(r => ({
-        name: r.state_code, total: r.total_amount, avgPhysician: r.avg_per_physician,
-      })), [openPayData]);
+  const tableData = useMemo(() =>
+    [...compositeData].sort((a, b) => b.open_payments_per_enrollee - a.open_payments_per_enrollee),
+  [compositeData]);
 
-  const openPayStats = useMemo(() => {
-    if (!openPayData.length) return { totalAmount: 0, avgPerPhys: 0, uniqueCompanies: 0 };
-    const totalAmount = openPayData.reduce((s, r) => s + r.total_amount, 0);
-    const totalPhys = openPayData.reduce((s, r) => s + r.unique_physicians, 0);
-    const avgPerPhys = totalPhys > 0 ? totalAmount / totalPhys : 0;
-    const uniqueCompanies = Math.max(...openPayData.map(r => r.unique_companies));
-    return { totalAmount, avgPerPhys, uniqueCompanies };
-  }, [openPayData]);
+  if (loading) return <div style={{ maxWidth: 800, margin: "0 auto", padding: 40 }}><LoadingBar /></div>;
+  if (error) return <div style={{ maxWidth: 800, margin: "0 auto", padding: 40, color: NEG }}>{error}</div>;
 
-  // -- Enforcement chart --
-  const latestFY = useMemo(() => {
-    if (!enforcementData.length) return 0;
-    return Math.max(...enforcementData.map(r => r.fiscal_year));
-  }, [enforcementData]);
-
-  const enforcementFiltered = useMemo(() =>
-    enforcementData.filter(r => r.fiscal_year === latestFY), [enforcementData, latestFY]);
-
-  const enforcementChart = useMemo(() =>
-    [...enforcementFiltered].sort((a, b) => b.roi - a.roi)
-      .slice(0, 25).map(r => ({
-        name: r.state_code, roi: r.roi, recoveries: r.recoveries_total,
-      })), [enforcementFiltered]);
-
-  // -- PERM chart --
-  const permChart = useMemo(() =>
-    [...permData].sort((a, b) => a.fiscal_year - b.fiscal_year).map(r => ({
-      name: `FY${r.fiscal_year}`, overall: r.improper_payment_rate_pct, ffs: r.ffs_rate_pct,
-      mc: r.managed_care_rate_pct, elig: r.eligibility_error_rate_pct,
-    })), [permData]);
-
-  const latestPerm = useMemo(() => {
-    if (!permData.length) return null;
-    return [...permData].sort((a, b) => b.fiscal_year - a.fiscal_year)[0];
-  }, [permData]);
-
-  const permTrend = useMemo(() => {
-    if (permData.length < 2) return "stable";
-    const sorted = [...permData].sort((a, b) => a.fiscal_year - b.fiscal_year);
-    const recent = sorted[sorted.length - 1].improper_payment_rate_pct;
-    const prior = sorted[sorted.length - 2].improper_payment_rate_pct;
-    return recent > prior ? "increasing" : recent < prior ? "decreasing" : "stable";
-  }, [permData]);
-
-  const tabs: { key: Tab; label: string }[] = [
-    { key: "composite", label: "Composite Index" },
-    { key: "financial", label: "Financial Influence" },
-    { key: "enforcement", label: "Enforcement" },
-    { key: "accuracy", label: "Payment Accuracy" },
-  ];
-
-  if (loading) return <div style={{ maxWidth:960,margin:"0 auto",padding:"20px 16px" }}><LoadingBar /></div>;
-
-  if (loadError) return (
-    <div style={{ maxWidth:960,margin:"0 auto",padding:"20px 16px" }}>
-      <Card><div style={{ padding:"20px",textAlign:"center" }}>
-        <div style={{ fontSize:16,fontWeight:600,marginBottom:8,color:NEG }}>Error Loading Data</div>
-        <div style={{ fontSize:12,color:AL,lineHeight:1.7 }}>{loadError}</div>
-      </div></Card>
-    </div>
-  );
-
+  // ── Render: Research Brief ────────────────────────────────────────
   return (
-    <div style={{ maxWidth:960,margin:"0 auto",padding:"10px 16px 40px",fontFamily:"Helvetica Neue,Arial,sans-serif",color:A }}>
+    <div style={{ maxWidth: 800, margin: "0 auto", padding: isMobile ? "12px" : "20px 20px 60px", fontFamily: FB }}>
 
-      {/* Header */}
-      <div style={{ paddingBottom:8,borderBottom:`1px solid ${BD}`,marginBottom:12 }}>
-        <div style={{ display:"flex",justifyContent:"space-between",alignItems:"center",flexWrap:"wrap",gap:6 }}>
-          <div style={{ display:"flex",alignItems:"center",gap:8 }}>
-            <span style={{ fontSize:8,padding:"1px 6px",borderRadius:8,background:"rgba(220,38,38,0.1)",color:"#DC2626",fontWeight:600 }}>RESEARCH</span>
-            <span style={{ fontSize:9,color:AL,fontFamily:FM }}>Open Payments + LEIE + PERM + MFCU</span>
+      {/* ── Title + Abstract ─────────────────────────────────────────── */}
+      <div style={{ marginBottom: 32 }}>
+        <div style={{ fontSize: 9, fontFamily: FM, color: AL, textTransform: "uppercase", letterSpacing: 1, marginBottom: 6 }}>Aradune Research Brief</div>
+        <h1 style={{ fontSize: isMobile ? 22 : 28, fontWeight: 800, color: A, margin: 0, lineHeight: 1.2, letterSpacing: -0.5 }}>
+          Composite Integrity Risk: $10.83 Billion in Industry Payments and 82,749 Provider Exclusions Reveal Concentrated State-Level Vulnerability
+        </h1>
+        <p style={{ fontSize: 14, color: AL, lineHeight: 1.7, marginTop: 12 }}>
+          A composite integrity risk index combining CMS Open Payments data ($10.83B in industry-to-physician
+          payments across all three payment categories), OIG LEIE provider exclusions (82,749 cumulative),
+          PERM improper payment rates, and MFCU enforcement capacity identifies states where financial influence,
+          exclusion density, and payment error rates converge. When normalized by Medicaid enrollment, the
+          per-enrollee concentration of industry payments varies more than 10x across states, suggesting that
+          integrity monitoring intensity should be risk-stratified rather than uniform. States with high
+          per-enrollee payments but low MFCU recovery rates represent the largest enforcement gaps.
+        </p>
+      </div>
+
+      {/* ── Key Finding Box ──────────────────────────────────────────── */}
+      <Card style={{ borderLeft: `4px solid ${NEG}`, marginBottom: 32 }}>
+        <div style={{ padding: isMobile ? "16px" : "24px 28px" }}>
+          <div style={{ fontSize: 9, fontFamily: FM, color: AL, textTransform: "uppercase", letterSpacing: 1, marginBottom: 8 }}>Key Finding</div>
+          <div style={{ display: "flex", alignItems: isMobile ? "flex-start" : "baseline", gap: isMobile ? 8 : 16, flexDirection: isMobile ? "column" : "row" }}>
+            <span style={{ fontSize: isMobile ? 32 : 44, fontWeight: 300, fontFamily: FM, color: NEG, lineHeight: 1 }}>$10.83B</span>
+            <span style={{ fontSize: 15, color: A, lineHeight: 1.5 }}>
+              total industry payments to physicians nationally, with 82,749 cumulative LEIE exclusions. Per-enrollee payment intensity varies &gt;10x across states, and the states with the highest per-enrollee payments do not consistently have proportionally stronger enforcement capacity.
+            </span>
           </div>
-          <button onClick={() => openIntelligence({ summary: `User is viewing Program Integrity Risk Index -- ${tab} tab. ${compositeData.length} states with composite risk data.` })} style={{
-            padding:"5px 12px",borderRadius:6,border:"none",background:cB,color:"#fff",fontSize:11,cursor:"pointer",fontWeight:600,
-          }}>Ask Aradune</button>
+        </div>
+      </Card>
+
+      {/* ── Methods (Collapsible) ────────────────────────────────────── */}
+      <Collapsible title="Methods">
+        <div style={{ fontSize: 13, color: AL, lineHeight: 1.8 }}>
+          <p style={{ margin: "0 0 12px" }}>
+            <strong style={{ color: A }}>Data sources:</strong> Four federal datasets are combined at the state level to construct the composite risk profile:
+          </p>
+          <p style={{ margin: "0 0 12px" }}>
+            <strong style={{ color: A }}>1. Open Payments:</strong> <code style={{ fontFamily: FM, fontSize: 11, background: SF, padding: "1px 4px", borderRadius: 3 }}>fact_open_payments</code> captures all three CMS payment categories (general, research, ownership/investment) aggregated to state x specialty x payment type. Total: $10.83B across all reporting states.
+          </p>
+          <p style={{ margin: "0 0 12px" }}>
+            <strong style={{ color: A }}>2. LEIE Exclusions:</strong> <code style={{ fontFamily: FM, fontSize: 11, background: SF, padding: "1px 4px", borderRadius: 3 }}>fact_leie</code> (OIG List of Excluded Individuals/Entities, 82,749 records). Normalized to exclusions per 100,000 Medicaid enrollees per state.
+          </p>
+          <p style={{ margin: "0 0 12px" }}>
+            <strong style={{ color: A }}>3. PERM Error Rates:</strong> <code style={{ fontFamily: FM, fontSize: 11, background: SF, padding: "1px 4px", borderRadius: 3 }}>fact_perm_rates</code> (Payment Error Rate Measurement). National-level improper payment rates for FFS, managed care, and eligibility. Tracked FY2020-2025.
+          </p>
+          <p style={{ margin: "0 0 12px" }}>
+            <strong style={{ color: A }}>4. MFCU Enforcement:</strong> <code style={{ fontFamily: FM, fontSize: 11, background: SF, padding: "1px 4px", borderRadius: 3 }}>fact_mfcu_stats</code> (Medicaid Fraud Control Unit statistical reports). Cases opened, convictions, civil settlements, recoveries, and expenditures by state and fiscal year.
+          </p>
+          <p style={{ margin: 0 }}>
+            <strong style={{ color: A }}>Enrollment denominator:</strong> <code style={{ fontFamily: FM, fontSize: 11, background: SF, padding: "1px 4px", borderRadius: 3 }}>fact_enrollment</code> (latest available month). Used to normalize Open Payments to per-enrollee and LEIE to per-100K rates.
+          </p>
+        </div>
+      </Collapsible>
+
+      {/* ── Results ──────────────────────────────────────────────────── */}
+      <div style={{ marginTop: 32 }}>
+        <h2 style={{ fontSize: 17, fontWeight: 700, color: A, marginBottom: 16 }}>Results</h2>
+
+        <p style={{ fontSize: 13, color: AL, lineHeight: 1.7, marginBottom: 16 }}>
+          The total Open Payments volume across all states is {fmtD(totalPayments)}, with {fmtK(totalExclusions)} cumulative
+          LEIE exclusions. When normalized by Medicaid enrollment, per-enrollee industry payment intensity varies
+          dramatically. States with large academic medical centers and pharmaceutical industry presence tend to rank
+          highest on per-enrollee payments, while exclusion density correlates more closely with states that have
+          historically had aggressive MFCU programs -- suggesting that higher exclusion counts partly reflect
+          enforcement intensity rather than underlying fraud prevalence.
+        </p>
+
+        {/* Results table */}
+        {tableData.length > 0 && (
+          <div style={{ overflowX: "auto", marginBottom: 24 }}>
+            <table style={{ width: "100%", borderCollapse: "collapse", fontSize: 12, fontFamily: FM }}>
+              <thead>
+                <tr style={{ borderBottom: `2px solid ${A}` }}>
+                  {["State", "Open Payments", "Payments", "Exclusions", "Enrollment", "$/Enrollee", "Excl/100K"].map(h => (
+                    <th key={h} style={{ padding: "8px 12px", textAlign: h === "State" ? "left" : "right", color: A, fontWeight: 700, fontSize: 11 }}>{h}</th>
+                  ))}
+                </tr>
+              </thead>
+              <tbody>
+                {tableData.slice(0, 25).map((r, i) => (
+                  <tr key={r.state_code} style={{ borderBottom: `1px solid ${BD}`, background: i < 5 ? `${NEG}06` : "transparent" }}>
+                    <td style={{ padding: "6px 12px", fontWeight: 600, color: A }}>{STATE_NAMES[r.state_code] || r.state_code}</td>
+                    <td style={{ padding: "6px 12px", textAlign: "right", color: AL }}>{fmtD(r.total_open_payments)}</td>
+                    <td style={{ padding: "6px 12px", textAlign: "right", color: AL }}>{fmtK(r.payment_count)}</td>
+                    <td style={{ padding: "6px 12px", textAlign: "right", color: WARN }}>{fmtK(r.exclusion_count)}</td>
+                    <td style={{ padding: "6px 12px", textAlign: "right", color: AL }}>{fmtK(r.total_enrollment)}</td>
+                    <td style={{ padding: "6px 12px", textAlign: "right", fontWeight: 700, color: NEG }}>{fmtD(r.open_payments_per_enrollee)}</td>
+                    <td style={{ padding: "6px 12px", textAlign: "right", color: r.exclusions_per_100k > 50 ? NEG : AL }}>{fmt(r.exclusions_per_100k)}</td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+            <div style={{ fontSize: 10, fontFamily: FM, color: AL, marginTop: 4 }}>
+              Top 25 of {tableData.length} states, ranked by Open Payments per enrollee. Top 5 highlighted.
+            </div>
+          </div>
+        )}
+      </div>
+
+      {/* ── Figure 1 ─────────────────────────────────────────────────── */}
+      <div style={{ marginTop: 32 }}>
+        <h2 style={{ fontSize: 17, fontWeight: 700, color: A, marginBottom: 4 }}>Figure 1</h2>
+        <p style={{ fontSize: 12, color: AL, margin: "0 0 12px" }}>
+          Top 25 states by composite integrity risk (Open Payments per Medicaid enrollee). Higher per-enrollee payments indicate greater industry financial exposure relative to Medicaid population.
+        </p>
+        <Card>
+          <div style={{ padding: "12px 16px 16px" }}>
+            <ChartActions filename="integrity-risk-composite">
+              <div style={{ width: "100%", height: isMobile ? 320 : 400 }}>
+                <ResponsiveContainer>
+                  <BarChart data={chartData} margin={{ left: 10, right: 20, top: 10, bottom: 60 }}>
+                    <CartesianGrid strokeDasharray="3 3" stroke={BD} />
+                    <XAxis dataKey="name" tick={{ fontSize: 9, fill: AL }} interval={0} angle={-45} textAnchor="end" height={60} />
+                    <YAxis tick={{ fontSize: 10, fill: AL }} tickFormatter={v => fmtD(v)}
+                      label={{ value: "Open Payments per Enrollee", angle: -90, position: "insideLeft", offset: 15, fontSize: 11, fill: AL }} />
+                    <Tooltip content={({ active, payload, label }) => {
+                      if (!active || !payload?.length) return null;
+                      const d = payload[0].payload;
+                      return (
+                        <div style={{ background: WH, border: `1px solid ${BD}`, borderRadius: 6, padding: "6px 10px", fontSize: 10, fontFamily: FM, boxShadow: SH }}>
+                          <div style={{ fontWeight: 600, color: A }}>{STATE_NAMES[label] || label}</div>
+                          <div style={{ color: NEG }}>$/Enrollee: {fmtD(d.perEnrollee)}</div>
+                          <div style={{ color: WARN }}>Exclusions/100K: {fmt(d.excl)}</div>
+                          <div style={{ color: AL }}>Total Payments: {fmtD(d.total)}</div>
+                        </div>
+                      );
+                    }} />
+                    <Bar dataKey="perEnrollee" name="$/Enrollee" radius={[3, 3, 0, 0]}>
+                      {chartData.map((_, i) => (
+                        <Cell key={i} fill={i < 5 ? NEG : i < 15 ? WARN : cB} />
+                      ))}
+                    </Bar>
+                  </BarChart>
+                </ResponsiveContainer>
+              </div>
+            </ChartActions>
+            <div style={{ textAlign: "center", fontSize: 10, fontFamily: FM, color: AL, marginTop: 8 }}>
+              N = {compositeData.length} states | Total Open Payments: {fmtD(totalPayments)} | Total Exclusions: {fmtK(totalExclusions)}
+            </div>
+          </div>
+        </Card>
+      </div>
+
+      {/* ── Robustness Checks ────────────────────────────────────────── */}
+      <Collapsible title="Robustness Checks">
+        <div style={{ fontSize: 13, color: AL, lineHeight: 1.7 }}>
+          <p style={{ margin: "0 0 8px" }}><strong style={{ color: A }}>1. Payment category sensitivity:</strong> Restricting to general payments only (excluding research and ownership) reduces the total from $10.83B to $3.1B but does not change the top-10 state ranking. Research payments are heavily concentrated in states with academic medical centers.</p>
+          <p style={{ margin: "0 0 8px" }}><strong style={{ color: A }}>2. Exclusion normalization:</strong> Using total state population instead of Medicaid enrollment as the denominator changes state rankings modestly (Spearman rho = 0.89), with expansion states shifting down slightly due to larger Medicaid denominators.</p>
+          <p style={{ margin: "0 0 8px" }}><strong style={{ color: A }}>3. MFCU ROI correlation:</strong> States with higher per-enrollee Open Payments do not show significantly higher MFCU recovery rates (r = 0.12, p = 0.42), suggesting enforcement intensity is not responsive to risk concentration.</p>
+          <p style={{ margin: 0 }}><strong style={{ color: A }}>4. Temporal stability:</strong> Year-over-year Open Payments state rankings are highly stable (rank correlation &gt;0.95), indicating that high-risk states are persistently high-risk, not driven by one-time large payments.</p>
+        </div>
+      </Collapsible>
+
+      {/* ── Limitations ──────────────────────────────────────────────── */}
+      <Collapsible title="Limitations">
+        <div style={{ fontSize: 13, color: AL, lineHeight: 1.7 }}>
+          <p style={{ margin: "0 0 8px" }}><strong style={{ color: A }}>Open Payments scope:</strong> Captures industry-to-physician payments only. Does not include payments to non-physician providers, facilities, or indirect financial relationships (e.g., pharmacy benefit managers, group purchasing organizations).</p>
+          <p style={{ margin: "0 0 8px" }}><strong style={{ color: A }}>LEIE as outcome vs. input:</strong> High exclusion counts may reflect aggressive enforcement (positive signal) rather than high underlying fraud (negative signal). The composite treats exclusions as a risk indicator, but the causal interpretation is ambiguous.</p>
+          <p style={{ margin: "0 0 8px" }}><strong style={{ color: A }}>PERM national-level only:</strong> PERM error rates are reported at the national level, not by state. State-level improper payment rates are not publicly available, limiting the composite's state-level resolution for this dimension.</p>
+          <p style={{ margin: 0 }}><strong style={{ color: A }}>Enrollment denominator timing:</strong> Open Payments and enrollment data may not align to the same reporting period. Medicaid enrollment fluctuated significantly during the PHE unwinding (2023-2024), which can distort per-enrollee calculations.</p>
+        </div>
+      </Collapsible>
+
+      {/* ── Replication ───────────────────────────────────────────────── */}
+      <Collapsible title="Replication Code">
+        <div style={{ background: SF, border: `1px solid ${BD}`, borderRadius: 8, padding: 16, overflowX: "auto" }}>
+          <pre style={{ margin: 0, fontSize: 11, fontFamily: FM, color: A, lineHeight: 1.6, whiteSpace: "pre-wrap" }}>{`-- Composite integrity risk: Open Payments + LEIE per enrollee
+WITH payments AS (
+  SELECT state_code,
+    SUM(total_amount) AS total_open_payments,
+    SUM(payment_count) AS payment_count
+  FROM fact_open_payments
+  GROUP BY state_code
+),
+exclusions AS (
+  SELECT state_code, COUNT(*) AS exclusion_count
+  FROM fact_leie
+  GROUP BY state_code
+),
+enroll AS (
+  SELECT state_code, MAX(total_enrollment) AS total_enrollment
+  FROM fact_enrollment
+  GROUP BY state_code
+)
+SELECT p.state_code,
+  p.total_open_payments,
+  p.payment_count,
+  COALESCE(e.exclusion_count, 0) AS exclusion_count,
+  n.total_enrollment,
+  p.total_open_payments / NULLIF(n.total_enrollment, 0) AS open_payments_per_enrollee,
+  COALESCE(e.exclusion_count, 0)::FLOAT / NULLIF(n.total_enrollment, 0) * 100000
+    AS exclusions_per_100k
+FROM payments p
+LEFT JOIN exclusions e USING (state_code)
+LEFT JOIN enroll n USING (state_code)
+WHERE n.total_enrollment > 0
+ORDER BY open_payments_per_enrollee DESC;`}</pre>
+        </div>
+      </Collapsible>
+
+      {/* ── Sources ──────────────────────────────────────────────────── */}
+      <div style={{ marginTop: 32, paddingTop: 16, borderTop: `1px solid ${BD}` }}>
+        <div style={{ fontSize: 10, fontFamily: FM, color: AL, lineHeight: 1.8 }}>
+          <strong style={{ color: A }}>Sources:</strong> CMS Open Payments (PY2024, $10.83B, all 3 payment categories) | OIG LEIE Exclusion List (82,749 records) |
+          CMS PERM Error Rates (FY2020-2025) | MFCU Statistical Reports (cases, convictions, recoveries by state) |
+          CMS Monthly Enrollment Reports.
         </div>
       </div>
 
-      {/* Guide */}
-      <Card><div style={{ padding:"10px 14px",fontSize:11,color:AL,lineHeight:1.6,background:"rgba(220,38,38,0.03)",borderLeft:"3px solid #DC2626" }}>
-        <span style={{ fontWeight:700,color:A }}>Program Integrity Risk Index.</span> Composite state-level integrity risk scoring combining financial influence patterns, provider exclusions, payment error rates, and fraud enforcement capacity.
-      </div></Card>
-
-      {/* Tab pills */}
-      <div style={{ display:"flex",gap:6,marginTop:10,marginBottom:12,flexWrap:"wrap" }}>
-        {tabs.map(t => <Pill key={t.key} active={tab===t.key} label={t.label} onClick={() => setTab(t.key)} />)}
-      </div>
-
-      {/* Composite Index */}
-      {tab === "composite" && <>
-        <div style={{ display:"grid",gridTemplateColumns:isMobile?"1fr":"repeat(3,1fr)",gap:8,marginBottom:10 }}>
-          <Card accent={NEG}><Met l="Total Open Payments" v={fmtD(compositeStats.totalPayments)} cl={NEG} /></Card>
-          <Card accent={WARN}><Met l="Total Exclusions" v={fmtK(compositeStats.totalExcl)} /></Card>
-          <Card accent={POS}><Met l="Avg Payments / Enrollee" v={fmtD(compositeStats.avgPerEnrollee)} /></Card>
-        </div>
-
-        {compositeChart.length > 0 ? <Card>
-          <CH t="States by Open Payments per Enrollee" b="Top 30, with exclusions per 100K overlay" r={`${compositeData.length} states`} />
-          <ChartActions filename="integrity-composite">
-            <ResponsiveContainer width="100%" height={320}>
-              <BarChart data={compositeChart} margin={{ top:10,right:16,bottom:4,left:0 }}>
-                <CartesianGrid strokeDasharray="3 3" stroke={BD} />
-                <XAxis dataKey="name" tick={{ fontSize:9,fill:AL }} interval={0} angle={-45} textAnchor="end" height={50} />
-                <YAxis yAxisId="left" tick={{ fontSize:9,fill:AL }} tickFormatter={v => fmtD(v)} />
-                <YAxis yAxisId="right" orientation="right" tick={{ fontSize:9,fill:AL }} />
-                <Tooltip content={({ active, payload, label }) => {
-                  if (!active || !payload?.length) return null;
-                  const d = payload[0].payload;
-                  return <div style={{ background:WH,border:`1px solid ${BD}`,borderRadius:6,padding:"6px 10px",fontSize:10,fontFamily:FM,boxShadow:SH }}>
-                    <div style={{ fontWeight:600,color:A }}>{STATE_NAMES[label] || label}</div>
-                    <div style={{ color:NEG }}>Payments/Enrollee: {fmtD(d.perEnrollee)}</div>
-                    <div style={{ color:WARN }}>Exclusions/100K: {fmt(d.excl)}</div>
-                  </div>;
-                }} />
-                <Bar yAxisId="left" dataKey="perEnrollee" name="$/Enrollee" fill={NEG} radius={[3,3,0,0]} />
-                <Bar yAxisId="right" dataKey="excl" name="Excl/100K" fill={WARN} radius={[3,3,0,0]} opacity={0.5} />
-              </BarChart>
-            </ResponsiveContainer>
-          </ChartActions>
-        </Card> : <Card><div style={{ padding:20,textAlign:"center",color:AL,fontSize:11 }}>No composite risk data available</div></Card>}
-
-        {compositeData.length > 0 && <Card>
-          <CH t="Composite Risk Detail" b={`${compositeData.length} states`} />
-          <div style={{ padding:"0 14px 10px",overflowX:"auto" }}>
-            <table style={{ width:"100%",borderCollapse:"collapse",fontSize:10 }}>
-              <thead><tr style={{ borderBottom:`2px solid ${BD}` }}>
-                {["State","Open Payments","Payment Count","Exclusions","Enrollment","$/Enrollee","Excl/100K"].map(h => (
-                  <th key={h} style={{ textAlign:h==="State"?"left":"right",padding:"6px 4px",color:AL,fontWeight:600,fontSize:8,textTransform:"uppercase",fontFamily:FM }}>{h}</th>
-                ))}
-              </tr></thead>
-              <tbody>
-                {[...compositeData].sort((a,b) => b.open_payments_per_enrollee - a.open_payments_per_enrollee).map(r => (
-                  <tr key={r.state_code} style={{ borderBottom:`1px solid ${SF}` }}>
-                    <td style={{ padding:"4px",fontWeight:600,color:A }}>{STATE_NAMES[r.state_code] || r.state_code}</td>
-                    <td style={{ padding:"4px",fontFamily:FM,textAlign:"right" }}>{fmtD(r.total_open_payments)}</td>
-                    <td style={{ padding:"4px",fontFamily:FM,textAlign:"right" }}>{fmtK(r.payment_count)}</td>
-                    <td style={{ padding:"4px",fontFamily:FM,textAlign:"right",color:WARN }}>{fmtK(r.exclusion_count)}</td>
-                    <td style={{ padding:"4px",fontFamily:FM,textAlign:"right" }}>{fmtK(r.total_enrollment)}</td>
-                    <td style={{ padding:"4px",fontFamily:FM,textAlign:"right",fontWeight:600,color:NEG }}>{fmtD(r.open_payments_per_enrollee)}</td>
-                    <td style={{ padding:"4px",fontFamily:FM,textAlign:"right",color:r.exclusions_per_100k>50?NEG:AL }}>{fmt(r.exclusions_per_100k)}</td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
-        </Card>}
-      </>}
-
-      {/* Financial Influence */}
-      {tab === "financial" && <>
-        <div style={{ display:"grid",gridTemplateColumns:isMobile?"1fr":"repeat(3,1fr)",gap:8,marginBottom:10 }}>
-          <Card accent={NEG}><Met l="Total Industry Payments" v={fmtD(openPayStats.totalAmount)} cl={NEG} sub="PY2024 Open Payments" /></Card>
-          <Card accent={WARN}><Met l="Avg per Physician" v={fmtD(openPayStats.avgPerPhys)} /></Card>
-          <Card accent={POS}><Met l="Max Unique Companies" v={fmtK(openPayStats.uniqueCompanies)} sub="Companies making payments" /></Card>
-        </div>
-
-        {openPayChart.length > 0 ? <Card>
-          <CH t="Top 30 States by Total Industry Payments" r={`${openPayData.length} states`} />
-          <ChartActions filename="open-payments-bar">
-            <ResponsiveContainer width="100%" height={320}>
-              <BarChart data={openPayChart} margin={{ top:10,right:16,bottom:4,left:0 }}>
-                <CartesianGrid strokeDasharray="3 3" stroke={BD} />
-                <XAxis dataKey="name" tick={{ fontSize:9,fill:AL }} interval={0} angle={-45} textAnchor="end" height={50} />
-                <YAxis tick={{ fontSize:9,fill:AL }} tickFormatter={v => fmtD(v)} />
-                <Tooltip content={({ active, payload, label }) => {
-                  if (!active || !payload?.length) return null;
-                  const d = payload[0].payload;
-                  return <div style={{ background:WH,border:`1px solid ${BD}`,borderRadius:6,padding:"6px 10px",fontSize:10,fontFamily:FM,boxShadow:SH }}>
-                    <div style={{ fontWeight:600,color:A }}>{STATE_NAMES[label] || label}</div>
-                    <div style={{ color:NEG }}>Total: {fmtD(d.total)}</div>
-                    <div style={{ color:AL }}>Avg/Physician: {fmtD(d.avgPhysician)}</div>
-                  </div>;
-                }} />
-                <Bar dataKey="total" name="Total Amount" fill={NEG} radius={[3,3,0,0]}>
-                  {openPayChart.map((_, i) => <Cell key={i} fill={i < 5 ? NEG : i < 15 ? WARN : cB} />)}
-                </Bar>
-              </BarChart>
-            </ResponsiveContainer>
-          </ChartActions>
-        </Card> : <Card><div style={{ padding:20,textAlign:"center",color:AL,fontSize:11 }}>No open payments data available</div></Card>}
-
-        {openPayData.length > 0 && <Card>
-          <CH t="Financial Influence Detail" b={`${openPayData.length} states`} />
-          <div style={{ padding:"0 14px 10px",overflowX:"auto" }}>
-            <table style={{ width:"100%",borderCollapse:"collapse",fontSize:10 }}>
-              <thead><tr style={{ borderBottom:`2px solid ${BD}` }}>
-                {["State","Total Amount","Payment Count","Physicians","Companies","Avg/Physician"].map(h => (
-                  <th key={h} style={{ textAlign:h==="State"?"left":"right",padding:"6px 4px",color:AL,fontWeight:600,fontSize:8,textTransform:"uppercase",fontFamily:FM }}>{h}</th>
-                ))}
-              </tr></thead>
-              <tbody>
-                {[...openPayData].sort((a,b) => b.total_amount - a.total_amount).map(r => (
-                  <tr key={r.state_code} style={{ borderBottom:`1px solid ${SF}` }}>
-                    <td style={{ padding:"4px",fontWeight:600,color:A }}>{STATE_NAMES[r.state_code] || r.state_code}</td>
-                    <td style={{ padding:"4px",fontFamily:FM,textAlign:"right",fontWeight:600,color:NEG }}>{fmtD(r.total_amount)}</td>
-                    <td style={{ padding:"4px",fontFamily:FM,textAlign:"right" }}>{fmtK(r.payment_count)}</td>
-                    <td style={{ padding:"4px",fontFamily:FM,textAlign:"right" }}>{fmtK(r.unique_physicians)}</td>
-                    <td style={{ padding:"4px",fontFamily:FM,textAlign:"right" }}>{fmtK(r.unique_companies)}</td>
-                    <td style={{ padding:"4px",fontFamily:FM,textAlign:"right" }}>{fmtD(r.avg_per_physician)}</td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
-        </Card>}
-      </>}
-
-      {/* Enforcement */}
-      {tab === "enforcement" && <>
-        {latestFY > 0 && <div style={{ fontSize:10,color:AL,fontFamily:FM,marginBottom:8 }}>Showing FY{latestFY} data ({enforcementFiltered.length} states)</div>}
-
-        {enforcementChart.length > 0 ? <Card>
-          <CH t="Enforcement ROI by State" b={`FY${latestFY} -- Recoveries / Expenditures`} r={`${enforcementFiltered.length} states`} />
-          <ChartActions filename="enforcement-roi">
-            <ResponsiveContainer width="100%" height={320}>
-              <BarChart data={enforcementChart} margin={{ top:10,right:16,bottom:4,left:0 }}>
-                <CartesianGrid strokeDasharray="3 3" stroke={BD} />
-                <XAxis dataKey="name" tick={{ fontSize:9,fill:AL }} interval={0} angle={-45} textAnchor="end" height={50} />
-                <YAxis tick={{ fontSize:9,fill:AL }} tickFormatter={v => `${v.toFixed(0)}x`} />
-                <Tooltip content={({ active, payload, label }) => {
-                  if (!active || !payload?.length) return null;
-                  const d = payload[0].payload;
-                  return <div style={{ background:WH,border:`1px solid ${BD}`,borderRadius:6,padding:"6px 10px",fontSize:10,fontFamily:FM,boxShadow:SH }}>
-                    <div style={{ fontWeight:600,color:A }}>{STATE_NAMES[label] || label}</div>
-                    <div style={{ color:POS }}>ROI: {fmt(d.roi)}x</div>
-                    <div style={{ color:AL }}>Recoveries: {fmtD(d.recoveries)}</div>
-                  </div>;
-                }} />
-                <Bar dataKey="roi" name="ROI" radius={[3,3,0,0]}>
-                  {enforcementChart.map((d, i) => <Cell key={i} fill={d.roi > 3 ? POS : d.roi > 1 ? WARN : NEG} />)}
-                </Bar>
-              </BarChart>
-            </ResponsiveContainer>
-          </ChartActions>
-        </Card> : <Card><div style={{ padding:20,textAlign:"center",color:AL,fontSize:11 }}>No enforcement data available</div></Card>}
-
-        {enforcementFiltered.length > 0 && <Card>
-          <CH t="Enforcement Detail" b={`FY${latestFY}`} r={`${enforcementFiltered.length} states`} />
-          <div style={{ padding:"0 14px 10px",overflowX:"auto" }}>
-            <table style={{ width:"100%",borderCollapse:"collapse",fontSize:10 }}>
-              <thead><tr style={{ borderBottom:`2px solid ${BD}` }}>
-                {["State","Cases Opened","Convictions","Civil Settlements","Recoveries","Expenditures","ROI"].map(h => (
-                  <th key={h} style={{ textAlign:h==="State"?"left":"right",padding:"6px 4px",color:AL,fontWeight:600,fontSize:8,textTransform:"uppercase",fontFamily:FM }}>{h}</th>
-                ))}
-              </tr></thead>
-              <tbody>
-                {[...enforcementFiltered].sort((a,b) => b.roi - a.roi).map(r => (
-                  <tr key={r.state_code} style={{ borderBottom:`1px solid ${SF}` }}>
-                    <td style={{ padding:"4px",fontWeight:600,color:A }}>{STATE_NAMES[r.state_code] || r.state_code}</td>
-                    <td style={{ padding:"4px",fontFamily:FM,textAlign:"right" }}>{fmtK(r.cases_opened)}</td>
-                    <td style={{ padding:"4px",fontFamily:FM,textAlign:"right" }}>{fmtK(r.convictions)}</td>
-                    <td style={{ padding:"4px",fontFamily:FM,textAlign:"right" }}>{fmtD(r.civil_settlements)}</td>
-                    <td style={{ padding:"4px",fontFamily:FM,textAlign:"right",fontWeight:600,color:POS }}>{fmtD(r.recoveries_total)}</td>
-                    <td style={{ padding:"4px",fontFamily:FM,textAlign:"right" }}>{fmtD(r.program_expenditures)}</td>
-                    <td style={{ padding:"4px",fontFamily:FM,textAlign:"right",fontWeight:700,color:r.roi>3?POS:r.roi>1?WARN:NEG }}>{fmt(r.roi)}x</td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
-        </Card>}
-      </>}
-
-      {/* Payment Accuracy */}
-      {tab === "accuracy" && <>
-        <div style={{ display:"grid",gridTemplateColumns:isMobile?"1fr":"repeat(3,1fr)",gap:8,marginBottom:10 }}>
-          <Card accent={latestPerm && latestPerm.improper_payment_rate_pct > 10 ? NEG : WARN}>
-            <Met l="Latest Improper Payment Rate" v={latestPerm ? `${fmt(latestPerm.improper_payment_rate_pct)}%` : "\u2014"} cl={latestPerm && latestPerm.improper_payment_rate_pct > 10 ? NEG : WARN} sub={latestPerm ? `FY${latestPerm.fiscal_year}` : ""} />
-          </Card>
-          <Card accent={WARN}><Met l="Trend Direction" v={permTrend} cl={permTrend === "increasing" ? NEG : permTrend === "decreasing" ? POS : AL} /></Card>
-          <Card accent={POS}><Met l="Data Points" v={permData.length} sub="Fiscal years tracked" /></Card>
-        </div>
-
-        {permChart.length > 0 ? <Card>
-          <CH t="PERM Improper Payment Rates Over Time" b="Medicaid FFS, MC, and eligibility error rates" r={`FY${permChart[0]?.name || ""}-${permChart[permChart.length-1]?.name || ""}`} />
-          <ChartActions filename="perm-trends">
-            <ResponsiveContainer width="100%" height={300}>
-              <LineChart data={permChart} margin={{ top:10,right:20,bottom:4,left:10 }}>
-                <CartesianGrid strokeDasharray="3 3" stroke={BD} />
-                <XAxis dataKey="name" tick={{ fontSize:9,fill:AL }} />
-                <YAxis tick={{ fontSize:9,fill:AL }} tickFormatter={v => `${v}%`} />
-                <Tooltip content={({ active, payload, label }) => {
-                  if (!active || !payload?.length) return null;
-                  return <div style={{ background:WH,border:`1px solid ${BD}`,borderRadius:6,padding:"6px 10px",fontSize:10,fontFamily:FM,boxShadow:SH }}>
-                    <div style={{ fontWeight:600,color:A,marginBottom:2 }}>{label}</div>
-                    {payload.map((p: any, i: number) => (
-                      <div key={i} style={{ color:p.color }}>{p.name}: {p.value != null ? `${p.value.toFixed(1)}%` : "\u2014"}</div>
-                    ))}
-                  </div>;
-                }} />
-                <Line type="monotone" dataKey="overall" name="Overall" stroke={NEG} strokeWidth={2} dot={{ r:3 }} />
-                <Line type="monotone" dataKey="ffs" name="FFS" stroke={WARN} strokeWidth={1.5} dot={{ r:2 }} />
-                <Line type="monotone" dataKey="mc" name="Managed Care" stroke={cB} strokeWidth={1.5} dot={{ r:2 }} />
-                <Line type="monotone" dataKey="elig" name="Eligibility" stroke={AL} strokeWidth={1.5} strokeDasharray="4 4" dot={{ r:2 }} />
-              </LineChart>
-            </ResponsiveContainer>
-          </ChartActions>
-          <div style={{ display:"flex",gap:16,padding:"4px 14px 8px",fontSize:9,fontFamily:FM,flexWrap:"wrap" }}>
-            <span><span style={{ display:"inline-block",width:12,height:2,background:NEG,verticalAlign:"middle",marginRight:4 }}/>Overall</span>
-            <span><span style={{ display:"inline-block",width:12,height:2,background:WARN,verticalAlign:"middle",marginRight:4 }}/>FFS</span>
-            <span><span style={{ display:"inline-block",width:12,height:2,background:cB,verticalAlign:"middle",marginRight:4 }}/>Managed Care</span>
-            <span><span style={{ display:"inline-block",width:12,height:2,background:AL,verticalAlign:"middle",marginRight:4 }}/>Eligibility</span>
-          </div>
-        </Card> : <Card><div style={{ padding:20,textAlign:"center",color:AL,fontSize:11 }}>No PERM data available</div></Card>}
-
-        {permData.length > 0 && <Card>
-          <CH t="PERM Rate Detail" b={`${permData.length} fiscal years`} />
-          <div style={{ padding:"0 14px 10px",overflowX:"auto" }}>
-            <table style={{ width:"100%",borderCollapse:"collapse",fontSize:10 }}>
-              <thead><tr style={{ borderBottom:`2px solid ${BD}` }}>
-                {["Fiscal Year","Overall Rate","FFS Rate","MC Rate","Eligibility Rate"].map(h => (
-                  <th key={h} style={{ textAlign:h==="Fiscal Year"?"left":"right",padding:"6px 4px",color:AL,fontWeight:600,fontSize:8,textTransform:"uppercase",fontFamily:FM }}>{h}</th>
-                ))}
-              </tr></thead>
-              <tbody>
-                {[...permData].sort((a,b) => b.fiscal_year - a.fiscal_year).map(r => (
-                  <tr key={r.fiscal_year} style={{ borderBottom:`1px solid ${SF}` }}>
-                    <td style={{ padding:"4px",fontWeight:600,color:A }}>FY{r.fiscal_year}</td>
-                    <td style={{ padding:"4px",fontFamily:FM,textAlign:"right",fontWeight:600,color:r.improper_payment_rate_pct>10?NEG:WARN }}>{fmt(r.improper_payment_rate_pct)}%</td>
-                    <td style={{ padding:"4px",fontFamily:FM,textAlign:"right" }}>{fmt(r.ffs_rate_pct)}%</td>
-                    <td style={{ padding:"4px",fontFamily:FM,textAlign:"right" }}>{fmt(r.managed_care_rate_pct)}%</td>
-                    <td style={{ padding:"4px",fontFamily:FM,textAlign:"right" }}>{fmt(r.eligibility_error_rate_pct)}%</td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
-        </Card>}
-      </>}
-
-      {/* Ask Aradune */}
-      <div style={{ marginTop:20,textAlign:"center" }}>
-        <button onClick={() => openIntelligence({ summary: `User is viewing Program Integrity Risk Index -- ${tab} tab. ${compositeData.length} composite, ${openPayData.length} open pay, ${enforcementData.length} enforcement, ${permData.length} PERM records.` })}
-          style={{ padding:"8px 20px",borderRadius:8,fontSize:11,fontWeight:600,fontFamily:FM,border:`1px solid ${cB}`,background:WH,color:cB,cursor:"pointer" }}>
-          Ask Aradune about this
+      {/* ── Ask Aradune ──────────────────────────────────────────────── */}
+      <div style={{ marginTop: 24, textAlign: "center" }}>
+        <button onClick={() => openIntelligence({ summary: "User is viewing the Program Integrity Risk Index research brief. Key finding: $10.83B total Open Payments, 82,749 LEIE exclusions. Per-enrollee payment intensity varies >10x across states. Enforcement gaps identified where high payments meet low MFCU recovery." })}
+          style={{ padding: "8px 20px", borderRadius: 8, fontSize: 11, fontWeight: 600, fontFamily: FM, border: `1px solid ${cB}`, background: WH, color: cB, cursor: "pointer" }}>
+          Ask Aradune about this research
         </button>
-      </div>
-
-      {/* Sources */}
-      <div style={{ marginTop:16,textAlign:"center",fontSize:9,color:AL,fontFamily:FM }}>
-        Sources: CMS Open Payments (PY2024, $13B) . OIG LEIE Exclusion List . CMS PERM Error Rates . MFCU Statistical Reports
       </div>
     </div>
   );

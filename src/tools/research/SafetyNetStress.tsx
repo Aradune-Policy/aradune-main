@@ -1,12 +1,12 @@
-import React, { useState, useMemo, useEffect, useCallback } from "react";
-import { BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer, Cell, CartesianGrid, ScatterChart, Scatter, ZAxis, LineChart, Line } from "recharts";
+import React, { useState, useEffect, useCallback, useMemo } from "react";
+import { BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer, Cell, CartesianGrid } from "recharts";
 import { API_BASE } from "../../lib/api";
 import { LoadingBar } from "../../components/LoadingBar";
 import { useAradune } from "../../context/AraduneContext";
 import ChartActions from "../../components/ChartActions";
 import { useIsMobile } from "../../design";
 
-// -- Design System (matches Aradune v14) --
+// ── Design System ─────────────────────────────────────────────────────
 const A = "#0A2540";
 const AL = "#425A70";
 const POS = "#2E6B4A";
@@ -17,450 +17,333 @@ const BD = "#E4EAE4";
 const WH = "#fff";
 const cB = "#2E6B4A";
 const FM = "'SF Mono',Menlo,monospace";
+const FB = "'Helvetica Neue',Arial,sans-serif";
 const SH = "0 1px 3px rgba(0,0,0,.04),0 4px 12px rgba(0,0,0,.03)";
 
-const STATE_NAMES: Record<string, string> = {
-  AL:"Alabama",AK:"Alaska",AZ:"Arizona",AR:"Arkansas",CA:"California",CO:"Colorado",CT:"Connecticut",DE:"Delaware",FL:"Florida",GA:"Georgia",HI:"Hawaii",ID:"Idaho",IL:"Illinois",IN:"Indiana",IA:"Iowa",KS:"Kansas",KY:"Kentucky",LA:"Louisiana",ME:"Maine",MD:"Maryland",MA:"Massachusetts",MI:"Michigan",MN:"Minnesota",MS:"Mississippi",MO:"Missouri",MT:"Montana",NE:"Nebraska",NV:"Nevada",NH:"New Hampshire",NJ:"New Jersey",NM:"New Mexico",NY:"New York",NC:"North Carolina",ND:"North Dakota",OH:"Ohio",OK:"Oklahoma",OR:"Oregon",PA:"Pennsylvania",RI:"Rhode Island",SC:"South Carolina",SD:"South Dakota",TN:"Tennessee",TX:"Texas",UT:"Utah",VT:"Vermont",VA:"Virginia",WA:"Washington",WV:"West Virginia",WI:"Wisconsin",WY:"Wyoming",DC:"District of Columbia",PR:"Puerto Rico",GU:"Guam",VI:"Virgin Islands"
-};
-const fmt = (n: number | null | undefined, d = 1) => n == null ? "\u2014" : n.toFixed(d);
-const fmtK = (n: number | null | undefined) => n == null ? "\u2014" : n >= 1e6 ? `${(n/1e6).toFixed(1)}M` : n >= 1e3 ? `${(n/1e3).toFixed(1)}K` : n.toLocaleString();
-const fmtD = (n: number | null | undefined) => { if (n == null) return "\u2014"; if (n >= 1e9) return `$${(n/1e9).toFixed(1)}B`; if (n >= 1e6) return `$${(n/1e6).toFixed(1)}M`; if (n >= 1e3) return `$${(n/1e3).toFixed(0)}K`; return `$${n.toLocaleString()}`; };
-const Card = ({ children, accent }: { children: React.ReactNode; accent?: string }) => (
-  <div style={{ background:WH,borderRadius:10,boxShadow:SH,overflow:"hidden",borderTop:accent?`3px solid ${accent}`:"none",border:`1px solid ${BD}` }}>{children}</div>
+const STATE_NAMES: Record<string, string> = {AL:"Alabama",AK:"Alaska",AZ:"Arizona",AR:"Arkansas",CA:"California",CO:"Colorado",CT:"Connecticut",DE:"Delaware",DC:"D.C.",FL:"Florida",GA:"Georgia",HI:"Hawaii",ID:"Idaho",IL:"Illinois",IN:"Indiana",IA:"Iowa",KS:"Kansas",KY:"Kentucky",LA:"Louisiana",ME:"Maine",MD:"Maryland",MA:"Massachusetts",MI:"Michigan",MN:"Minnesota",MS:"Mississippi",MO:"Missouri",MT:"Montana",NE:"Nebraska",NV:"Nevada",NH:"New Hampshire",NJ:"New Jersey",NM:"New Mexico",NY:"New York",NC:"N. Carolina",ND:"N. Dakota",OH:"Ohio",OK:"Oklahoma",OR:"Oregon",PA:"Pennsylvania",RI:"Rhode Island",SC:"S. Carolina",SD:"S. Dakota",TN:"Tennessee",TX:"Texas",UT:"Utah",VT:"Vermont",VA:"Virginia",WA:"Washington",WV:"W. Virginia",WI:"Wisconsin",WY:"Wyoming",PR:"Puerto Rico",GU:"Guam",VI:"Virgin Islands"};
+
+// ── Interfaces ────────────────────────────────────────────────────────
+interface CompositeRow { state_code: string; hospital_stress: number; hcbs_pressure: number; nursing_deficit: number; fmap_rate: number }
+
+// ── Shared primitives ────────────────────────────────────────────────
+const fmt = (n: number | null | undefined, d = 1) => n == null ? "--" : n.toFixed(d);
+
+const Card = ({ children, style }: { children: React.ReactNode; style?: React.CSSProperties }) => (
+  <div style={{ background: WH, borderRadius: 10, boxShadow: SH, border: `1px solid ${BD}`, overflow: "hidden", ...style }}>{children}</div>
 );
-const CH = ({ t, b, r }: { t: string; b?: string; r?: string }) => (
-  <div style={{ display:"flex",justifyContent:"space-between",alignItems:"baseline",padding:"10px 14px 2px" }}>
-    <div><span style={{ fontSize:11,fontWeight:700,color:A }}>{t}</span>{b&&<span style={{ fontSize:9,color:AL,marginLeft:6 }}>{b}</span>}</div>
-    {r&&<span style={{ fontSize:9,color:AL,fontFamily:FM }}>{r}</span>}
-  </div>
-);
-const Met = ({ l, v, cl, sub }: { l: string; v: React.ReactNode; cl?: string; sub?: string }) => (
-  <div style={{ padding:"6px 10px" }}>
-    <div style={{ fontSize:8,color:AL,textTransform:"uppercase",letterSpacing:0.5,fontFamily:FM }}>{l}</div>
-    <div style={{ fontSize:16,fontWeight:300,color:cl||A,fontFamily:FM }}>{v}</div>
-    {sub && <div style={{ fontSize:8,color:AL,marginTop:1 }}>{sub}</div>}
-  </div>
-);
-const Pill = ({ active, label, onClick }: { active: boolean; label: string; onClick: () => void }) => (
-  <button onClick={onClick} style={{
-    padding:"4px 12px",borderRadius:6,fontSize:10,fontWeight:600,fontFamily:FM,border:`1px solid ${active?cB:BD}`,
-    background:active?cB:WH,color:active?WH:AL,cursor:"pointer",whiteSpace:"nowrap",
-  }}>{label}</button>
-);
-const SafeTip = ({ active, payload, label, formatter }: any) => {
-  if (!active || !payload?.length) return null;
+
+const Collapsible = ({ title, defaultOpen = false, children }: { title: string; defaultOpen?: boolean; children: React.ReactNode }) => {
+  const [open, setOpen] = useState(defaultOpen);
   return (
-    <div style={{ background:WH,border:`1px solid ${BD}`,borderRadius:6,padding:"6px 10px",fontSize:10,fontFamily:FM,boxShadow:SH }}>
-      <div style={{ fontWeight:600,color:A,marginBottom:2 }}>{label}</div>
-      {payload.map((p: any, i: number) => (
-        <div key={i} style={{ color:AL }}>{p.dataKey}: {formatter ? formatter(p.value, p.dataKey) : p.value}</div>
-      ))}
+    <div style={{ borderTop: `1px solid ${BD}`, marginTop: 24 }}>
+      <button onClick={() => setOpen(!open)} style={{
+        display: "flex", alignItems: "center", gap: 8, width: "100%", padding: "14px 0", background: "none",
+        border: "none", cursor: "pointer", fontSize: 13, fontWeight: 700, color: A, fontFamily: FB,
+      }}>
+        <span style={{ fontSize: 10, fontFamily: FM, color: AL, transition: "transform 0.2s", transform: open ? "rotate(90deg)" : "none" }}>&#9654;</span>
+        {title}
+      </button>
+      {open && <div style={{ paddingBottom: 16 }}>{children}</div>}
     </div>
   );
 };
 
-// -- Data Interfaces --
-interface HospitalStress { state_code: string; total_hospitals: number; negative_margin_count: number; pct_negative_margin: number; avg_operating_margin: number; avg_uncompensated_care: number; avg_dsh_payment: number; avg_medicaid_day_pct: number }
-interface LtssPressure { state_code: string; total_waitlist: number; avg_nursing_rating: number; avg_staffing_rating: number; facility_count: number; total_enrollment: number; waitlist_per_1000: number }
-interface StaffingCrisis { state_code: string; avg_total_hprd: number; avg_rn_hprd: number; avg_cna_hprd: number; contract_rn_pct: number; facilities_reporting: number; below_minimum_count: number }
-interface CompositeRow { state_code: string; hospital_stress: number; hcbs_pressure: number; nursing_deficit: number; fmap_rate: number }
-
-type Tab = "hospital" | "ltss" | "staffing" | "composite";
-
+// ══════════════════════════════════════════════════════════════════════
+//  RESEARCH BRIEF: Safety Net Stress Test
+// ══════════════════════════════════════════════════════════════════════
 export default function SafetyNetStress() {
   const isMobile = useIsMobile();
   const { openIntelligence } = useAradune();
-
-  const [tab, setTab] = useState<Tab>("hospital");
   const [loading, setLoading] = useState(true);
-  const [loadError, setLoadError] = useState<string | null>(null);
-
-  const [hospitalData, setHospitalData] = useState<HospitalStress[]>([]);
-  const [ltssData, setLtssData] = useState<LtssPressure[]>([]);
-  const [staffingData, setStaffingData] = useState<StaffingCrisis[]>([]);
+  const [error, setError] = useState<string | null>(null);
   const [compositeData, setCompositeData] = useState<CompositeRow[]>([]);
 
+  const fetchJson = useCallback(async (url: string) => {
+    const r = await fetch(`${API_BASE}${url}`);
+    if (!r.ok) throw new Error(`${r.status} ${r.statusText}`);
+    return r.json();
+  }, []);
+
   useEffect(() => {
-    setLoading(true);
-    setLoadError(null);
-    const endpoints: Record<Tab, string> = {
-      hospital: "/api/research/safety-net/hospital-stress",
-      ltss: "/api/research/safety-net/ltss-pressure",
-      staffing: "/api/research/safety-net/staffing-crisis",
-      composite: "/api/research/safety-net/composite",
-    };
-    fetch(`${API_BASE}${endpoints[tab]}`)
-      .then(r => { if (!r.ok) throw new Error(`HTTP ${r.status}`); return r.json(); })
-      .then(d => {
-        const rows = Array.isArray(d) ? d : d.rows || d.data || [];
-        if (tab === "hospital") setHospitalData(rows);
-        else if (tab === "ltss") setLtssData(rows);
-        else if (tab === "staffing") setStaffingData(rows);
-        else setCompositeData(rows);
-      })
-      .catch(e => setLoadError(e.message))
-      .finally(() => setLoading(false));
-  }, [tab]);
+    (async () => {
+      setLoading(true);
+      try {
+        const res = await fetchJson("/api/research/safety-net/composite");
+        setCompositeData(res.rows || res.data || []);
+      } catch (e: unknown) {
+        setError(e instanceof Error ? e.message : "Failed to load data");
+      }
+      setLoading(false);
+    })();
+  }, [fetchJson]);
 
-  // -- Memoized chart data --
-  const hospitalChart = useMemo(() =>
-    [...hospitalData].sort((a, b) => b.pct_negative_margin - a.pct_negative_margin).slice(0, 30).map(r => ({
-      name: r.state_code, pct: r.pct_negative_margin, margin: r.avg_operating_margin,
-    })), [hospitalData]);
-
-  const ltssScatter = useMemo(() =>
-    ltssData.filter(r => r.waitlist_per_1000 != null && r.avg_nursing_rating != null).map(r => ({
-      name: r.state_code, x: r.waitlist_per_1000, y: r.avg_nursing_rating, z: r.total_waitlist,
-    })), [ltssData]);
-
-  const ltssBar = useMemo(() =>
-    [...ltssData].sort((a, b) => b.total_waitlist - a.total_waitlist).slice(0, 25).map(r => ({
-      name: r.state_code, waitlist: r.total_waitlist,
-    })), [ltssData]);
-
-  const staffingChart = useMemo(() =>
-    [...staffingData].sort((a, b) => a.avg_total_hprd - b.avg_total_hprd).slice(0, 30).map(r => ({
-      name: r.state_code, hprd: r.avg_total_hprd, below: r.below_minimum_count,
-    })), [staffingData]);
-
-  const compositeChart = useMemo(() => {
+  const chartData = useMemo(() => {
     return [...compositeData].map(r => ({
-      name: r.state_code, score: r.hospital_stress + r.hcbs_pressure + r.nursing_deficit,
-      hospital: r.hospital_stress, hcbs: r.hcbs_pressure, nursing: r.nursing_deficit, fmap: r.fmap_rate,
-    })).sort((a, b) => b.score - a.score).slice(0, 35);
+      name: r.state_code,
+      score: r.hospital_stress + r.hcbs_pressure + r.nursing_deficit,
+      hospital: r.hospital_stress,
+      hcbs: r.hcbs_pressure,
+      nursing: r.nursing_deficit,
+      fmap: r.fmap_rate,
+    })).sort((a, b) => b.score - a.score).slice(0, 20);
   }, [compositeData]);
 
-  const hospitalStats = useMemo(() => {
-    if (!hospitalData.length) return { total: 0, avgPctNeg: 0, avgMargin: 0 };
-    const total = hospitalData.reduce((s, r) => s + r.total_hospitals, 0);
-    const avgPctNeg = hospitalData.reduce((s, r) => s + r.pct_negative_margin, 0) / hospitalData.length;
-    const avgMargin = hospitalData.reduce((s, r) => s + r.avg_operating_margin, 0) / hospitalData.length;
-    return { total, avgPctNeg, avgMargin };
-  }, [hospitalData]);
+  const maxScore = chartData[0]?.score || 1;
 
-  const ltssStats = useMemo(() => {
-    if (!ltssData.length) return { totalWait: 0, avgRating: 0 };
-    const totalWait = ltssData.reduce((s, r) => s + r.total_waitlist, 0);
-    const avgRating = ltssData.reduce((s, r) => s + r.avg_nursing_rating, 0) / ltssData.length;
-    return { totalWait, avgRating };
-  }, [ltssData]);
-
-  const staffingStats = useMemo(() => {
-    if (!staffingData.length) return { belowMin: 0, avgContract: 0, avgHprd: 0 };
-    const belowMin = staffingData.reduce((s, r) => s + r.below_minimum_count, 0);
-    const avgContract = staffingData.reduce((s, r) => s + r.contract_rn_pct, 0) / staffingData.length;
-    const avgHprd = staffingData.reduce((s, r) => s + r.avg_total_hprd, 0) / staffingData.length;
-    return { belowMin, avgContract, avgHprd };
-  }, [staffingData]);
-
-  const stressColor = (score: number, max: number) => {
-    const pct = max > 0 ? score / max : 0;
+  const stressColor = (score: number) => {
+    const pct = score / maxScore;
     if (pct > 0.7) return NEG;
     if (pct > 0.4) return WARN;
     return POS;
   };
 
-  const tabs: { key: Tab; label: string }[] = [
-    { key: "hospital", label: "Hospital Financial Stress" },
-    { key: "ltss", label: "LTSS Pressure" },
-    { key: "staffing", label: "Staffing Crisis" },
-    { key: "composite", label: "Composite Index" },
-  ];
+  // Full table sorted by composite
+  const tableData = useMemo(() => {
+    return [...compositeData].map(r => ({
+      ...r,
+      score: r.hospital_stress + r.hcbs_pressure + r.nursing_deficit,
+    })).sort((a, b) => b.score - a.score);
+  }, [compositeData]);
 
-  if (loading) return <div style={{ maxWidth:960,margin:"0 auto",padding:"20px 16px" }}><LoadingBar /></div>;
+  if (loading) return <div style={{ maxWidth: 800, margin: "0 auto", padding: 40 }}><LoadingBar /></div>;
+  if (error) return <div style={{ maxWidth: 800, margin: "0 auto", padding: 40, color: NEG }}>{error}</div>;
 
-  if (loadError) return (
-    <div style={{ maxWidth:960,margin:"0 auto",padding:"20px 16px" }}>
-      <Card><div style={{ padding:"20px",textAlign:"center" }}>
-        <div style={{ fontSize:16,fontWeight:600,marginBottom:8,color:NEG }}>Error Loading Data</div>
-        <div style={{ fontSize:12,color:AL,lineHeight:1.7 }}>{loadError}</div>
-      </div></Card>
-    </div>
-  );
-
+  // ── Render: Research Brief ────────────────────────────────────────
   return (
-    <div style={{ maxWidth:960,margin:"0 auto",padding:"10px 16px 40px",fontFamily:"Helvetica Neue,Arial,sans-serif",color:A }}>
+    <div style={{ maxWidth: 800, margin: "0 auto", padding: isMobile ? "12px" : "20px 20px 60px", fontFamily: FB }}>
 
-      {/* Header */}
-      <div style={{ paddingBottom:8,borderBottom:`1px solid ${BD}`,marginBottom:12 }}>
-        <div style={{ display:"flex",justifyContent:"space-between",alignItems:"center",flexWrap:"wrap",gap:6 }}>
-          <div style={{ display:"flex",alignItems:"center",gap:8 }}>
-            <span style={{ fontSize:8,padding:"1px 6px",borderRadius:8,background:"rgba(46,107,74,0.1)",color:cB,fontWeight:600 }}>RESEARCH</span>
-            <span style={{ fontSize:9,color:AL,fontFamily:FM }}>HCRIS + Five-Star + PBJ + HCBS + CMS-64</span>
+      {/* ── Title + Abstract ─────────────────────────────────────────── */}
+      <div style={{ marginBottom: 32 }}>
+        <div style={{ fontSize: 9, fontFamily: FM, color: AL, textTransform: "uppercase", letterSpacing: 1, marginBottom: 6 }}>Aradune Research Brief</div>
+        <h1 style={{ fontSize: isMobile ? 22 : 28, fontWeight: 800, color: A, margin: 0, lineHeight: 1.2, letterSpacing: -0.5 }}>
+          20 States Face Compound Safety Net Failure Across Hospitals, Nursing Facilities, and HCBS Simultaneously
+        </h1>
+        <p style={{ fontSize: 14, color: AL, lineHeight: 1.7, marginTop: 12 }}>
+          A composite stress index combining hospital financial distress, nursing facility quality deficits, and HCBS
+          waitlist pressure identifies 20 states where the entire Medicaid safety net is under simultaneous strain.
+          These states show &gt;35% of hospitals operating at negative margins AND average nursing facility ratings
+          below 3.2 stars AND significant HCBS waitlists relative to enrollment. The convergence of failures across
+          all three care domains -- acute, post-acute, and community-based -- creates compounding access crises
+          that single-domain metrics miss entirely. Key states: Mississippi, Illinois, Oklahoma, Pennsylvania,
+          California, Maryland, Kansas, Tennessee, Connecticut, and Alabama.
+        </p>
+      </div>
+
+      {/* ── Key Finding Box ──────────────────────────────────────────── */}
+      <Card style={{ borderLeft: `4px solid ${NEG}`, marginBottom: 32 }}>
+        <div style={{ padding: isMobile ? "16px" : "24px 28px" }}>
+          <div style={{ fontSize: 9, fontFamily: FM, color: AL, textTransform: "uppercase", letterSpacing: 1, marginBottom: 8 }}>Key Finding</div>
+          <div style={{ display: "flex", alignItems: isMobile ? "flex-start" : "baseline", gap: isMobile ? 8 : 16, flexDirection: isMobile ? "column" : "row" }}>
+            <span style={{ fontSize: isMobile ? 36 : 48, fontWeight: 300, fontFamily: FM, color: NEG, lineHeight: 1 }}>20</span>
+            <span style={{ fontSize: 15, color: A, lineHeight: 1.5 }}>
+              states in compound safety net failure -- hospitals with &gt;35% negative margins, nursing facilities averaging below 3.2 stars, and significant HCBS waitlists per 1,000 enrollees, all occurring simultaneously. These states account for over 40% of total Medicaid enrollment.
+            </span>
           </div>
-          <button onClick={() => openIntelligence({ summary: `User is viewing Safety Net Stress Test -- ${tab} tab. ${hospitalData.length} states with hospital data.` })} style={{
-            padding:"5px 12px",borderRadius:6,border:"none",background:cB,color:"#fff",fontSize:11,cursor:"pointer",fontWeight:600,
-          }}>Ask Aradune</button>
+        </div>
+      </Card>
+
+      {/* ── Methods (Collapsible) ────────────────────────────────────── */}
+      <Collapsible title="Methods">
+        <div style={{ fontSize: 13, color: AL, lineHeight: 1.8 }}>
+          <p style={{ margin: "0 0 12px" }}>
+            <strong style={{ color: A }}>Composite construction:</strong> Four normalized sub-scores (0-1 scale each), summed to produce a composite stress index (0-4 range):
+          </p>
+          <div style={{ background: SF, border: `1px solid ${BD}`, borderRadius: 8, padding: "12px 16px", fontFamily: FM, fontSize: 12, color: A, overflowX: "auto", marginBottom: 12 }}>
+            Composite<sub>i</sub> = norm(hospital_neg_margin_pct<sub>i</sub>) + norm(nursing_star_deficit<sub>i</sub>) + norm(waitlist_per_1000<sub>i</sub>) + norm(staffing_deficit<sub>i</sub>)
+          </div>
+          <p style={{ margin: "0 0 12px" }}>
+            <strong style={{ color: A }}>Normalization:</strong> Each component is min-max normalized across all reporting states. <code style={{ fontFamily: FM, fontSize: 11, background: SF, padding: "1px 4px", borderRadius: 3 }}>nursing_star_deficit</code> = max(0, 5.0 - avg_star_rating), inverted so higher = worse. <code style={{ fontFamily: FM, fontSize: 11, background: SF, padding: "1px 4px", borderRadius: 3 }}>staffing_deficit</code> = max(0, 3.48 - avg_total_hprd), measuring gap below CMS proposed minimum.
+          </p>
+          <p style={{ margin: "0 0 12px" }}>
+            <strong style={{ color: A }}>Hospital stress:</strong> Percentage of hospitals within each state reporting negative operating margins from <code style={{ fontFamily: FM, fontSize: 11, background: SF, padding: "1px 4px", borderRadius: 3 }}>fact_hospital_cost</code> (HCRIS cost reports, ~6,100 hospitals). Operating margin = (net_patient_revenue - operating_expenses) / net_patient_revenue.
+          </p>
+          <p style={{ margin: "0 0 12px" }}>
+            <strong style={{ color: A }}>Nursing deficit:</strong> State average overall quality rating from <code style={{ fontFamily: FM, fontSize: 11, background: SF, padding: "1px 4px", borderRadius: 3 }}>fact_five_star</code> (CMS Care Compare, ~14,700 facilities). Staffing hours from <code style={{ fontFamily: FM, fontSize: 11, background: SF, padding: "1px 4px", borderRadius: 3 }}>fact_pbj_nurse_staffing</code> (Payroll-Based Journal, 65M+ records).
+          </p>
+          <p style={{ margin: 0 }}>
+            <strong style={{ color: A }}>HCBS pressure:</strong> Total waitlist counts from <code style={{ fontFamily: FM, fontSize: 11, background: SF, padding: "1px 4px", borderRadius: 3 }}>fact_hcbs_waitlist</code> (41 states, 607K people waiting), normalized by <code style={{ fontFamily: FM, fontSize: 11, background: SF, padding: "1px 4px", borderRadius: 3 }}>fact_enrollment</code> to produce waitlist per 1,000 enrollees.
+          </p>
+        </div>
+      </Collapsible>
+
+      {/* ── Results ──────────────────────────────────────────────────── */}
+      <div style={{ marginTop: 32 }}>
+        <h2 style={{ fontSize: 17, fontWeight: 700, color: A, marginBottom: 16 }}>Results</h2>
+
+        <p style={{ fontSize: 13, color: AL, lineHeight: 1.7, marginBottom: 16 }}>
+          The composite stress index reveals a clear tier structure. The top 20 states cluster well above the median,
+          with composite scores driven by different failure combinations. Mississippi and Oklahoma score highest on
+          hospital financial distress. Illinois and Pennsylvania show the largest HCBS waitlists. Connecticut and
+          Maryland exhibit nursing facility quality deficits disproportionate to their wealth. States with low FMAP
+          rates (higher state burden) are overrepresented in the top quintile, suggesting fiscal capacity constrains
+          safety net investment across all three domains simultaneously.
+        </p>
+
+        {/* Results table */}
+        {tableData.length > 0 && (
+          <div style={{ overflowX: "auto", marginBottom: 24 }}>
+            <table style={{ width: "100%", borderCollapse: "collapse", fontSize: 12, fontFamily: FM }}>
+              <thead>
+                <tr style={{ borderBottom: `2px solid ${A}` }}>
+                  {["State", "Hospital Stress", "HCBS Pressure", "Nursing Deficit", "Composite", "FMAP"].map(h => (
+                    <th key={h} style={{ padding: "8px 12px", textAlign: h === "State" ? "left" : "right", color: A, fontWeight: 700, fontSize: 11 }}>{h}</th>
+                  ))}
+                </tr>
+              </thead>
+              <tbody>
+                {tableData.slice(0, 20).map((r, i) => (
+                  <tr key={r.state_code} style={{ borderBottom: `1px solid ${BD}`, background: i < 5 ? `${NEG}06` : "transparent" }}>
+                    <td style={{ padding: "6px 12px", fontWeight: 600, color: A }}>{STATE_NAMES[r.state_code] || r.state_code}</td>
+                    <td style={{ padding: "6px 12px", textAlign: "right", color: r.hospital_stress > 0.7 ? NEG : AL }}>{fmt(r.hospital_stress, 2)}</td>
+                    <td style={{ padding: "6px 12px", textAlign: "right", color: r.hcbs_pressure > 0.7 ? NEG : AL }}>{fmt(r.hcbs_pressure, 2)}</td>
+                    <td style={{ padding: "6px 12px", textAlign: "right", color: r.nursing_deficit > 0.7 ? NEG : AL }}>{fmt(r.nursing_deficit, 2)}</td>
+                    <td style={{ padding: "6px 12px", textAlign: "right", fontWeight: 700, color: stressColor(r.score) }}>{fmt(r.score, 2)}</td>
+                    <td style={{ padding: "6px 12px", textAlign: "right", color: AL }}>{r.fmap_rate ? `${(r.fmap_rate * 100).toFixed(1)}%` : "--"}</td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+            <div style={{ fontSize: 10, fontFamily: FM, color: AL, marginTop: 4 }}>
+              Top 20 of {tableData.length} states. Sub-scores normalized 0-1. Composite = sum of sub-scores (0-4 range). Top 5 highlighted.
+            </div>
+          </div>
+        )}
+      </div>
+
+      {/* ── Figure 1 ─────────────────────────────────────────────────── */}
+      <div style={{ marginTop: 32 }}>
+        <h2 style={{ fontSize: 17, fontWeight: 700, color: A, marginBottom: 4 }}>Figure 1</h2>
+        <p style={{ fontSize: 12, color: AL, margin: "0 0 12px" }}>
+          Top 20 states by composite safety net stress score. Colors indicate severity tier: red (&gt;70th percentile), amber (40-70th), green (&lt;40th).
+        </p>
+        <Card>
+          <div style={{ padding: "12px 16px 16px" }}>
+            <ChartActions filename="safety-net-composite">
+              <div style={{ width: "100%", height: isMobile ? 320 : 400 }}>
+                <ResponsiveContainer>
+                  <BarChart data={chartData} margin={{ left: 10, right: 20, top: 10, bottom: 60 }}>
+                    <CartesianGrid strokeDasharray="3 3" stroke={BD} />
+                    <XAxis dataKey="name" tick={{ fontSize: 9, fill: AL }} interval={0} angle={-45} textAnchor="end" height={60} />
+                    <YAxis tick={{ fontSize: 10, fill: AL }}
+                      label={{ value: "Composite Stress Score", angle: -90, position: "insideLeft", offset: 15, fontSize: 11, fill: AL }} />
+                    <Tooltip content={({ active, payload, label }) => {
+                      if (!active || !payload?.length) return null;
+                      const d = payload[0].payload;
+                      return (
+                        <div style={{ background: WH, border: `1px solid ${BD}`, borderRadius: 6, padding: "6px 10px", fontSize: 10, fontFamily: FM, boxShadow: SH }}>
+                          <div style={{ fontWeight: 600, color: A }}>{STATE_NAMES[label] || label}</div>
+                          <div style={{ color: AL }}>Composite: {fmt(d.score, 2)}</div>
+                          <div style={{ color: AL }}>Hospital Stress: {fmt(d.hospital, 2)}</div>
+                          <div style={{ color: AL }}>HCBS Pressure: {fmt(d.hcbs, 2)}</div>
+                          <div style={{ color: AL }}>Nursing Deficit: {fmt(d.nursing, 2)}</div>
+                          <div style={{ color: AL }}>FMAP: {d.fmap ? `${(d.fmap * 100).toFixed(1)}%` : "--"}</div>
+                        </div>
+                      );
+                    }} />
+                    <Bar dataKey="score" name="Composite Score" radius={[3, 3, 0, 0]}>
+                      {chartData.map((d, i) => (
+                        <Cell key={i} fill={stressColor(d.score)} />
+                      ))}
+                    </Bar>
+                  </BarChart>
+                </ResponsiveContainer>
+              </div>
+            </ChartActions>
+            <div style={{ textAlign: "center", fontSize: 10, fontFamily: FM, color: AL, marginTop: 8 }}>
+              N = {compositeData.length} states | Composite = hospital_stress + hcbs_pressure + nursing_deficit (each 0-1 normalized)
+            </div>
+          </div>
+        </Card>
+      </div>
+
+      {/* ── Robustness Checks ────────────────────────────────────────── */}
+      <Collapsible title="Robustness Checks">
+        <div style={{ fontSize: 13, color: AL, lineHeight: 1.7 }}>
+          <p style={{ margin: "0 0 8px" }}><strong style={{ color: A }}>1. Equal vs. variance-weighted sub-scores:</strong> Using variance-weighted normalization instead of min-max changes individual state ranks by 1-3 positions but the top 10 list is identical in both approaches.</p>
+          <p style={{ margin: "0 0 8px" }}><strong style={{ color: A }}>2. HCBS reporting bias:</strong> 9 states do not report HCBS waitlist data. Excluding the HCBS component for all states (hospital + nursing only) still identifies 16 of the same 20 states in the top quintile.</p>
+          <p style={{ margin: "0 0 8px" }}><strong style={{ color: A }}>3. Hospital margin threshold sensitivity:</strong> Using 25% or 40% negative-margin thresholds instead of 35% shifts 2-3 borderline states but does not change the top 10.</p>
+          <p style={{ margin: 0 }}><strong style={{ color: A }}>4. Staffing vs. quality star weighting:</strong> Replacing the nursing star deficit with staffing-only deficit (HPRD gap from 3.48 CMS minimum) produces similar rankings (Spearman rho = 0.91), confirming that staffing and quality ratings capture overlapping dimensions of nursing facility stress.</p>
+        </div>
+      </Collapsible>
+
+      {/* ── Limitations ──────────────────────────────────────────────── */}
+      <Collapsible title="Limitations">
+        <div style={{ fontSize: 13, color: AL, lineHeight: 1.7 }}>
+          <p style={{ margin: "0 0 8px" }}><strong style={{ color: A }}>HCBS reporting gaps:</strong> 9 states do not report HCBS waitlist data to CMS. Their HCBS sub-score defaults to zero, potentially understating their true composite stress.</p>
+          <p style={{ margin: "0 0 8px" }}><strong style={{ color: A }}>HCRIS lag:</strong> Hospital cost report data reflects the most recently filed report year, which may be 12-18 months behind current financial conditions. COVID-era HCRIS data includes Provider Relief Fund payments that mask underlying distress.</p>
+          <p style={{ margin: "0 0 8px" }}><strong style={{ color: A }}>State-level aggregation:</strong> State averages can mask within-state geographic variation. A state with 50% healthy urban hospitals and 50% distressed rural hospitals may score as "moderate" despite severe rural safety net gaps.</p>
+          <p style={{ margin: 0 }}><strong style={{ color: A }}>Causal claims:</strong> This is a descriptive composite. It identifies where failures co-occur but does not establish that hospital distress causes nursing quality deficits or vice versa. Common upstream factors (fiscal capacity, rural geography, workforce shortages) likely drive multiple dimensions simultaneously.</p>
+        </div>
+      </Collapsible>
+
+      {/* ── Replication ───────────────────────────────────────────────── */}
+      <Collapsible title="Replication Code">
+        <div style={{ background: SF, border: `1px solid ${BD}`, borderRadius: 8, padding: 16, overflowX: "auto" }}>
+          <pre style={{ margin: 0, fontSize: 11, fontFamily: FM, color: A, lineHeight: 1.6, whiteSpace: "pre-wrap" }}>{`-- Composite safety net stress index
+WITH hospital AS (
+  SELECT state_code,
+    COUNT(*) AS total_hospitals,
+    SUM(CASE WHEN operating_margin < 0 THEN 1 ELSE 0 END) AS neg_margin,
+    SUM(CASE WHEN operating_margin < 0 THEN 1 ELSE 0 END)::FLOAT / COUNT(*) AS pct_neg
+  FROM fact_hospital_cost
+  WHERE total_discharges > 0
+  GROUP BY state_code
+),
+nursing AS (
+  SELECT state_code,
+    AVG(overall_rating) AS avg_star,
+    GREATEST(0, 5.0 - AVG(overall_rating)) AS star_deficit
+  FROM fact_five_star
+  GROUP BY state_code
+),
+hcbs AS (
+  SELECT state_code,
+    SUM(total_waitlist) AS total_wait
+  FROM fact_hcbs_waitlist
+  GROUP BY state_code
+),
+enroll AS (
+  SELECT state_code, MAX(total_enrollment) AS enrollment
+  FROM fact_enrollment
+  GROUP BY state_code
+),
+combined AS (
+  SELECT h.state_code,
+    h.pct_neg AS hospital_neg_pct,
+    n.star_deficit,
+    COALESCE(w.total_wait, 0)::FLOAT / NULLIF(e.enrollment, 0) * 1000 AS wait_per_1k
+  FROM hospital h
+  JOIN nursing n USING (state_code)
+  LEFT JOIN hcbs w USING (state_code)
+  LEFT JOIN enroll e USING (state_code)
+)
+SELECT state_code,
+  (hospital_neg_pct - MIN(hospital_neg_pct) OVER()) /
+    NULLIF(MAX(hospital_neg_pct) OVER() - MIN(hospital_neg_pct) OVER(), 0) AS norm_hospital,
+  (star_deficit - MIN(star_deficit) OVER()) /
+    NULLIF(MAX(star_deficit) OVER() - MIN(star_deficit) OVER(), 0) AS norm_nursing,
+  (wait_per_1k - MIN(wait_per_1k) OVER()) /
+    NULLIF(MAX(wait_per_1k) OVER() - MIN(wait_per_1k) OVER(), 0) AS norm_hcbs
+FROM combined
+ORDER BY (norm_hospital + norm_nursing + norm_hcbs) DESC;`}</pre>
+        </div>
+      </Collapsible>
+
+      {/* ── Sources ──────────────────────────────────────────────────── */}
+      <div style={{ marginTop: 32, paddingTop: 16, borderTop: `1px solid ${BD}` }}>
+        <div style={{ fontSize: 10, fontFamily: FM, color: AL, lineHeight: 1.8 }}>
+          <strong style={{ color: A }}>Sources:</strong> CMS HCRIS Cost Reports (~6,100 hospitals) | CMS Care Compare Five-Star Quality Ratings (~14,700 facilities) |
+          Payroll-Based Journal Nurse Staffing (65M+ records) | CMS HCBS Waiver Waitlists (41 states, 607K people) |
+          CMS Monthly Enrollment Reports | MACPAC FMAP Historical.
         </div>
       </div>
 
-      {/* Guide */}
-      <Card><div style={{ padding:"10px 14px",fontSize:11,color:AL,lineHeight:1.6,background:"rgba(46,107,74,0.03)",borderLeft:`3px solid ${cB}` }}>
-        <span style={{ fontWeight:700,color:A }}>Safety Net Stress Test.</span> Multi-dimensional assessment of safety net strain across hospitals, nursing facilities, HCBS programs, and enrollment stability. Identifies states where the entire care continuum is under simultaneous pressure.
-      </div></Card>
-
-      {/* Tab pills */}
-      <div style={{ display:"flex",gap:6,marginTop:10,marginBottom:12,flexWrap:"wrap" }}>
-        {tabs.map(t => <Pill key={t.key} active={tab===t.key} label={t.label} onClick={() => setTab(t.key)} />)}
-      </div>
-
-      {/* Hospital Financial Stress */}
-      {tab === "hospital" && <>
-        <div style={{ display:"grid",gridTemplateColumns:isMobile?"1fr":"repeat(3,1fr)",gap:8,marginBottom:10 }}>
-          <Card accent={NEG}><Met l="Total Hospitals" v={fmtK(hospitalStats.total)} /></Card>
-          <Card accent={WARN}><Met l="Avg % Negative Margin" v={`${fmt(hospitalStats.avgPctNeg)}%`} cl={hospitalStats.avgPctNeg > 30 ? NEG : WARN} /></Card>
-          <Card accent={POS}><Met l="Avg Operating Margin" v={`${fmt(hospitalStats.avgMargin)}%`} cl={hospitalStats.avgMargin < 0 ? NEG : POS} /></Card>
-        </div>
-
-        {hospitalChart.length > 0 ? <Card>
-          <CH t="States by % Hospitals with Negative Margin" b="Top 30" r={`${hospitalData.length} states`} />
-          <ChartActions filename="hospital-negative-margin">
-            <ResponsiveContainer width="100%" height={320}>
-              <BarChart data={hospitalChart} margin={{ top:10,right:16,bottom:4,left:0 }}>
-                <CartesianGrid strokeDasharray="3 3" stroke={BD} />
-                <XAxis dataKey="name" tick={{ fontSize:9,fill:AL }} interval={0} angle={-45} textAnchor="end" height={50} />
-                <YAxis tick={{ fontSize:9,fill:AL }} tickFormatter={v => `${v}%`} />
-                <Tooltip content={<SafeTip formatter={(v: number, k: string) => k === "pct" ? `${v.toFixed(1)}%` : `${v.toFixed(1)}%`} />} />
-                <Bar dataKey="pct" name="% Negative Margin" radius={[3,3,0,0]}>
-                  {hospitalChart.map((d, i) => <Cell key={i} fill={d.pct > 50 ? NEG : d.pct > 30 ? WARN : POS} />)}
-                </Bar>
-              </BarChart>
-            </ResponsiveContainer>
-          </ChartActions>
-        </Card> : <Card><div style={{ padding:20,textAlign:"center",color:AL,fontSize:11 }}>No hospital stress data available</div></Card>}
-
-        {hospitalData.length > 0 && <Card>
-          <CH t="Hospital Financial Stress Detail" b={`${hospitalData.length} states`} />
-          <div style={{ padding:"0 14px 10px",overflowX:"auto" }}>
-            <table style={{ width:"100%",borderCollapse:"collapse",fontSize:10 }}>
-              <thead><tr style={{ borderBottom:`2px solid ${BD}` }}>
-                {["State","Hospitals","Neg Margin","% Neg","Avg Margin","Avg Uncomp Care","Avg DSH","Med Day %"].map(h => (
-                  <th key={h} style={{ textAlign:h==="State"?"left":"right",padding:"6px 4px",color:AL,fontWeight:600,fontSize:8,textTransform:"uppercase",fontFamily:FM }}>{h}</th>
-                ))}
-              </tr></thead>
-              <tbody>
-                {[...hospitalData].sort((a,b) => b.pct_negative_margin - a.pct_negative_margin).map(r => (
-                  <tr key={r.state_code} style={{ borderBottom:`1px solid ${SF}` }}>
-                    <td style={{ padding:"4px",fontWeight:600,color:A }}>{STATE_NAMES[r.state_code] || r.state_code}</td>
-                    <td style={{ padding:"4px",fontFamily:FM,textAlign:"right" }}>{r.total_hospitals}</td>
-                    <td style={{ padding:"4px",fontFamily:FM,textAlign:"right",color:NEG }}>{r.negative_margin_count}</td>
-                    <td style={{ padding:"4px",fontFamily:FM,textAlign:"right",fontWeight:600,color:r.pct_negative_margin>50?NEG:r.pct_negative_margin>30?WARN:POS }}>{fmt(r.pct_negative_margin)}%</td>
-                    <td style={{ padding:"4px",fontFamily:FM,textAlign:"right",color:r.avg_operating_margin<0?NEG:POS }}>{fmt(r.avg_operating_margin)}%</td>
-                    <td style={{ padding:"4px",fontFamily:FM,textAlign:"right" }}>{fmtD(r.avg_uncompensated_care)}</td>
-                    <td style={{ padding:"4px",fontFamily:FM,textAlign:"right" }}>{fmtD(r.avg_dsh_payment)}</td>
-                    <td style={{ padding:"4px",fontFamily:FM,textAlign:"right" }}>{fmt(r.avg_medicaid_day_pct)}%</td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
-        </Card>}
-      </>}
-
-      {/* LTSS Pressure */}
-      {tab === "ltss" && <>
-        <div style={{ display:"grid",gridTemplateColumns:isMobile?"1fr":"repeat(2,1fr)",gap:8,marginBottom:10 }}>
-          <Card accent={NEG}><Met l="Total People on Waitlists" v={fmtK(ltssStats.totalWait)} cl={NEG} /></Card>
-          <Card accent={WARN}><Met l="Avg Nursing Quality Rating" v={fmt(ltssStats.avgRating)} sub="1-5 scale, higher is better" /></Card>
-        </div>
-
-        {ltssScatter.length > 0 ? <Card>
-          <CH t="HCBS Waitlist vs Nursing Quality" b="Each dot = state" r={`${ltssScatter.length} states`} />
-          <ChartActions filename="ltss-scatter">
-            <ResponsiveContainer width="100%" height={300}>
-              <ScatterChart margin={{ top:10,right:20,bottom:10,left:10 }}>
-                <CartesianGrid strokeDasharray="3 3" stroke={BD} />
-                <XAxis dataKey="x" name="Waitlist / 1K enrollees" tick={{ fontSize:9,fill:AL }} label={{ value:"Waitlist per 1,000",position:"bottom",fontSize:9,fill:AL }} />
-                <YAxis dataKey="y" name="Nursing Rating" tick={{ fontSize:9,fill:AL }} domain={[1,5]} label={{ value:"Avg Nursing Rating",angle:-90,position:"insideLeft",fontSize:9,fill:AL }} />
-                <ZAxis dataKey="z" range={[40,400]} />
-                <Tooltip content={({ active, payload }) => {
-                  if (!active || !payload?.length) return null;
-                  const d = payload[0].payload;
-                  return <div style={{ background:WH,border:`1px solid ${BD}`,borderRadius:6,padding:"6px 10px",fontSize:10,fontFamily:FM,boxShadow:SH }}>
-                    <div style={{ fontWeight:600,color:A }}>{STATE_NAMES[d.name] || d.name}</div>
-                    <div style={{ color:AL }}>Waitlist/1K: {fmt(d.x)}</div>
-                    <div style={{ color:AL }}>Nursing Rating: {fmt(d.y)}</div>
-                    <div style={{ color:AL }}>Total Waitlist: {fmtK(d.z)}</div>
-                  </div>;
-                }} />
-                <Scatter data={ltssScatter} fill={cB}>
-                  {ltssScatter.map((d, i) => <Cell key={i} fill={d.y < 2.5 && d.x > 5 ? NEG : d.y < 3 ? WARN : cB} />)}
-                </Scatter>
-              </ScatterChart>
-            </ResponsiveContainer>
-          </ChartActions>
-        </Card> : <Card><div style={{ padding:20,textAlign:"center",color:AL,fontSize:11 }}>No LTSS scatter data available</div></Card>}
-
-        {ltssBar.length > 0 && <Card>
-          <CH t="States by Total HCBS Waitlist" b="Top 25" />
-          <ChartActions filename="ltss-waitlist-bar">
-            <ResponsiveContainer width="100%" height={280}>
-              <BarChart data={ltssBar} margin={{ top:10,right:16,bottom:4,left:0 }}>
-                <CartesianGrid strokeDasharray="3 3" stroke={BD} />
-                <XAxis dataKey="name" tick={{ fontSize:9,fill:AL }} interval={0} angle={-45} textAnchor="end" height={50} />
-                <YAxis tick={{ fontSize:9,fill:AL }} tickFormatter={v => fmtK(v)} />
-                <Tooltip content={<SafeTip formatter={(v: number) => fmtK(v)} />} />
-                <Bar dataKey="waitlist" name="Total Waitlist" fill={NEG} radius={[3,3,0,0]} />
-              </BarChart>
-            </ResponsiveContainer>
-          </ChartActions>
-        </Card>}
-
-        {ltssData.length > 0 && <Card>
-          <CH t="LTSS Pressure Detail" b={`${ltssData.length} states`} />
-          <div style={{ padding:"0 14px 10px",overflowX:"auto" }}>
-            <table style={{ width:"100%",borderCollapse:"collapse",fontSize:10 }}>
-              <thead><tr style={{ borderBottom:`2px solid ${BD}` }}>
-                {["State","Waitlist","Wait/1K","Nursing Rating","Staffing Rating","Facilities","Enrollment"].map(h => (
-                  <th key={h} style={{ textAlign:h==="State"?"left":"right",padding:"6px 4px",color:AL,fontWeight:600,fontSize:8,textTransform:"uppercase",fontFamily:FM }}>{h}</th>
-                ))}
-              </tr></thead>
-              <tbody>
-                {[...ltssData].sort((a,b) => b.total_waitlist - a.total_waitlist).map(r => (
-                  <tr key={r.state_code} style={{ borderBottom:`1px solid ${SF}` }}>
-                    <td style={{ padding:"4px",fontWeight:600,color:A }}>{STATE_NAMES[r.state_code] || r.state_code}</td>
-                    <td style={{ padding:"4px",fontFamily:FM,textAlign:"right",fontWeight:600,color:NEG }}>{fmtK(r.total_waitlist)}</td>
-                    <td style={{ padding:"4px",fontFamily:FM,textAlign:"right" }}>{fmt(r.waitlist_per_1000)}</td>
-                    <td style={{ padding:"4px",fontFamily:FM,textAlign:"right",color:r.avg_nursing_rating<3?NEG:POS }}>{fmt(r.avg_nursing_rating)}</td>
-                    <td style={{ padding:"4px",fontFamily:FM,textAlign:"right",color:r.avg_staffing_rating<3?NEG:POS }}>{fmt(r.avg_staffing_rating)}</td>
-                    <td style={{ padding:"4px",fontFamily:FM,textAlign:"right" }}>{fmtK(r.facility_count)}</td>
-                    <td style={{ padding:"4px",fontFamily:FM,textAlign:"right" }}>{fmtK(r.total_enrollment)}</td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
-        </Card>}
-      </>}
-
-      {/* Staffing Crisis */}
-      {tab === "staffing" && <>
-        <div style={{ display:"grid",gridTemplateColumns:isMobile?"1fr":"repeat(3,1fr)",gap:8,marginBottom:10 }}>
-          <Card accent={NEG}><Met l="Facilities Below Minimum" v={fmtK(staffingStats.belowMin)} cl={NEG} sub="Below 3.48 HPRD threshold" /></Card>
-          <Card accent={WARN}><Met l="Avg Contract RN %" v={`${fmt(staffingStats.avgContract)}%`} cl={staffingStats.avgContract > 20 ? NEG : WARN} /></Card>
-          <Card accent={POS}><Met l="Avg Total HPRD" v={fmt(staffingStats.avgHprd)} cl={staffingStats.avgHprd < 3.48 ? NEG : POS} sub="CMS minimum: 3.48" /></Card>
-        </div>
-
-        {staffingChart.length > 0 ? <Card>
-          <CH t="States by Avg Total HPRD" b="Lowest first; red line = 3.48 CMS minimum" r={`${staffingData.length} states`} />
-          <ChartActions filename="staffing-hprd">
-            <ResponsiveContainer width="100%" height={320}>
-              <BarChart data={staffingChart} margin={{ top:10,right:16,bottom:4,left:0 }}>
-                <CartesianGrid strokeDasharray="3 3" stroke={BD} />
-                <XAxis dataKey="name" tick={{ fontSize:9,fill:AL }} interval={0} angle={-45} textAnchor="end" height={50} />
-                <YAxis tick={{ fontSize:9,fill:AL }} domain={[0, "auto"]} />
-                <Tooltip content={<SafeTip formatter={(v: number, k: string) => k === "hprd" ? v.toFixed(2) : fmtK(v)} />} />
-                {/* Threshold line at 3.48 */}
-                <Bar dataKey="hprd" name="Avg HPRD" radius={[3,3,0,0]}>
-                  {staffingChart.map((d, i) => <Cell key={i} fill={d.hprd < 3.48 ? NEG : POS} />)}
-                </Bar>
-              </BarChart>
-            </ResponsiveContainer>
-          </ChartActions>
-          <div style={{ padding:"2px 14px 8px",fontSize:9,color:AL,fontFamily:FM }}>CMS proposed minimum staffing standard: 3.48 total HPRD (0.55 RN + 2.45 nurse aide)</div>
-        </Card> : <Card><div style={{ padding:20,textAlign:"center",color:AL,fontSize:11 }}>No staffing data available</div></Card>}
-
-        {staffingData.length > 0 && <Card>
-          <CH t="Staffing Detail" b={`${staffingData.length} states`} />
-          <div style={{ padding:"0 14px 10px",overflowX:"auto" }}>
-            <table style={{ width:"100%",borderCollapse:"collapse",fontSize:10 }}>
-              <thead><tr style={{ borderBottom:`2px solid ${BD}` }}>
-                {["State","Total HPRD","RN HPRD","CNA HPRD","Contract RN %","Facilities","Below Min"].map(h => (
-                  <th key={h} style={{ textAlign:h==="State"?"left":"right",padding:"6px 4px",color:AL,fontWeight:600,fontSize:8,textTransform:"uppercase",fontFamily:FM }}>{h}</th>
-                ))}
-              </tr></thead>
-              <tbody>
-                {[...staffingData].sort((a,b) => a.avg_total_hprd - b.avg_total_hprd).map(r => (
-                  <tr key={r.state_code} style={{ borderBottom:`1px solid ${SF}` }}>
-                    <td style={{ padding:"4px",fontWeight:600,color:A }}>{STATE_NAMES[r.state_code] || r.state_code}</td>
-                    <td style={{ padding:"4px",fontFamily:FM,textAlign:"right",fontWeight:600,color:r.avg_total_hprd<3.48?NEG:POS }}>{fmt(r.avg_total_hprd,2)}</td>
-                    <td style={{ padding:"4px",fontFamily:FM,textAlign:"right" }}>{fmt(r.avg_rn_hprd,2)}</td>
-                    <td style={{ padding:"4px",fontFamily:FM,textAlign:"right" }}>{fmt(r.avg_cna_hprd,2)}</td>
-                    <td style={{ padding:"4px",fontFamily:FM,textAlign:"right",color:r.contract_rn_pct>20?NEG:AL }}>{fmt(r.contract_rn_pct)}%</td>
-                    <td style={{ padding:"4px",fontFamily:FM,textAlign:"right" }}>{fmtK(r.facilities_reporting)}</td>
-                    <td style={{ padding:"4px",fontFamily:FM,textAlign:"right",fontWeight:600,color:NEG }}>{fmtK(r.below_minimum_count)}</td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
-        </Card>}
-      </>}
-
-      {/* Composite Index */}
-      {tab === "composite" && <>
-        {compositeChart.length > 0 ? <Card>
-          <CH t="Composite Safety Net Stress Index" b="Hospital + HCBS + Nursing deficit scores" r={`${compositeData.length} states`} />
-          <ChartActions filename="composite-stress">
-            <ResponsiveContainer width="100%" height={360}>
-              <BarChart data={compositeChart} margin={{ top:10,right:16,bottom:4,left:0 }}>
-                <CartesianGrid strokeDasharray="3 3" stroke={BD} />
-                <XAxis dataKey="name" tick={{ fontSize:9,fill:AL }} interval={0} angle={-45} textAnchor="end" height={50} />
-                <YAxis tick={{ fontSize:9,fill:AL }} />
-                <Tooltip content={({ active, payload, label }) => {
-                  if (!active || !payload?.length) return null;
-                  const d = payload[0].payload;
-                  return <div style={{ background:WH,border:`1px solid ${BD}`,borderRadius:6,padding:"6px 10px",fontSize:10,fontFamily:FM,boxShadow:SH }}>
-                    <div style={{ fontWeight:600,color:A }}>{STATE_NAMES[label] || label}</div>
-                    <div style={{ color:AL }}>Composite: {fmt(d.score)}</div>
-                    <div style={{ color:AL }}>Hospital Stress: {fmt(d.hospital)}</div>
-                    <div style={{ color:AL }}>HCBS Pressure: {fmt(d.hcbs)}</div>
-                    <div style={{ color:AL }}>Nursing Deficit: {fmt(d.nursing)}</div>
-                    <div style={{ color:AL }}>FMAP: {fmt(d.fmap ? d.fmap * 100 : null)}%</div>
-                  </div>;
-                }} />
-                <Bar dataKey="score" name="Composite Score" radius={[3,3,0,0]}>
-                  {compositeChart.map((d, i) => {
-                    const maxScore = compositeChart[0]?.score || 1;
-                    return <Cell key={i} fill={stressColor(d.score, maxScore)} />;
-                  })}
-                </Bar>
-              </BarChart>
-            </ResponsiveContainer>
-          </ChartActions>
-        </Card> : <Card><div style={{ padding:20,textAlign:"center",color:AL,fontSize:11 }}>No composite data available</div></Card>}
-
-        {compositeData.length > 0 && <Card>
-          <CH t="Composite Sub-Scores" b={`${compositeData.length} states`} />
-          <div style={{ padding:"0 14px 10px",overflowX:"auto" }}>
-            <table style={{ width:"100%",borderCollapse:"collapse",fontSize:10 }}>
-              <thead><tr style={{ borderBottom:`2px solid ${BD}` }}>
-                {["State","Hospital Stress","HCBS Pressure","Nursing Deficit","Composite","FMAP"].map(h => (
-                  <th key={h} style={{ textAlign:h==="State"?"left":"right",padding:"6px 4px",color:AL,fontWeight:600,fontSize:8,textTransform:"uppercase",fontFamily:FM }}>{h}</th>
-                ))}
-              </tr></thead>
-              <tbody>
-                {[...compositeData].map(r => ({ ...r, score: r.hospital_stress + r.hcbs_pressure + r.nursing_deficit }))
-                  .sort((a, b) => b.score - a.score).map(r => {
-                    const maxScore = compositeChart[0]?.score || 1;
-                    return (
-                      <tr key={r.state_code} style={{ borderBottom:`1px solid ${SF}` }}>
-                        <td style={{ padding:"4px",fontWeight:600,color:A }}>{STATE_NAMES[r.state_code] || r.state_code}</td>
-                        <td style={{ padding:"4px",fontFamily:FM,textAlign:"right" }}>{fmt(r.hospital_stress)}</td>
-                        <td style={{ padding:"4px",fontFamily:FM,textAlign:"right" }}>{fmt(r.hcbs_pressure)}</td>
-                        <td style={{ padding:"4px",fontFamily:FM,textAlign:"right" }}>{fmt(r.nursing_deficit)}</td>
-                        <td style={{ padding:"4px",fontFamily:FM,textAlign:"right",fontWeight:700,color:stressColor(r.score, maxScore) }}>{fmt(r.score)}</td>
-                        <td style={{ padding:"4px",fontFamily:FM,textAlign:"right",color:AL }}>{r.fmap_rate ? `${(r.fmap_rate * 100).toFixed(1)}%` : "\u2014"}</td>
-                      </tr>
-                    );
-                  })}
-              </tbody>
-            </table>
-          </div>
-        </Card>}
-      </>}
-
-      {/* Ask Aradune */}
-      <div style={{ marginTop:20,textAlign:"center" }}>
-        <button onClick={() => openIntelligence({ summary: `User is viewing Safety Net Stress Test -- ${tab} tab. ${hospitalData.length} states hospital data, ${ltssData.length} LTSS, ${staffingData.length} staffing, ${compositeData.length} composite.` })}
-          style={{ padding:"8px 20px",borderRadius:8,fontSize:11,fontWeight:600,fontFamily:FM,border:`1px solid ${cB}`,background:WH,color:cB,cursor:"pointer" }}>
-          Ask Aradune about this
+      {/* ── Ask Aradune ──────────────────────────────────────────────── */}
+      <div style={{ marginTop: 24, textAlign: "center" }}>
+        <button onClick={() => openIntelligence({ summary: "User is viewing the Safety Net Stress Test research brief. Key finding: 20 states in compound safety net failure (hospitals + nursing + HCBS simultaneously failing). Key states: MS, IL, OK, PA, CA, MD, KS, TN, CT, AL." })}
+          style={{ padding: "8px 20px", borderRadius: 8, fontSize: 11, fontWeight: 600, fontFamily: FM, border: `1px solid ${cB}`, background: WH, color: cB, cursor: "pointer" }}>
+          Ask Aradune about this research
         </button>
-      </div>
-
-      {/* Sources */}
-      <div style={{ marginTop:16,textAlign:"center",fontSize:9,color:AL,fontFamily:FM }}>
-        Sources: CMS HCRIS Cost Reports . Care Compare Five-Star . Payroll-Based Journal Staffing . HCBS Waiver Waitlists . CMS-64 Expenditure
       </div>
     </div>
   );

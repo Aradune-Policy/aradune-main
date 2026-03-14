@@ -11,7 +11,7 @@ import { C, FONT, SHADOW } from "../design";
 import { useAradune } from "../context/AraduneContext";
 import { getAuthHeaders, API_BASE } from "../lib/api";
 import { STATES_LIST, STATE_NAMES } from "../data/states";
-import LandingMetrics from "../components/LandingMetrics";
+// LandingMetrics moved to Platform.tsx landing page
 
 const API = API_BASE;
 
@@ -676,48 +676,8 @@ export default function IntelligenceChat() {
               fontSize: 13, color: C.inkLight, margin: "0 0 32px", lineHeight: 1.5,
               maxWidth: 440,
             }}>
-              Ask anything about Medicaid. Policy questions, data queries, state comparisons, or cross-dataset analysis, backed by 569+ tables and 305M+ rows.
+              Ask anything about Medicaid. Policy questions, data queries, state comparisons, or cross-dataset analysis, backed by 700+ tables and 400M+ rows.
             </p>
-
-            {/* Headline metrics — removable: delete this line + the import */}
-            <LandingMetrics />
-
-            {/* Novel findings from cross-domain research */}
-            <div style={{
-              width: "100%", maxWidth: 720, marginBottom: 28,
-              background: "#FAFBFC", borderRadius: 10, border: "1px solid #E2E8F0",
-              padding: "18px 22px",
-            }}>
-              <div style={{ fontSize: 13, fontWeight: 700, color: "#0A2540", marginBottom: 10 }}>
-                What the data reveals
-              </div>
-              <div style={{ display: "grid", gap: 8, fontSize: 12, color: "#425A70", lineHeight: 1.6 }}>
-                <div style={{ display: "flex", gap: 8 }}>
-                  <span style={{ color: "#D93025", fontWeight: 700, flexShrink: 0 }}>1.</span>
-                  <span><strong>Paying more doesn't improve quality</strong> — Medicaid rate levels show no significant relationship with quality outcomes after controlling for state wealth (p=0.21). The bivariate correlation is a confound.</span>
-                </div>
-                <div style={{ display: "flex", gap: 8 }}>
-                  <span style={{ color: "#D97706", fontWeight: 700, flexShrink: 0 }}>2.</span>
-                  <span><strong>Managed care's quality paradox</strong> — MC states look better in cross-section, but within states, increasing MC penetration is associated with <em>declining</em> quality (p=0.004). Simpson's Paradox.</span>
-                </div>
-                <div style={{ display: "flex", gap: 8 }}>
-                  <span style={{ color: "#059669", fontWeight: 700, flexShrink: 0 }}>3.</span>
-                  <span><strong>For-profit nursing homes: -0.67 stars</strong> — The ownership-quality gap survives state fixed effects, size controls, and matched comparisons (Cohen's d=0.59, p&lt;0.0001). Strongest finding.</span>
-                </div>
-                <div style={{ display: "flex", gap: 8 }}>
-                  <span style={{ color: "#3A7CC4", fontWeight: 700, flexShrink: 0 }}>4.</span>
-                  <span><strong>$3B+ pharmacy overpayment</strong> — Medicaid reimburses pharmacies $2-3B above drug acquisition cost (NADAC), concentrated in low-cost generics at 2.75x median markup. Survives all robustness checks.</span>
-                </div>
-                <div style={{ display: "flex", gap: 8 }}>
-                  <span style={{ color: "#7B4EA3", fontWeight: 700, flexShrink: 0 }}>5.</span>
-                  <span><strong>Quality declining everywhere</strong> — National Medicaid quality scores are falling 1.3 percentage points per year regardless of state characteristics, payment levels, or fiscal burden (p=0.006).</span>
-                </div>
-              </div>
-              <div style={{ marginTop: 10, fontSize: 9, color: "#94A3B8" }}>
-                Methods: OLS with controls, panel fixed effects (2017-2024), difference-in-differences, size-matched facility comparisons.
-                Full replication: <a href="#/research/rate-quality" style={{ color: "#2E6B4A" }}>Explore research modules</a>
-              </div>
-            </div>
 
             {/* QuickStart cards */}
             <div style={{

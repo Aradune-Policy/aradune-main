@@ -112,53 +112,20 @@ def build_pecos_enrollment(con, dry_run: bool) -> int:
 
 
 # ── 2. Provider Affiliation (Reassignment) ───────────────────────────
+# DEPRECATED: This function duplicates build_lake_provider_reassignment.py which
+# reads the same provider_reassignment.csv and produces fact_provider_reassignment
+# with better data quality (LPAD NPI, NULLIF for TBD dates). Use
+# fact_provider_reassignment instead of fact_provider_affiliation.
 
 def build_provider_affiliation(con, dry_run: bool) -> int:
-    """Provider-to-organization affiliation via CMS reassignment data."""
-    print("Building fact_provider_affiliation...")
-    path = RAW_DIR / "provider_reassignment.csv"
-    if not path.exists():
-        print("  SKIPPED — provider_reassignment.csv not found")
-        return 0
+    """DEPRECATED — use fact_provider_reassignment from build_lake_provider_reassignment.py instead.
 
-    con.execute(f"""
-        CREATE OR REPLACE TABLE _affil AS
-        SELECT
-            TRIM("Group PAC ID") AS group_pac_id,
-            TRIM("Group Enrollment ID") AS group_enrollment_id,
-            TRIM("Group Legal Business Name") AS group_name,
-            TRIM("Group State Code") AS group_state_code,
-            TRIM("Group Due Date") AS group_due_date,
-            TRY_CAST("Group Reassignments and Physician Assistants" AS INTEGER) AS group_reassignment_count,
-            TRIM("Record Type") AS record_type,
-            TRIM("Individual PAC ID") AS individual_pac_id,
-            TRIM("Individual Enrollment ID") AS individual_enrollment_id,
-            TRIM("Individual NPI") AS individual_npi,
-            TRIM("Individual First Name") AS individual_first_name,
-            TRIM("Individual Last Name") AS individual_last_name,
-            TRIM("Individual State Code") AS individual_state_code,
-            TRIM("Individual Specialty Description") AS individual_specialty,
-            TRIM("Individual Due Date") AS individual_due_date,
-            TRY_CAST("Individual Total Employer Associations" AS INTEGER) AS individual_employer_count,
-            'data.cms.gov/revalidation_reassignment' AS source,
-            DATE '{SNAPSHOT_DATE}' AS snapshot_date
-        FROM read_csv('{path}', all_varchar=true, auto_detect=true, ignore_errors=true)
-        WHERE "Individual NPI" IS NOT NULL
-    """)
-
-    count = write_parquet(con, "_affil", _fact_path("provider_affiliation"), dry_run)
-    if count > 0:
-        stats = con.execute("""
-            SELECT
-                COUNT(DISTINCT individual_npi) as unique_providers,
-                COUNT(DISTINCT group_pac_id) as unique_groups,
-                COUNT(DISTINCT individual_state_code) as states,
-                COUNT(DISTINCT individual_specialty) as specialties
-            FROM _affil
-        """).fetchone()
-        print(f"  {count:,} affiliations, {stats[0]:,} unique providers, {stats[1]:,} unique groups, {stats[2]} states, {stats[3]} specialties")
-    con.execute("DROP TABLE IF EXISTS _affil")
-    return count
+    This function duplicated provider_reassignment.csv ingestion. The dedicated script
+    (build_lake_provider_reassignment.py) produces fact_provider_reassignment with
+    better NPI padding and date handling.
+    """
+    print("SKIPPED fact_provider_affiliation — DEPRECATED, use fact_provider_reassignment instead")
+    return 0
 
 
 # ── 3. Critical Access Hospitals ─────────────────────────────────────

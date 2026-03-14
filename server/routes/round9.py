@@ -453,7 +453,7 @@ async def sdud_2024(
 ):
     """State Drug Utilization Data — 2024 dataset."""
     with get_cursor() as cur:
-        sql = "SELECT * FROM fact_sdud_2024 WHERE 1=1"
+        sql = "SELECT * FROM fact_sdud_2024 WHERE state != 'XX'"
         params = []
         if state:
             sql += " AND state = ?"
@@ -483,7 +483,7 @@ async def sdud_2024_top_drugs(
 ):
     """Top drugs by Medicaid spending from SDUD 2024."""
     with get_cursor() as cur:
-        where = "WHERE 1=1"
+        where = "WHERE state != 'XX'"
         params = []
         if state:
             where += " AND state = ?"
@@ -521,7 +521,7 @@ async def sdud_2025(
 ):
     """State Drug Utilization Data — 2025 Q1-Q2 (2.64M rows)."""
     with get_cursor() as cur:
-        sql = "SELECT * FROM fact_sdud_2025 WHERE 1=1"
+        sql = "SELECT * FROM fact_sdud_2025 WHERE state_code != 'XX'"
         params = []
         if state:
             sql += " AND state_code = ?"
@@ -548,7 +548,7 @@ async def sdud_2025_top_drugs(
 ):
     """Top drugs by Medicaid spending from SDUD 2025."""
     with get_cursor() as cur:
-        where = "WHERE 1=1"
+        where = "WHERE state_code != 'XX'"
         params = []
         if state:
             where += " AND state_code = ?"

@@ -14,6 +14,7 @@ Data sources:
 """
 import argparse
 import os
+import re
 import sys
 import zipfile
 import tempfile
@@ -165,7 +166,7 @@ def parse_fmr_excel(xlsx_path: str, fiscal_year: int) -> list[dict]:
                 rows.append({
                     "state_code": state_code,
                     "fiscal_year": fiscal_year,
-                    "category": category.lstrip("TCM-").strip("- "),
+                    "category": re.sub(r'^[TCM]-\s*', '', category).strip(),
                     "payment_type": payment_type,
                     "service": service,
                     "program": program,

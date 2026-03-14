@@ -303,8 +303,8 @@ FACT_NAMES = [
     # Session 19 - SAMHSA v2 (TEDS detail + NSDUH totals + CDC overdose refresh)
     "teds_admissions_detail", "teds_discharges",
     "nsduh_sae_totals_2024",
-    # Provider & network data (4 fact tables)
-    "pecos_enrollment", "provider_affiliation",
+    # Provider & network data (3 fact tables; provider_affiliation deprecated, use provider_reassignment)
+    "pecos_enrollment",
     "critical_access_hospitals", "gme_teaching_hospitals",
     # Insurance market & coverage data (5 tables)
     "mlr_market", "risk_adjustment", "ma_star_ratings",

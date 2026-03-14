@@ -102,7 +102,7 @@ def build_nh_ownership(con, dry_run: bool) -> int:
             role_played_by_owner_or_manager_in_facility AS role,
             owner_type,
             owner_name,
-            TRY_CAST(ownership_percentage AS DOUBLE) AS ownership_pct,
+            TRY_CAST(REPLACE(ownership_percentage, '%', '') AS DOUBLE) AS ownership_pct,
             association_date,
             processing_date,
             'data.cms.gov/care-compare' AS source,

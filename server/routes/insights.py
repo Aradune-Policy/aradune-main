@@ -234,21 +234,27 @@ def get_state_insights(state_code: str):
     # 8. Opioid prescribing
     opioid = _safe_query("""
         SELECT
-            opioid_prescribing_rate,
-            opioid_rate_1y_change,
-            year
-        FROM fact_medicaid_opioid_prescribing
-        WHERE state_code = $1
-          AND geo_level = 'State'
-          AND plan_type = 'All'
-          AND year = (SELECT MAX(year) FROM fact_medicaid_opioid_prescribing WHERE state_code = $1 AND geo_level = 'State')
+            o.opioid_prescribing_rate,
+            o.opioid_rate_1y_change,
+            o.year
+        FROM fact_opioid_prescribing o
+        JOIN dim_state d ON d.state_name = o.geo_desc
+        WHERE d.state_code = $1
+          AND o.geo_level = 'State'
+          AND o.plan_type = 'All'
+          AND o.year = (
+              SELECT MAX(o2.year)
+              FROM fact_opioid_prescribing o2
+              JOIN dim_state d2 ON d2.state_name = o2.geo_desc
+              WHERE d2.state_code = $1 AND o2.geo_level = 'State'
+          )
     """, [sc])
     national_opioid = _safe_query("""
         SELECT opioid_prescribing_rate
-        FROM fact_medicaid_opioid_prescribing
+        FROM fact_opioid_prescribing
         WHERE geo_level = 'National'
           AND plan_type = 'All'
-          AND year = (SELECT MAX(year) FROM fact_medicaid_opioid_prescribing WHERE geo_level = 'National')
+          AND year = (SELECT MAX(year) FROM fact_opioid_prescribing WHERE geo_level = 'National')
     """)
     if opioid and opioid.get("opioid_prescribing_rate") and national_opioid:
         state_rate = opioid["opioid_prescribing_rate"]

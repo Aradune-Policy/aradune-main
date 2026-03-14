@@ -181,7 +181,10 @@ def main():
 
             "Authorized Official Last Name"                                           AS auth_official_last,
             "Authorized Official First Name"                                          AS auth_official_first,
-            "Authorized Official Telephone Number"                                    AS auth_official_phone
+            "Authorized Official Telephone Number"                                    AS auth_official_phone,
+
+            '{SNAPSHOT_DATE}' AS snapshot_date,
+            'NPPES' AS source
         FROM staging
     """)
 
@@ -239,7 +242,9 @@ def main():
             "Healthcare Provider Taxonomy Code_{i}" AS taxonomy_code,
             "Healthcare Provider Primary Taxonomy Switch_{i}" AS taxonomy_switch,
             "Provider License Number_{i}" AS license_num,
-            "Provider License Number State Code_{i}" AS license_state
+            "Provider License Number State Code_{i}" AS license_state,
+            '{SNAPSHOT_DATE}' AS snapshot_date,
+            'NPPES' AS source
         FROM staging
         WHERE "Healthcare Provider Taxonomy Code_{i}" IS NOT NULL
           AND TRIM("Healthcare Provider Taxonomy Code_{i}") != ''

@@ -23,6 +23,7 @@ Usage:
 
 import argparse
 import json
+import re
 import sys
 import uuid
 from datetime import date, datetime
@@ -201,6 +202,11 @@ def build_fact_unwinding(con, dry_run: bool) -> int:
 # Managed Care Enrollment by Plan (2024)
 # ---------------------------------------------------------------------------
 
+def _clean_state_name(raw: str) -> str:
+    """Strip footnote suffixes like '2', '3,4' from state names."""
+    return re.sub(r'[\d,]+$', '', raw).strip()
+
+
 def build_fact_mc_enrollment(con, dry_run: bool) -> int:
     csv_path = RAW_DIR / "managed_care_enrollment_2024.csv"
     print("Building fact_mc_enrollment...")
@@ -208,10 +214,13 @@ def build_fact_mc_enrollment(con, dry_run: bool) -> int:
         print(f"  SKIPPED — {csv_path.name} not found")
         return 0
 
+    _register_state_map(con)
+
+    # First load raw data with state name as-is
     con.execute(f"""
-        CREATE OR REPLACE TABLE _fact_mc_enrollment AS
+        CREATE OR REPLACE TABLE _mc_raw AS
         SELECT
-            "State" AS state_code,
+            "State" AS state_raw,
             "Program Name" AS program_name,
             "Plan Name" AS plan_name,
             "Parent Organization" AS parent_org,
@@ -225,6 +234,66 @@ def build_fact_mc_enrollment(con, dry_run: bool) -> int:
         FROM read_csv_auto('{csv_path}')
         WHERE "State" IS NOT NULL
     """)
+
+    # Check if state_raw already contains 2-letter codes
+    sample = con.execute(
+        "SELECT state_raw FROM _mc_raw WHERE LENGTH(state_raw) > 2 LIMIT 1"
+    ).fetchone()
+
+    if sample:
+        # State column has full names (possibly with footnote suffixes) -- need mapping
+        # Pull raw state values, clean footnotes, and map to codes in Python
+        raw_states = con.execute(
+            "SELECT DISTINCT state_raw FROM _mc_raw"
+        ).fetchall()
+        state_mapping = []
+        skipped = []
+        for (raw,) in raw_states:
+            clean = _clean_state_name(raw)
+            code = STATE_NAME_TO_CODE.get(clean)
+            if code:
+                state_mapping.append((raw, code))
+            else:
+                skipped.append(raw)
+        if skipped:
+            print(f"  Skipping {len(skipped)} unrecognized state values: {skipped[:10]}")
+
+        # Create mapping table and join
+        con.execute("CREATE TEMP TABLE _mc_state_map (state_raw VARCHAR, state_code VARCHAR)")
+        con.executemany("INSERT INTO _mc_state_map VALUES (?, ?)", state_mapping)
+
+        con.execute("""
+            CREATE OR REPLACE TABLE _fact_mc_enrollment AS
+            SELECT
+                m.state_code,
+                r.program_name,
+                r.plan_name,
+                r.parent_org,
+                r.geographic_region,
+                r.medicaid_only_enrollment,
+                r.dual_enrollment,
+                r.total_enrollment,
+                r.year,
+                r.source,
+                r.snapshot_date
+            FROM _mc_raw r
+            JOIN _mc_state_map m ON r.state_raw = m.state_raw
+        """)
+        con.execute("DROP TABLE IF EXISTS _mc_state_map")
+    else:
+        # State column already has 2-letter codes
+        con.execute("""
+            CREATE OR REPLACE TABLE _fact_mc_enrollment AS
+            SELECT
+                state_raw AS state_code,
+                program_name, plan_name, parent_org, geographic_region,
+                medicaid_only_enrollment, dual_enrollment, total_enrollment,
+                year, source, snapshot_date
+            FROM _mc_raw
+            WHERE LENGTH(state_raw) = 2
+        """)
+
+    con.execute("DROP TABLE IF EXISTS _mc_raw")
     count = write_parquet(con, "_fact_mc_enrollment", _snapshot_path("mc_enrollment"), dry_run)
     states = con.execute("SELECT COUNT(DISTINCT state_code) FROM _fact_mc_enrollment").fetchone()[0]
     plans = con.execute("SELECT COUNT(DISTINCT plan_name) FROM _fact_mc_enrollment").fetchone()[0]

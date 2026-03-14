@@ -142,8 +142,14 @@ def build_tx(con, dry_run: bool) -> int:
     df["source_system"] = "TX Medicaid Formulary"
     df["snapshot_date"] = SNAPSHOT_DATE
 
-    # Register in DuckDB
-    con.execute("CREATE TABLE fact_state_mac_tx AS SELECT * FROM df")
+    # Register in DuckDB — cast drug_ndc to VARCHAR and pad to 11 digits
+    con.execute("""
+        CREATE TABLE fact_state_mac_tx AS
+        SELECT * REPLACE (
+            LPAD(CAST(drug_ndc AS VARCHAR), 11, '0') AS drug_ndc
+        )
+        FROM df
+    """)
 
     count = con.execute("SELECT COUNT(*) FROM fact_state_mac_tx").fetchone()[0]
     cols = con.execute("PRAGMA table_info('fact_state_mac_tx')").fetchall()

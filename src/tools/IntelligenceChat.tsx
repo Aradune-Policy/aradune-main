@@ -10,6 +10,7 @@ import { useState, useRef, useEffect, useCallback } from "react";
 import { C, FONT, SHADOW } from "../design";
 import { useAradune } from "../context/AraduneContext";
 import { getAuthHeaders, API_BASE } from "../lib/api";
+import { STATES_LIST, STATE_NAMES } from "../data/states";
 
 const API = API_BASE;
 
@@ -676,6 +677,166 @@ export default function IntelligenceChat() {
             }}>
               Ask anything about Medicaid. Policy questions, data queries, state comparisons, or cross-dataset analysis, backed by 569+ tables and 305M+ rows.
             </p>
+
+            {/* QuickStart cards */}
+            <div style={{
+              display: "grid",
+              gridTemplateColumns: "repeat(auto-fit, minmax(220px, 1fr))",
+              gap: 16,
+              width: "100%",
+              maxWidth: 720,
+              marginBottom: 28,
+            }}>
+              {/* Card 1: State Compare */}
+              <div style={{
+                background: C.white,
+                borderRadius: 8,
+                boxShadow: SHADOW,
+                borderTop: "3px solid #2E6B4A",
+                padding: "20px 18px 18px",
+                textAlign: "left",
+              }}>
+                <div style={{ fontSize: 14, fontWeight: 700, color: C.ink, fontFamily: FONT.body, marginBottom: 4 }}>
+                  How does my state compare?
+                </div>
+                <div style={{ fontSize: 11, color: C.inkLight, fontFamily: FONT.body, marginBottom: 14 }}>
+                  Enrollment, spending, rates, quality
+                </div>
+                <select
+                  defaultValue=""
+                  onChange={e => {
+                    if (e.target.value) window.location.hash = `#/state/${e.target.value}`;
+                  }}
+                  style={{
+                    width: "100%",
+                    padding: "7px 10px",
+                    border: `1px solid ${C.border}`,
+                    borderRadius: 6,
+                    fontSize: 12,
+                    fontFamily: FONT.body,
+                    color: C.ink,
+                    background: C.bg,
+                    cursor: "pointer",
+                    outline: "none",
+                  }}
+                >
+                  <option value="" disabled>Select a state...</option>
+                  {STATES_LIST.map(code => (
+                    <option key={code} value={code}>{STATE_NAMES[code]}</option>
+                  ))}
+                </select>
+              </div>
+
+              {/* Card 2: Rate Search */}
+              <div style={{
+                background: C.white,
+                borderRadius: 8,
+                boxShadow: SHADOW,
+                borderTop: "3px solid #3A7CC4",
+                padding: "20px 18px 18px",
+                textAlign: "left",
+              }}>
+                <div style={{ fontSize: 14, fontWeight: 700, color: C.ink, fontFamily: FONT.body, marginBottom: 4 }}>
+                  What does Medicaid pay for ___?
+                </div>
+                <div style={{ fontSize: 11, color: C.inkLight, fontFamily: FONT.body, marginBottom: 14 }}>
+                  Search by service, procedure, or code
+                </div>
+                <form
+                  onSubmit={e => {
+                    e.preventDefault();
+                    const val = (e.currentTarget.elements.namedItem("rateQuery") as HTMLInputElement)?.value?.trim();
+                    if (val) {
+                      try { sessionStorage.setItem("aradune_rate_query", val); } catch {}
+                      window.location.hash = "#/rates";
+                    }
+                  }}
+                  style={{ display: "flex", gap: 6 }}
+                >
+                  <input
+                    name="rateQuery"
+                    type="text"
+                    placeholder="e.g. 99213, physical therapy"
+                    style={{
+                      flex: 1,
+                      padding: "7px 10px",
+                      border: `1px solid ${C.border}`,
+                      borderRadius: 6,
+                      fontSize: 12,
+                      fontFamily: FONT.body,
+                      color: C.ink,
+                      background: C.bg,
+                      outline: "none",
+                      minWidth: 0,
+                    }}
+                  />
+                  <button
+                    type="submit"
+                    style={{
+                      background: C.brand,
+                      color: C.white,
+                      border: "none",
+                      borderRadius: 6,
+                      padding: "7px 12px",
+                      fontSize: 11,
+                      fontWeight: 600,
+                      cursor: "pointer",
+                      fontFamily: FONT.body,
+                      whiteSpace: "nowrap",
+                      transition: "background .15s",
+                    }}
+                    onMouseEnter={e => { e.currentTarget.style.background = "#1e5a3a"; }}
+                    onMouseLeave={e => { e.currentTarget.style.background = C.brand; }}
+                  >
+                    Go
+                  </button>
+                </form>
+              </div>
+
+              {/* Card 3: Provider Pay */}
+              <div style={{
+                background: C.white,
+                borderRadius: 8,
+                boxShadow: SHADOW,
+                borderTop: "3px solid #C4590A",
+                padding: "20px 18px 18px",
+                textAlign: "left",
+              }}>
+                <div style={{ fontSize: 14, fontWeight: 700, color: C.ink, fontFamily: FONT.body, marginBottom: 4 }}>
+                  Are providers paid enough?
+                </div>
+                <div style={{ fontSize: 11, color: C.inkLight, fontFamily: FONT.body, marginBottom: 14 }}>
+                  Wages, adequacy, shortage areas
+                </div>
+                <select
+                  defaultValue=""
+                  onChange={e => {
+                    if (e.target.value) {
+                      try { sessionStorage.setItem("aradune_wages_state", e.target.value); } catch {}
+                      window.location.hash = "#/wages";
+                    }
+                  }}
+                  style={{
+                    width: "100%",
+                    padding: "7px 10px",
+                    border: `1px solid ${C.border}`,
+                    borderRadius: 6,
+                    fontSize: 12,
+                    fontFamily: FONT.body,
+                    color: C.ink,
+                    background: C.bg,
+                    cursor: "pointer",
+                    outline: "none",
+                  }}
+                >
+                  <option value="" disabled>Select a state...</option>
+                  {STATES_LIST.map(code => (
+                    <option key={code} value={code}>{STATE_NAMES[code]}</option>
+                  ))}
+                </select>
+              </div>
+            </div>
+
             <div style={{ display: "flex", flexWrap: "wrap", gap: 8, justifyContent: "center" }}>
               {STARTERS.slice(0, 3).map(s => (
                 <button

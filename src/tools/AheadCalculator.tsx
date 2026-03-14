@@ -46,6 +46,9 @@ const SP:Record<string,StateParams>={
   HI:{fmap:.5156,mcPct:.90,ipT:1.040,opT:1.045,mt:"QUEST",md:"QUEST Integration",upl:1.40,sdoh:1.02},
   NY:{fmap:.50,mcPct:.80,ipT:1.042,opT:1.048,mt:"VBP",md:"VBP Roadmap",upl:1.60,sdoh:1.06},
   RI:{fmap:.5257,mcPct:.70,ipT:1.036,opT:1.041,mt:"ACE",md:"Accountable Entity",upl:1.48,sdoh:1.04},
+  CO:{fmap:.50,mcPct:.72,ipT:1.034,opT:1.039,mt:"HTP",md:"Hospital Transformation Program",upl:1.52,sdoh:1.03},
+  NJ:{fmap:.50,mcPct:.82,ipT:1.037,opT:1.043,mt:"VBP",md:"Value-Based Payment",upl:1.55,sdoh:1.05},
+  NM:{fmap:.7344,mcPct:.88,ipT:1.039,opT:1.044,mt:"Centennial",md:"Centennial Care 2.0",upl:1.42,sdoh:1.08},
 };
 const spGet=(st:string):StateParams=>SP[st]||{fmap:.50,mcPct:.70,ipT:1.036,opT:1.042,mt:"FFS",md:"Fee-for-Service",upl:1.50,sdoh:1.03};
 
@@ -62,6 +65,12 @@ const H:AheadHospital[]=[
   {id:"410012",nm:"Westerly Hosp",st:"RI",co:3,ty:"ACH",beds:84,tch:"NONE",sn:false,cah:false,wi:1.1425,ms:.19,bn:3200,dp:.16,cdi:42,hcc:1.05,bl:{ip:32e6,op:28e6,uc:1.5e6},q:{vbp:1.004,hrrp:.9952,hacrp:1.0,ra:.142,pqi:.045,ed:.48},tcoc:{t:1020,a:1000},cost:0,mcd:{ip:12e6,op:9.5e6,supp:{dsh:2.5e6,dir:0},bn:2800,hedis:{pre:.80,ed:.74,dia:.78,fu:.70}}},
   {id:"330201",nm:"Bellevue",st:"NY",co:3,ty:"ACH",beds:828,tch:"MAJOR",sn:true,cah:false,wi:1.3652,ms:.06,bn:22000,dp:.58,cdi:92,hcc:1.68,bl:{ip:385e6,op:275e6,uc:42e6},q:{vbp:.948,hrrp:.9650,hacrp:.97,ra:.22,pqi:.09,ed:.78},tcoc:{t:1600,a:1920},cost:0,mcd:{ip:445e6,op:310e6,supp:{dsh:110e6,dir:55e6},bn:88000,hedis:{pre:.52,ed:.40,dia:.45,fu:.35}}},
   {id:"210048",nm:"MedStar Good Sam",st:"MD",co:1,ty:"ACH",beds:302,tch:"MINOR",sn:false,cah:false,wi:1.0396,ms:.12,bn:11000,dp:.25,cdi:48,hcc:1.22,bl:{ip:145e6,op:112e6,uc:5.5e6},q:{vbp:1.005,hrrp:.9912,hacrp:1.0,ra:.148,pqi:.042,ed:.46},tcoc:{t:1180,a:1160},cost:0,mcd:{ip:52e6,op:38e6,supp:{dsh:8e6,dir:3e6},bn:8500,hedis:{pre:.81,ed:.73,dia:.77,fu:.69}}},
+  {id:"060024",nm:"UCHealth Univ of CO",st:"CO",co:2,ty:"ACH",beds:620,tch:"MAJOR",sn:true,cah:false,wi:1.0508,ms:.18,bn:28000,dp:.20,cdi:52,hcc:1.28,bl:{ip:510e6,op:385e6,uc:22e6},q:{vbp:1.015,hrrp:.9935,hacrp:1.0,ra:.118,pqi:.030,ed:.40},tcoc:{t:1200,a:1170},cost:0,mcd:{ip:155e6,op:110e6,supp:{dsh:25e6,dir:8e6},bn:24000,hedis:{pre:.85,ed:.78,dia:.82,fu:.74}}},
+  {id:"060115",nm:"Denver Health",st:"CO",co:2,ty:"ACH",beds:525,tch:"MAJOR",sn:true,cah:false,wi:1.0508,ms:.06,bn:18000,dp:.48,cdi:82,hcc:1.52,bl:{ip:328e6,op:245e6,uc:38e6},q:{vbp:.972,hrrp:.9780,hacrp:.98,ra:.175,pqi:.062,ed:.58},tcoc:{t:1450,a:1520},cost:0,mcd:{ip:210e6,op:155e6,supp:{dsh:55e6,dir:22e6},bn:42000,hedis:{pre:.60,ed:.48,dia:.55,fu:.42}}},
+  {id:"310025",nm:"Robert Wood Johnson",st:"NJ",co:3,ty:"ACH",beds:610,tch:"MAJOR",sn:true,cah:false,wi:1.1945,ms:.22,bn:22000,dp:.22,cdi:50,hcc:1.25,bl:{ip:425e6,op:318e6,uc:18e6},q:{vbp:1.008,hrrp:.9910,hacrp:1.0,ra:.130,pqi:.036,ed:.42},tcoc:{t:1250,a:1220},cost:0,mcd:{ip:160e6,op:115e6,supp:{dsh:32e6,dir:12e6},bn:26000,hedis:{pre:.83,ed:.75,dia:.79,fu:.72}}},
+  {id:"310001",nm:"Newark Beth Israel",st:"NJ",co:3,ty:"ACH",beds:669,tch:"MAJOR",sn:true,cah:false,wi:1.1945,ms:.08,bn:16000,dp:.52,cdi:85,hcc:1.58,bl:{ip:380e6,op:265e6,uc:35e6},q:{vbp:.958,hrrp:.9720,hacrp:.98,ra:.188,pqi:.065,ed:.60},tcoc:{t:1520,a:1620},cost:0,mcd:{ip:285e6,op:195e6,supp:{dsh:72e6,dir:30e6},bn:55000,hedis:{pre:.55,ed:.42,dia:.48,fu:.38}}},
+  {id:"320001",nm:"UNM Hospital",st:"NM",co:2,ty:"ACH",beds:537,tch:"MAJOR",sn:true,cah:false,wi:.9742,ms:.10,bn:15000,dp:.45,cdi:75,hcc:1.48,bl:{ip:295e6,op:215e6,uc:32e6},q:{vbp:.968,hrrp:.9760,hacrp:.98,ra:.178,pqi:.060,ed:.56},tcoc:{t:1420,a:1480},cost:0,mcd:{ip:225e6,op:165e6,supp:{dsh:48e6,dir:18e6},bn:52000,hedis:{pre:.58,ed:.46,dia:.52,fu:.40}}},
+  {id:"320014",nm:"Presbyterian",st:"NM",co:2,ty:"ACH",beds:448,tch:"MINOR",sn:false,cah:false,wi:.9742,ms:.16,bn:20000,dp:.18,cdi:40,hcc:1.15,bl:{ip:245e6,op:195e6,uc:12e6},q:{vbp:1.010,hrrp:.9920,hacrp:1.0,ra:.135,pqi:.038,ed:.44},tcoc:{t:1180,a:1150},cost:0,mcd:{ip:135e6,op:105e6,supp:{dsh:18e6,dir:5e6},bn:32000,hedis:{pre:.82,ed:.74,dia:.78,fu:.70}}},
 ];
 const COH:Record<number,{py1:number;by:number[]}>={1:{py1:2026,by:[2023,2024,2025]},2:{py1:2028,by:[2025,2026,2027]},3:{py1:2028,by:[2025,2026,2027]}};
 const APA:Record<number,{ip:number;op:number;uc:number}>={2026:{ip:1.028,op:1.031,uc:1.025},2027:{ip:1.030,op:1.032,uc:1.025},2028:{ip:1.029,op:1.030,uc:1.025},2029:{ip:1.028,op:1.029,uc:1.025},2030:{ip:1.027,op:1.028,uc:1.025}};

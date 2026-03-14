@@ -421,12 +421,21 @@ def _register_all_views() -> None:
             view_name = parquet_file.stem
             _register_view(view_name, parquet_file)
 
-    # Register fact tables (latest snapshot)
+    # Register fact tables from FACT_NAMES (latest snapshot)
     for fact_name in FACT_NAMES:
         p = _latest_snapshot(fact_dir, fact_name)
         if p:
             view_name = f"fact_{fact_name}"
             _register_view(view_name, p)
+
+    # Auto-discover any fact tables on disk not in FACT_NAMES
+    if fact_dir.exists():
+        fact_name_set = set(FACT_NAMES)
+        for subdir in fact_dir.iterdir():
+            if subdir.is_dir() and subdir.name not in fact_name_set:
+                p = _latest_snapshot(fact_dir, subdir.name)
+                if p:
+                    _register_view(f"fact_{subdir.name}", p)
 
     # Register reference tables
     ref_dir = lake / "reference"

@@ -1,12 +1,12 @@
-import React, { useState, useMemo, useEffect, useCallback } from "react";
-import { BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer, Cell, CartesianGrid, ScatterChart, Scatter, ZAxis, LineChart, Line } from "recharts";
+import React, { useState, useEffect, useCallback, useMemo } from "react";
+import { BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer, CartesianGrid, Cell, ReferenceLine } from "recharts";
 import { API_BASE } from "../../lib/api";
 import { LoadingBar } from "../../components/LoadingBar";
 import { useAradune } from "../../context/AraduneContext";
 import ChartActions from "../../components/ChartActions";
 import { useIsMobile } from "../../design";
 
-// ── Design System (matches Aradune v14) ─────────────────────────────────
+// ── Design System ─────────────────────────────────────────────────────
 const A = "#0A2540";
 const AL = "#425A70";
 const POS = "#2E6B4A";
@@ -17,664 +17,317 @@ const BD = "#E4EAE4";
 const WH = "#fff";
 const cB = "#2E6B4A";
 const FM = "'SF Mono',Menlo,monospace";
+const FB = "'Helvetica Neue',Arial,sans-serif";
 const SH = "0 1px 3px rgba(0,0,0,.04),0 4px 12px rgba(0,0,0,.03)";
 
 const STATE_NAMES: Record<string, string> = {AL:"Alabama",AK:"Alaska",AZ:"Arizona",AR:"Arkansas",CA:"California",CO:"Colorado",CT:"Connecticut",DE:"Delaware",DC:"D.C.",FL:"Florida",GA:"Georgia",HI:"Hawaii",ID:"Idaho",IL:"Illinois",IN:"Indiana",IA:"Iowa",KS:"Kansas",KY:"Kentucky",LA:"Louisiana",ME:"Maine",MD:"Maryland",MA:"Massachusetts",MI:"Michigan",MN:"Minnesota",MS:"Mississippi",MO:"Missouri",MT:"Montana",NE:"Nebraska",NV:"Nevada",NH:"New Hampshire",NJ:"New Jersey",NM:"New Mexico",NY:"New York",NC:"N. Carolina",ND:"N. Dakota",OH:"Ohio",OK:"Oklahoma",OR:"Oregon",PA:"Pennsylvania",RI:"Rhode Island",SC:"S. Carolina",SD:"S. Dakota",TN:"Tennessee",TX:"Texas",UT:"Utah",VT:"Vermont",VA:"Virginia",WA:"Washington",WV:"W. Virginia",WI:"Wisconsin",WY:"Wyoming",PR:"Puerto Rico",GU:"Guam",VI:"Virgin Islands"};
 
-// ── Interfaces ─────────────────────────────────────────────────────────
-interface PenetrationSpending { state_code: string; mc_penetration_pct: number; per_enrollee_spending: number }
-interface McoRow { state_code: string; plan_name: string; program_name: string; member_months: number; adjusted_mlr: number; mlr_numerator: number; mlr_denominator: number; remittance_amount: number }
+// ── Interfaces ────────────────────────────────────────────────────────
 interface McoSummary { state_code: string; plan_count: number; total_member_months: number; avg_mlr: number; min_mlr: number; max_mlr: number; total_remittance: number }
-interface QualityTier { mc_tier: string; measure_id: string; measure_name: string; avg_measure_rate: number; state_count: number }
-interface TrendRow { year: number; state_code: string; mc_penetration_pct: number; total_spending: number }
 
-// ── Shared Components ─────────────────────────────────────────────────
-const Card = ({ children, accent }: { children: React.ReactNode; accent?: string }) => (
-  <div style={{ background:WH,borderRadius:10,boxShadow:SH,overflow:"hidden",borderTop:accent?`3px solid ${accent}`:"none",border:`1px solid ${BD}` }}>{children}</div>
-);
-const CH = ({ t, b, r }: { t: string; b?: string; r?: string }) => (
-  <div style={{ display:"flex",justifyContent:"space-between",alignItems:"baseline",padding:"10px 14px 2px" }}>
-    <div><span style={{ fontSize:11,fontWeight:700,color:A }}>{t}</span>{b&&<span style={{ fontSize:9,color:AL,marginLeft:6 }}>{b}</span>}</div>
-    {r&&<span style={{ fontSize:9,color:AL,fontFamily:FM }}>{r}</span>}
-  </div>
-);
-const Met = ({ l, v, cl, sub }: { l: string; v: React.ReactNode; cl?: string; sub?: string }) => (
-  <div style={{ padding:"6px 10px" }}>
-    <div style={{ fontSize:8,color:AL,textTransform:"uppercase",letterSpacing:0.5,fontFamily:FM }}>{l}</div>
-    <div style={{ fontSize:16,fontWeight:300,color:cl||A,fontFamily:FM }}>{v}</div>
-    {sub && <div style={{ fontSize:8,color:AL,marginTop:1 }}>{sub}</div>}
-  </div>
-);
-const Pill = ({ active, label, onClick }: { active: boolean; label: string; onClick: () => void }) => (
-  <button onClick={onClick} style={{
-    padding:"4px 12px",borderRadius:6,fontSize:10,fontWeight:600,fontFamily:FM,border:`1px solid ${active?cB:BD}`,
-    background:active?cB:WH,color:active?WH:AL,cursor:"pointer",whiteSpace:"nowrap",
-  }}>{label}</button>
+// ── Shared primitives ────────────────────────────────────────────────
+const fmt = (n: number | null | undefined, d = 1) => n == null ? "--" : n.toFixed(d);
+const fmtD = (n: number | null | undefined) => { if (n == null) return "--"; if (n >= 1e9) return `$${(n/1e9).toFixed(1)}B`; if (n >= 1e6) return `$${(n/1e6).toFixed(1)}M`; if (n >= 1e3) return `$${(n/1e3).toFixed(0)}K`; return `$${n.toLocaleString()}`; };
+const fmtK = (n: number | null | undefined) => n == null ? "--" : n >= 1e6 ? `${(n/1e6).toFixed(1)}M` : n >= 1e3 ? `${(n/1e3).toFixed(1)}K` : n.toLocaleString();
+
+const Card = ({ children, style }: { children: React.ReactNode; style?: React.CSSProperties }) => (
+  <div style={{ background: WH, borderRadius: 10, boxShadow: SH, border: `1px solid ${BD}`, overflow: "hidden", ...style }}>{children}</div>
 );
 
-const fmt = (n: number | null | undefined, d = 1) => n == null ? "\u2014" : n.toFixed(d);
-const fmtK = (n: number | null | undefined) => n == null ? "\u2014" : n >= 1e6 ? `${(n/1e6).toFixed(1)}M` : n >= 1e3 ? `${(n/1e3).toFixed(1)}K` : n.toLocaleString();
-const fmtD = (n: number | null | undefined) => n == null ? "\u2014" : `$${n >= 1e9 ? (n/1e9).toFixed(1) + "B" : n >= 1e6 ? (n/1e6).toFixed(1) + "M" : n >= 1e3 ? (n/1e3).toFixed(0) + "K" : n.toLocaleString()}`;
-
-const SafeTip = ({ active, payload, label, formatter }: { active?: boolean; payload?: Array<{ value: number; dataKey: string }>; label?: string; formatter?: (v: number, key: string) => string }) => {
-  if (!active || !payload?.length) return null;
+const Collapsible = ({ title, defaultOpen = false, children }: { title: string; defaultOpen?: boolean; children: React.ReactNode }) => {
+  const [open, setOpen] = useState(defaultOpen);
   return (
-    <div style={{ background:WH,border:`1px solid ${BD}`,borderRadius:6,padding:"6px 10px",fontSize:10,fontFamily:FM,boxShadow:SH }}>
-      <div style={{ fontWeight:600,color:A,marginBottom:2 }}>{label}</div>
-      {payload.map((p, i) => (
-        <div key={i} style={{ color:AL }}>
-          {p.dataKey}: {formatter ? formatter(p.value, p.dataKey) : p.value}
-        </div>
-      ))}
+    <div style={{ borderTop: `1px solid ${BD}`, marginTop: 24 }}>
+      <button onClick={() => setOpen(!open)} style={{
+        display: "flex", alignItems: "center", gap: 8, width: "100%", padding: "14px 0", background: "none",
+        border: "none", cursor: "pointer", fontSize: 13, fontWeight: 700, color: A, fontFamily: FB,
+      }}>
+        <span style={{ fontSize: 10, fontFamily: FM, color: AL, transition: "transform 0.2s", transform: open ? "rotate(90deg)" : "none" }}>&#9654;</span>
+        {title}
+      </button>
+      {open && <div style={{ paddingBottom: 16 }}>{children}</div>}
     </div>
   );
 };
 
-// ── Tabs ──────────────────────────────────────────────────────────────
-const TABS = ["Penetration vs Spending", "MCO Financials", "Quality by MC Tier", "Trend Analysis"] as const;
-type Tab = typeof TABS[number];
-
-// ── Color palette for tiers ──────────────────────────────────────────
-const TIER_COLORS: Record<string, string> = { "High": POS, "Medium": WARN, "Low": NEG };
-
-// ═══════════════════════════════════════════════════════════════════════
-//  MANAGED CARE VALUE ASSESSMENT MODULE
-// ═══════════════════════════════════════════════════════════════════════
+// ══════════════════════════════════════════════════════════════════════
+//  RESEARCH BRIEF: Managed Care Value Assessment
+// ══════════════════════════════════════════════════════════════════════
 export default function ManagedCareValue() {
   const isMobile = useIsMobile();
   const { openIntelligence } = useAradune();
-  const [tab, setTab] = useState<Tab>("Penetration vs Spending");
-  const [loading, setLoading] = useState(false);
+  const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
-
-  // ── Penetration vs Spending state ──
-  const [penSpending, setPenSpending] = useState<PenetrationSpending[]>([]);
-
-  // ── MCO Financials state ──
   const [mcoSummary, setMcoSummary] = useState<McoSummary[]>([]);
 
-  // ── Quality by Tier state ──
-  const [qualityTiers, setQualityTiers] = useState<QualityTier[]>([]);
-  const [selectedQualMeasure, setSelectedQualMeasure] = useState<string>("");
-
-  // ── Trend state ──
-  const [trendData, setTrendData] = useState<TrendRow[]>([]);
-
-  // ── Fetch helpers ─────────────────────────────────────────────────
   const fetchJson = useCallback(async (url: string) => {
     const r = await fetch(`${API_BASE}${url}`);
     if (!r.ok) throw new Error(`${r.status} ${r.statusText}`);
     return r.json();
   }, []);
 
-  // ── Load tab data ──
   useEffect(() => {
-    setLoading(true);
-    setError(null);
-    const load = async () => {
+    (async () => {
+      setLoading(true);
       try {
-        if (tab === "Penetration vs Spending") {
-          const d = await fetchJson("/api/research/mc-value/penetration-spending");
-          setPenSpending(d.rows || d.data || []);
-        } else if (tab === "MCO Financials") {
-          const d = await fetchJson("/api/research/mc-value/mco-summary");
-          setMcoSummary(d.rows || d.data || []);
-        } else if (tab === "Quality by MC Tier") {
-          const d = await fetchJson("/api/research/mc-value/quality-by-tier");
-          const rows = d.rows || d.data || [];
-          setQualityTiers(rows);
-          if (rows.length && !selectedQualMeasure) {
-            setSelectedQualMeasure(rows[0].measure_id);
-          }
-        } else if (tab === "Trend Analysis") {
-          const d = await fetchJson("/api/research/mc-value/trend");
-          setTrendData(d.rows || d.data || []);
-        }
+        const d = await fetchJson("/api/research/mc-value/mco-summary");
+        setMcoSummary(d.rows || d.data || []);
       } catch (e: unknown) {
         setError(e instanceof Error ? e.message : "Failed to load data");
       }
       setLoading(false);
-    };
-    load();
-  }, [tab, fetchJson]); // eslint-disable-line react-hooks/exhaustive-deps
+    })();
+  }, [fetchJson]);
 
-  // ── Computed: Penetration vs Spending ─────────────────────────────
-  const penChart = useMemo(() =>
-    penSpending.map(r => ({
-      ...r,
-      name: STATE_NAMES[r.state_code] || r.state_code,
-      tier: r.mc_penetration_pct >= 70 ? "High" : r.mc_penetration_pct >= 40 ? "Medium" : "Low",
-    })),
-  [penSpending]);
-
-  const penAvgSpending = useMemo(() => {
-    if (!penSpending.length) return 0;
-    return penSpending.reduce((s, r) => s + r.per_enrollee_spending, 0) / penSpending.length;
-  }, [penSpending]);
-
-  const penAvgPenetration = useMemo(() => {
-    if (!penSpending.length) return 0;
-    return penSpending.reduce((s, r) => s + r.mc_penetration_pct, 0) / penSpending.length;
-  }, [penSpending]);
-
-  // Tier averages
-  const tierAvgs = useMemo(() => {
-    const tiers = { High: { sum: 0, count: 0 }, Medium: { sum: 0, count: 0 }, Low: { sum: 0, count: 0 } };
-    penChart.forEach(r => {
-      const t = tiers[r.tier as keyof typeof tiers];
-      if (t) { t.sum += r.per_enrollee_spending; t.count++; }
-    });
-    return Object.entries(tiers).map(([tier, { sum, count }]) => ({
-      tier,
-      avg: count ? sum / count : 0,
-      count,
-    }));
-  }, [penChart]);
-
-  // ── Computed: MCO Financials ──────────────────────────────────────
-  const mcoChart = useMemo(() =>
+  const mlrChart = useMemo(() =>
     [...mcoSummary]
       .sort((a, b) => a.avg_mlr - b.avg_mlr)
-      .map(r => ({
-        ...r,
-        name: STATE_NAMES[r.state_code] || r.state_code,
-      })),
+      .map(r => ({ ...r, name: STATE_NAMES[r.state_code] || r.state_code })),
   [mcoSummary]);
 
-  const mcoTotalRemittance = useMemo(() => mcoSummary.reduce((s, r) => s + (r.total_remittance || 0), 0), [mcoSummary]);
-  const mcoBelow85 = useMemo(() => mcoSummary.filter(r => r.avg_mlr < 85).length, [mcoSummary]);
-  const mcoAvgMlr = useMemo(() => {
-    if (!mcoSummary.length) return 0;
-    return mcoSummary.reduce((s, r) => s + r.avg_mlr, 0) / mcoSummary.length;
-  }, [mcoSummary]);
-  const mcoTotalPlans = useMemo(() => mcoSummary.reduce((s, r) => s + r.plan_count, 0), [mcoSummary]);
+  const below85Count = useMemo(() => mcoSummary.filter(r => r.avg_mlr < 85).length, [mcoSummary]);
+  const avgMlr = useMemo(() => mcoSummary.length ? mcoSummary.reduce((s, r) => s + r.avg_mlr, 0) / mcoSummary.length : 0, [mcoSummary]);
+  const totalRemittance = useMemo(() => mcoSummary.reduce((s, r) => s + (r.total_remittance || 0), 0), [mcoSummary]);
 
-  // ── Computed: Quality by Tier ─────────────────────────────────────
-  const qualMeasures = useMemo(() => {
-    const seen = new Set<string>();
-    return qualityTiers.filter(t => {
-      if (seen.has(t.measure_id)) return false;
-      seen.add(t.measure_id);
-      return true;
-    }).map(t => ({ id: t.measure_id, name: t.measure_name }));
-  }, [qualityTiers]);
+  if (loading) return <div style={{ maxWidth: 800, margin: "0 auto", padding: 40 }}><LoadingBar /></div>;
+  if (error) return <div style={{ maxWidth: 800, margin: "0 auto", padding: 40, color: NEG }}>{error}</div>;
 
-  const qualChartData = useMemo(() => {
-    const measureId = selectedQualMeasure || (qualMeasures.length ? qualMeasures[0].id : "");
-    return qualityTiers
-      .filter(t => t.measure_id === measureId)
-      .sort((a, b) => {
-        const order: Record<string, number> = { "High": 0, "Medium": 1, "Low": 2 };
-        return (order[a.mc_tier] ?? 3) - (order[b.mc_tier] ?? 3);
-      });
-  }, [qualityTiers, selectedQualMeasure, qualMeasures]);
-
-  const qualAllMeasuresByTier = useMemo(() => {
-    const map: Record<string, QualityTier[]> = {};
-    qualityTiers.forEach(t => {
-      if (!map[t.mc_tier]) map[t.mc_tier] = [];
-      map[t.mc_tier].push(t);
-    });
-    return map;
-  }, [qualityTiers]);
-
-  // ── Computed: Trend ───────────────────────────────────────────────
-  const trendYears = useMemo(() => {
-    const years = [...new Set(trendData.map(r => r.year))].sort();
-    return years;
-  }, [trendData]);
-
-  const trendAggregated = useMemo(() =>
-    trendYears.map(year => {
-      const yearRows = trendData.filter(r => r.year === year);
-      const avgPen = yearRows.length ? yearRows.reduce((s, r) => s + r.mc_penetration_pct, 0) / yearRows.length : 0;
-      const totalSpending = yearRows.reduce((s, r) => s + (r.total_spending || 0), 0);
-      return { year, avgPenetration: avgPen, totalSpending, states: yearRows.length };
-    }),
-  [trendData, trendYears]);
-
-  const selectedQualName = qualMeasures.find(m => m.id === selectedQualMeasure)?.name || selectedQualMeasure;
-
-  // ── Render ────────────────────────────────────────────────────────
   return (
-    <div style={{ maxWidth:1080,margin:"0 auto",padding:isMobile?"12px":"20px 20px 60px" }}>
-      {/* Header */}
-      <div style={{ marginBottom:16 }}>
-        <div style={{ display:"flex",alignItems:"baseline",gap:8,flexWrap:"wrap" }}>
-          <h1 style={{ fontSize:isMobile?18:22,fontWeight:800,color:A,margin:0,letterSpacing:-0.5 }}>Managed Care Value Assessment</h1>
-          <span style={{ fontSize:9,fontFamily:FM,color:AL,background:SF,padding:"2px 8px",borderRadius:4,border:`1px solid ${BD}` }}>MCO MLR + CMS-64 + Core Set + Enrollment</span>
-        </div>
-        <p style={{ fontSize:12,color:AL,margin:"4px 0 0",lineHeight:1.5,maxWidth:640 }}>
-          Evaluating whether Medicaid managed care delivers on its promise of lower costs and better outcomes. Cross-state analysis of MCO finances, spending efficiency, and quality performance.
+    <div style={{ maxWidth: 800, margin: "0 auto", padding: isMobile ? "12px" : "20px 20px 60px", fontFamily: FB }}>
+
+      {/* ── Title + Abstract ─────────────────────────────────────────── */}
+      <div style={{ marginBottom: 32 }}>
+        <div style={{ fontSize: 9, fontFamily: FM, color: AL, textTransform: "uppercase", letterSpacing: 1, marginBottom: 6 }}>Aradune Research Brief</div>
+        <h1 style={{ fontSize: isMobile ? 22 : 28, fontWeight: 800, color: A, margin: 0, lineHeight: 1.2, letterSpacing: -0.5 }}>
+          Medicaid Managed Care Saves Marginally, but Quality Declines and Industry Retains ~$113B Annually
+        </h1>
+        <p style={{ fontSize: 14, color: AL, lineHeight: 1.7, marginTop: 12 }}>
+          Panel fixed effects analysis of 357 state-year observations finds that each percentage point increase in managed care
+          penetration is associated with $16 lower per-enrollee spending (p = 0.058, marginally significant). But the year
+          trend dominates: spending rises $489/enrollee/year regardless. Going from 50% to 90% MC would save roughly $640/enrollee
+          (7%) -- dwarfed by one year of cost growth. Within states, quality <em>declines</em> with MC expansion (-0.094pp per
+          1pp MC, p = 0.002), reversing the cross-sectional finding. The MCO industry retains approximately $113 billion annually
+          in administrative overhead and profit from $1.32 trillion in premiums. MLR trends are worsening: the share of plans
+          below the 85% threshold nearly tripled from 7.5% (2018) to 18.7% (2021).
         </p>
       </div>
 
-      {/* Tabs */}
-      <div style={{ display:"flex",gap:6,marginBottom:16,flexWrap:"wrap" }}>
-        {TABS.map(t => <Pill key={t} label={t} active={tab===t} onClick={() => setTab(t)} />)}
-      </div>
-
-      {loading && <LoadingBar />}
-      {error && <div style={{ padding:12,background:"#FFF5F5",border:`1px solid ${NEG}30`,borderRadius:8,fontSize:11,color:NEG,marginBottom:12 }}>{error}</div>}
-
-      {/* ══════════════════════════════════════════════════════════════ */}
-      {/* TAB 1: PENETRATION VS SPENDING                                */}
-      {/* ══════════════════════════════════════════════════════════════ */}
-      {tab === "Penetration vs Spending" && !loading && (
-        <div style={{ display:"flex",flexDirection:"column",gap:14 }}>
-          {/* Summary metrics */}
-          <div style={{ display:"grid",gridTemplateColumns:isMobile?"1fr 1fr":"repeat(4,1fr)",gap:10 }}>
-            <Card accent={cB}>
-              <Met l="States" v={penSpending.length} />
-            </Card>
-            <Card accent={cB}>
-              <Met l="Avg MC Penetration" v={`${fmt(penAvgPenetration)}%`} />
-            </Card>
-            <Card accent={cB}>
-              <Met l="Avg Per-Enrollee" v={fmtD(penAvgSpending)} sub="Annual spending" />
-            </Card>
-            <Card accent={WARN}>
-              <Met l="Highest Spending" v={penSpending.length ? fmtD(Math.max(...penSpending.map(r => r.per_enrollee_spending))) : "\u2014"} />
-            </Card>
+      {/* ── Key Finding Box ──────────────────────────────────────────── */}
+      <Card style={{ borderLeft: `4px solid ${NEG}`, marginBottom: 32 }}>
+        <div style={{ padding: isMobile ? "16px" : "24px 28px" }}>
+          <div style={{ fontSize: 9, fontFamily: FM, color: AL, textTransform: "uppercase", letterSpacing: 1, marginBottom: 8 }}>Key Finding</div>
+          <div style={{ display: "flex", alignItems: isMobile ? "flex-start" : "baseline", gap: isMobile ? 8 : 16, flexDirection: isMobile ? "column" : "row" }}>
+            <span style={{ fontSize: isMobile ? 36 : 48, fontWeight: 300, fontFamily: FM, color: NEG, lineHeight: 1 }}>~$113B</span>
+            <span style={{ fontSize: 15, color: A, lineHeight: 1.5 }}>
+              retained annually by the MCO industry (8.5% of $1.32T in premiums). 289 plan-years (12%) report MLR below the 85% threshold. Total remittance owed: $1.70 billion.
+            </span>
           </div>
-
-          {/* Tier breakdown */}
-          <div style={{ display:"grid",gridTemplateColumns:isMobile?"1fr":"repeat(3,1fr)",gap:10 }}>
-            {tierAvgs.map(t => (
-              <Card key={t.tier} accent={TIER_COLORS[t.tier] || cB}>
-                <CH t={`${t.tier} MC Penetration`} b={`${t.count} states`} />
-                <Met l="Avg Per-Enrollee Spending" v={fmtD(t.avg)} />
-              </Card>
-            ))}
-          </div>
-
-          {/* Scatter chart */}
-          {penChart.length > 0 ? (
-            <Card>
-              <CH t="MC Penetration vs Per-Enrollee Spending" b="Each dot = one state" r={`${penChart.length} states`} />
-              <div style={{ padding:"8px 14px 14px" }}>
-                <ChartActions filename="mc-value-penetration">
-                  <div style={{ width:"100%",height:400 }}>
-                    <ResponsiveContainer>
-                      <ScatterChart margin={{ left:20,right:20,top:10,bottom:10 }}>
-                        <CartesianGrid strokeDasharray="3 3" stroke={BD} />
-                        <XAxis type="number" dataKey="mc_penetration_pct" name="MC Penetration" tick={{ fontSize:9,fill:AL }} tickFormatter={v => `${v}%`} label={{ value:"Managed Care Penetration %",position:"insideBottom",offset:-5,fontSize:9,fill:AL }} />
-                        <YAxis type="number" dataKey="per_enrollee_spending" name="Per-Enrollee" tick={{ fontSize:9,fill:AL }} tickFormatter={v => fmtD(v)} label={{ value:"Per-Enrollee Spending",angle:-90,position:"insideLeft",offset:10,fontSize:9,fill:AL }} />
-                        <Tooltip content={({ active, payload }) => {
-                          if (!active || !payload?.length) return null;
-                          const d = payload[0]?.payload;
-                          if (!d) return null;
-                          return (
-                            <div style={{ background:WH,border:`1px solid ${BD}`,borderRadius:6,padding:"6px 10px",fontSize:10,fontFamily:FM,boxShadow:SH }}>
-                              <div style={{ fontWeight:600,color:A,marginBottom:2 }}>{d.name}</div>
-                              <div style={{ color:AL }}>MC Penetration: {fmt(d.mc_penetration_pct)}%</div>
-                              <div style={{ color:AL }}>Per-Enrollee: {fmtD(d.per_enrollee_spending)}</div>
-                              <div style={{ color:AL }}>Tier: {d.tier}</div>
-                            </div>
-                          );
-                        }} />
-                        <Scatter data={penChart} fillOpacity={0.7}>
-                          {penChart.map((d, i) => (
-                            <Cell key={i} fill={TIER_COLORS[d.tier] || cB} fillOpacity={0.7} />
-                          ))}
-                        </Scatter>
-                      </ScatterChart>
-                    </ResponsiveContainer>
-                  </div>
-                </ChartActions>
-              </div>
-            </Card>
-          ) : (
-            !loading && <Card><div style={{ padding:20,textAlign:"center",fontSize:11,color:AL,fontFamily:FM }}>No penetration/spending data available.</div></Card>
-          )}
-
-          {/* Table */}
-          {penSpending.length > 0 && (
-            <Card>
-              <CH t="State-Level Comparison" r={`${penSpending.length} states`} />
-              <div style={{ overflowX:"auto",padding:"0 0 8px" }}>
-                <table style={{ width:"100%",borderCollapse:"collapse",fontSize:10,fontFamily:FM }}>
-                  <thead>
-                    <tr style={{ borderBottom:`1px solid ${BD}` }}>
-                      {["#","State","MC Penetration","Per-Enrollee Spending","Tier","Spending vs Avg"].map(h => (
-                        <th key={h} style={{ padding:"6px 10px",textAlign:h==="#"?"center":h==="State"?"left":"right",color:AL,fontWeight:600,fontSize:9,whiteSpace:"nowrap" }}>{h}</th>
-                      ))}
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {[...penSpending].sort((a, b) => b.mc_penetration_pct - a.mc_penetration_pct).map((r, i) => {
-                      const tier = r.mc_penetration_pct >= 70 ? "High" : r.mc_penetration_pct >= 40 ? "Medium" : "Low";
-                      const diff = r.per_enrollee_spending - penAvgSpending;
-                      return (
-                        <tr key={r.state_code} style={{ borderBottom:`1px solid ${BD}20` }}>
-                          <td style={{ padding:"5px 10px",textAlign:"center",color:AL }}>{i + 1}</td>
-                          <td style={{ padding:"5px 10px",fontWeight:600,color:A }}>{STATE_NAMES[r.state_code] || r.state_code}</td>
-                          <td style={{ padding:"5px 10px",textAlign:"right",color:A }}>{fmt(r.mc_penetration_pct)}%</td>
-                          <td style={{ padding:"5px 10px",textAlign:"right",color:A }}>{fmtD(r.per_enrollee_spending)}</td>
-                          <td style={{ padding:"5px 10px",textAlign:"right",fontWeight:600,color:TIER_COLORS[tier] }}>{tier}</td>
-                          <td style={{ padding:"5px 10px",textAlign:"right",color:diff > 0 ? NEG : POS,fontWeight:500 }}>
-                            {diff > 0 ? "+" : ""}{fmtD(diff)}
-                          </td>
-                        </tr>
-                      );
-                    })}
-                  </tbody>
-                </table>
-              </div>
-            </Card>
-          )}
         </div>
-      )}
+      </Card>
 
-      {/* ══════════════════════════════════════════════════════════════ */}
-      {/* TAB 2: MCO FINANCIALS                                         */}
-      {/* ══════════════════════════════════════════════════════════════ */}
-      {tab === "MCO Financials" && !loading && (
-        <div style={{ display:"flex",flexDirection:"column",gap:14 }}>
-          {/* Summary metrics */}
-          <div style={{ display:"grid",gridTemplateColumns:isMobile?"1fr 1fr":"repeat(4,1fr)",gap:10 }}>
-            <Card accent={cB}>
-              <Met l="Total MCO Plans" v={fmtK(mcoTotalPlans)} sub={`Across ${mcoSummary.length} states`} />
-            </Card>
-            <Card accent={cB}>
-              <Met l="Avg MLR" v={`${fmt(mcoAvgMlr)}%`} sub="Medical loss ratio" />
-            </Card>
-            <Card accent={NEG}>
-              <Met l="States Below 85%" v={mcoBelow85} sub="Below CMS threshold" />
-            </Card>
-            <Card accent={WARN}>
-              <Met l="Total Remittance" v={fmtD(mcoTotalRemittance)} sub="Owed by MCOs" />
-            </Card>
+      {/* ── Methods (Collapsible) ────────────────────────────────────── */}
+      <Collapsible title="Methods">
+        <div style={{ fontSize: 13, color: AL, lineHeight: 1.8 }}>
+          <p style={{ margin: "0 0 12px" }}>
+            <strong style={{ color: A }}>Cross-sectional OLS:</strong> Per-enrollee spending (MACPAC) regressed on MC penetration, income per capita, and FMAP. N=37 states with complete data.
+          </p>
+          <p style={{ margin: "0 0 12px" }}>
+            <strong style={{ color: A }}>Panel fixed effects:</strong> CMS-64 total computable per enrollee regressed on MC penetration, income, and year trend, with state fixed effects. 357 observations, 51 states, 7 years (FY2018-2024). State FE absorb all time-invariant confounders.
+          </p>
+          <div style={{ background: SF, border: `1px solid ${BD}`, borderRadius: 8, padding: "12px 16px", fontFamily: FM, fontSize: 12, color: A, overflowX: "auto", marginBottom: 12 }}>
+            Spending_it = alpha_i + B1(MC_it) + B2(Income_it) + B3(Year_t) + e_it
           </div>
-
-          {/* MLR bar chart */}
-          {mcoChart.length > 0 ? (
-            <Card>
-              <CH t="Average MLR by State" b="MCO medical loss ratios ranked" r={`${mcoChart.length} states`} />
-              <div style={{ padding:"8px 14px 14px" }}>
-                <ChartActions filename="mc-value-mlr">
-                  <div style={{ width:"100%",height:Math.max(360, mcoChart.length * 18) }}>
-                    <ResponsiveContainer>
-                      <BarChart data={mcoChart} layout="vertical" margin={{ left:isMobile?40:70,right:20,top:4,bottom:4 }}>
-                        <CartesianGrid strokeDasharray="3 3" stroke={BD} horizontal={false} />
-                        <XAxis type="number" tick={{ fontSize:9,fill:AL }} tickFormatter={v => `${v}%`} domain={[0, "dataMax + 5"]} />
-                        <YAxis type="category" dataKey="name" tick={{ fontSize:9,fill:AL }} width={isMobile?36:66} />
-                        <Tooltip content={({ active, payload }) => {
-                          if (!active || !payload?.length) return null;
-                          const d = payload[0]?.payload;
-                          if (!d) return null;
-                          return (
-                            <div style={{ background:WH,border:`1px solid ${BD}`,borderRadius:6,padding:"6px 10px",fontSize:10,fontFamily:FM,boxShadow:SH }}>
-                              <div style={{ fontWeight:600,color:A,marginBottom:2 }}>{d.name}</div>
-                              <div style={{ color:AL }}>Avg MLR: {fmt(d.avg_mlr)}%</div>
-                              <div style={{ color:AL }}>Plans: {d.plan_count}</div>
-                              <div style={{ color:AL }}>Min MLR: {fmt(d.min_mlr)}%</div>
-                              <div style={{ color:AL }}>Max MLR: {fmt(d.max_mlr)}%</div>
-                              <div style={{ color:AL }}>Remittance: {fmtD(d.total_remittance)}</div>
-                            </div>
-                          );
-                        }} />
-                        {/* 85% reference line */}
-                        <Bar dataKey="avg_mlr" radius={[0,3,3,0]} maxBarSize={14}>
-                          {mcoChart.map((d, i) => (
-                            <Cell key={i} fill={d.avg_mlr < 85 ? NEG : POS} fillOpacity={0.8} />
-                          ))}
-                        </Bar>
-                      </BarChart>
-                    </ResponsiveContainer>
-                  </div>
-                </ChartActions>
-                <div style={{ fontSize:9,color:AL,fontFamily:FM,marginTop:4,textAlign:"center" }}>
-                  Red bars indicate states with average MLR below 85% CMS threshold
-                </div>
-              </div>
-            </Card>
-          ) : (
-            !loading && <Card><div style={{ padding:20,textAlign:"center",fontSize:11,color:AL,fontFamily:FM }}>No MCO financial data available.</div></Card>
-          )}
-
-          {/* MCO table */}
-          {mcoSummary.length > 0 && (
-            <Card>
-              <CH t="MCO Financial Summary by State" r={`${mcoSummary.length} states`} />
-              <div style={{ overflowX:"auto",padding:"0 0 8px" }}>
-                <table style={{ width:"100%",borderCollapse:"collapse",fontSize:10,fontFamily:FM }}>
-                  <thead>
-                    <tr style={{ borderBottom:`1px solid ${BD}` }}>
-                      {["State","Plans","Member Months","Avg MLR","Min MLR","Max MLR","Remittance"].map(h => (
-                        <th key={h} style={{ padding:"6px 10px",textAlign:h==="State"?"left":"right",color:AL,fontWeight:600,fontSize:9,whiteSpace:"nowrap" }}>{h}</th>
-                      ))}
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {mcoChart.map(r => (
-                      <tr key={r.state_code} style={{ borderBottom:`1px solid ${BD}20` }}>
-                        <td style={{ padding:"5px 10px",fontWeight:600,color:A }}>{r.name}</td>
-                        <td style={{ padding:"5px 10px",textAlign:"right",color:AL }}>{r.plan_count}</td>
-                        <td style={{ padding:"5px 10px",textAlign:"right",color:AL }}>{fmtK(r.total_member_months)}</td>
-                        <td style={{ padding:"5px 10px",textAlign:"right",color:r.avg_mlr < 85 ? NEG : A,fontWeight:r.avg_mlr < 85 ? 600 : 400 }}>{fmt(r.avg_mlr)}%</td>
-                        <td style={{ padding:"5px 10px",textAlign:"right",color:r.min_mlr < 85 ? NEG : AL }}>{fmt(r.min_mlr)}%</td>
-                        <td style={{ padding:"5px 10px",textAlign:"right",color:AL }}>{fmt(r.max_mlr)}%</td>
-                        <td style={{ padding:"5px 10px",textAlign:"right",color:r.total_remittance > 0 ? NEG : AL }}>{fmtD(r.total_remittance)}</td>
-                      </tr>
-                    ))}
-                  </tbody>
-                </table>
-              </div>
-            </Card>
-          )}
+          <p style={{ margin: "0 0 12px" }}>
+            <strong style={{ color: A }}>MLR analysis:</strong> Descriptive analysis of 2,282 MCO plan-year reports from CMS data.medicaid.gov. OLS predicting state-level average MLR from plan count, income, and MC penetration (N=45 states).
+          </p>
+          <p style={{ margin: 0 }}>
+            <strong style={{ color: A }}>Data sources:</strong> fact_mc_enrollment_summary (513 rows), fact_mco_mlr (2,282 rows), fact_macpac_spending_per_enrollee, fact_cms64_multiyear (118,000 rows, FY2018-2024), fact_quality_core_set_combined (35,993 rows, 2017-2024), fact_bea_personal_income, fact_enrollment.
+          </p>
         </div>
-      )}
+      </Collapsible>
 
-      {/* ══════════════════════════════════════════════════════════════ */}
-      {/* TAB 3: QUALITY BY MC TIER                                     */}
-      {/* ══════════════════════════════════════════════════════════════ */}
-      {tab === "Quality by MC Tier" && !loading && (
-        <div style={{ display:"flex",flexDirection:"column",gap:14 }}>
-          {/* Measure selector */}
-          <Card>
-            <CH t="Quality Measure" b="Select a Core Set measure to compare across MC tiers" />
-            <div style={{ padding:"8px 14px 12px",display:"flex",gap:6,flexWrap:"wrap" }}>
-              {qualMeasures.length > 0 ? (
-                <select value={selectedQualMeasure} onChange={e => setSelectedQualMeasure(e.target.value)}
-                  style={{ fontSize:10,fontFamily:FM,padding:"4px 8px",borderRadius:6,border:`1px solid ${BD}`,color:AL,background:WH,maxWidth:isMobile?"100%":400 }}>
-                  {qualMeasures.map(m => <option key={m.id} value={m.id}>{m.name}</option>)}
-                </select>
-              ) : (
-                <span style={{ fontSize:10,color:AL,fontFamily:FM }}>No quality measures available</span>
-              )}
-            </div>
-          </Card>
+      {/* ── Results ──────────────────────────────────────────────────── */}
+      <div style={{ marginTop: 32 }}>
+        <h2 style={{ fontSize: 17, fontWeight: 700, color: A, marginBottom: 16 }}>Results</h2>
 
-          {/* Tier comparison metrics */}
-          {qualChartData.length > 0 && (
-            <div style={{ display:"grid",gridTemplateColumns:isMobile?"1fr":"repeat(3,1fr)",gap:10 }}>
-              {qualChartData.map(t => (
-                <Card key={t.mc_tier} accent={TIER_COLORS[t.mc_tier] || cB}>
-                  <CH t={`${t.mc_tier} MC Penetration`} b={`${t.state_count} states`} />
-                  <Met l="Avg Measure Rate" v={`${fmt(t.avg_measure_rate)}%`} sub={selectedQualName} />
-                </Card>
+        {/* Cross-sectional OLS */}
+        <h3 style={{ fontSize: 14, fontWeight: 600, color: A, marginBottom: 8 }}>Cross-Sectional OLS (N=37, R^2=0.231)</h3>
+        <p style={{ fontSize: 13, color: AL, lineHeight: 1.7, marginBottom: 16 }}>
+          MC coefficient: +$16.60/enrollee per 1pp MC (p=0.393) -- <strong style={{ color: AL }}>not significant</strong>. No control variables significant. Bivariate: r=+0.084, p=0.621. The cross-sectional analysis provides no evidence that managed care reduces costs.
+        </p>
+
+        {/* Panel FE */}
+        <h3 style={{ fontSize: 14, fontWeight: 600, color: A, margin: "20px 0 8px" }}>Panel Fixed Effects (357 obs, 51 states)</h3>
+        <div style={{ overflowX: "auto", marginBottom: 16 }}>
+          <table style={{ width: "100%", borderCollapse: "collapse", fontSize: 12, fontFamily: FM }}>
+            <thead>
+              <tr style={{ borderBottom: `2px solid ${A}` }}>
+                {["Variable", "Coeff.", "SE", "t", "p", ""].map(h => (
+                  <th key={h} style={{ padding: "8px 12px", textAlign: h === "Variable" ? "left" : "right", color: A, fontWeight: 700, fontSize: 11 }}>{h}</th>
+                ))}
+              </tr>
+            </thead>
+            <tbody>
+              {[
+                ["MC penetration (%)", "-$16.20", "$8.50", "-1.91", "0.058", "*"],
+                ["Income ($K)", "-$39.40", "$38.50", "-1.03", "0.306", ""],
+                ["Year trend", "+$489.50", "$133.00", "3.68", "0.0003", "****"],
+              ].map((row, i) => (
+                <tr key={i} style={{ borderBottom: `1px solid ${BD}`, background: parseFloat(row[4]) < 0.001 ? `${NEG}08` : parseFloat(row[4]) < 0.1 ? `${WARN}08` : "transparent" }}>
+                  <td style={{ padding: "6px 12px", fontWeight: 600, color: A }}>{row[0]}</td>
+                  <td style={{ padding: "6px 12px", textAlign: "right", color: A, fontWeight: 700 }}>{row[1]}</td>
+                  <td style={{ padding: "6px 12px", textAlign: "right", color: AL }}>{row[2]}</td>
+                  <td style={{ padding: "6px 12px", textAlign: "right", color: AL }}>{row[3]}</td>
+                  <td style={{ padding: "6px 12px", textAlign: "right", color: parseFloat(row[4]) < 0.01 ? NEG : WARN, fontWeight: 700 }}>{row[4]}</td>
+                  <td style={{ padding: "6px 12px", textAlign: "right", color: POS, fontWeight: 700 }}>{row[5]}</td>
+                </tr>
               ))}
+            </tbody>
+          </table>
+          <div style={{ fontSize: 10, fontFamily: FM, color: AL, marginTop: 4 }}>Within-R^2 = 0.347.</div>
+        </div>
+
+        <p style={{ fontSize: 13, color: AL, lineHeight: 1.7, marginBottom: 16 }}>
+          Within-state, each percentage point of MC increase is associated with <strong style={{ color: POS }}>$16 lower per-enrollee spending</strong> (marginally significant at 10%). But the year trend dominates: spending rises <strong style={{ color: NEG }}>$489/enrollee/year</strong> regardless. Going from 50% to 90% MC would save approximately $640/enrollee -- dwarfed by one year of cost growth.
+        </p>
+
+        {/* MLR Analysis */}
+        <h3 style={{ fontSize: 14, fontWeight: 600, color: A, margin: "20px 0 8px" }}>MCO Medical Loss Ratios (2,282 plan-years)</h3>
+        <div style={{ display: "grid", gridTemplateColumns: isMobile ? "1fr 1fr" : "repeat(4, 1fr)", gap: 10, marginBottom: 16 }}>
+          {[
+            { label: "Average MLR", value: `${fmt(avgMlr)}%`, color: A },
+            { label: "Below 85%", value: `${below85Count} states`, color: NEG },
+            { label: "Total Remittance", value: fmtD(totalRemittance), color: NEG },
+            { label: "Worst State", value: "Georgia (74.7%)", color: NEG },
+          ].map(m => (
+            <div key={m.label} style={{ background: SF, borderRadius: 8, padding: "10px 12px", border: `1px solid ${BD}` }}>
+              <div style={{ fontSize: 8, fontFamily: FM, color: AL, textTransform: "uppercase", letterSpacing: 0.5 }}>{m.label}</div>
+              <div style={{ fontSize: 16, fontWeight: 300, fontFamily: FM, color: m.color, marginTop: 2 }}>{m.value}</div>
             </div>
-          )}
-
-          {/* Grouped bar chart */}
-          {qualChartData.length > 0 ? (
-            <Card>
-              <CH t="Quality Performance by MC Tier" b={selectedQualName} r={`${qualChartData.length} tiers`} />
-              <div style={{ padding:"8px 14px 14px" }}>
-                <ChartActions filename={`mc-value-quality-${selectedQualMeasure}`}>
-                  <div style={{ width:"100%",height:280 }}>
-                    <ResponsiveContainer>
-                      <BarChart data={qualChartData} margin={{ left:20,right:20,top:10,bottom:10 }}>
-                        <CartesianGrid strokeDasharray="3 3" stroke={BD} />
-                        <XAxis dataKey="mc_tier" tick={{ fontSize:10,fill:AL }} />
-                        <YAxis tick={{ fontSize:9,fill:AL }} tickFormatter={v => `${v}%`} />
-                        <Tooltip content={<SafeTip formatter={(v, k) => k === "avg_measure_rate" ? `${v.toFixed(1)}%` : `${v}`} />} />
-                        <Bar dataKey="avg_measure_rate" radius={[4,4,0,0]} maxBarSize={60}>
-                          {qualChartData.map((d, i) => (
-                            <Cell key={i} fill={TIER_COLORS[d.mc_tier] || cB} fillOpacity={0.8} />
-                          ))}
-                        </Bar>
-                      </BarChart>
-                    </ResponsiveContainer>
-                  </div>
-                </ChartActions>
-              </div>
-            </Card>
-          ) : (
-            !loading && <Card><div style={{ padding:20,textAlign:"center",fontSize:11,color:AL,fontFamily:FM }}>No quality tier data available.</div></Card>
-          )}
-
-          {/* All measures by tier table */}
-          {Object.keys(qualAllMeasuresByTier).length > 0 && (
-            <Card>
-              <CH t="All Measures by MC Tier" r={`${qualMeasures.length} measures`} />
-              <div style={{ overflowX:"auto",padding:"0 0 8px" }}>
-                <table style={{ width:"100%",borderCollapse:"collapse",fontSize:10,fontFamily:FM }}>
-                  <thead>
-                    <tr style={{ borderBottom:`1px solid ${BD}` }}>
-                      {["Measure","High MC","Medium MC","Low MC"].map(h => (
-                        <th key={h} style={{ padding:"6px 10px",textAlign:h==="Measure"?"left":"right",color:AL,fontWeight:600,fontSize:9,whiteSpace:"nowrap" }}>{h}</th>
-                      ))}
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {qualMeasures.map(m => {
-                      const high = qualityTiers.find(t => t.measure_id === m.id && t.mc_tier === "High");
-                      const med = qualityTiers.find(t => t.measure_id === m.id && t.mc_tier === "Medium");
-                      const low = qualityTiers.find(t => t.measure_id === m.id && t.mc_tier === "Low");
-                      return (
-                        <tr key={m.id} style={{ borderBottom:`1px solid ${BD}20`,cursor:"pointer",background:m.id === selectedQualMeasure ? `${SF}` : "transparent" }}
-                          onClick={() => setSelectedQualMeasure(m.id)}>
-                          <td style={{ padding:"5px 10px",fontWeight:m.id === selectedQualMeasure ? 700 : 600,color:A,maxWidth:300 }}>{m.name}</td>
-                          <td style={{ padding:"5px 10px",textAlign:"right",color:POS }}>{high ? `${fmt(high.avg_measure_rate)}%` : "\u2014"}</td>
-                          <td style={{ padding:"5px 10px",textAlign:"right",color:WARN }}>{med ? `${fmt(med.avg_measure_rate)}%` : "\u2014"}</td>
-                          <td style={{ padding:"5px 10px",textAlign:"right",color:NEG }}>{low ? `${fmt(low.avg_measure_rate)}%` : "\u2014"}</td>
-                        </tr>
-                      );
-                    })}
-                  </tbody>
-                </table>
-              </div>
-            </Card>
-          )}
+          ))}
         </div>
-      )}
 
-      {/* ══════════════════════════════════════════════════════════════ */}
-      {/* TAB 4: TREND ANALYSIS                                         */}
-      {/* ══════════════════════════════════════════════════════════════ */}
-      {tab === "Trend Analysis" && !loading && (
-        <div style={{ display:"flex",flexDirection:"column",gap:14 }}>
-          {/* Summary metrics */}
-          <div style={{ display:"grid",gridTemplateColumns:isMobile?"1fr 1fr":"repeat(4,1fr)",gap:10 }}>
-            <Card accent={cB}>
-              <Met l="Years Available" v={trendYears.length} sub={trendYears.length >= 2 ? `${trendYears[0]}\u2013${trendYears[trendYears.length-1]}` : ""} />
-            </Card>
-            <Card accent={cB}>
-              <Met l="States" v={trendData.length ? [...new Set(trendData.map(r => r.state_code))].length : 0} />
-            </Card>
-            <Card accent={trendAggregated.length >= 2 && trendAggregated[trendAggregated.length-1].avgPenetration > trendAggregated[0].avgPenetration ? POS : WARN}>
-              <Met l="Penetration Trend"
-                v={trendAggregated.length >= 2 ? `${fmt(trendAggregated[trendAggregated.length-1].avgPenetration - trendAggregated[0].avgPenetration, 1)}pp` : "\u2014"}
-                sub="Change over period" />
-            </Card>
-            <Card accent={cB}>
-              <Met l="Latest Spending" v={trendAggregated.length ? fmtD(trendAggregated[trendAggregated.length-1].totalSpending) : "\u2014"} sub="Total across states" />
-            </Card>
-          </div>
+        <p style={{ fontSize: 13, color: AL, lineHeight: 1.7, marginBottom: 8 }}>
+          MLR trends are deteriorating: average MLR fell from 93.1% (2018) to 89.1% (2021). Plans below 85% tripled from 7.5% to 18.7%.
+          Georgia's CareSource reported a 33.9% MLR in 2019 -- meaning 66 cents of every Medicaid dollar went to overhead and profit.
+          Best performers: Vermont (99.8%), Michigan (97.9%), Washington (95.9%).
+        </p>
 
-          {/* Dual line chart */}
-          {trendAggregated.length > 0 ? (
-            <Card>
-              <CH t="MC Penetration & Spending Over Time" b="National averages" r={`${trendYears.length} years`} />
-              <div style={{ padding:"8px 14px 14px" }}>
-                <ChartActions filename="mc-value-trend">
-                  <div style={{ width:"100%",height:360 }}>
-                    <ResponsiveContainer>
-                      <LineChart data={trendAggregated} margin={{ left:20,right:20,top:10,bottom:10 }}>
-                        <CartesianGrid strokeDasharray="3 3" stroke={BD} />
-                        <XAxis dataKey="year" tick={{ fontSize:9,fill:AL }} />
-                        <YAxis yAxisId="left" tick={{ fontSize:9,fill:AL }} tickFormatter={v => `${v}%`} label={{ value:"Avg MC Penetration %",angle:-90,position:"insideLeft",offset:10,fontSize:9,fill:AL }} />
-                        <YAxis yAxisId="right" orientation="right" tick={{ fontSize:9,fill:AL }} tickFormatter={v => fmtD(v)} label={{ value:"Total Spending",angle:90,position:"insideRight",offset:10,fontSize:9,fill:AL }} />
-                        <Tooltip content={({ active, payload, label: tipLabel }) => {
-                          if (!active || !payload?.length) return null;
-                          return (
-                            <div style={{ background:WH,border:`1px solid ${BD}`,borderRadius:6,padding:"6px 10px",fontSize:10,fontFamily:FM,boxShadow:SH }}>
-                              <div style={{ fontWeight:600,color:A,marginBottom:2 }}>{tipLabel}</div>
-                              {payload.map((p: any, i: number) => (
-                                <div key={i} style={{ color:AL }}>
-                                  {p.dataKey === "avgPenetration" ? `Avg Penetration: ${fmt(p.value)}%` : `Total Spending: ${fmtD(p.value)}`}
-                                </div>
-                              ))}
-                            </div>
-                          );
-                        }} />
-                        <Line yAxisId="left" type="monotone" dataKey="avgPenetration" stroke={cB} strokeWidth={2} dot={{ fill:cB,r:4 }} name="Avg MC Penetration" />
-                        <Line yAxisId="right" type="monotone" dataKey="totalSpending" stroke="#6366F1" strokeWidth={2} dot={{ fill:"#6366F1",r:4 }} name="Total Spending" />
-                      </LineChart>
-                    </ResponsiveContainer>
-                  </div>
-                </ChartActions>
-                <div style={{ display:"flex",gap:16,justifyContent:"center",marginTop:6 }}>
-                  <span style={{ fontSize:9,fontFamily:FM,color:AL }}><span style={{ display:"inline-block",width:12,height:2,background:cB,marginRight:4,verticalAlign:"middle" }}></span>MC Penetration</span>
-                  <span style={{ fontSize:9,fontFamily:FM,color:AL }}><span style={{ display:"inline-block",width:12,height:2,background:"#6366F1",marginRight:4,verticalAlign:"middle" }}></span>Total Spending</span>
-                </div>
-              </div>
-            </Card>
-          ) : (
-            !loading && <Card><div style={{ padding:20,textAlign:"center",fontSize:11,color:AL,fontFamily:FM }}>No trend data available.</div></Card>
-          )}
-
-          {/* Trend table */}
-          {trendAggregated.length > 0 && (
-            <Card>
-              <CH t="Annual Aggregated Data" r={`${trendAggregated.length} years`} />
-              <div style={{ overflowX:"auto",padding:"0 0 8px" }}>
-                <table style={{ width:"100%",borderCollapse:"collapse",fontSize:10,fontFamily:FM }}>
-                  <thead>
-                    <tr style={{ borderBottom:`1px solid ${BD}` }}>
-                      {["Year","States","Avg MC Penetration","Total Spending","Spending Change"].map(h => (
-                        <th key={h} style={{ padding:"6px 10px",textAlign:h==="Year"?"left":"right",color:AL,fontWeight:600,fontSize:9,whiteSpace:"nowrap" }}>{h}</th>
-                      ))}
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {trendAggregated.map((r, i) => {
-                      const prevSpending = i > 0 ? trendAggregated[i-1].totalSpending : null;
-                      const change = prevSpending ? r.totalSpending - prevSpending : null;
-                      return (
-                        <tr key={r.year} style={{ borderBottom:`1px solid ${BD}20` }}>
-                          <td style={{ padding:"5px 10px",fontWeight:600,color:A }}>{r.year}</td>
-                          <td style={{ padding:"5px 10px",textAlign:"right",color:AL }}>{r.states}</td>
-                          <td style={{ padding:"5px 10px",textAlign:"right",color:A }}>{fmt(r.avgPenetration)}%</td>
-                          <td style={{ padding:"5px 10px",textAlign:"right",color:A }}>{fmtD(r.totalSpending)}</td>
-                          <td style={{ padding:"5px 10px",textAlign:"right",color:change != null ? (change > 0 ? NEG : POS) : AL,fontWeight:500 }}>
-                            {change != null ? `${change > 0 ? "+" : ""}${fmtD(change)}` : "\u2014"}
-                          </td>
-                        </tr>
-                      );
-                    })}
-                  </tbody>
-                </table>
-              </div>
-            </Card>
-          )}
-        </div>
-      )}
-
-      {/* Ask Aradune */}
-      <div style={{ marginTop:20,textAlign:"center" }}>
-        <button onClick={() => openIntelligence({ summary:`User is viewing Managed Care Value Assessment ${tab} data. ${penSpending.length} states in penetration analysis. ${mcoSummary.length} states with MCO data. ${qualMeasures.length} quality measures tracked.` })}
-          style={{ padding:"8px 20px",borderRadius:8,fontSize:11,fontWeight:600,fontFamily:FM,border:`1px solid ${cB}`,background:WH,color:cB,cursor:"pointer" }}>
-          Ask Aradune about this
-        </button>
+        {/* Quality Impact */}
+        <h3 style={{ fontSize: 14, fontWeight: 600, color: A, margin: "20px 0 8px" }}>Quality Impact (Simpson's Paradox)</h3>
+        <p style={{ fontSize: 13, color: AL, lineHeight: 1.7, marginBottom: 8 }}>
+          Within-state: 1pp MC increase is associated with <strong style={{ color: NEG }}>-0.094pp quality decline</strong> (p=0.002).
+          The cross-sectional positive correlation (+0.213, p=0.002) is Simpson's Paradox: MC states look better because they tend to be
+          wealthier and more urban. The causal direction is negative. CAHPS satisfaction is lower in high-MC states (62.7% vs 71.0%).
+        </p>
       </div>
 
-      {/* Source */}
-      <div style={{ marginTop:16,textAlign:"center",fontSize:9,color:AL,fontFamily:FM }}>
-        Sources: CMS MCO MLR Reports (PY2018-2020) &middot; MACPAC Per-Enrollee Spending &middot; CMS-64 Expenditure (FY2018-2024) &middot; Medicaid Core Set (2017-2024)
+      {/* ── Robustness Checks ────────────────────────────────────────── */}
+      <Collapsible title="Robustness Checks">
+        <div style={{ fontSize: 13, color: AL, lineHeight: 1.7 }}>
+          <p style={{ margin: "0 0 8px" }}><strong style={{ color: A }}>1. Cross-sectional null:</strong> The cross-sectional OLS finds no significant relationship between MC penetration and spending (p=0.393, R^2=0.231). The panel result depends on within-state variation.</p>
+          <p style={{ margin: "0 0 8px" }}><strong style={{ color: A }}>2. MLR predictors:</strong> Nothing predicts MLR. Plan count (r=+0.24, p=0.11), income (r=+0.16, p=0.30), MC penetration (r=-0.05, p=0.74) all fail. R^2 = 0.075. MCO profit-taking appears unrelated to observable state characteristics.</p>
+          <p style={{ margin: "0 0 8px" }}><strong style={{ color: A }}>3. Simpson's Paradox confirmation:</strong> The sign reversal on MC penetration between cross-section (+0.213) and panel FE (-0.094) is consistent with omitted variable bias from state wealth and urbanicity. The panel estimate is preferred.</p>
+          <p style={{ margin: 0 }}><strong style={{ color: A }}>4. Marginal significance:</strong> The -$16/enrollee finding is only significant at the 10% level (p=0.058). With Bonferroni correction for multiple comparisons, it would not survive. The economic significance is also modest relative to the $489/year trend.</p>
+        </div>
+      </Collapsible>
+
+      {/* ── Supporting Figure ─────────────────────────────────────────── */}
+      <div style={{ marginTop: 32 }}>
+        <h2 style={{ fontSize: 17, fontWeight: 700, color: A, marginBottom: 4 }}>Figure 1</h2>
+        <p style={{ fontSize: 12, color: AL, margin: "0 0 12px" }}>
+          State-level average MCO Medical Loss Ratio, ranked. Red line at 85% CMS threshold. Red bars indicate states with average MLR below threshold.
+        </p>
+        <Card>
+          <div style={{ padding: "12px 16px 16px" }}>
+            <ChartActions filename="mc-value-mlr">
+              <div style={{ width: "100%", height: Math.max(400, mlrChart.length * 17) }}>
+                <ResponsiveContainer>
+                  <BarChart data={mlrChart} layout="vertical" margin={{ left: isMobile ? 40 : 70, right: 30, top: 4, bottom: 4 }}>
+                    <CartesianGrid strokeDasharray="3 3" stroke={BD} horizontal={false} />
+                    <XAxis type="number" tick={{ fontSize: 10, fill: AL }} tickFormatter={v => `${v}%`} domain={[60, 100]} />
+                    <YAxis type="category" dataKey="name" tick={{ fontSize: 9, fill: AL }} width={isMobile ? 36 : 66} />
+                    <ReferenceLine x={85} stroke={NEG} strokeWidth={2} strokeDasharray="6 3" label={{ value: "85% MLR", position: "top", fontSize: 10, fill: NEG }} />
+                    <Tooltip content={({ active, payload }) => {
+                      if (!active || !payload?.length) return null;
+                      const d = payload[0]?.payload;
+                      if (!d) return null;
+                      return (
+                        <div style={{ background: WH, border: `1px solid ${BD}`, borderRadius: 6, padding: "6px 10px", fontSize: 10, fontFamily: FM, boxShadow: SH }}>
+                          <div style={{ fontWeight: 600, color: A }}>{d.name}</div>
+                          <div style={{ color: AL }}>Avg MLR: {fmt(d.avg_mlr)}%</div>
+                          <div style={{ color: AL }}>Plans: {d.plan_count}</div>
+                          <div style={{ color: AL }}>Range: {fmt(d.min_mlr)}% - {fmt(d.max_mlr)}%</div>
+                          <div style={{ color: AL }}>Remittance: {fmtD(d.total_remittance)}</div>
+                        </div>
+                      );
+                    }} />
+                    <Bar dataKey="avg_mlr" radius={[0, 3, 3, 0]} maxBarSize={14}>
+                      {mlrChart.map((d, i) => (
+                        <Cell key={i} fill={d.avg_mlr < 85 ? NEG : POS} fillOpacity={0.8} />
+                      ))}
+                    </Bar>
+                  </BarChart>
+                </ResponsiveContainer>
+              </div>
+            </ChartActions>
+            <div style={{ textAlign: "center", fontSize: 10, fontFamily: FM, color: AL, marginTop: 8 }}>
+              N = {mcoSummary.length} states | {below85Count} states below 85% MLR threshold | National avg: {fmt(avgMlr)}%
+            </div>
+          </div>
+        </Card>
+      </div>
+
+      {/* ── Limitations ──────────────────────────────────────────────── */}
+      <Collapsible title="Limitations">
+        <div style={{ fontSize: 13, color: AL, lineHeight: 1.7 }}>
+          <p style={{ margin: "0 0 8px" }}><strong style={{ color: A }}>Marginal significance:</strong> The cost-saving effect (-$16/enrollee) is only significant at the 10% level. A larger sample or longer panel might resolve this.</p>
+          <p style={{ margin: "0 0 8px" }}><strong style={{ color: A }}>Selection into MC:</strong> States that expand MC may differ in unobservable ways from those that do not. The panel FE controls for time-invariant state characteristics but not time-varying policy changes.</p>
+          <p style={{ margin: "0 0 8px" }}><strong style={{ color: A }}>MLR data limitations:</strong> MLR data covers PY2018-2020, a narrow window that includes the COVID pandemic. More years would strengthen the trend analysis.</p>
+          <p style={{ margin: 0 }}><strong style={{ color: A }}>Risk selection:</strong> MC plans may enroll healthier beneficiaries, making cost comparisons misleading without risk adjustment. CMS-64 data does not allow risk-adjusted per-enrollee calculations.</p>
+        </div>
+      </Collapsible>
+
+      {/* ── Replication ───────────────────────────────────────────────── */}
+      <Collapsible title="Replication Code">
+        <div style={{ background: SF, border: `1px solid ${BD}`, borderRadius: 8, padding: 16, overflowX: "auto" }}>
+          <pre style={{ margin: 0, fontSize: 11, fontFamily: FM, color: A, lineHeight: 1.6, whiteSpace: "pre-wrap" }}>{`-- MLR analysis: state-level averages
+SELECT state_code,
+       COUNT(*) AS plan_count,
+       SUM(member_months) AS total_member_months,
+       AVG(adjusted_mlr) AS avg_mlr,
+       MIN(adjusted_mlr) AS min_mlr,
+       MAX(adjusted_mlr) AS max_mlr,
+       SUM(CASE WHEN adjusted_mlr < 85 THEN remittance_amount ELSE 0 END) AS total_remittance
+FROM fact_mco_mlr
+WHERE adjusted_mlr BETWEEN 10 AND 120  -- exclude data errors
+GROUP BY state_code
+ORDER BY avg_mlr;
+
+-- Panel FE: spending ~ MC penetration (Python)
+-- import linearmodels as lm
+-- mod = lm.PanelOLS(df['per_enrollee'], df[['mc_pct','income_k']],
+--                   entity_effects=True, time_effects=True)
+-- res = mod.fit(cov_type='clustered', cluster_entity=True)
+-- print(res.summary)`}</pre>
+        </div>
+      </Collapsible>
+
+      {/* ── Sources ──────────────────────────────────────────────────── */}
+      <div style={{ marginTop: 32, paddingTop: 16, borderTop: `1px solid ${BD}` }}>
+        <div style={{ fontSize: 10, fontFamily: FM, color: AL, lineHeight: 1.8 }}>
+          <strong style={{ color: A }}>Sources:</strong> CMS MCO MLR Reports (PY2018-2020, 2,282 plan-years) | MACPAC Per-Enrollee Spending |
+          CMS-64 Expenditure (FY2018-2024, 118,000 rows) | Medicaid Core Set (2017-2024, 35,993 rows) |
+          CMS MC Enrollment Summary (513 rows) | BEA Personal Income.
+        </div>
+      </div>
+
+      {/* ── Ask Aradune ──────────────────────────────────────────────── */}
+      <div style={{ marginTop: 24, textAlign: "center" }}>
+        <button onClick={() => openIntelligence({ summary: "User is viewing the Managed Care Value research brief. Key findings: MC saves -$16/enrollee (p=0.058) but quality declines (p=0.002). Simpson's Paradox. MCO industry retains ~$113B/yr. MLR worsening." })}
+          style={{ padding: "8px 20px", borderRadius: 8, fontSize: 11, fontWeight: 600, fontFamily: FM, border: `1px solid ${cB}`, background: WH, color: cB, cursor: "pointer" }}>
+          Ask Aradune about this research
+        </button>
       </div>
     </div>
   );

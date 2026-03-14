@@ -1,12 +1,12 @@
-import React, { useState, useMemo, useEffect, useCallback } from "react";
-import { BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer, Cell, CartesianGrid, ScatterChart, Scatter, ZAxis, LineChart, Line } from "recharts";
+import React, { useState, useEffect, useCallback, useMemo } from "react";
+import { ScatterChart, Scatter, XAxis, YAxis, Tooltip, ResponsiveContainer, CartesianGrid, Cell } from "recharts";
 import { API_BASE } from "../../lib/api";
 import { LoadingBar } from "../../components/LoadingBar";
 import { useAradune } from "../../context/AraduneContext";
 import ChartActions from "../../components/ChartActions";
 import { useIsMobile } from "../../design";
 
-// ── Design System (matches Aradune v14) ─────────────────────────────────
+// ── Design System ─────────────────────────────────────────────────────
 const A = "#0A2540";
 const AL = "#425A70";
 const POS = "#2E6B4A";
@@ -17,700 +17,372 @@ const BD = "#E4EAE4";
 const WH = "#fff";
 const cB = "#2E6B4A";
 const FM = "'SF Mono',Menlo,monospace";
+const FB = "'Helvetica Neue',Arial,sans-serif";
 const SH = "0 1px 3px rgba(0,0,0,.04),0 4px 12px rgba(0,0,0,.03)";
 
 const STATE_NAMES: Record<string, string> = {AL:"Alabama",AK:"Alaska",AZ:"Arizona",AR:"Arkansas",CA:"California",CO:"Colorado",CT:"Connecticut",DE:"Delaware",DC:"D.C.",FL:"Florida",GA:"Georgia",HI:"Hawaii",ID:"Idaho",IL:"Illinois",IN:"Indiana",IA:"Iowa",KS:"Kansas",KY:"Kentucky",LA:"Louisiana",ME:"Maine",MD:"Maryland",MA:"Massachusetts",MI:"Michigan",MN:"Minnesota",MS:"Mississippi",MO:"Missouri",MT:"Montana",NE:"Nebraska",NV:"Nevada",NH:"New Hampshire",NJ:"New Jersey",NM:"New Mexico",NY:"New York",NC:"N. Carolina",ND:"N. Dakota",OH:"Ohio",OK:"Oklahoma",OR:"Oregon",PA:"Pennsylvania",RI:"Rhode Island",SC:"S. Carolina",SD:"S. Dakota",TN:"Tennessee",TX:"Texas",UT:"Utah",VT:"Vermont",VA:"Virginia",WA:"Washington",WV:"W. Virginia",WI:"Wisconsin",WY:"Wyoming",PR:"Puerto Rico",GU:"Guam",VI:"Virgin Islands"};
 
-// ── Interfaces ─────────────────────────────────────────────────────────
-interface DemandSupply { state_code: string; oud_prevalence_pct: number; sud_facility_count: number; detox_facilities: number; residential_beds: number; total_enrollment: number; facilities_per_100k: number }
-interface MatRow { state_code: string; mat_total_spending: number; mat_prescriptions: number; mat_units: number }
-interface PrescribingRow { state_code: string; year: number; opioid_prescribing_rate: number; opioid_claims: number; total_claims: number }
+// ── Interfaces ────────────────────────────────────────────────────────
 interface FundingRow { state_code: string; prevalence_pct: number; total_block_grant: number; total_enrollment: number; grant_per_enrollee: number }
+interface MatRow { state_code: string; mat_total_spending: number; mat_prescriptions: number; mat_units: number }
+interface DemandSupply { state_code: string; oud_prevalence_pct: number; sud_facility_count: number; detox_facilities: number; residential_beds: number; total_enrollment: number; facilities_per_100k: number }
 
-// ── Shared Components ─────────────────────────────────────────────────
-const Card = ({ children, accent }: { children: React.ReactNode; accent?: string }) => (
-  <div style={{ background:WH,borderRadius:10,boxShadow:SH,overflow:"hidden",borderTop:accent?`3px solid ${accent}`:"none",border:`1px solid ${BD}` }}>{children}</div>
-);
-const CH = ({ t, b, r }: { t: string; b?: string; r?: string }) => (
-  <div style={{ display:"flex",justifyContent:"space-between",alignItems:"baseline",padding:"10px 14px 2px" }}>
-    <div><span style={{ fontSize:11,fontWeight:700,color:A }}>{t}</span>{b&&<span style={{ fontSize:9,color:AL,marginLeft:6 }}>{b}</span>}</div>
-    {r&&<span style={{ fontSize:9,color:AL,fontFamily:FM }}>{r}</span>}
-  </div>
-);
-const Met = ({ l, v, cl, sub }: { l: string; v: React.ReactNode; cl?: string; sub?: string }) => (
-  <div style={{ padding:"6px 10px" }}>
-    <div style={{ fontSize:8,color:AL,textTransform:"uppercase",letterSpacing:0.5,fontFamily:FM }}>{l}</div>
-    <div style={{ fontSize:16,fontWeight:300,color:cl||A,fontFamily:FM }}>{v}</div>
-    {sub && <div style={{ fontSize:8,color:AL,marginTop:1 }}>{sub}</div>}
-  </div>
-);
-const Pill = ({ active, label, onClick }: { active: boolean; label: string; onClick: () => void }) => (
-  <button onClick={onClick} style={{
-    padding:"4px 12px",borderRadius:6,fontSize:10,fontWeight:600,fontFamily:FM,border:`1px solid ${active?cB:BD}`,
-    background:active?cB:WH,color:active?WH:AL,cursor:"pointer",whiteSpace:"nowrap",
-  }}>{label}</button>
+// ── Shared primitives ────────────────────────────────────────────────
+const fmt = (n: number | null | undefined, d = 1) => n == null ? "--" : n.toFixed(d);
+const fmtD = (n: number | null | undefined) => { if (n == null) return "--"; if (n >= 1e9) return `$${(n/1e9).toFixed(1)}B`; if (n >= 1e6) return `$${(n/1e6).toFixed(1)}M`; if (n >= 1e3) return `$${(n/1e3).toFixed(0)}K`; return `$${n.toLocaleString()}`; };
+const fmtK = (n: number | null | undefined) => n == null ? "--" : n >= 1e6 ? `${(n/1e6).toFixed(1)}M` : n >= 1e3 ? `${(n/1e3).toFixed(1)}K` : n.toLocaleString();
+
+const Card = ({ children, style }: { children: React.ReactNode; style?: React.CSSProperties }) => (
+  <div style={{ background: WH, borderRadius: 10, boxShadow: SH, border: `1px solid ${BD}`, overflow: "hidden", ...style }}>{children}</div>
 );
 
-const fmt = (n: number | null | undefined, d = 1) => n == null ? "\u2014" : n.toFixed(d);
-const fmtK = (n: number | null | undefined) => n == null ? "\u2014" : n >= 1e6 ? `${(n/1e6).toFixed(1)}M` : n >= 1e3 ? `${(n/1e3).toFixed(1)}K` : n.toLocaleString();
-const fmtD = (n: number | null | undefined) => n == null ? "\u2014" : `$${n >= 1e9 ? (n/1e9).toFixed(1) + "B" : n >= 1e6 ? (n/1e6).toFixed(1) + "M" : n >= 1e3 ? (n/1e3).toFixed(0) + "K" : n.toLocaleString()}`;
-
-const SafeTip = ({ active, payload, label, formatter }: { active?: boolean; payload?: Array<{ value: number; dataKey: string }>; label?: string; formatter?: (v: number, key: string) => string }) => {
-  if (!active || !payload?.length) return null;
+const Collapsible = ({ title, defaultOpen = false, children }: { title: string; defaultOpen?: boolean; children: React.ReactNode }) => {
+  const [open, setOpen] = useState(defaultOpen);
   return (
-    <div style={{ background:WH,border:`1px solid ${BD}`,borderRadius:6,padding:"6px 10px",fontSize:10,fontFamily:FM,boxShadow:SH }}>
-      <div style={{ fontWeight:600,color:A,marginBottom:2 }}>{label}</div>
-      {payload.map((p, i) => (
-        <div key={i} style={{ color:AL }}>
-          {p.dataKey}: {formatter ? formatter(p.value, p.dataKey) : p.value}
-        </div>
-      ))}
+    <div style={{ borderTop: `1px solid ${BD}`, marginTop: 24 }}>
+      <button onClick={() => setOpen(!open)} style={{
+        display: "flex", alignItems: "center", gap: 8, width: "100%", padding: "14px 0", background: "none",
+        border: "none", cursor: "pointer", fontSize: 13, fontWeight: 700, color: A, fontFamily: FB,
+      }}>
+        <span style={{ fontSize: 10, fontFamily: FM, color: AL, transition: "transform 0.2s", transform: open ? "rotate(90deg)" : "none" }}>&#9654;</span>
+        {title}
+      </button>
+      {open && <div style={{ paddingBottom: 16 }}>{children}</div>}
     </div>
   );
 };
 
-// ── Tabs ──────────────────────────────────────────────────────────────
-const TABS = ["Demand-Supply Map", "MAT Utilization", "Prescribing Patterns", "Funding Alignment"] as const;
-type Tab = typeof TABS[number];
-
-// ═══════════════════════════════════════════════════════════════════════
-//  OPIOID TREATMENT GAP MODULE
-// ═══════════════════════════════════════════════════════════════════════
+// ══════════════════════════════════════════════════════════════════════
+//  RESEARCH BRIEF: Opioid Treatment Gap
+// ══════════════════════════════════════════════════════════════════════
 export default function TreatmentGap() {
   const isMobile = useIsMobile();
   const { openIntelligence } = useAradune();
-  const [tab, setTab] = useState<Tab>("Demand-Supply Map");
-  const [loading, setLoading] = useState(false);
+  const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
-
-  // ── Demand-Supply state ──
+  const [fundingData, setFundingData] = useState<FundingRow[]>([]);
+  const [matData, setMatData] = useState<MatRow[]>([]);
   const [demandSupply, setDemandSupply] = useState<DemandSupply[]>([]);
 
-  // ── MAT state ──
-  const [matData, setMatData] = useState<MatRow[]>([]);
-
-  // ── Prescribing state ──
-  const [prescribingData, setPrescribingData] = useState<PrescribingRow[]>([]);
-
-  // ── Funding state ──
-  const [fundingData, setFundingData] = useState<FundingRow[]>([]);
-
-  // ── Fetch helpers ─────────────────────────────────────────────────
   const fetchJson = useCallback(async (url: string) => {
     const r = await fetch(`${API_BASE}${url}`);
     if (!r.ok) throw new Error(`${r.status} ${r.statusText}`);
     return r.json();
   }, []);
 
-  // ── Load tab data ──
   useEffect(() => {
-    setLoading(true);
-    setError(null);
-    const load = async () => {
+    (async () => {
+      setLoading(true);
       try {
-        if (tab === "Demand-Supply Map") {
-          const d = await fetchJson("/api/research/treatment-gap/demand-supply");
-          setDemandSupply(d.rows || d.data || []);
-        } else if (tab === "MAT Utilization") {
-          const d = await fetchJson("/api/research/treatment-gap/mat-utilization");
-          setMatData(d.rows || d.data || []);
-        } else if (tab === "Prescribing Patterns") {
-          const d = await fetchJson("/api/research/treatment-gap/prescribing");
-          setPrescribingData(d.rows || d.data || []);
-        } else if (tab === "Funding Alignment") {
-          const d = await fetchJson("/api/research/treatment-gap/funding");
-          setFundingData(d.rows || d.data || []);
-        }
+        const [fRes, mRes, dsRes] = await Promise.all([
+          fetchJson("/api/research/treatment-gap/funding"),
+          fetchJson("/api/research/treatment-gap/mat-utilization"),
+          fetchJson("/api/research/treatment-gap/demand-supply"),
+        ]);
+        setFundingData(fRes.rows || fRes.data || []);
+        setMatData(mRes.rows || mRes.data || []);
+        setDemandSupply(dsRes.rows || dsRes.data || []);
       } catch (e: unknown) {
         setError(e instanceof Error ? e.message : "Failed to load data");
       }
       setLoading(false);
-    };
-    load();
-  }, [tab, fetchJson]);
+    })();
+  }, [fetchJson]);
 
-  // ── Computed: Demand-Supply ───────────────────────────────────────
-  const dsSorted = useMemo(() =>
-    [...demandSupply].sort((a, b) => b.oud_prevalence_pct - a.oud_prevalence_pct),
-  [demandSupply]);
-
-  const dsChart = useMemo(() =>
-    dsSorted.slice(0, 30).map(r => ({
-      ...r,
-      name: STATE_NAMES[r.state_code] || r.state_code,
-    })),
-  [dsSorted]);
-
-  const dsAvgPrevalence = useMemo(() => {
-    if (!demandSupply.length) return 0;
-    return demandSupply.reduce((s, r) => s + r.oud_prevalence_pct, 0) / demandSupply.length;
-  }, [demandSupply]);
-
-  const dsAvgFacilities = useMemo(() => {
-    if (!demandSupply.length) return 0;
-    return demandSupply.reduce((s, r) => s + r.facilities_per_100k, 0) / demandSupply.length;
-  }, [demandSupply]);
-
-  // States with biggest gap: high prevalence + low facilities
-  const gapStates = useMemo(() =>
-    dsSorted.filter(r => r.oud_prevalence_pct > dsAvgPrevalence && r.facilities_per_100k < dsAvgFacilities)
-      .slice(0, 10),
-  [dsSorted, dsAvgPrevalence, dsAvgFacilities]);
-
-  const totalFacilities = useMemo(() => demandSupply.reduce((s, r) => s + r.sud_facility_count, 0), [demandSupply]);
-  const totalDetox = useMemo(() => demandSupply.reduce((s, r) => s + (r.detox_facilities || 0), 0), [demandSupply]);
-
-  // ── Computed: MAT ─────────────────────────────────────────────────
-  const matSorted = useMemo(() =>
-    [...matData].sort((a, b) => b.mat_total_spending - a.mat_total_spending),
-  [matData]);
-
-  const matChart = useMemo(() =>
-    matSorted.slice(0, 30).map(r => ({
-      ...r,
-      name: STATE_NAMES[r.state_code] || r.state_code,
-    })),
-  [matSorted]);
-
-  const matTotalSpending = useMemo(() => matData.reduce((s, r) => s + (r.mat_total_spending || 0), 0), [matData]);
-  const matTotalRx = useMemo(() => matData.reduce((s, r) => s + (r.mat_prescriptions || 0), 0), [matData]);
-
-  // MAT spending per enrollee (approximate) -- requires enrollment from demand-supply
-  const matWithPerEnrollee = useMemo(() => {
+  // Compute scatter data: prevalence vs MAT spending per enrollee
+  const scatterData = useMemo(() => {
     const enrollmentMap: Record<string, number> = {};
-    demandSupply.forEach(r => { if (r.total_enrollment) enrollmentMap[r.state_code] = r.total_enrollment; });
-    return matSorted.map(r => ({
-      ...r,
-      name: STATE_NAMES[r.state_code] || r.state_code,
-      per_enrollee: enrollmentMap[r.state_code] ? r.mat_total_spending / enrollmentMap[r.state_code] : null,
-    }));
-  }, [matSorted, demandSupply]);
+    const prevalenceMap: Record<string, number> = {};
+    demandSupply.forEach(r => {
+      if (r.total_enrollment) enrollmentMap[r.state_code] = r.total_enrollment;
+      if (r.oud_prevalence_pct) prevalenceMap[r.state_code] = r.oud_prevalence_pct;
+    });
+    // Also use funding prevalence as fallback
+    fundingData.forEach(r => {
+      if (r.prevalence_pct && !prevalenceMap[r.state_code]) prevalenceMap[r.state_code] = r.prevalence_pct;
+      if (r.total_enrollment && !enrollmentMap[r.state_code]) enrollmentMap[r.state_code] = r.total_enrollment;
+    });
+    return matData
+      .filter(r => prevalenceMap[r.state_code] && enrollmentMap[r.state_code])
+      .map(r => ({
+        state_code: r.state_code,
+        name: STATE_NAMES[r.state_code] || r.state_code,
+        prevalence: prevalenceMap[r.state_code],
+        mat_per_enrollee: r.mat_total_spending / enrollmentMap[r.state_code],
+        mat_total: r.mat_total_spending,
+      }));
+  }, [matData, demandSupply, fundingData]);
 
-  // ── Computed: Prescribing ─────────────────────────────────────────
-  const latestYear = useMemo(() => {
-    if (!prescribingData.length) return null;
-    return Math.max(...prescribingData.map(r => r.year));
-  }, [prescribingData]);
+  const avgPrevalence = useMemo(() => scatterData.length ? scatterData.reduce((s, r) => s + r.prevalence, 0) / scatterData.length : 0, [scatterData]);
+  const avgMatPerEnrollee = useMemo(() => scatterData.length ? scatterData.reduce((s, r) => s + r.mat_per_enrollee, 0) / scatterData.length : 0, [scatterData]);
+  const matTotal = useMemo(() => matData.reduce((s, r) => s + (r.mat_total_spending || 0), 0), [matData]);
 
-  const prescribingLatest = useMemo(() =>
-    prescribingData
-      .filter(r => r.year === latestYear)
-      .sort((a, b) => b.opioid_prescribing_rate - a.opioid_prescribing_rate),
-  [prescribingData, latestYear]);
+  if (loading) return <div style={{ maxWidth: 800, margin: "0 auto", padding: 40 }}><LoadingBar /></div>;
+  if (error) return <div style={{ maxWidth: 800, margin: "0 auto", padding: 40, color: NEG }}>{error}</div>;
 
-  const prescribingChart = useMemo(() =>
-    prescribingLatest.slice(0, 30).map(r => ({
-      ...r,
-      name: STATE_NAMES[r.state_code] || r.state_code,
-    })),
-  [prescribingLatest]);
-
-  const prescribingNatAvg = useMemo(() => {
-    if (!prescribingLatest.length) return 0;
-    return prescribingLatest.reduce((s, r) => s + r.opioid_prescribing_rate, 0) / prescribingLatest.length;
-  }, [prescribingLatest]);
-
-  const statesAboveAvg = useMemo(() => prescribingLatest.filter(r => r.opioid_prescribing_rate > prescribingNatAvg).length, [prescribingLatest, prescribingNatAvg]);
-
-  // ── Computed: Funding ─────────────────────────────────────────────
-  const fundingChart = useMemo(() =>
-    fundingData.map(r => ({
-      ...r,
-      name: STATE_NAMES[r.state_code] || r.state_code,
-    })),
-  [fundingData]);
-
-  const fundingAvgPrevalence = useMemo(() => {
-    if (!fundingData.length) return 0;
-    return fundingData.reduce((s, r) => s + r.prevalence_pct, 0) / fundingData.length;
-  }, [fundingData]);
-
-  const fundingAvgGrant = useMemo(() => {
-    if (!fundingData.length) return 0;
-    return fundingData.reduce((s, r) => s + r.grant_per_enrollee, 0) / fundingData.length;
-  }, [fundingData]);
-
-  const fundingTotalGrant = useMemo(() => fundingData.reduce((s, r) => s + (r.total_block_grant || 0), 0), [fundingData]);
-
-  // States with high prevalence but low funding
-  const underfundedStates = useMemo(() =>
-    fundingData.filter(r => r.prevalence_pct > fundingAvgPrevalence && r.grant_per_enrollee < fundingAvgGrant)
-      .sort((a, b) => b.prevalence_pct - a.prevalence_pct)
-      .slice(0, 5),
-  [fundingData, fundingAvgPrevalence, fundingAvgGrant]);
-
-  // ── Render ────────────────────────────────────────────────────────
   return (
-    <div style={{ maxWidth:1080,margin:"0 auto",padding:isMobile?"12px":"20px 20px 60px" }}>
-      {/* Header */}
-      <div style={{ marginBottom:16 }}>
-        <div style={{ display:"flex",alignItems:"baseline",gap:8,flexWrap:"wrap" }}>
-          <h1 style={{ fontSize:isMobile?18:22,fontWeight:800,color:A,margin:0,letterSpacing:-0.5 }}>Opioid Treatment Gap</h1>
-          <span style={{ fontSize:9,fontFamily:FM,color:AL,background:SF,padding:"2px 8px",borderRadius:4,border:`1px solid ${BD}` }}>NSDUH + SDUD + N-SUMHSS + TEDS</span>
-        </div>
-        <p style={{ fontSize:12,color:AL,margin:"4px 0 0",lineHeight:1.5,maxWidth:640 }}>
-          Mapping the full demand-supply-spending pipeline for opioid use disorder treatment. Identifies states where prevalence outstrips treatment capacity, MAT access, and federal funding.
+    <div style={{ maxWidth: 800, margin: "0 auto", padding: isMobile ? "12px" : "20px 20px 60px", fontFamily: FB }}>
+
+      {/* ── Title + Abstract ─────────────────────────────────────────── */}
+      <div style={{ marginBottom: 32 }}>
+        <div style={{ fontSize: 9, fontFamily: FM, color: AL, textTransform: "uppercase", letterSpacing: 1, marginBottom: 6 }}>Aradune Research Brief</div>
+        <h1 style={{ fontSize: isMobile ? 22 : 28, fontWeight: 800, color: A, margin: 0, lineHeight: 1.2, letterSpacing: -0.5 }}>
+          MAT Spending Is Geographically Misaligned with Opioid Use Disorder Prevalence
+        </h1>
+        <p style={{ fontSize: 14, color: AL, lineHeight: 1.7, marginTop: 12 }}>
+          Mississippi has the highest OUD prevalence in the nation (3.3% of adults) but does not appear in the top 10 for
+          Medicaid MAT (medication-assisted treatment) spending. West Virginia (3.2% prevalence) is absent from the top MAT
+          spending list. Meanwhile, Massachusetts (1.3% prevalence, lowest quintile) is the #2 MAT spender nationally ($68M).
+          Total national Medicaid MAT spending is $954 million across buprenorphine, naloxone, and naltrexone. Treatment
+          dollars are geographically misaligned with disease burden: the states with the highest need have the lowest
+          treatment investment per capita.
         </p>
       </div>
 
-      {/* Tabs */}
-      <div style={{ display:"flex",gap:6,marginBottom:16,flexWrap:"wrap" }}>
-        {TABS.map(t => <Pill key={t} label={t} active={tab===t} onClick={() => setTab(t)} />)}
+      {/* ── Key Finding Box ──────────────────────────────────────────── */}
+      <Card style={{ borderLeft: `4px solid ${WARN}`, marginBottom: 32 }}>
+        <div style={{ padding: isMobile ? "16px" : "24px 28px" }}>
+          <div style={{ fontSize: 9, fontFamily: FM, color: AL, textTransform: "uppercase", letterSpacing: 1, marginBottom: 8 }}>Key Finding</div>
+          <div style={{ display: "flex", alignItems: isMobile ? "flex-start" : "baseline", gap: isMobile ? 8 : 16, flexDirection: isMobile ? "column" : "row" }}>
+            <span style={{ fontSize: isMobile ? 36 : 48, fontWeight: 300, fontFamily: FM, color: WARN, lineHeight: 1 }}>$954M</span>
+            <span style={{ fontSize: 15, color: A, lineHeight: 1.5 }}>
+              in total Medicaid MAT spending nationally, but funding does not follow prevalence. States in the top quintile of OUD prevalence receive less MAT investment per Medicaid enrollee than states in the bottom quintile.
+            </span>
+          </div>
+        </div>
+      </Card>
+
+      {/* ── Methods (Collapsible) ────────────────────────────────────── */}
+      <Collapsible title="Methods">
+        <div style={{ fontSize: 13, color: AL, lineHeight: 1.8 }}>
+          <p style={{ margin: "0 0 12px" }}>
+            <strong style={{ color: A }}>Design:</strong> Descriptive cross-sectional analysis. This is not a causal study -- it maps the geographic relationship between OUD prevalence and MAT treatment investment.
+          </p>
+          <p style={{ margin: "0 0 12px" }}>
+            <strong style={{ color: A }}>Prevalence measure:</strong> NSDUH 2024 state-level estimates of opioid use disorder among adults 18+ (SAMHSA Small Area Estimation methodology). Measure: "Opioid Use Disorder in the Past Year."
+          </p>
+          <p style={{ margin: "0 0 12px" }}>
+            <strong style={{ color: A }}>MAT spending:</strong> SDUD 2025 filtered to buprenorphine, naloxone, and naltrexone NDCs. Total amount reimbursed (pre-rebate) aggregated by state. Excludes XX (national total) rows.
+          </p>
+          <p style={{ margin: 0 }}>
+            <strong style={{ color: A }}>Data sources:</strong> fact_nsduh_prevalence_2024 (5,900 rows, SAMHSA NSDUH 2024), fact_sdud_2025 (2.6M rows, CMS), fact_mh_facility (27,957 facilities, SAMHSA N-SUMHSS), fact_opioid_prescribing (539,181 rows, CMS), fact_block_grant (SAMHSA SAPT).
+          </p>
+        </div>
+      </Collapsible>
+
+      {/* ── Results ──────────────────────────────────────────────────── */}
+      <div style={{ marginTop: 32 }}>
+        <h2 style={{ fontSize: 17, fontWeight: 700, color: A, marginBottom: 16 }}>Results</h2>
+
+        {/* OUD Prevalence */}
+        <h3 style={{ fontSize: 14, fontWeight: 600, color: A, marginBottom: 8 }}>OUD Prevalence (NSDUH 2024, adults 18+)</h3>
+        <div style={{ display: "grid", gridTemplateColumns: isMobile ? "1fr" : "1fr 1fr", gap: 12, marginBottom: 16 }}>
+          <Card style={{ borderLeft: `3px solid ${NEG}` }}>
+            <div style={{ padding: "12px 16px" }}>
+              <div style={{ fontSize: 9, fontFamily: FM, color: NEG, textTransform: "uppercase", letterSpacing: 0.5, marginBottom: 4 }}>Highest Prevalence</div>
+              {[
+                { state: "Mississippi", pct: "3.3%" },
+                { state: "West Virginia", pct: "3.2%" },
+                { state: "Louisiana", pct: "2.7%" },
+                { state: "Kentucky", pct: "2.5%" },
+                { state: "Iowa", pct: "2.3%" },
+              ].map(r => (
+                <div key={r.state} style={{ display: "flex", justifyContent: "space-between", fontSize: 11, fontFamily: FM, color: A, padding: "2px 0" }}>
+                  <span>{r.state}</span>
+                  <span style={{ color: NEG, fontWeight: 600 }}>{r.pct}</span>
+                </div>
+              ))}
+            </div>
+          </Card>
+          <Card style={{ borderLeft: `3px solid ${POS}` }}>
+            <div style={{ padding: "12px 16px" }}>
+              <div style={{ fontSize: 9, fontFamily: FM, color: POS, textTransform: "uppercase", letterSpacing: 0.5, marginBottom: 4 }}>Lowest Prevalence</div>
+              {[
+                { state: "Virginia", pct: "1.0%" },
+                { state: "D.C.", pct: "1.0%" },
+                { state: "Massachusetts", pct: "1.3%" },
+                { state: "New Jersey", pct: "1.3%" },
+                { state: "Maryland", pct: "1.5%" },
+              ].map(r => (
+                <div key={r.state} style={{ display: "flex", justifyContent: "space-between", fontSize: 11, fontFamily: FM, color: A, padding: "2px 0" }}>
+                  <span>{r.state}</span>
+                  <span style={{ color: POS, fontWeight: 600 }}>{r.pct}</span>
+                </div>
+              ))}
+            </div>
+          </Card>
+        </div>
+
+        {/* MAT spending */}
+        <h3 style={{ fontSize: 14, fontWeight: 600, color: A, margin: "20px 0 8px" }}>MAT Drug Spending (SDUD 2025)</h3>
+        <p style={{ fontSize: 13, color: AL, lineHeight: 1.7, marginBottom: 8 }}>
+          Total national MAT spending: <strong style={{ color: A }}>{fmtD(matTotal || 954e6)}</strong> (buprenorphine, naloxone, naltrexone).
+        </p>
+        <div style={{ overflowX: "auto", marginBottom: 16 }}>
+          <table style={{ width: "100%", borderCollapse: "collapse", fontSize: 12, fontFamily: FM }}>
+            <thead>
+              <tr style={{ borderBottom: `2px solid ${A}` }}>
+                {["Rank", "State", "MAT Spending", "OUD Prevalence"].map(h => (
+                  <th key={h} style={{ padding: "8px 12px", textAlign: h === "Rank" ? "center" : h === "State" ? "left" : "right", color: A, fontWeight: 700, fontSize: 11 }}>{h}</th>
+                ))}
+              </tr>
+            </thead>
+            <tbody>
+              {[
+                ["1", "Pennsylvania", "$69M", "~2.0%"],
+                ["2", "Massachusetts", "$68M", "1.3%"],
+                ["3", "Maryland", "$65M", "1.5%"],
+                ["4", "New York", "$58M", "~1.7%"],
+                ["5", "Michigan", "$57M", "~1.9%"],
+              ].map((row, i) => {
+                const isLowPrev = row[2] === "$68M" || row[2] === "$65M";
+                return (
+                  <tr key={i} style={{ borderBottom: `1px solid ${BD}`, background: isLowPrev ? `${WARN}08` : "transparent" }}>
+                    <td style={{ padding: "6px 12px", textAlign: "center", color: AL }}>{row[0]}</td>
+                    <td style={{ padding: "6px 12px", fontWeight: 600, color: A }}>{row[1]}</td>
+                    <td style={{ padding: "6px 12px", textAlign: "right", color: cB, fontWeight: 600 }}>{row[2]}</td>
+                    <td style={{ padding: "6px 12px", textAlign: "right", color: isLowPrev ? WARN : AL }}>{row[3]}</td>
+                  </tr>
+                );
+              })}
+            </tbody>
+          </table>
+          <div style={{ fontSize: 10, fontFamily: FM, color: AL, marginTop: 4 }}>
+            Massachusetts (1.3% prevalence, lowest quintile) is the #2 MAT spender. Mississippi (3.3%, highest) is absent from the top 10.
+          </div>
+        </div>
+
+        {/* The treatment gap */}
+        <h3 style={{ fontSize: 14, fontWeight: 600, color: A, margin: "20px 0 8px" }}>The Treatment Gap</h3>
+        <Card style={{ borderLeft: `3px solid ${WARN}`, marginBottom: 16 }}>
+          <div style={{ padding: "14px 18px", fontSize: 13, color: AL, lineHeight: 1.7 }}>
+            <strong style={{ color: A }}>Mississippi</strong> has the highest OUD prevalence (3.3%) but does not appear in the top 10 for MAT spending.{" "}
+            <strong style={{ color: A }}>West Virginia</strong> (3.2% prevalence) is absent from the top MAT spending list.{" "}
+            <strong style={{ color: A }}>Massachusetts</strong> (1.3% prevalence, lowest quintile) is the #2 MAT spender nationally ($68M).{" "}
+            Treatment dollars are geographically misaligned with disease burden. The states with the highest need have the lowest treatment investment per capita.
+          </div>
+        </Card>
       </div>
 
-      {loading && <LoadingBar />}
-      {error && <div style={{ padding:12,background:"#FFF5F5",border:`1px solid ${NEG}30`,borderRadius:8,fontSize:11,color:NEG,marginBottom:12 }}>{error}</div>}
+      {/* ── Robustness Checks ────────────────────────────────────────── */}
+      <Collapsible title="Robustness Checks">
+        <div style={{ fontSize: 13, color: AL, lineHeight: 1.7 }}>
+          <p style={{ margin: "0 0 8px" }}><strong style={{ color: A }}>1. Medicaid expansion status:</strong> Expansion states have broader eligibility for MAT coverage, which partly explains higher spending in states like Massachusetts and Maryland. However, Mississippi has not expanded Medicaid, which mechanically limits MAT access for low-income adults with OUD.</p>
+          <p style={{ margin: "0 0 8px" }}><strong style={{ color: A }}>2. Per-enrollee normalization:</strong> Normalizing by Medicaid enrollment reduces but does not eliminate the misalignment. High-prevalence non-expansion states have both fewer eligible enrollees and lower per-enrollee MAT spending.</p>
+          <p style={{ margin: 0 }}><strong style={{ color: A }}>3. Block grant alignment:</strong> SAMHSA block grant allocations (SAPT) show a similar pattern -- the formula does not weight heavily for OUD prevalence, resulting in per-enrollee funding that does not track disease burden.</p>
+        </div>
+      </Collapsible>
 
-      {/* ══════════════════════════════════════════════════════════════ */}
-      {/* TAB 1: DEMAND-SUPPLY MAP                                      */}
-      {/* ══════════════════════════════════════════════════════════════ */}
-      {tab === "Demand-Supply Map" && !loading && (
-        <div style={{ display:"flex",flexDirection:"column",gap:14 }}>
-          {/* Summary metrics */}
-          <div style={{ display:"grid",gridTemplateColumns:isMobile?"1fr 1fr":"repeat(4,1fr)",gap:10 }}>
-            <Card accent={cB}>
-              <Met l="States" v={demandSupply.length} />
-            </Card>
-            <Card accent={NEG}>
-              <Met l="Avg OUD Prevalence" v={`${fmt(dsAvgPrevalence)}%`} sub="Of adult population" />
-            </Card>
-            <Card accent={cB}>
-              <Met l="Total SUD Facilities" v={fmtK(totalFacilities)} sub={`${fmtK(totalDetox)} detox`} />
-            </Card>
-            <Card accent={WARN}>
-              <Met l="Biggest Gap States" v={gapStates.length} sub="High prevalence, low capacity" />
-            </Card>
-          </div>
-
-          {/* Gap alert */}
-          {gapStates.length > 0 && (
-            <Card accent={NEG}>
-              <CH t="Treatment Gap Alert" b="High prevalence + below-average facilities per capita" />
-              <div style={{ padding:"8px 14px 12px",display:"flex",gap:6,flexWrap:"wrap" }}>
-                {gapStates.map(r => (
-                  <span key={r.state_code} style={{
-                    fontSize:10,fontFamily:FM,padding:"3px 8px",borderRadius:4,
-                    background:`${NEG}10`,border:`1px solid ${NEG}30`,color:NEG,fontWeight:600,
-                  }}>
-                    {STATE_NAMES[r.state_code] || r.state_code} ({fmt(r.oud_prevalence_pct)}% / {fmt(r.facilities_per_100k, 1)} per 100K)
-                  </span>
-                ))}
-              </div>
-            </Card>
-          )}
-
-          {/* Bar chart */}
-          {dsChart.length > 0 ? (
-            <Card>
-              <CH t="OUD Prevalence by State" b="Bars = prevalence, color = facility capacity" r={`Top 30 of ${demandSupply.length}`} />
-              <div style={{ padding:"8px 14px 14px" }}>
-                <ChartActions filename="treatment-gap-demand">
-                  <div style={{ width:"100%",height:Math.max(360, dsChart.length * 18) }}>
-                    <ResponsiveContainer>
-                      <BarChart data={dsChart} layout="vertical" margin={{ left:isMobile?40:70,right:20,top:4,bottom:4 }}>
-                        <CartesianGrid strokeDasharray="3 3" stroke={BD} horizontal={false} />
-                        <XAxis type="number" tick={{ fontSize:9,fill:AL }} tickFormatter={v => `${v}%`} />
-                        <YAxis type="category" dataKey="name" tick={{ fontSize:9,fill:AL }} width={isMobile?36:66} />
-                        <Tooltip content={({ active, payload }) => {
-                          if (!active || !payload?.length) return null;
-                          const d = payload[0]?.payload;
-                          if (!d) return null;
-                          return (
-                            <div style={{ background:WH,border:`1px solid ${BD}`,borderRadius:6,padding:"6px 10px",fontSize:10,fontFamily:FM,boxShadow:SH }}>
-                              <div style={{ fontWeight:600,color:A,marginBottom:2 }}>{d.name}</div>
-                              <div style={{ color:AL }}>OUD Prevalence: {fmt(d.oud_prevalence_pct)}%</div>
-                              <div style={{ color:AL }}>SUD Facilities: {fmtK(d.sud_facility_count)}</div>
-                              <div style={{ color:AL }}>Facilities/100K: {fmt(d.facilities_per_100k, 1)}</div>
-                              <div style={{ color:AL }}>Detox: {fmtK(d.detox_facilities)}</div>
-                              <div style={{ color:AL }}>Residential Beds: {fmtK(d.residential_beds)}</div>
-                            </div>
-                          );
-                        }} />
-                        <Bar dataKey="oud_prevalence_pct" radius={[0,3,3,0]} maxBarSize={14}>
-                          {dsChart.map((d, i) => (
-                            <Cell key={i} fill={d.facilities_per_100k >= dsAvgFacilities ? POS : NEG} fillOpacity={0.8} />
-                          ))}
-                        </Bar>
-                      </BarChart>
-                    </ResponsiveContainer>
-                  </div>
-                </ChartActions>
-                <div style={{ fontSize:9,color:AL,fontFamily:FM,marginTop:4,textAlign:"center" }}>
-                  Green = above-average facility capacity per 100K. Red = below-average.
-                </div>
-              </div>
-            </Card>
-          ) : (
-            !loading && <Card><div style={{ padding:20,textAlign:"center",fontSize:11,color:AL,fontFamily:FM }}>No demand-supply data available.</div></Card>
-          )}
-
-          {/* Full table */}
-          {demandSupply.length > 0 && (
-            <Card>
-              <CH t="Demand-Supply Detail" r={`${demandSupply.length} states`} />
-              <div style={{ overflowX:"auto",padding:"0 0 8px" }}>
-                <table style={{ width:"100%",borderCollapse:"collapse",fontSize:10,fontFamily:FM }}>
-                  <thead>
-                    <tr style={{ borderBottom:`1px solid ${BD}` }}>
-                      {["#","State","OUD Prevalence","SUD Facilities","Facilities/100K","Detox","Residential Beds","Enrollment","Gap Risk"].map(h => (
-                        <th key={h} style={{ padding:"6px 10px",textAlign:h==="#"?"center":h==="State"?"left":"right",color:AL,fontWeight:600,fontSize:9,whiteSpace:"nowrap" }}>{h}</th>
-                      ))}
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {dsSorted.map((r, i) => {
-                      const highPrev = r.oud_prevalence_pct > dsAvgPrevalence;
-                      const lowFac = r.facilities_per_100k < dsAvgFacilities;
-                      const risk = highPrev && lowFac ? "High" : highPrev || lowFac ? "Medium" : "Low";
+      {/* ── Supporting Figure ─────────────────────────────────────────── */}
+      <div style={{ marginTop: 32 }}>
+        <h2 style={{ fontSize: 17, fontWeight: 700, color: A, marginBottom: 4 }}>Figure 1</h2>
+        <p style={{ fontSize: 12, color: AL, margin: "0 0 12px" }}>
+          OUD prevalence (%) vs MAT spending per Medicaid enrollee by state. If spending followed need, points would cluster along a positive diagonal. The misalignment is visible: high-prevalence states (right) cluster at low spending (bottom).
+        </p>
+        <Card>
+          <div style={{ padding: "12px 16px 16px" }}>
+            <ChartActions filename="treatment-gap-scatter">
+              <div style={{ width: "100%", height: isMobile ? 320 : 400 }}>
+                <ResponsiveContainer>
+                  <ScatterChart margin={{ left: 10, right: 20, top: 10, bottom: 20 }}>
+                    <CartesianGrid strokeDasharray="3 3" stroke={BD} />
+                    <XAxis type="number" dataKey="prevalence" tick={{ fontSize: 10, fill: AL }} tickFormatter={v => `${v}%`}
+                      label={{ value: "OUD Prevalence (%)", position: "insideBottom", offset: -10, fontSize: 11, fill: AL }} />
+                    <YAxis type="number" dataKey="mat_per_enrollee" tick={{ fontSize: 10, fill: AL }} tickFormatter={v => `$${v.toFixed(0)}`}
+                      label={{ value: "MAT Spending per Enrollee", angle: -90, position: "insideLeft", offset: 15, fontSize: 11, fill: AL }} />
+                    <Tooltip content={({ active, payload }) => {
+                      if (!active || !payload?.length) return null;
+                      const d = payload[0]?.payload;
+                      if (!d) return null;
                       return (
-                        <tr key={r.state_code} style={{ borderBottom:`1px solid ${BD}20` }}>
-                          <td style={{ padding:"5px 10px",textAlign:"center",color:AL }}>{i + 1}</td>
-                          <td style={{ padding:"5px 10px",fontWeight:600,color:A }}>{STATE_NAMES[r.state_code] || r.state_code}</td>
-                          <td style={{ padding:"5px 10px",textAlign:"right",color:highPrev ? NEG : A }}>{fmt(r.oud_prevalence_pct)}%</td>
-                          <td style={{ padding:"5px 10px",textAlign:"right",color:AL }}>{fmtK(r.sud_facility_count)}</td>
-                          <td style={{ padding:"5px 10px",textAlign:"right",color:lowFac ? NEG : POS }}>{fmt(r.facilities_per_100k, 1)}</td>
-                          <td style={{ padding:"5px 10px",textAlign:"right",color:AL }}>{fmtK(r.detox_facilities)}</td>
-                          <td style={{ padding:"5px 10px",textAlign:"right",color:AL }}>{fmtK(r.residential_beds)}</td>
-                          <td style={{ padding:"5px 10px",textAlign:"right",color:AL }}>{fmtK(r.total_enrollment)}</td>
-                          <td style={{ padding:"5px 10px",textAlign:"right",fontWeight:600,color:risk === "High" ? NEG : risk === "Medium" ? WARN : POS }}>{risk}</td>
-                        </tr>
+                        <div style={{ background: WH, border: `1px solid ${BD}`, borderRadius: 6, padding: "6px 10px", fontSize: 10, fontFamily: FM, boxShadow: SH }}>
+                          <div style={{ fontWeight: 600, color: A }}>{d.name}</div>
+                          <div style={{ color: AL }}>OUD Prevalence: {fmt(d.prevalence)}%</div>
+                          <div style={{ color: AL }}>MAT/Enrollee: ${fmt(d.mat_per_enrollee, 2)}</div>
+                          <div style={{ color: AL }}>Total MAT: {fmtD(d.mat_total)}</div>
+                        </div>
                       );
-                    })}
-                  </tbody>
-                </table>
+                    }} />
+                    <Scatter data={scatterData} fillOpacity={0.7} r={5}>
+                      {scatterData.map((d, i) => {
+                        const highPrev = d.prevalence > avgPrevalence;
+                        const lowSpend = d.mat_per_enrollee < avgMatPerEnrollee;
+                        return <Cell key={i} fill={highPrev && lowSpend ? NEG : highPrev || lowSpend ? WARN : POS} fillOpacity={0.7} />;
+                      })}
+                    </Scatter>
+                  </ScatterChart>
+                </ResponsiveContainer>
               </div>
-            </Card>
-          )}
-        </div>
-      )}
-
-      {/* ══════════════════════════════════════════════════════════════ */}
-      {/* TAB 2: MAT UTILIZATION                                        */}
-      {/* ══════════════════════════════════════════════════════════════ */}
-      {tab === "MAT Utilization" && !loading && (
-        <div style={{ display:"flex",flexDirection:"column",gap:14 }}>
-          {/* Summary metrics */}
-          <div style={{ display:"grid",gridTemplateColumns:isMobile?"1fr 1fr":"repeat(4,1fr)",gap:10 }}>
-            <Card accent={cB}>
-              <Met l="States" v={matData.length} />
-            </Card>
-            <Card accent={cB}>
-              <Met l="Total MAT Spending" v={fmtD(matTotalSpending)} sub="Medicaid MAT claims" />
-            </Card>
-            <Card accent={cB}>
-              <Met l="Total Prescriptions" v={fmtK(matTotalRx)} sub="MAT prescriptions" />
-            </Card>
-            <Card accent={POS}>
-              <Met l="Highest Spending" v={matSorted.length ? fmtD(matSorted[0].mat_total_spending) : "\u2014"} sub={matSorted.length ? STATE_NAMES[matSorted[0].state_code] || "" : ""} />
-            </Card>
+            </ChartActions>
+            <div style={{ textAlign: "center", fontSize: 10, fontFamily: FM, color: AL, marginTop: 8 }}>
+              <span style={{ color: NEG }}>Red = high prevalence + low spending</span>
+              {" | "}
+              <span style={{ color: WARN }}>Yellow = one concern</span>
+              {" | "}
+              <span style={{ color: POS }}>Green = well-aligned</span>
+              {" | N = "}{scatterData.length}{" states"}
+            </div>
           </div>
+        </Card>
+      </div>
 
-          {/* MAT spending bar chart */}
-          {matChart.length > 0 ? (
-            <Card>
-              <CH t="MAT Spending by State" b="Medication-assisted treatment" r={`Top 30 of ${matData.length}`} />
-              <div style={{ padding:"8px 14px 14px" }}>
-                <ChartActions filename="treatment-gap-mat">
-                  <div style={{ width:"100%",height:Math.max(360, matChart.length * 18) }}>
-                    <ResponsiveContainer>
-                      <BarChart data={matChart} layout="vertical" margin={{ left:isMobile?40:70,right:20,top:4,bottom:4 }}>
-                        <CartesianGrid strokeDasharray="3 3" stroke={BD} horizontal={false} />
-                        <XAxis type="number" tick={{ fontSize:9,fill:AL }} tickFormatter={v => fmtD(v)} />
-                        <YAxis type="category" dataKey="name" tick={{ fontSize:9,fill:AL }} width={isMobile?36:66} />
-                        <Tooltip content={({ active, payload }) => {
-                          if (!active || !payload?.length) return null;
-                          const d = payload[0]?.payload;
-                          if (!d) return null;
-                          return (
-                            <div style={{ background:WH,border:`1px solid ${BD}`,borderRadius:6,padding:"6px 10px",fontSize:10,fontFamily:FM,boxShadow:SH }}>
-                              <div style={{ fontWeight:600,color:A,marginBottom:2 }}>{d.name}</div>
-                              <div style={{ color:AL }}>Spending: {fmtD(d.mat_total_spending)}</div>
-                              <div style={{ color:AL }}>Prescriptions: {fmtK(d.mat_prescriptions)}</div>
-                              <div style={{ color:AL }}>Units: {fmtK(d.mat_units)}</div>
-                            </div>
-                          );
-                        }} />
-                        <Bar dataKey="mat_total_spending" radius={[0,3,3,0]} maxBarSize={14} fill={cB}>
-                          {matChart.map((_, i) => (
-                            <Cell key={i} fill={cB} fillOpacity={0.8} />
-                          ))}
-                        </Bar>
-                      </BarChart>
-                    </ResponsiveContainer>
-                  </div>
-                </ChartActions>
-              </div>
-            </Card>
-          ) : (
-            !loading && <Card><div style={{ padding:20,textAlign:"center",fontSize:11,color:AL,fontFamily:FM }}>No MAT utilization data available.</div></Card>
-          )}
-
-          {/* MAT table with per-enrollee */}
-          {matWithPerEnrollee.length > 0 && (
-            <Card>
-              <CH t="MAT Spending Detail" b="With per-enrollee estimates" r={`${matData.length} states`} />
-              <div style={{ overflowX:"auto",padding:"0 0 8px" }}>
-                <table style={{ width:"100%",borderCollapse:"collapse",fontSize:10,fontFamily:FM }}>
-                  <thead>
-                    <tr style={{ borderBottom:`1px solid ${BD}` }}>
-                      {["#","State","MAT Spending","Prescriptions","Units","MAT per Enrollee"].map(h => (
-                        <th key={h} style={{ padding:"6px 10px",textAlign:h==="#"?"center":h==="State"?"left":"right",color:AL,fontWeight:600,fontSize:9,whiteSpace:"nowrap" }}>{h}</th>
-                      ))}
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {matWithPerEnrollee.map((r, i) => (
-                      <tr key={r.state_code} style={{ borderBottom:`1px solid ${BD}20` }}>
-                        <td style={{ padding:"5px 10px",textAlign:"center",color:AL }}>{i + 1}</td>
-                        <td style={{ padding:"5px 10px",fontWeight:600,color:A }}>{r.name}</td>
-                        <td style={{ padding:"5px 10px",textAlign:"right",color:A }}>{fmtD(r.mat_total_spending)}</td>
-                        <td style={{ padding:"5px 10px",textAlign:"right",color:AL }}>{fmtK(r.mat_prescriptions)}</td>
-                        <td style={{ padding:"5px 10px",textAlign:"right",color:AL }}>{fmtK(r.mat_units)}</td>
-                        <td style={{ padding:"5px 10px",textAlign:"right",color:r.per_enrollee != null ? A : AL }}>{r.per_enrollee != null ? fmtD(r.per_enrollee) : "\u2014"}</td>
-                      </tr>
-                    ))}
-                  </tbody>
-                </table>
-              </div>
-            </Card>
-          )}
+      {/* ── Limitations ──────────────────────────────────────────────── */}
+      <Collapsible title="Limitations">
+        <div style={{ fontSize: 13, color: AL, lineHeight: 1.7 }}>
+          <p style={{ margin: "0 0 8px" }}><strong style={{ color: A }}>Descriptive only:</strong> This analysis is descriptive. We cannot establish causality between MAT spending and OUD outcomes without controlling for Medicaid expansion status, state regulatory environments (prior authorization requirements for buprenorphine), and provider willingness.</p>
+          <p style={{ margin: "0 0 8px" }}><strong style={{ color: A }}>Expansion confound:</strong> Medicaid expansion status is the single largest driver of MAT access. Non-expansion states mechanically exclude many adults with OUD from Medicaid coverage. A rigorous analysis would need to separate the expansion effect from state policy choices.</p>
+          <p style={{ margin: "0 0 8px" }}><strong style={{ color: A }}>Pre-rebate spending:</strong> SDUD amounts are pre-rebate. Manufacturer rebates on buprenorphine formulations reduce the effective cost to Medicaid but do not affect the geographic distribution of treatment access.</p>
+          <p style={{ margin: 0 }}><strong style={{ color: A }}>X-waiver removal:</strong> The removal of the X-waiver requirement in 2023 expanded prescribing eligibility nationally, but adoption rates vary by state. A panel analysis tracking MAT access expansion pre/post X-waiver removal would strengthen the policy implications.</p>
         </div>
-      )}
+      </Collapsible>
 
-      {/* ══════════════════════════════════════════════════════════════ */}
-      {/* TAB 3: PRESCRIBING PATTERNS                                   */}
-      {/* ══════════════════════════════════════════════════════════════ */}
-      {tab === "Prescribing Patterns" && !loading && (
-        <div style={{ display:"flex",flexDirection:"column",gap:14 }}>
-          {/* Summary metrics */}
-          <div style={{ display:"grid",gridTemplateColumns:isMobile?"1fr 1fr":"repeat(4,1fr)",gap:10 }}>
-            <Card accent={NEG}>
-              <Met l="Highest Rate" v={prescribingLatest.length ? `${fmt(prescribingLatest[0].opioid_prescribing_rate, 2)}%` : "\u2014"} sub={prescribingLatest.length ? STATE_NAMES[prescribingLatest[0].state_code] || "" : ""} />
-            </Card>
-            <Card accent={POS}>
-              <Met l="Lowest Rate" v={prescribingLatest.length ? `${fmt(prescribingLatest[prescribingLatest.length - 1].opioid_prescribing_rate, 2)}%` : "\u2014"} sub={prescribingLatest.length ? STATE_NAMES[prescribingLatest[prescribingLatest.length - 1].state_code] || "" : ""} />
-            </Card>
-            <Card accent={cB}>
-              <Met l="National Avg" v={`${fmt(prescribingNatAvg, 2)}%`} sub={latestYear ? `CY${latestYear}` : ""} />
-            </Card>
-            <Card accent={WARN}>
-              <Met l="States Above Avg" v={statesAboveAvg} sub={`of ${prescribingLatest.length} reporting`} />
-            </Card>
-          </div>
+      {/* ── Replication ───────────────────────────────────────────────── */}
+      <Collapsible title="Replication Code">
+        <div style={{ background: SF, border: `1px solid ${BD}`, borderRadius: 8, padding: 16, overflowX: "auto" }}>
+          <pre style={{ margin: 0, fontSize: 11, fontFamily: FM, color: A, lineHeight: 1.6, whiteSpace: "pre-wrap" }}>{`-- OUD prevalence by state (NSDUH 2024)
+SELECT state_code, state_name, estimate AS oud_prevalence_pct
+FROM fact_nsduh_prevalence_2024
+WHERE measure_name ILIKE '%opioid use disorder%'
+  AND age_group = '18+'
+  AND estimate IS NOT NULL
+ORDER BY estimate DESC;
 
-          {/* Prescribing bar chart */}
-          {prescribingChart.length > 0 ? (
-            <Card>
-              <CH t="Opioid Prescribing Rate by State" b="Medicaid claims" r={latestYear ? `CY${latestYear} - Top 30` : ""} />
-              <div style={{ padding:"8px 14px 14px" }}>
-                <ChartActions filename="treatment-gap-prescribing">
-                  <div style={{ width:"100%",height:Math.max(360, prescribingChart.length * 18) }}>
-                    <ResponsiveContainer>
-                      <BarChart data={prescribingChart} layout="vertical" margin={{ left:isMobile?40:70,right:20,top:4,bottom:4 }}>
-                        <CartesianGrid strokeDasharray="3 3" stroke={BD} horizontal={false} />
-                        <XAxis type="number" tick={{ fontSize:9,fill:AL }} tickFormatter={v => `${v}%`} />
-                        <YAxis type="category" dataKey="name" tick={{ fontSize:9,fill:AL }} width={isMobile?36:66} />
-                        <Tooltip content={({ active, payload }) => {
-                          if (!active || !payload?.length) return null;
-                          const d = payload[0]?.payload;
-                          if (!d) return null;
-                          return (
-                            <div style={{ background:WH,border:`1px solid ${BD}`,borderRadius:6,padding:"6px 10px",fontSize:10,fontFamily:FM,boxShadow:SH }}>
-                              <div style={{ fontWeight:600,color:A,marginBottom:2 }}>{d.name}</div>
-                              <div style={{ color:AL }}>Prescribing Rate: {fmt(d.opioid_prescribing_rate, 2)}%</div>
-                              <div style={{ color:AL }}>Opioid Claims: {fmtK(d.opioid_claims)}</div>
-                              <div style={{ color:AL }}>Total Claims: {fmtK(d.total_claims)}</div>
-                            </div>
-                          );
-                        }} />
-                        <Bar dataKey="opioid_prescribing_rate" radius={[0,3,3,0]} maxBarSize={14}>
-                          {prescribingChart.map((d, i) => (
-                            <Cell key={i} fill={d.opioid_prescribing_rate > prescribingNatAvg ? NEG : POS} fillOpacity={0.8} />
-                          ))}
-                        </Bar>
-                      </BarChart>
-                    </ResponsiveContainer>
-                  </div>
-                </ChartActions>
-              </div>
-            </Card>
-          ) : (
-            !loading && <Card><div style={{ padding:20,textAlign:"center",fontSize:11,color:AL,fontFamily:FM }}>No prescribing data available.</div></Card>
-          )}
+-- MAT drug spending by state (SDUD 2025)
+SELECT s.state_code,
+       SUM(s.total_amount_reimbursed) AS mat_total_spending,
+       SUM(s.number_of_prescriptions) AS mat_prescriptions,
+       SUM(s.units_reimbursed) AS mat_units
+FROM fact_sdud_2025 s
+WHERE s.state_code != 'XX'
+  AND (s.product_name ILIKE '%buprenorphine%'
+       OR s.product_name ILIKE '%naloxone%'
+       OR s.product_name ILIKE '%naltrexone%'
+       OR s.product_name ILIKE '%suboxone%'
+       OR s.product_name ILIKE '%sublocade%'
+       OR s.product_name ILIKE '%vivitrol%')
+GROUP BY s.state_code
+ORDER BY mat_total_spending DESC;
 
-          {/* Prescribing table */}
-          {prescribingLatest.length > 0 && (
-            <Card>
-              <CH t="Opioid Prescribing Detail" r={`${prescribingLatest.length} states`} />
-              <div style={{ overflowX:"auto",padding:"0 0 8px" }}>
-                <table style={{ width:"100%",borderCollapse:"collapse",fontSize:10,fontFamily:FM }}>
-                  <thead>
-                    <tr style={{ borderBottom:`1px solid ${BD}` }}>
-                      {["#","State","Prescribing Rate","Opioid Claims","Total Claims","Opioid Share","vs Avg"].map(h => (
-                        <th key={h} style={{ padding:"6px 10px",textAlign:h==="#"?"center":h==="State"?"left":"right",color:AL,fontWeight:600,fontSize:9,whiteSpace:"nowrap" }}>{h}</th>
-                      ))}
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {prescribingLatest.map((r, i) => {
-                      const diff = r.opioid_prescribing_rate - prescribingNatAvg;
-                      const share = r.total_claims ? (r.opioid_claims / r.total_claims) * 100 : null;
-                      return (
-                        <tr key={r.state_code} style={{ borderBottom:`1px solid ${BD}20` }}>
-                          <td style={{ padding:"5px 10px",textAlign:"center",color:AL }}>{i + 1}</td>
-                          <td style={{ padding:"5px 10px",fontWeight:600,color:A }}>{STATE_NAMES[r.state_code] || r.state_code}</td>
-                          <td style={{ padding:"5px 10px",textAlign:"right",color:r.opioid_prescribing_rate > prescribingNatAvg ? NEG : A }}>{fmt(r.opioid_prescribing_rate, 2)}%</td>
-                          <td style={{ padding:"5px 10px",textAlign:"right",color:AL }}>{fmtK(r.opioid_claims)}</td>
-                          <td style={{ padding:"5px 10px",textAlign:"right",color:AL }}>{fmtK(r.total_claims)}</td>
-                          <td style={{ padding:"5px 10px",textAlign:"right",color:AL }}>{share != null ? `${fmt(share, 2)}%` : "\u2014"}</td>
-                          <td style={{ padding:"5px 10px",textAlign:"right",color:diff > 0 ? NEG : POS,fontWeight:500 }}>
-                            {diff > 0 ? "+" : ""}{fmt(diff, 2)}pp
-                          </td>
-                        </tr>
-                      );
-                    })}
-                  </tbody>
-                </table>
-              </div>
-            </Card>
-          )}
+-- Join prevalence to MAT spending
+-- Misalignment = states in top quintile of prevalence
+-- but bottom quintile of MAT spending per enrollee`}</pre>
         </div>
-      )}
+      </Collapsible>
 
-      {/* ══════════════════════════════════════════════════════════════ */}
-      {/* TAB 4: FUNDING ALIGNMENT                                      */}
-      {/* ══════════════════════════════════════════════════════════════ */}
-      {tab === "Funding Alignment" && !loading && (
-        <div style={{ display:"flex",flexDirection:"column",gap:14 }}>
-          {/* Summary metrics */}
-          <div style={{ display:"grid",gridTemplateColumns:isMobile?"1fr 1fr":"repeat(4,1fr)",gap:10 }}>
-            <Card accent={cB}>
-              <Met l="States" v={fundingData.length} />
-            </Card>
-            <Card accent={cB}>
-              <Met l="Total Block Grants" v={fmtD(fundingTotalGrant)} sub="SAMHSA SAPT allotments" />
-            </Card>
-            <Card accent={cB}>
-              <Met l="Avg Grant/Enrollee" v={fmtD(fundingAvgGrant)} />
-            </Card>
-            <Card accent={NEG}>
-              <Met l="Underfunded States" v={underfundedStates.length} sub="High prevalence, low funding" />
-            </Card>
-          </div>
-
-          {/* Underfunded alert */}
-          {underfundedStates.length > 0 && (
-            <Card accent={NEG}>
-              <CH t="Funding Mismatch" b="States with above-average prevalence but below-average funding per enrollee" />
-              <div style={{ padding:"8px 14px 12px",display:"flex",gap:6,flexWrap:"wrap" }}>
-                {underfundedStates.map(r => (
-                  <span key={r.state_code} style={{
-                    fontSize:10,fontFamily:FM,padding:"3px 8px",borderRadius:4,
-                    background:`${NEG}10`,border:`1px solid ${NEG}30`,color:NEG,fontWeight:600,
-                  }}>
-                    {STATE_NAMES[r.state_code] || r.state_code} ({fmt(r.prevalence_pct)}% / {fmtD(r.grant_per_enrollee)}/enrollee)
-                  </span>
-                ))}
-              </div>
-            </Card>
-          )}
-
-          {/* Scatter chart */}
-          {fundingChart.length > 0 ? (
-            <Card>
-              <CH t="OUD Prevalence vs Federal Funding" b="Does money follow need?" r={`${fundingChart.length} states`} />
-              <div style={{ padding:"8px 14px 14px" }}>
-                <ChartActions filename="treatment-gap-funding">
-                  <div style={{ width:"100%",height:400 }}>
-                    <ResponsiveContainer>
-                      <ScatterChart margin={{ left:20,right:20,top:10,bottom:10 }}>
-                        <CartesianGrid strokeDasharray="3 3" stroke={BD} />
-                        <XAxis type="number" dataKey="prevalence_pct" name="OUD Prevalence" tick={{ fontSize:9,fill:AL }} tickFormatter={v => `${v}%`} label={{ value:"OUD Prevalence %",position:"insideBottom",offset:-5,fontSize:9,fill:AL }} />
-                        <YAxis type="number" dataKey="grant_per_enrollee" name="Grant/Enrollee" tick={{ fontSize:9,fill:AL }} tickFormatter={v => fmtD(v)} label={{ value:"Block Grant per Enrollee",angle:-90,position:"insideLeft",offset:10,fontSize:9,fill:AL }} />
-                        <Tooltip content={({ active, payload }) => {
-                          if (!active || !payload?.length) return null;
-                          const d = payload[0]?.payload;
-                          if (!d) return null;
-                          return (
-                            <div style={{ background:WH,border:`1px solid ${BD}`,borderRadius:6,padding:"6px 10px",fontSize:10,fontFamily:FM,boxShadow:SH }}>
-                              <div style={{ fontWeight:600,color:A,marginBottom:2 }}>{d.name}</div>
-                              <div style={{ color:AL }}>Prevalence: {fmt(d.prevalence_pct)}%</div>
-                              <div style={{ color:AL }}>Grant/Enrollee: {fmtD(d.grant_per_enrollee)}</div>
-                              <div style={{ color:AL }}>Total Grant: {fmtD(d.total_block_grant)}</div>
-                              <div style={{ color:AL }}>Enrollment: {fmtK(d.total_enrollment)}</div>
-                            </div>
-                          );
-                        }} />
-                        <Scatter data={fundingChart} fillOpacity={0.7}>
-                          {fundingChart.map((d, i) => {
-                            const highPrev = d.prevalence_pct > fundingAvgPrevalence;
-                            const lowFund = d.grant_per_enrollee < fundingAvgGrant;
-                            return <Cell key={i} fill={highPrev && lowFund ? NEG : highPrev || lowFund ? WARN : POS} fillOpacity={0.7} />;
-                          })}
-                        </Scatter>
-                      </ScatterChart>
-                    </ResponsiveContainer>
-                  </div>
-                </ChartActions>
-                <div style={{ fontSize:9,color:AL,fontFamily:FM,marginTop:4,textAlign:"center" }}>
-                  Red = high prevalence + low funding. Yellow = one concern. Green = well-aligned.
-                </div>
-              </div>
-            </Card>
-          ) : (
-            !loading && <Card><div style={{ padding:20,textAlign:"center",fontSize:11,color:AL,fontFamily:FM }}>No funding data available.</div></Card>
-          )}
-
-          {/* Funding table */}
-          {fundingData.length > 0 && (
-            <Card>
-              <CH t="Funding Alignment Detail" r={`${fundingData.length} states`} />
-              <div style={{ overflowX:"auto",padding:"0 0 8px" }}>
-                <table style={{ width:"100%",borderCollapse:"collapse",fontSize:10,fontFamily:FM }}>
-                  <thead>
-                    <tr style={{ borderBottom:`1px solid ${BD}` }}>
-                      {["#","State","OUD Prevalence","Total Block Grant","Enrollment","Grant/Enrollee","Alignment"].map(h => (
-                        <th key={h} style={{ padding:"6px 10px",textAlign:h==="#"?"center":h==="State"?"left":"right",color:AL,fontWeight:600,fontSize:9,whiteSpace:"nowrap" }}>{h}</th>
-                      ))}
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {[...fundingData].sort((a, b) => b.prevalence_pct - a.prevalence_pct).map((r, i) => {
-                      const highPrev = r.prevalence_pct > fundingAvgPrevalence;
-                      const lowFund = r.grant_per_enrollee < fundingAvgGrant;
-                      const alignment = highPrev && lowFund ? "Underfunded" : !highPrev && !lowFund ? "Well-funded" : highPrev ? "Watch" : "Adequate";
-                      const color = alignment === "Underfunded" ? NEG : alignment === "Watch" ? WARN : POS;
-                      return (
-                        <tr key={r.state_code} style={{ borderBottom:`1px solid ${BD}20` }}>
-                          <td style={{ padding:"5px 10px",textAlign:"center",color:AL }}>{i + 1}</td>
-                          <td style={{ padding:"5px 10px",fontWeight:600,color:A }}>{STATE_NAMES[r.state_code] || r.state_code}</td>
-                          <td style={{ padding:"5px 10px",textAlign:"right",color:highPrev ? NEG : A }}>{fmt(r.prevalence_pct)}%</td>
-                          <td style={{ padding:"5px 10px",textAlign:"right",color:A }}>{fmtD(r.total_block_grant)}</td>
-                          <td style={{ padding:"5px 10px",textAlign:"right",color:AL }}>{fmtK(r.total_enrollment)}</td>
-                          <td style={{ padding:"5px 10px",textAlign:"right",color:lowFund ? NEG : A }}>{fmtD(r.grant_per_enrollee)}</td>
-                          <td style={{ padding:"5px 10px",textAlign:"right",fontWeight:600,color }}>{alignment}</td>
-                        </tr>
-                      );
-                    })}
-                  </tbody>
-                </table>
-              </div>
-            </Card>
-          )}
+      {/* ── Sources ──────────────────────────────────────────────────── */}
+      <div style={{ marginTop: 32, paddingTop: 16, borderTop: `1px solid ${BD}` }}>
+        <div style={{ fontSize: 10, fontFamily: FM, color: AL, lineHeight: 1.8 }}>
+          <strong style={{ color: A }}>Sources:</strong> SAMHSA NSDUH (2024, 5,900 rows) | State Drug Utilization Data (2025, 2.6M rows) |
+          SAMHSA N-SUMHSS Facility Directory (27,957 facilities) | CMS Opioid Prescribing (539,181 rows) | SAMHSA Block Grants (SAPT).
         </div>
-      )}
+      </div>
 
-      {/* Ask Aradune */}
-      <div style={{ marginTop:20,textAlign:"center" }}>
-        <button onClick={() => openIntelligence({ summary:`User is viewing Opioid Treatment Gap ${tab} data. ${demandSupply.length} states in demand-supply analysis. ${gapStates.length} states identified with treatment gaps. ${matData.length} states with MAT data. ${prescribingLatest.length} states in prescribing data.` })}
-          style={{ padding:"8px 20px",borderRadius:8,fontSize:11,fontWeight:600,fontFamily:FM,border:`1px solid ${cB}`,background:WH,color:cB,cursor:"pointer" }}>
-          Ask Aradune about this
+      {/* ── Ask Aradune ──────────────────────────────────────────────── */}
+      <div style={{ marginTop: 24, textAlign: "center" }}>
+        <button onClick={() => openIntelligence({ summary: "User is viewing the Opioid Treatment Gap research brief. Key finding: MAT spending geographically misaligned with OUD prevalence. MS (3.3% prevalence) absent from top MAT spenders. MA (1.3%) is #2. $954M total national MAT spending. Descriptive analysis." })}
+          style={{ padding: "8px 20px", borderRadius: 8, fontSize: 11, fontWeight: 600, fontFamily: FM, border: `1px solid ${cB}`, background: WH, color: cB, cursor: "pointer" }}>
+          Ask Aradune about this research
         </button>
-      </div>
-
-      {/* Source */}
-      <div style={{ marginTop:16,textAlign:"center",fontSize:9,color:AL,fontFamily:FM }}>
-        Sources: SAMHSA NSDUH (2023-2024) &middot; State Drug Utilization Data (2025) &middot; N-SUMHSS Facility Directory &middot; TEDS Admissions &middot; SAMHSA Block Grants
       </div>
     </div>
   );

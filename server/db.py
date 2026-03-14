@@ -548,10 +548,13 @@ def reload_lake() -> None:
     """Re-scan the lake directory and register any new views.
 
     Called after the background R2 sync completes so that views become
-    available without restarting the server.
+    available without restarting the server. Clears the registered set
+    so all views are re-created from the now-populated lake directory.
     """
-    global _lake_ready
+    global _lake_ready, _registered
     _lake_ready = False
+    with _lock:
+        _registered = set()  # Clear so views can be re-registered
     t = threading.Thread(target=_register_all_views, daemon=True, name="lake-reload")
     t.start()
 

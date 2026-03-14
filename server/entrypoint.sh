@@ -3,47 +3,38 @@ set -e
 
 LAKE_DIR="${ARADUNE_LAKE_DIR:-/app/data/lake}"
 
-# Count pre-baked Parquet files (from Docker image)
-PREBAKED_COUNT=0
-if [ -d "$LAKE_DIR" ]; then
-    PREBAKED_COUNT=$(find "$LAKE_DIR" -name '*.parquet' 2>/dev/null | wc -l | tr -d ' ')
-fi
-
-if [ "$PREBAKED_COUNT" -gt 50 ]; then
-    echo "Lake data pre-baked in image: $PREBAKED_COUNT Parquet files."
-    # Start server immediately, sync new files in background
-    if [ -n "$ARADUNE_S3_BUCKET" ]; then
-        echo "Starting incremental R2 sync in background for new tables..."
-        (
-            python scripts/sync_lake.py download
-            FINAL_COUNT=$(find "$LAKE_DIR" -name '*.parquet' 2>/dev/null | wc -l | tr -d ' ')
-            echo "Incremental sync complete. $FINAL_COUNT total Parquet files."
-            # Send reload signal to pick up new tables
-            for i in 1 2 3 4 5; do
-                sleep 3
-                python3 -c "
+# Download lake data from R2 in background, then signal reload.
+# Server starts immediately for health checks.
+if [ -n "$ARADUNE_S3_BUCKET" ]; then
+    PREBAKED=$(find "$LAKE_DIR" -name '*.parquet' 2>/dev/null | wc -l | tr -d ' ')
+    if [ "$PREBAKED" -gt 50 ]; then
+        echo "Pre-baked data: $PREBAKED files. Incremental sync in background."
+    else
+        echo "No pre-baked data. Full R2 sync starting in background..."
+    fi
+    (
+        python scripts/sync_lake.py download
+        COUNT=$(find "$LAKE_DIR" -name '*.parquet' 2>/dev/null | wc -l | tr -d ' ')
+        echo "R2 sync complete: $COUNT Parquet files."
+        # Signal server to re-register all views
+        for attempt in $(seq 1 30); do
+            sleep 5
+            if python3 -c "
 import urllib.request
 try:
-    urllib.request.urlopen(urllib.request.Request('http://localhost:8000/internal/reload-lake', method='POST'), timeout=5)
-    print('Reload signal sent.')
+    urllib.request.urlopen(urllib.request.Request('http://localhost:8000/internal/reload-lake', method='POST'), timeout=10)
+    print('Reload signal sent successfully.')
     exit(0)
-except: exit(1)
-" 2>/dev/null && break
-            done
-        ) &
-    fi
-    exec uvicorn server.main:app --host 0.0.0.0 --port 8000
-fi
-
-# No pre-baked data — download from R2 BEFORE starting server.
-# This takes 2-5 minutes but ensures all tables are available on first request.
-if [ -n "$ARADUNE_S3_BUCKET" ]; then
-    echo "Downloading data lake from R2 (this takes 2-5 minutes)..."
-    python scripts/sync_lake.py download
-    FINAL_COUNT=$(find "$LAKE_DIR" -name '*.parquet' 2>/dev/null | wc -l | tr -d ' ')
-    echo "Download complete. $FINAL_COUNT Parquet files ready."
+except Exception as e:
+    print(f'Reload attempt $attempt failed: {e}')
+    exit(1)
+" 2>&1; then
+                break
+            fi
+        done
+    ) &
 else
-    echo "WARNING: No lake data and no S3 bucket configured. Starting with empty lake."
+    echo "WARNING: No S3 bucket configured."
 fi
 
 exec uvicorn server.main:app --host 0.0.0.0 --port 8000

@@ -31,4 +31,12 @@ properties:
   type: DATE
 - name: snapshot
   type: DATE
-fact_tables: []
+fact_tables:
+- fact_mc_enrollment
+- fact_mc_enrollment_summary
+- fact_managed_care
+- fact_mco_mlr
+- fact_mc_enrollment_by_plan
+- fact_mc_enrollment_by_plan_2024
+- fact_mc_share_enrollees_2024
+- fact_mltss_enrollment_2024

@@ -141,3 +141,7 @@ supporting_tables:
 - fact_pharmacy_releases
 - fact_drug_mfr_contacts
 - fact_drug_rebate_state_contacts
+- fact_drug_amp_q4_2025
+- fact_mdrp_drug_products_q4_2025
+- fact_nadac_comparison_mar2026
+- fact_nadac_mar2026

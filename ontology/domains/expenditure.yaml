@@ -68,3 +68,8 @@ supporting_tables:
 - fact_kff_chip_spending
 - fact_kff_chip_enhanced_fmap
 - fact_kff_child_participation
+- fact_cms64_caa_fmap_expenditures
+- fact_cms64_financial_management
+- fact_cms64_new_adult_expenditures
+- fact_macpac_fmap_multiyear
+- fact_macpac_hcbs_payment_scan

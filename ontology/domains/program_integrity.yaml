@@ -13,4 +13,7 @@ primary_tables:
   row_count: 12
 - table: fact_mfcu_stats
   row_count: 53
-supporting_tables: []
+supporting_tables:
+- fact_mfcu_case_outcomes
+- fact_mfcu_open_cases
+- fact_mfcu_statistical_chart

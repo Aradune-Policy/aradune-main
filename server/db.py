@@ -368,7 +368,7 @@ FACT_NAMES = [
     "sdud_2011", "sdud_2012", "sdud_2013", "sdud_2014", "sdud_2015",
     "sdud_2016", "sdud_2017", "sdud_2018", "sdud_2019",
     # Session 22: CMS-64 historical backfill (FY1997-2017)
-    "cms64_historical",
+    # cms64_historical — already listed in Session 19 gap-closing block above
     # Session 22: SDUD historical combined (1991-2019, 41.8M rows)
     "sdud_historical_combined",
     # Session 22: Gap analysis — Census/CDC/SAMHSA new tables

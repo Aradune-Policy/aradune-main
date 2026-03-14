@@ -17,6 +17,11 @@ primary_tables:
   row_count: 68
 supporting_tables:
 - fact_spa
+- fact_kff_1115_approved_waivers
+- fact_kff_1115_pending_waivers
+- fact_kff_1115_waivers
+- fact_kff_1115_work_requirements
+- fact_section_1115_waivers
 planned_tables:
 - table: fact_section_1115_waivers
   description: Section 1115 waiver tracker by state — approved, pending, expired, with key provisions and effective dates. Source KFF or Medicaid.gov. ~200 rows.

@@ -119,7 +119,7 @@ Monthly Medicaid enrollment, eligibility groups, managed care programs, CHIP, un
 - **fact_hcgov_transitions**: 59,527 rows
 - **fact_pi_performance**: 10,404 rows
 - **fact_eligibility_enrollment_snapshot**: 5,000 rows
-- Supporting: fact_chip_eligibility, fact_chip_enrollment_unwinding, fact_continuous_eligibility, fact_eligibility_levels, fact_hcbs_waiver_enrollment, fact_macpac_enrollment, fact_marketplace_oep, fact_mc_enroll_duals, fact_mc_enroll_pop, fact_mc_enrollment_pop2 (+27 more)
+- Supporting: fact_chip_eligibility, fact_chip_enrollment_unwinding, fact_continuous_eligibility, fact_eligibility_levels, fact_hcbs_waiver_enrollment, fact_macpac_enrollment, fact_marketplace_oep, fact_mc_enroll_duals, fact_mc_enroll_pop, fact_mc_enrollment_pop2 (+37 more)
 
 **Named metrics (use these for consistency):**
 - `enrollment_change_pct`: Month-over-month or year-over-year enrollment change = `(current_enrollment - prior_enrollment) / prior_enrollment`
@@ -149,7 +149,7 @@ CMS-64 expenditure (FY2016 + multi-year FY2018-2024 by service category, 117K ro
 - **fact_macpac_benefit_spending_fy2024**: 56 rows
 - **fact_macpac_spending_by_elig_fy2023**: 51 rows
 - **fact_macpac_mc_enrollment_detail**: 52 rows
-- Supporting: fact_caa_fmap, fact_financial_mgmt_national, fact_fmap, fact_macpac_benefit_spending, fact_macpac_spending_by_state, fact_macpac_spending_per_enrollee, fact_macpac_supplemental, fact_sdp_preprint, fact_kff_total_spending, fact_kff_spending_per_enrollee (+12 more)
+- Supporting: fact_caa_fmap, fact_financial_mgmt_national, fact_fmap, fact_macpac_benefit_spending, fact_macpac_spending_by_state, fact_macpac_spending_per_enrollee, fact_macpac_supplemental, fact_sdp_preprint, fact_kff_total_spending, fact_kff_spending_per_enrollee (+17 more)
 
 **Named metrics (use these for consistency):**
 - `per_enrollee_spending`: Total Medicaid spending divided by average monthly enrollment = `total_expenditure / avg_monthly_enrollment`
@@ -373,7 +373,7 @@ State Drug Utilization (SDUD 2020-2025, 28.3M rows, $1.05T pre-rebate), NADAC pr
 - **fact_open_payments_v2**: 12,224,199 rows
 - **fact_first_time_nadac**: 1,269 rows
 - **fact_340b_covered_entities**: 26,290 rows
-- Supporting: fact_clotting_factor, fact_exclusive_pediatric, fact_pharmacy_releases, fact_drug_mfr_contacts, fact_drug_rebate_state_contacts
+- Supporting: fact_clotting_factor, fact_exclusive_pediatric, fact_pharmacy_releases, fact_drug_mfr_contacts, fact_drug_rebate_state_contacts, fact_drug_amp_q4_2025, fact_mdrp_drug_products_q4_2025, fact_nadac_comparison_mar2026, fact_nadac_mar2026
 
 **Named metrics (use these for consistency):**
 - `total_drug_spending_by_state`: Sum of total amount reimbursed for all NDCs in a state-year-quarter = `SUM(total_reimbursed) WHERE year = {year} AND state = {state}`
@@ -388,7 +388,7 @@ CMS policy documents (CIBs, SHO letters, SPAs, waivers), Federal Register rulema
 - **fact_federal_register**: 762 rows
 - **fact_federal_register_cms**: 5,982 rows
 - **fact_medicaid_enterprise**: 68 rows
-- Supporting: fact_spa
+- Supporting: fact_spa, fact_kff_1115_approved_waivers, fact_kff_1115_pending_waivers, fact_kff_1115_waivers, fact_kff_1115_work_requirements, fact_section_1115_waivers
 
 **Planned (not yet in lake):**
 - fact_section_1115_waivers: Section 1115 waiver tracker by state — approved, pending, expired, with key provisions and effective dates. Source KFF or Medicaid.gov. ~200 rows.
@@ -400,6 +400,7 @@ OIG LEIE exclusion lists, PERM error rates, MFCU statistics, revoked and opt-out
 - **fact_leie_v2**: 82,749 rows
 - **fact_perm_rates**: 12 rows
 - **fact_mfcu_stats**: 53 rows
+- Supporting: fact_mfcu_case_outcomes, fact_mfcu_open_cases, fact_mfcu_statistical_chart
 
 ### Providers & Facilities
 NPPES full provider registry, PECOS enrollment, physician compare, revalidation, provider affiliations, CLIA, FQHCs, dialysis, hospice, HHA, IRF, LTCH, ASC, post-acute care, QPP, and facility ownership data
@@ -635,6 +636,7 @@ BLS healthcare wages (OEWS, MSA), HPSA shortage areas (primary care, dental, men
 **Geographic Area** (`fact_places_county`, key: `county_fips`): 22 fact tables
 **HCBS Program** (`fact_hcbs_waitlist`, key: `state_code`): 107 fact tables
 **Hospital** (`fact_hospital_cost`, key: `provider_ccn`): 88 fact tables
+**Managed Care Organization** (`fact_mc_enrollment_plan`, key: `plan_id`): 8 fact tables
 **Nursing Facility** (`fact_nh_provider_info`, key: `ccn`): 67 fact tables
 **Healthcare Occupation** (`dim_bls_occupation`, key: `soc_code`): 6 fact tables
 **Policy Document** (`fact_policy_document`, key: `doc_id`): 2 fact tables

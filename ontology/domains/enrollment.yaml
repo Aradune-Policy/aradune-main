@@ -167,3 +167,13 @@ supporting_tables:
 - fact_macpac_spending_by_elig
 - fact_ma_enrollment_plan
 - fact_mc_enrollment_by_plan
+- fact_chip_enrollment_monthly
+- fact_eligibility_enrollment_snapshot
+- fact_eligibility_processing_feb2026
+- fact_enrollment_feb2026
+- fact_renewal_outcomes
+- fact_hcgov_transitions_unwinding
+- fact_mc_enrollment_by_plan_2024
+- fact_mc_enrollment_summary_2024_v2
+- fact_mc_share_enrollees_2024
+- fact_mltss_enrollment_2024

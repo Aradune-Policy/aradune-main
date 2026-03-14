@@ -11,6 +11,7 @@ import { C, FONT, SHADOW } from "../design";
 import { useAradune } from "../context/AraduneContext";
 import { getAuthHeaders, API_BASE } from "../lib/api";
 import { STATES_LIST, STATE_NAMES } from "../data/states";
+import LandingMetrics from "../components/LandingMetrics";
 
 const API = API_BASE;
 
@@ -677,6 +678,9 @@ export default function IntelligenceChat() {
             }}>
               Ask anything about Medicaid. Policy questions, data queries, state comparisons, or cross-dataset analysis, backed by 569+ tables and 305M+ rows.
             </p>
+
+            {/* Headline metrics — removable: delete this line + the import */}
+            <LandingMetrics />
 
             {/* QuickStart cards */}
             <div style={{

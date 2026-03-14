@@ -666,9 +666,9 @@ function Landing() {
               { val: "607K", label: "People on HCBS waitlists", src: "CMS-372 / KFF", color: "#C4590A", link: "research/safety-net" },
               { val: "-1.3pp", label: "Annual quality decline, all states", src: "Core Set panel FE", color: "#7B4EA3", link: "research/rate-quality" },
             ].map(s => (
-              <a key={s.val} href={`#/${s.link}`} style={{ display: "block", background: "#fff", borderRadius: 8, boxShadow: SHADOW, borderTop: `3px solid ${s.color}`, padding: "14px 14px 10px", textDecoration: "none" }}>
-                <div style={{ fontSize: 22, fontWeight: 700, color: C.ink, fontFamily: FONT.mono, lineHeight: 1 }}>{s.val}</div>
-                <div style={{ fontSize: 10, color: C.ink, marginTop: 6, lineHeight: 1.4 }}>{s.label}</div>
+              <a key={s.val} href={`#/${s.link}`} style={{ display: "block", background: "#fff", borderRadius: 8, boxShadow: SHADOW, borderTop: `3px solid ${s.color}`, padding: isMobile ? "10px 10px 8px" : "14px 14px 10px", textDecoration: "none" }}>
+                <div style={{ fontSize: isMobile ? 18 : 22, fontWeight: 700, color: C.ink, fontFamily: FONT.mono, lineHeight: 1 }}>{s.val}</div>
+                <div style={{ fontSize: isMobile ? 9 : 10, color: C.ink, marginTop: 6, lineHeight: 1.4 }}>{s.label}</div>
                 <div style={{ fontSize: 8, color: C.inkLight, fontFamily: FONT.mono, marginTop: 4 }}>{s.src}</div>
               </a>
             ))}
@@ -683,13 +683,13 @@ function Landing() {
               { color: "#3A7CC4", finding: "$2-3B pharmacy overpayment", detail: "NADAC vs SDUD. Concentrated in low-cost generics (2.75x median markup). Survives all robustness checks.", link: "research/pharmacy-spread" },
               { color: "#7B4EA3", finding: "Quality declining everywhere", detail: "-1.3pp/year (2017-2024). Uniform across all states regardless of payment levels or fiscal burden. p=0.006.", link: "research/rate-quality" },
             ].map(f => (
-              <a key={f.finding} href={`#/${f.link}`} style={{ display: "flex", alignItems: "baseline", gap: 10, padding: "8px 12px", borderRadius: 6, background: "#FAFBFC", border: "1px solid #E2E8F0", textDecoration: "none", transition: "background 0.15s", cursor: "pointer" }}
+              <a key={f.finding} href={`#/${f.link}`} style={{ display: "flex", alignItems: isMobile ? "flex-start" : "baseline", gap: isMobile ? 8 : 10, padding: isMobile ? "8px 10px" : "8px 12px", borderRadius: 6, background: "#FAFBFC", border: "1px solid #E2E8F0", textDecoration: "none", transition: "background 0.15s", cursor: "pointer" }}
                 onMouseEnter={e => { (e.currentTarget as HTMLElement).style.background = "#F1F5F9"; }}
                 onMouseLeave={e => { (e.currentTarget as HTMLElement).style.background = "#FAFBFC"; }}>
                 <span style={{ width: 4, height: 4, borderRadius: 2, background: f.color, flexShrink: 0, marginTop: 5 }} />
                 <div>
-                  <span style={{ fontSize: 12, fontWeight: 700, color: C.ink }}>{f.finding}</span>
-                  <span style={{ fontSize: 11, color: C.inkLight, marginLeft: 6 }}>{f.detail}</span>
+                  <div style={{ fontSize: isMobile ? 11 : 12, fontWeight: 700, color: C.ink }}>{f.finding}</div>
+                  <div style={{ fontSize: isMobile ? 10 : 11, color: C.inkLight, marginTop: isMobile ? 2 : 0, lineHeight: 1.4 }}>{f.detail}</div>
                 </div>
               </a>
             ))}

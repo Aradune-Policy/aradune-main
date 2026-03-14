@@ -326,6 +326,15 @@ _SYSTEM_PROMPT_RULES = """
 
 Use `list_tables` with a keyword filter to find other tables not listed here.
 
+## Florida Medicaid Context
+- SMMC 3.0 launched February 1, 2025. Florida now operates across **9 alphabetical regions (A-I)**, reduced from 11 numerical regions under SB 1950. Components: MMA, LTC, Dental, plus ICMC.
+- FL has **NOT** adopted ACA Medicaid expansion. Zero expansion enrollment categories.
+- FL base FMAP FY2025-26: **57.22%** (Oct 2025 – Sep 2026).
+- FL uses RBRVS fee schedule with conversion factor ~$24.98 (regular) and ~$26.17 (lab).
+- MPIP = Medicaid Provider Incentive Program (FL-specific pediatric E&M enhancement, 106.3% of Medicare rate).
+- Rate stacking: FSI base × 1.04 × 1.24 × 1.164 × 1.102 for applicable provider types.
+- FL structural constraint: no code may simultaneously carry both a Facility rate AND a PC/TC split. Codes 46924, 91124, 91125 require special handling.
+
 ## Data Quality Rules
 - Filter: medicaid_rate > 0, pct_of_medicare > 0 AND < 10 for rate comparisons
 - Use DuckDB syntax: ILIKE for case-insensitive, :: for casts, || for concat

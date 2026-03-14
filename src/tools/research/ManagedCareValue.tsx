@@ -664,11 +664,11 @@ export default function ManagedCareValue() {
         </div>
       )}
 
-      {/* Ask Intelligence */}
+      {/* Ask Aradune */}
       <div style={{ marginTop:20,textAlign:"center" }}>
         <button onClick={() => openIntelligence({ summary:`User is viewing Managed Care Value Assessment ${tab} data. ${penSpending.length} states in penetration analysis. ${mcoSummary.length} states with MCO data. ${qualMeasures.length} quality measures tracked.` })}
           style={{ padding:"8px 20px",borderRadius:8,fontSize:11,fontWeight:600,fontFamily:FM,border:`1px solid ${cB}`,background:WH,color:cB,cursor:"pointer" }}>
-          Ask Intelligence about this
+          Ask Aradune about this
         </button>
       </div>
 

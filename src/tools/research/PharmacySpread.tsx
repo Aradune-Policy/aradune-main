@@ -516,11 +516,11 @@ export default function PharmacySpread() {
         </div>
       )}
 
-      {/* Ask Intelligence */}
+      {/* Ask Aradune */}
       <div style={{ marginTop:20,textAlign:"center" }}>
         <button onClick={() => openIntelligence({ summary:`User is viewing Pharmacy Spread Analysis: ${tab}. ${overview.length} drugs in overview. ${stateData.length} states in state variation. ${topDrugs.length} top overpayment drugs. Stats: ${stats ? `${fmtK(stats.drugs_analyzed)} drugs, ${fmtD(stats.total_overpayment)} overpayment.` : 'loading.'}` })}
           style={{ padding:"8px 20px",borderRadius:8,fontSize:11,fontWeight:600,fontFamily:FM,border:`1px solid ${cB}`,background:WH,color:cB,cursor:"pointer" }}>
-          Ask Intelligence about this
+          Ask Aradune about this
         </button>
       </div>
 

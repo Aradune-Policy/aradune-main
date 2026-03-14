@@ -21,13 +21,13 @@ async def rate_quality_correlation(measure_id: str = Query(default="prenatal_car
                     GROUP BY state_code
                 ),
                 quality AS (
-                    SELECT state_code, measure_rate
+                    SELECT state_code, state_rate
                     FROM fact_quality_core_set_2024
                     WHERE measure_id = $1
-                      AND measure_rate IS NOT NULL
+                      AND state_rate IS NOT NULL
                 )
                 SELECT r.state_code, r.avg_pct_medicare, r.procedure_count,
-                       q.measure_rate
+                       q.state_rate AS measure_rate
                 FROM rates r
                 INNER JOIN quality q ON r.state_code = q.state_code
                 ORDER BY r.avg_pct_medicare
@@ -46,7 +46,7 @@ async def rate_quality_measures():
             rows = cur.execute("""
                 SELECT DISTINCT measure_id, measure_name
                 FROM fact_quality_core_set_2024
-                WHERE measure_rate IS NOT NULL
+                WHERE state_rate IS NOT NULL
                 ORDER BY measure_name
             """).fetchall()
             return {"measures": [{"id": r[0], "name": r[1]} for r in rows]}
@@ -67,7 +67,7 @@ async def rate_quality_access():
                     GROUP BY state_code
                 ),
                 hpsas AS (
-                    SELECT state_code, COUNT(*) AS hpsa_count
+                    SELECT state_code, COUNT(DISTINCT hpsa_id) AS hpsa_count
                     FROM fact_hpsa
                     GROUP BY state_code
                 )
@@ -97,7 +97,7 @@ async def rate_quality_workforce():
                 wages AS (
                     SELECT state_code, AVG(hourly_mean) AS avg_healthcare_wage
                     FROM fact_bls_wage
-                    WHERE occ_code LIKE '29-%' OR occ_code LIKE '31-%'
+                    WHERE soc_code LIKE '29-%' OR soc_code LIKE '31-%'
                     GROUP BY state_code
                 )
                 SELECT r.state_code, r.avg_pct_medicare,
@@ -128,10 +128,10 @@ async def rate_quality_detail():
                 ),
                 quality_agg AS (
                     SELECT state_code,
-                           AVG(measure_rate) AS avg_quality_rate,
+                           AVG(state_rate) AS avg_quality_rate,
                            COUNT(DISTINCT measure_id) AS measures_reported
                     FROM fact_quality_core_set_2024
-                    WHERE measure_rate IS NOT NULL
+                    WHERE state_rate IS NOT NULL
                     GROUP BY state_code
                 ),
                 hpsas AS (

@@ -567,11 +567,11 @@ export default function NursingOwnership() {
         </div>
       )}
 
-      {/* Ask Intelligence */}
+      {/* Ask Aradune */}
       <div style={{ marginTop:20,textAlign:"center" }}>
         <button onClick={() => openIntelligence({ summary:`User is viewing Nursing Home Ownership & Quality: ${tab}. ${qualityData.length} ownership types. ${chainData.length} chain comparison groups. ${deficiencyData.length} deficiency patterns. ${scoreboard.length} chains in scoreboard. Total facilities: ${fmtK(totalFacilities)}.` })}
           style={{ padding:"8px 20px",borderRadius:8,fontSize:11,fontWeight:600,fontFamily:FM,border:`1px solid ${cB}`,background:WH,color:cB,cursor:"pointer" }}>
-          Ask Intelligence about this
+          Ask Aradune about this
         </button>
       </div>
 

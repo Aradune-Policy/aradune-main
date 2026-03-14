@@ -661,11 +661,11 @@ export default function RateQualityNexus() {
         </div>
       )}
 
-      {/* Ask Intelligence */}
+      {/* Ask Aradune */}
       <div style={{ marginTop:20,textAlign:"center" }}>
         <button onClick={() => openIntelligence({ summary:`User is viewing Rate-Quality Nexus ${tab} data. ${correlation.length} states in correlation. ${accessData.length} states in access. ${detailData.length} states in detail. Selected measure: ${measureName}.` })}
           style={{ padding:"8px 20px",borderRadius:8,fontSize:11,fontWeight:600,fontFamily:FM,border:`1px solid ${cB}`,background:WH,color:cB,cursor:"pointer" }}>
-          Ask Intelligence about this
+          Ask Aradune about this
         </button>
       </div>
 

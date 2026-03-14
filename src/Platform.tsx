@@ -804,7 +804,7 @@ function Landing() {
                 ))}
               </div>
               <div style={{ textAlign: "center", fontSize: 10, opacity: 0.5, marginTop: 6 }}>
-                {`Every tool has: Ask Intelligence sidebar \u00B7 export (DOCX/PDF/Excel/CSV) \u00B7 user data import`}
+                {`Every tool has: Ask Aradune sidebar \u00B7 export (DOCX/PDF/Excel/CSV) \u00B7 user data import`}
               </div>
             </div>
 

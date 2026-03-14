@@ -11,47 +11,27 @@ async def mc_penetration_spending():
     """Managed care penetration vs per-enrollee spending by state."""
     try:
         with get_cursor() as cur:
-            # Try direct join first; fall back to dim_state join if state_code missing
-            try:
-                rows = cur.execute("""
-                    WITH mc AS (
-                        SELECT state_code, mc_penetration_pct
-                        FROM fact_mc_enrollment_summary
-                        WHERE year = (SELECT MAX(year) FROM fact_mc_enrollment_summary)
-                    ),
-                    spending AS (
-                        SELECT state_code, per_enrollee_spending
-                        FROM fact_macpac_spending_per_enrollee
-                    )
-                    SELECT mc.state_code, mc.mc_penetration_pct,
-                           s.per_enrollee_spending
-                    FROM mc
-                    LEFT JOIN spending s ON mc.state_code = s.state_code
-                    WHERE mc.mc_penetration_pct IS NOT NULL
-                    ORDER BY mc.mc_penetration_pct
-                """).fetchall()
-            except Exception:
-                # Fallback: join through dim_state if spending table uses state_name
-                rows = cur.execute("""
-                    WITH mc AS (
-                        SELECT state_code, mc_penetration_pct
-                        FROM fact_mc_enrollment_summary
-                        WHERE year = (SELECT MAX(year) FROM fact_mc_enrollment_summary)
-                    ),
-                    spending AS (
-                        SELECT d.state_code, s.per_enrollee_spending
-                        FROM fact_macpac_spending_per_enrollee s
-                        JOIN dim_state d ON UPPER(TRIM(
-                            REGEXP_REPLACE(s.state_name, '[0-9,]+$', '')
-                        )) = UPPER(d.state_name)
-                    )
-                    SELECT mc.state_code, mc.mc_penetration_pct,
-                           s.per_enrollee_spending
-                    FROM mc
-                    LEFT JOIN spending s ON mc.state_code = s.state_code
-                    WHERE mc.mc_penetration_pct IS NOT NULL
-                    ORDER BY mc.mc_penetration_pct
-                """).fetchall()
+            rows = cur.execute("""
+                WITH mc AS (
+                    SELECT state_code, mc_penetration_pct
+                    FROM fact_mc_enrollment_summary
+                    WHERE year = (SELECT MAX(year) FROM fact_mc_enrollment_summary)
+                ),
+                spending AS (
+                    SELECT d.state_code, s.total_all AS per_enrollee_spending
+                    FROM fact_macpac_spending_per_enrollee s
+                    JOIN dim_state d ON UPPER(TRIM(
+                        REGEXP_REPLACE(s.state_name, '[0-9,]+$', '')
+                    )) = UPPER(d.state_name)
+                    WHERE s.fiscal_year = (SELECT MAX(fiscal_year) FROM fact_macpac_spending_per_enrollee)
+                )
+                SELECT mc.state_code, mc.mc_penetration_pct,
+                       s.per_enrollee_spending
+                FROM mc
+                LEFT JOIN spending s ON mc.state_code = s.state_code
+                WHERE mc.mc_penetration_pct IS NOT NULL
+                ORDER BY mc.mc_penetration_pct
+            """).fetchall()
             columns = ["state_code", "mc_penetration_pct", "per_enrollee_spending"]
             return {"rows": [dict(zip(columns, r)) for r in rows], "count": len(rows)}
     except Exception as exc:
@@ -125,9 +105,9 @@ async def mc_quality_by_tier(measure_id: str = Query(default=None)):
                     WHERE year = (SELECT MAX(year) FROM fact_mc_enrollment_summary)
                 ),
                 quality AS (
-                    SELECT state_code, measure_id, measure_name, measure_rate
+                    SELECT state_code, measure_id, measure_name, state_rate
                     FROM fact_quality_core_set_2024
-                    WHERE measure_rate IS NOT NULL
+                    WHERE state_rate IS NOT NULL
             """
             params: list = []
             if measure_id:
@@ -136,7 +116,7 @@ async def mc_quality_by_tier(measure_id: str = Query(default=None)):
             sql += """
                 )
                 SELECT mc.mc_tier, q.measure_id, q.measure_name,
-                       AVG(q.measure_rate) AS avg_measure_rate,
+                       AVG(q.state_rate) AS avg_measure_rate,
                        COUNT(DISTINCT mc.state_code) AS state_count
                 FROM mc
                 INNER JOIN quality q ON mc.state_code = q.state_code

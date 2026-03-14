@@ -450,11 +450,11 @@ export default function SafetyNetStress() {
         </Card>}
       </>}
 
-      {/* Ask Intelligence */}
+      {/* Ask Aradune */}
       <div style={{ marginTop:20,textAlign:"center" }}>
         <button onClick={() => openIntelligence({ summary: `User is viewing Safety Net Stress Test -- ${tab} tab. ${hospitalData.length} states hospital data, ${ltssData.length} LTSS, ${staffingData.length} staffing, ${compositeData.length} composite.` })}
           style={{ padding:"8px 20px",borderRadius:8,fontSize:11,fontWeight:600,fontFamily:FM,border:`1px solid ${cB}`,background:WH,color:cB,cursor:"pointer" }}>
-          Ask Intelligence about this
+          Ask Aradune about this
         </button>
       </div>
 

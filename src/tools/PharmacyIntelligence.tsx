@@ -392,11 +392,11 @@ export default function PharmacyIntelligence() {
         </div>
       )}
 
-      {/* Ask Intelligence */}
+      {/* Ask Aradune */}
       <div style={{ marginTop:20,textAlign:"center" }}>
         <button onClick={() => openIntelligence({ summary:`User is viewing Pharmacy Intelligence - ${tab}. ${stateSummary.length} states, ${fmtD(totalSpend)} total drug reimbursement.` })}
           style={{ padding:"8px 20px",borderRadius:8,fontSize:11,fontWeight:600,fontFamily:FM,border:`1px solid ${cB}`,background:WH,color:cB,cursor:"pointer" }}>
-          Ask Intelligence about this
+          Ask Aradune about this
         </button>
       </div>
 

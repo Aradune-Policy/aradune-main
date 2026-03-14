@@ -424,7 +424,7 @@ export default function HospitalRateSetting() {
       <div style={{ marginTop:20,textAlign:"center" }}>
         <button onClick={() => openIntelligence({ summary:`User is viewing Hospital Rate Setting - ${tab}. ${hospSummary.length} states in HCRIS, ${dshSummary.length} states with DSH data, ${sdpData.length} SDP programs.` })}
           style={{ padding:"8px 20px",borderRadius:8,fontSize:11,fontWeight:600,fontFamily:FM,border:`1px solid ${cB}`,background:WH,color:cB,cursor:"pointer" }}>
-          Ask Intelligence about this
+          Ask Aradune about this
         </button>
       </div>
 

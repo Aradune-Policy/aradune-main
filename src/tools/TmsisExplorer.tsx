@@ -1,7 +1,6 @@
 import React, { useState, useMemo, useEffect, useCallback, useRef, Fragment } from "react";
 import { BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer, Cell, CartesianGrid, Area, AreaChart, LineChart, Line, ScatterChart, Scatter, ZAxis, Legend, ReferenceLine } from "recharts";
 import type { StateData, HcpcsCode, NatlTrend, SafeTipProps, CatAccumulator, TooltipEntry, RawState, RawHcpcs, RawTrend, PipelineMeta, MedicareRates, RiskAdjData, FeeScheduleData, FeeScheduleState, FeeScheduleDirectory, ProviderRecord, SpecialtyRecord, QueryRequest, QueryResponse, QueryMeta, PresetInfo } from "../types";
-import { useProAccess, ProBadge, ProGateModal } from "../components/ProGate";
 import { executeQuery, fetchMeta, fetchPresets, initEngine } from "../lib/queryEngine";
 import { LoadingBar } from "../components/LoadingBar";
 import { query as rawQuery, hasMonthlyData } from "../lib/duckdb";
@@ -593,8 +592,6 @@ export default function TmsisExplorer() {
   const [ccbhcState, setCcbhcState] = useState("FL");
   const [ccbhcProgress, setCcbhcProgress] = useState<Record<string, boolean>>({});
 
-  const { isPro } = useProAccess();
-  const [showGate, setShowGate] = useState(false);
   const [batchInput, setBatchInput] = useState("");
   const [batchResults, setBatchResults] = useState<{ code: string; desc: string; rates: Record<string, number>; mcr: number | null }[] | null>(null);
 
@@ -1038,7 +1035,7 @@ export default function TmsisExplorer() {
 
   if (loading) return <LoadingBar text="Loading spending data" detail="T-MSIS claims and provider records" />;
 
-  const TABS = [{k:"dash",l:"Dashboard"},{k:"data",l:"Data Explorer"},{k:"rate",l:"Rate Engine"},{k:"code",l:"Code Profile"},{k:"sim",l:"Simulator"},{k:"provider",l:"Providers"},{k:"batch",l:"Batch",pro:true},{k:"about",l:"About"}];
+  const TABS = [{k:"dash",l:"Dashboard"},{k:"data",l:"Data Explorer"},{k:"rate",l:"Rate Engine"},{k:"code",l:"Code Profile"},{k:"sim",l:"Simulator"},{k:"provider",l:"Providers"},{k:"batch",l:"Batch"},{k:"about",l:"About"}];
 
   return (
     <div style={{ maxWidth:960,margin:"0 auto",padding:"10px 16px 40px",fontFamily:"Helvetica Neue,Arial,sans-serif",color:A }}>
@@ -1051,7 +1048,7 @@ export default function TmsisExplorer() {
           {isLive && Array.isArray(meta?.years) && <span style={{ fontSize:9,color:AL,fontFamily:FM }}>{(meta.years as number[])[0]}–{(meta.years as number[])[(meta.years as number[]).length-1]}</span>}
         </div>
         <div style={{ display:"flex",gap:1,flexWrap:"wrap" }}>
-          {TABS.map(t => <button key={t.k} onClick={()=>{if((t as any).pro&&!isPro){setShowGate(true);return;}setTab(t.k);}} style={{ padding:"4px 8px",fontSize:10,fontWeight:tab===t.k?700:400,color:tab===t.k?cB:AL,background:tab===t.k?"rgba(46,107,74,0.05)":"transparent",border:"none",borderRadius:6,cursor:"pointer",borderBottom:tab===t.k?`2px solid ${cB}`:"2px solid transparent",whiteSpace:"nowrap",display:"inline-flex",alignItems:"center" }}>{t.l}{(t as any).pro&&<ProBadge/>}</button>)}
+          {TABS.map(t => <button key={t.k} onClick={()=>setTab(t.k)} style={{ padding:"4px 8px",fontSize:10,fontWeight:tab===t.k?700:400,color:tab===t.k?cB:AL,background:tab===t.k?"rgba(46,107,74,0.05)":"transparent",border:"none",borderRadius:6,cursor:"pointer",borderBottom:tab===t.k?`2px solid ${cB}`:"2px solid transparent",whiteSpace:"nowrap",display:"inline-flex",alignItems:"center" }}>{t.l}</button>)}
         </div>
       </div>
 
@@ -3269,7 +3266,7 @@ export default function TmsisExplorer() {
                 XLSX.writeFile(wb,`batch_rates_${new Date().toISOString().split("T")[0]}.xlsx`);
               });
             }} style={{ padding:"5px 12px",background:S,border:`1px solid ${B}`,borderRadius:6,fontSize:10,cursor:"pointer",fontWeight:600,display:"inline-flex",alignItems:"center",gap:3 }}>
-              <span style={{ fontSize:10 }}>↓</span> Export XLSX<ProBadge/>
+              <span style={{ fontSize:10 }}>↓</span> Export XLSX
             </button>
             <ExportBtn label="Export CSV" onClick={()=>{
               const allStates=[...new Set(batchResults.flatMap(r=>Object.keys(r.rates)))].sort();
@@ -3340,7 +3337,6 @@ export default function TmsisExplorer() {
         <div style={{ fontSize:10,color:AL }}>Aradune T-MSIS Explorer v0.7.5 · Built by <a href="https://aradune.co" style={{ color:cB,textDecoration:"none",fontWeight:600 }}>Aradune</a></div>
       </div>}
 
-      <ProGateModal feature="Batch Code Lookup" open={showGate} onClose={()=>setShowGate(false)}/>
     </div>
   );
 }

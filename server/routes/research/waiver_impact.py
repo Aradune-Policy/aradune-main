@@ -15,17 +15,25 @@ async def waiver_catalog(
     """List Section 1115 waivers with optional state, status, and keyword filters."""
     try:
         with get_cursor() as cur:
-            # Try ref_1115_waivers first, fall back to fact_kff_1115_waivers
-            for table_name in ["ref_1115_waivers", "fact_kff_1115_waivers", "fact_section_1115_waivers"]:
+            # Try tables in priority order
+            table_name = None
+            table_schema = None
+            for tname in ["ref_1115_waivers", "fact_section_1115_waivers", "fact_kff_1115_waivers"]:
                 try:
-                    cur.execute(f"SELECT 1 FROM {table_name} LIMIT 1")
+                    cur.execute(f"SELECT 1 FROM {tname} LIMIT 1")
+                    # Detect schema
+                    cols_result = cur.execute(f"SELECT column_name FROM (DESCRIBE {tname})").fetchall()
+                    col_names = [r[0] for r in cols_result]
+                    table_name = tname
+                    table_schema = col_names
                     break
                 except Exception:
                     continue
-            else:
+
+            if not table_name:
                 raise HTTPException(status_code=500, detail={"error": "No 1115 waiver table found"})
 
-            # Build dynamic WHERE clauses
+            # Build dynamic WHERE clauses based on actual columns
             conditions = []
             params = []
             param_idx = 1
@@ -36,34 +44,67 @@ async def waiver_catalog(
                 param_idx += 1
 
             if status:
-                conditions.append(f"waiver_status ILIKE ${param_idx}")
+                conditions.append(f"status ILIKE ${param_idx}")
                 params.append(f"%{status}%")
                 param_idx += 1
 
             if search:
-                conditions.append(f"waiver_title ILIKE ${param_idx}")
+                conditions.append(f"waiver_name ILIKE ${param_idx}")
                 params.append(f"%{search}%")
                 param_idx += 1
 
             where_clause = f"WHERE {' AND '.join(conditions)}" if conditions else ""
 
-            # Defensive column selection -- handle schema variations
+            # Build SELECT based on available columns
+            select_cols = [
+                "COALESCE(state_code, '') AS state_code",
+                "COALESCE(waiver_name, '') AS waiver_name",
+            ]
+
+            if "waiver_type" in table_schema:
+                select_cols.append("COALESCE(waiver_type, '') AS waiver_type")
+            elif "authority_type" in table_schema:
+                select_cols.append("COALESCE(authority_type, '') AS waiver_type")
+            elif "request_type" in table_schema:
+                select_cols.append("COALESCE(request_type, '') AS waiver_type")
+            else:
+                select_cols.append("'' AS waiver_type")
+
+            if "approval_date" in table_schema:
+                select_cols.append("COALESCE(TRY_CAST(approval_date AS VARCHAR), '') AS approval_date")
+            else:
+                select_cols.append("'' AS approval_date")
+
+            if "effective_date" in table_schema:
+                select_cols.append("COALESCE(TRY_CAST(effective_date AS VARCHAR), '') AS effective_date")
+            else:
+                select_cols.append("'' AS effective_date")
+
+            if "expiration_date" in table_schema:
+                select_cols.append("COALESCE(TRY_CAST(expiration_date AS VARCHAR), '') AS expiration_date")
+            else:
+                select_cols.append("'' AS expiration_date")
+
+            select_cols.append("COALESCE(status, '') AS waiver_status")
+
+            if "description" in table_schema:
+                select_cols.append("COALESCE(description, '') AS key_provisions")
+            else:
+                select_cols.append("'' AS key_provisions")
+
+            select_str = ", ".join(select_cols)
+
+            # Use approval_date for ordering if available
+            order_col = "approval_date DESC" if "approval_date" in table_schema else "state_code"
+
             rows = cur.execute(f"""
-                SELECT
-                    COALESCE(state_code, '') AS state_code,
-                    COALESCE(waiver_title, title, '') AS waiver_title,
-                    COALESCE(waiver_type, type, '') AS waiver_type,
-                    COALESCE(TRY_CAST(approval_date AS VARCHAR), '') AS approval_date,
-                    COALESCE(TRY_CAST(effective_date AS VARCHAR), '') AS effective_date,
-                    COALESCE(TRY_CAST(expiration_date AS VARCHAR), '') AS expiration_date,
-                    COALESCE(waiver_status, status, '') AS waiver_status,
-                    COALESCE(key_provisions, provisions, description, '') AS key_provisions
+                SELECT {select_str}
                 FROM {table_name}
                 {where_clause}
-                ORDER BY approval_date DESC
+                ORDER BY {order_col}
             """, params).fetchall()
             columns = [
-                "state_code", "waiver_title", "waiver_type",
+                "state_code", "waiver_name", "waiver_type",
                 "approval_date", "effective_date", "expiration_date",
                 "waiver_status", "key_provisions",
             ]
@@ -128,7 +169,6 @@ async def waiver_quality(state_code: str):
         sc = state_code.upper()
         with get_cursor() as cur:
             # fact_quality_core_set_combined uses core_set_year and state_rate
-            # Individual year tables use measure_rate. Try combined first.
             try:
                 rows = cur.execute("""
                     SELECT core_set_year AS data_year, measure_id,
@@ -144,10 +184,10 @@ async def waiver_quality(state_code: str):
                 rows = cur.execute("""
                     SELECT 2024 AS data_year, measure_id,
                            measure_name,
-                           COALESCE(measure_rate, state_rate) AS measure_rate
+                           state_rate AS measure_rate
                     FROM fact_quality_core_set_2024
                     WHERE state_code = $1
-                      AND COALESCE(measure_rate, state_rate) IS NOT NULL
+                      AND state_rate IS NOT NULL
                     ORDER BY measure_id
                 """, [sc]).fetchall()
             columns = ["data_year", "measure_id", "measure_name", "measure_rate"]
@@ -164,10 +204,13 @@ async def waiver_compare(waiver_type: str = Query(default="expansion")):
         with get_cursor() as cur:
             # Determine which waiver table is available
             waiver_table = None
-            for table_name in ["ref_1115_waivers", "fact_kff_1115_waivers", "fact_section_1115_waivers"]:
+            table_cols = []
+            for tname in ["ref_1115_waivers", "fact_section_1115_waivers", "fact_kff_1115_waivers"]:
                 try:
-                    cur.execute(f"SELECT 1 FROM {table_name} LIMIT 1")
-                    waiver_table = table_name
+                    cur.execute(f"SELECT 1 FROM {tname} LIMIT 1")
+                    cols_result = cur.execute(f"SELECT column_name FROM (DESCRIBE {tname})").fetchall()
+                    table_cols = [r[0] for r in cols_result]
+                    waiver_table = tname
                     break
                 except Exception:
                     continue
@@ -175,13 +218,24 @@ async def waiver_compare(waiver_type: str = Query(default="expansion")):
             if not waiver_table:
                 raise HTTPException(status_code=500, detail={"error": "No 1115 waiver table found"})
 
-            # Defensive: check for waiver_type and key_provisions columns
+            # Build waiver filter based on available columns
+            waiver_filters = []
+            if "waiver_type" in table_cols:
+                waiver_filters.append("waiver_type ILIKE $1")
+            if "description" in table_cols:
+                waiver_filters.append("description ILIKE $1")
+            if "waiver_name" in table_cols:
+                waiver_filters.append("waiver_name ILIKE $1")
+            if "authority_type" in table_cols:
+                waiver_filters.append("authority_type ILIKE $1")
+
+            waiver_where = " OR ".join(waiver_filters) if waiver_filters else "waiver_name ILIKE $1"
+
             rows = cur.execute(f"""
                 WITH waiver_states AS (
                     SELECT DISTINCT state_code
                     FROM {waiver_table}
-                    WHERE COALESCE(waiver_type, type, '') ILIKE $1
-                       OR COALESCE(key_provisions, provisions, description, '') ILIKE $1
+                    WHERE {waiver_where}
                 ),
                 enrollment_latest AS (
                     SELECT state_code,

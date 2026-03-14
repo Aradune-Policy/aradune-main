@@ -700,11 +700,11 @@ export default function TreatmentGap() {
         </div>
       )}
 
-      {/* Ask Intelligence */}
+      {/* Ask Aradune */}
       <div style={{ marginTop:20,textAlign:"center" }}>
         <button onClick={() => openIntelligence({ summary:`User is viewing Opioid Treatment Gap ${tab} data. ${demandSupply.length} states in demand-supply analysis. ${gapStates.length} states identified with treatment gaps. ${matData.length} states with MAT data. ${prescribingLatest.length} states in prescribing data.` })}
           style={{ padding:"8px 20px",borderRadius:8,fontSize:11,fontWeight:600,fontFamily:FM,border:`1px solid ${cB}`,background:WH,color:cB,cursor:"pointer" }}>
-          Ask Intelligence about this
+          Ask Aradune about this
         </button>
       </div>
 

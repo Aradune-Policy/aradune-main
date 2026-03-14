@@ -1,7 +1,6 @@
 import { useState, useMemo, useCallback, useEffect } from "react";
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Cell, Legend, Line, LineChart, ReferenceLine, ScatterChart, Scatter, ComposedChart, Area } from "recharts";
 import { C, FONT, SHADOW, useIsMobile } from "../design";
-import { useProAccess, ProBadge, ProGateModal } from "../components/ProGate";
 import ChartActions from "../components/ChartActions";
 
 // ═══════════════════════════════════════════════════════════════════
@@ -857,17 +856,14 @@ export default function AheadCalculator(){
     const extra=xH.filter(x=>!builtInIds.has(x.id));
     return[...H,...extra];
   },[xH,builtInIds]);
-  const { isPro } = useProAccess();
-  const [showGate, setShowGate] = useState(false);
-  const [gateFeature, setGateFeature] = useState("");
   const[scenarios,setScenarios]=useState<Scenario[]>(()=>{
-    try { if (isPro) { const s = localStorage.getItem("aradune_ahead_scenarios"); if (s) return JSON.parse(s); } } catch {} return [];
+    try { const s = localStorage.getItem("aradune_ahead_scenarios"); if (s) return JSON.parse(s); } catch {} return [];
   });const[scName,setScName]=useState("");const[compSc,setCompSc]=useState(false);
   const[wts,setWts]=useState<Record<string,number>>({...DEF_WT});const[showWts,setShowWts]=useState(false);
   const setWt=(k:string,v:number)=>setWts(p=>({...p,[k]:v}));const resetWts=()=>setWts({...DEF_WT});
   const wtsChanged=useMemo(()=>Object.keys(DEF_WT).some(k=>wts[k]!==DEF_WT[k]),[wts]);
-  const saveScenario=()=>{if(!scName.trim())return;setScenarios(p=>{const next=[...p,{nm:scName.trim(),bD,mV,vO,hO,aO,yrs,hospId:selId,ts:Date.now()}];if(isPro){try{localStorage.setItem("aradune_ahead_scenarios",JSON.stringify(next));}catch{}}return next;});setScName("");};
-  const deleteScenario=(idx:number)=>{setScenarios(p=>{const next=p.filter((_,i)=>i!==idx);if(isPro){try{localStorage.setItem("aradune_ahead_scenarios",JSON.stringify(next));}catch{}}return next;});};
+  const saveScenario=()=>{if(!scName.trim())return;setScenarios(p=>{const next=[...p,{nm:scName.trim(),bD,mV,vO,hO,aO,yrs,hospId:selId,ts:Date.now()}];try{localStorage.setItem("aradune_ahead_scenarios",JSON.stringify(next));}catch{}return next;});setScName("");};
+  const deleteScenario=(idx:number)=>{setScenarios(p=>{const next=p.filter((_,i)=>i!==idx);try{localStorage.setItem("aradune_ahead_scenarios",JSON.stringify(next));}catch{}return next;});};
   const shareScenario=(sc:Scenario)=>{const encoded=btoa(JSON.stringify(sc));const url=window.location.origin+window.location.pathname+"#/ahead?s="+encoded;navigator.clipboard.writeText(url).catch(()=>{});};
   const loadScenario=(sc:Scenario)=>{setBD(sc.bD);setMV(sc.mV);setVO(sc.vO);setHO(sc.hO);setAO(sc.aO);setYrs(sc.yrs);if(sc.hospId!=="CUSTOM"){setSelId(sc.hospId);setUseCust(false);}setDrill(null);};
   // URL scenario hydration
@@ -931,12 +927,12 @@ export default function AheadCalculator(){
     </div></Card>
     <Card><CH title="Scenarios" badge={scenarios.length||null}/><div style={{padding:"0 8px 8px",display:"grid",gap:12}}>
       <div style={{display:"flex",gap:1}}><input value={scName} onChange={e=>setScName(e.target.value)} placeholder="Name this scenario" style={{background:C.surface,border:`1px solid ${C.border}`,borderRadius:4,padding:"6px 8px",fontSize:12,fontFamily:FONT.mono,flex:1,outline:"none",color:C.ink}}/><button onClick={saveScenario} style={{background:C.ink,color:"#fff",border:"none",borderRadius:4,padding:"6px 12px",fontSize:12,cursor:"pointer",fontWeight:600}}>Save</button></div>
-      {isPro&&<div style={{fontSize:9,color:C.pos,fontFamily:FONT.mono}}>Scenarios persist across sessions<ProBadge/></div>}
+      <div style={{fontSize:9,color:C.pos,fontFamily:FONT.mono}}>Scenarios persist across sessions</div>
       {scenarios.length>0&&<div style={{maxHeight:200,overflowY:"auto"}}>{scenarios.map((sc,i)=><div key={i} style={{padding:"6px 8px",fontSize:12,display:"flex",justifyContent:"space-between",alignItems:"center",borderBottom:`1px solid ${C.border}`}} onMouseEnter={e=>e.currentTarget.style.background=C.surface} onMouseLeave={e=>e.currentTarget.style.background="transparent"}>
         <span onClick={()=>loadScenario(sc)} style={{fontWeight:500,cursor:"pointer",flex:1}}>{sc.nm}</span>
         <span style={{display:"flex",gap:4,alignItems:"center"}}>
           <span style={{fontSize:10,color:C.inkLight,fontFamily:FONT.mono}}>Vol{sc.bD>0?"+":""}{sc.bD}%</span>
-          <button onClick={e=>{e.stopPropagation();if(!isPro){setGateFeature("Share Scenario");setShowGate(true);return;}shareScenario(sc);}} title="Copy share link" style={{background:"none",border:"none",color:C.inkLight,cursor:"pointer",fontSize:11,padding:"0 2px"}}>&#128279;</button>
+          <button onClick={e=>{e.stopPropagation();shareScenario(sc);}} title="Copy share link" style={{background:"none",border:"none",color:C.inkLight,cursor:"pointer",fontSize:11,padding:"0 2px"}}>&#128279;</button>
           <button onClick={e=>{e.stopPropagation();deleteScenario(i);}} title="Delete" style={{background:"none",border:"none",color:C.neg,cursor:"pointer",fontSize:11,padding:"0 2px"}}>&#215;</button>
         </span>
       </div>)}</div>}
@@ -944,18 +940,16 @@ export default function AheadCalculator(){
         {compSc?"Hide":"Compare"} Scenarios
       </button>}
     </div></Card>
-    <Card><CH title="Pro Exports"/><div style={{padding:"0 8px 8px",display:"grid",gap:6}}>
+    <Card><CH title="Exports"/><div style={{padding:"0 8px 8px",display:"grid",gap:6}}>
       <button onClick={()=>{
-        if(!isPro){setGateFeature("PDF Report");setShowGate(true);return;}
         import("../utils/aheadPdf").then(m=>m.generateAheadPdf({hospital:{nm:modH.nm,st:modH.st,beds:modH.beds,ty:modH.ty},mr,dr,mp,dp,mc,sens}));
       }} style={{padding:"6px 12px",background:C.surface,color:C.ink,border:`1px solid ${C.border}`,borderRadius:4,fontSize:12,cursor:"pointer",display:"flex",alignItems:"center",justifyContent:"center",gap:4,fontWeight:500}}>
-        Export PDF<ProBadge/>
+        Export PDF
       </button>
       <button onClick={()=>{
-        if(!isPro){setGateFeature("Excel Export");setShowGate(true);return;}
         import("../utils/aheadXlsx").then(m=>m.generateAheadXlsx({hospital:{nm:modH.nm,st:modH.st,beds:modH.beds,ty:modH.ty,co:modH.co,wi:modH.wi,cdi:modH.cdi,hcc:modH.hcc},mr,dr,mp,dp,mc,sens}));
       }} style={{padding:"6px 12px",background:C.surface,color:C.ink,border:`1px solid ${C.border}`,borderRadius:4,fontSize:12,cursor:"pointer",display:"flex",alignItems:"center",justifyContent:"center",gap:4,fontWeight:500}}>
-        Export XLSX<ProBadge/>
+        Export XLSX
       </button>
     </div></Card></div>}</>;
 
@@ -1447,6 +1441,5 @@ export default function AheadCalculator(){
       </div>
     </div>}
     </Fade>
-    <ProGateModal feature={gateFeature} open={showGate} onClose={()=>setShowGate(false)}/>
   </div>);
 }

@@ -530,8 +530,8 @@ def _delayed_rescan() -> None:
     """
     import time
     global _registered
-    target = 500  # Expect ~700 views when fully loaded
-    max_attempts = 20  # 20 x 30s = 10 minutes max
+    target = 650  # Expect ~700 views when fully loaded
+    max_attempts = 30  # 30 x 30s = 15 minutes max
     for attempt in range(1, max_attempts + 1):
         time.sleep(30)
         current = len(_registered)

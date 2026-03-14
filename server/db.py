@@ -521,17 +521,34 @@ def is_lake_ready() -> bool:
 
 
 def _delayed_rescan() -> None:
-    """Wait for R2 sync to complete, then re-register views.
+    """Periodically rescan the lake until enough views are registered.
 
     On cold start with no pre-baked data, the entrypoint downloads
-    Parquet from R2 in the background. This thread waits 90 seconds
-    (enough for the ~60s sync) then re-registers all views.
+    Parquet from R2 in the background (takes 2-5 minutes). This thread
+    polls every 30 seconds and re-registers views each time new files
+    appear, until at least 500 views are found or 10 minutes pass.
     """
     import time
-    time.sleep(90)
-    if len(_registered) < 50:  # Likely started with empty lake
-        print("Auto-rescan: few views registered, rescanning lake...", flush=True)
+    global _registered
+    target = 500  # Expect ~700 views when fully loaded
+    max_attempts = 20  # 20 x 30s = 10 minutes max
+    for attempt in range(1, max_attempts + 1):
+        time.sleep(30)
+        current = len(_registered)
+        if current >= target:
+            print(f"Auto-rescan: {current} views registered (>={target}). Done.", flush=True)
+            return
+        # Clear registered set and re-scan to pick up newly downloaded files
+        with _lock:
+            _registered = set()
         _register_all_views()
+        new_count = len(_registered)
+        if new_count > current:
+            print(f"Auto-rescan [{attempt}]: {current} -> {new_count} views.", flush=True)
+        if new_count >= target:
+            print(f"Auto-rescan: {new_count} views registered. Done.", flush=True)
+            return
+    print(f"Auto-rescan: stopped after {max_attempts} attempts ({len(_registered)} views).", flush=True)
 
 
 def init_db() -> None:

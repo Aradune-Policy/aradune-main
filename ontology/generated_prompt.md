@@ -510,6 +510,8 @@ CDC PLACES, BRFSS, vital statistics, maternal health/mortality, natality, infant
 - fact_svi_tract: CDC SVI at census tract level — same indicators at finer geography. ~74,000 tracts.
 - fact_adi_block_group: Area Deprivation Index at block group level — socioeconomic deprivation ranking (1-100 national, 1-10 state). ~220,000 rows.
 - fact_brfss_state_indicators: BRFSS behavioral risk factors aggregated to state level — smoking, obesity, diabetes, mental health, exercise, healthcare access. Filter from 1GB raw JSON.
+- fact_cdc_behavioral_risk: 
+- fact_cdc_underlying_cod: 
 
 ### Quality & Outcomes
 CMS Core Set quality measures (2023-2024), Scorecard with detailed stratification, EPSDT, and performance indicators
@@ -541,7 +543,7 @@ CMS Core Set quality measures (2023-2024), Scorecard with detailed stratificatio
 - `five_star_avg`: Average CMS overall Five-Star rating for nursing facilities = `AVG(overall_rating)`
 
 ### Rates & Fee Schedules
-Medicaid provider payment rates, Medicare benchmarks, rate comparisons, PFS RVUs, fee schedules (ambulance, anesthesia, CLFS, DMEPOS, OPPS), and DOGE claims data
+Medicaid provider payment rates, Medicare benchmarks, rate comparisons, PFS RVUs, fee schedules (ambulance, anesthesia, CLFS, DMEPOS, OPPS), and DOGE claims data (QUARANTINED -- OT claims only, no IP/RX/LT, provider state not beneficiary state, MC states distorted, Nov/Dec 2024 incomplete)
 
 - **dim_hcpcs**: 8,623 rows
 - **dim_medicare_locality**: 109 rows

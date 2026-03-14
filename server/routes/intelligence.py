@@ -335,6 +335,16 @@ Use `list_tables` with a keyword filter to find other tables not listed here.
 - ROUND() dollars to 2 decimals, percentages to 1.
 - HAVING COUNT(*) >= 11 for aggregates with utilization counts (minimum cell size).
 
+## DOGE T-MSIS Data Quarantine
+The lake contains 5 tables prefixed `doge_` (doge_state_hcpcs, doge_state_taxonomy, doge_state_monthly, doge_state_category, doge_top_providers). These come from the HHS/DOGE Medicaid Provider Spending dataset. **You MUST caveat any response that uses DOGE data with ALL of the following limitations:**
+1. **OT claims only** -- This dataset contains ONLY Other Therapy (outpatient/professional) claims. It does NOT include Inpatient (IP), Pharmacy (RX), or Long-Term Care (LT) claims. If a user asks about IP, RX, or LT spending, do NOT use DOGE tables as a substitute. Say the data is not available.
+2. **Provider state, not beneficiary state** -- The `state` column is the billing/servicing provider's state, NOT the beneficiary's state of residence. Do not describe DOGE state-level data as "Medicaid spending in [state]" -- it is "Medicaid spending billed by providers in [state]."
+3. **Managed care distortion** -- States with high managed care penetration (FL, TN, KS, etc.) show misleadingly low paid amounts because capitation payments are not reflected in claim-level paid fields. Always note this.
+4. **Nov/Dec 2024 incomplete** -- Data for November and December 2024 is truncated/incomplete. Do not use those months for trend analysis or totals.
+5. **Dataset provenance** -- This dataset was briefly published by HHS/DOGE in February 2026 and subsequently taken offline. Treat it as a point-in-time snapshot with known quality limitations.
+
+When a user asks a question that you answer using DOGE data, add a clearly visible caveat block at the end of your response noting which of these limitations apply. Never silently blend DOGE data with production T-MSIS or CMS-64 data without explicitly noting the different sources and their limitations.
+
 ## Response Rules
 - Never use emojis or emoticons in your responses
 - Never start with filler phrases like "Great question!", "Absolutely!", "Sure!", "Of course!", or "Let me help you with that!"

@@ -1,7 +1,7 @@
 domain: rates
 display_name: Rates & Fee Schedules
 description: Medicaid provider payment rates, Medicare benchmarks, rate comparisons, PFS RVUs, fee schedules (ambulance, anesthesia,
-  CLFS, DMEPOS, OPPS), and DOGE claims data
+  CLFS, DMEPOS, OPPS), and DOGE claims data (QUARANTINED -- OT claims only, no IP/RX/LT, provider state not beneficiary state, MC states distorted, Nov/Dec 2024 incomplete)
 entities:
 - hospital
 - procedure
@@ -69,9 +69,9 @@ primary_tables:
 supporting_tables:
 - fact_integrated_care
 - fact_nas_rates
-- fact_doge_state_hcpcs
-- fact_doge_state_taxonomy
-- fact_doge_state_monthly
-- fact_doge_state_category
-- fact_doge_top_providers
+- fact_doge_state_hcpcs  # QUARANTINED: OT claims only, provider state (not beneficiary), MC distorted, Nov/Dec 2024 incomplete
+- fact_doge_state_taxonomy  # QUARANTINED: same limitations
+- fact_doge_state_monthly  # QUARANTINED: same limitations
+- fact_doge_state_category  # QUARANTINED: same limitations
+- fact_doge_top_providers  # QUARANTINED: same limitations
 - fact_kff_fee_index

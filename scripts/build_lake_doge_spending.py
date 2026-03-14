@@ -4,8 +4,22 @@ build_lake_doge_spending.py — Build aggregated lake tables from HHS DOGE Medic
 Provider Spending dataset (190M rows).
 
 Source: data/raw/medicaid-provider-spending.duckdb (16 GB, 190,657,008 rows)
-        Originally from HHS DOGE Medicaid Provider Spending release.
+        Originally from HHS DOGE Medicaid Provider Spending release (Feb 2026,
+        subsequently taken offline).
         Covers 2018-01 through 2024-12, all 50 states + DC + territories.
+
+QUARANTINE NOTICE — Known limitations that MUST be communicated to all consumers:
+  (a) OT (Other Therapy) claims ONLY — no Inpatient (IP), Pharmacy (RX), or
+      Long-Term Care (LT) claim types are included. This dataset represents
+      only outpatient/professional services, not total Medicaid spending.
+  (b) State = PROVIDER state, NOT beneficiary state of residence. A claim
+      billed by a provider in FL may be for a GA beneficiary.
+  (c) Managed care distortion — States with high MC penetration (FL, TN, KS,
+      etc.) show misleadingly low paid amounts because capitation payments
+      are NOT reflected in claim-level paid fields. FFS-dominant states
+      appear to have higher spending per claim than they actually do.
+  (d) November and December 2024 data is INCOMPLETE/TRUNCATED. Do not use
+      these months for totals, trends, or year-over-year comparisons.
 
 Tables built:
   fact_doge_state_hcpcs     — State x HCPCS x year x category aggregates

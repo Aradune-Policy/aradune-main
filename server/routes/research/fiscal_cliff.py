@@ -116,8 +116,8 @@ async def budget_pressure(state: str = Query(None)):
                 ),
                 gdp AS (
                     SELECT state_code, real_gdp_millions
-                    FROM fact_state_gdp
-                    WHERE year = (SELECT MAX(year) FROM fact_state_gdp)
+                    FROM fact_bea_state_gdp
+                    WHERE year = (SELECT MAX(year) FROM fact_bea_state_gdp)
                 ),
                 fmap AS (
                     SELECT state_code, MAX(CASE WHEN rate_type = 'fmap' THEN rate END) AS fmap_rate

@@ -171,6 +171,7 @@ export default function WageAdequacy() {
   const [hcpcsData, setHCPCS] = useState<HcpcsEntry[] | null>(null);
   const [statesData, setStates] = useState<Record<string, unknown> | null>(null);
   const [oesIndex, setOesIndex] = useState<Record<string, OesEntry>>({});
+  const [feeScheduleRates, setFeeScheduleRates] = useState<Record<string, Record<string, [number, string, string]>> | null>(null);
   const [loading, setLoading] = useState(true);
   const [loadError, setLoadError] = useState<string | null>(null);
 
@@ -189,18 +190,20 @@ export default function WageAdequacy() {
 
     async function load() {
       try {
-        const [bls, cw, hcpcs, states, oes] = await Promise.all([
+        const [bls, cw, hcpcs, states, oes, fsRates] = await Promise.all([
           loadBls(),
           fetch("/data/soc_hcpcs_crosswalk.json").then(r=>r.ok?r.json():null).catch(()=>null),
           fetch("/data/hcpcs.json").then(r=>r.ok?r.json():null).catch(()=>null),
           fetch("/data/states.json").then(r=>r.ok?r.json():null).catch(()=>null),
           fetch("/data/oes_wages.json").then(r=>r.ok?r.json():null).catch(()=>null),
+          fetch("/data/medicaid_rates.json").then(r=>r.ok?r.json():null).catch(()=>null),
         ]);
         if (cancelled) return;
         if (bls) setBLS(bls as BlsData);
         if (cw) setCW(cw as CrosswalkData);
         if (hcpcs) setHCPCS(hcpcs as HcpcsEntry[]);
         if (states) setStates(states as Record<string, unknown>);
+        if (fsRates) setFeeScheduleRates(fsRates);
         if (oes && Array.isArray(oes)) {
           const idx: Record<string, OesEntry> = {};
           for (const e of oes as OesEntry[]) { idx[`${e.state}|${e.soc}`] = e; }
@@ -236,8 +239,25 @@ export default function WageAdequacy() {
     return null;
   }, [hcpcsData]);
 
-  // Get T-MSIS rate (alias for getTmsisRate)
-  const getTmsisRateAlt = getTmsisRate;
+  // Get fee schedule rate for a code in a state (per-unit by definition)
+  const getFeeScheduleRate = useCallback((state: string, code: string): number | null => {
+    if (!feeScheduleRates) return null;
+    const stateRates = feeScheduleRates[state];
+    if (!stateRates) return null;
+    const entry = stateRates[code];
+    if (!entry || !Array.isArray(entry)) return null;
+    const rate = entry[0];
+    return typeof rate === "number" && rate > 0 ? rate : null;
+  }, [feeScheduleRates]);
+
+  // Get effective rate: prefer fee schedule (per-unit) over T-MSIS (per-claim, may bundle units)
+  const getEffectiveRate = useCallback((state: string, code: string): { rate: number | null; source: "fee_schedule" | "tmsis" | null } => {
+    const fsRate = getFeeScheduleRate(state, code);
+    if (fsRate) return { rate: fsRate, source: "fee_schedule" };
+    const tRate = getTmsisRate(state, code);
+    if (tRate) return { rate: tRate, source: "tmsis" };
+    return { rate: null, source: null };
+  }, [getFeeScheduleRate, getTmsisRate]);
 
   // OES data for current state + SOC
   const oesEntry = useMemo(() => {
@@ -260,9 +280,10 @@ export default function WageAdequacy() {
 
     const minWage = MIN_WAGE[s1] || FED_MIN;
 
-    // Get T-MSIS rates for each code in this category
+    // Get effective rates for each code — prefer fee schedule (per-unit) over T-MSIS (per-claim)
     const codeAnalysis: CodeAnalysisEntry[] = (curCat.codes ?? []).map((code: CrosswalkCode) => {
-      const tmsisRate = getTmsisRateAlt(s1, code.hcpcs);
+      const { rate: effectiveRate } = getEffectiveRate(s1, code.hcpcs);
+      const tmsisRate = effectiveRate; // kept as tmsisRate for downstream compat
       let impliedHourly: number | null = null;
       if (tmsisRate && code.units_per_hour) {
         const hourlyRevenue = tmsisRate * code.units_per_hour;
@@ -290,7 +311,7 @@ export default function WageAdequacy() {
       codes: codeAnalysis,
       primary,
     };
-  }, [blsData, curCat, s1, overhead, getTmsisRateAlt]);
+  }, [blsData, curCat, s1, overhead, getEffectiveRate]);
 
   // All-state comparison for the primary code
   const allStates = useMemo((): AllStateEntry[] => {
@@ -310,7 +331,8 @@ export default function WageAdequacy() {
     return Array.from(allStateKeys).map((st: string) => {
       const wage = blsData.states?.[st]?.[socCode];
       const oes = oesIndex[`${st}|${socCode}`];
-      const tmsisRate = getTmsisRateAlt(st, primaryCode.hcpcs);
+      const { rate: effectiveRate } = getEffectiveRate(st, primaryCode.hcpcs);
+      const tmsisRate = effectiveRate;
       let impliedHourly: number | null = null;
       if (tmsisRate && primaryCode.units_per_hour) {
         impliedHourly = tmsisRate * primaryCode.units_per_hour * (1 - overhead / 100);
@@ -332,7 +354,7 @@ export default function WageAdequacy() {
       };
     }).filter((s: AllStateEntry) => s.impliedHourly != null && s.blsMedian != null)
       .sort((a: AllStateEntry, b: AllStateEntry) => safe(a.gap) - safe(b.gap));
-  }, [blsData, curCat, SL, overhead, getTmsisRateAlt, oesIndex]);
+  }, [blsData, curCat, SL, overhead, getEffectiveRate, oesIndex]);
 
 
   if (loading) return <LoadingBar text="Loading wage data" detail="BLS occupational wages + T-MSIS rates" />;
@@ -512,7 +534,7 @@ export default function WageAdequacy() {
             </tbody>
           </table>
           <div style={{ fontSize:9,color:AL,marginTop:6,lineHeight:1.6 }}>
-            T-MSIS rates = avg paid per claim (actual Medicaid payments, not fee schedule). Per-claim averages may bundle multiple service units into a single claim, so implied hourly wages could overstate what a single unit of service pays. {curCat?.overhead_note}
+            Rates sourced from state fee schedules (per-unit) where available, with T-MSIS actual-paid averages as fallback. Fee schedule rates represent the state's published per-unit reimbursement. {curCat?.overhead_note}
           </div>
         </div>
       </Card>}

@@ -115,9 +115,11 @@ async def budget_pressure(state: str = Query(None)):
                       AND fiscal_year = (SELECT MAX(fiscal_year) FROM fact_census_state_finances WHERE category = 'Total Taxes')
                 ),
                 gdp AS (
-                    SELECT state_code, real_gdp_millions
-                    FROM fact_bea_state_gdp
-                    WHERE year = (SELECT MAX(year) FROM fact_bea_state_gdp)
+                    SELECT d.state_code, g.value AS real_gdp_millions
+                    FROM fact_bea_state_gdp g
+                    JOIN dim_state d ON d.state_name = g.geo_name
+                    WHERE g.year = (SELECT MAX(year) FROM fact_bea_state_gdp WHERE line_code = 1)
+                      AND g.line_code = 1
                 ),
                 fmap AS (
                     SELECT state_code, MAX(CASE WHEN rate_type = 'fmap' THEN rate END) AS fmap_rate

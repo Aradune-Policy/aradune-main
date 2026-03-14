@@ -25,6 +25,8 @@ import json
 import subprocess
 import sys
 import uuid
+import urllib.request
+import urllib.error
 from datetime import date
 from pathlib import Path
 
@@ -39,8 +41,24 @@ META_DIR = LAKE_DIR / "metadata"
 SNAPSHOT_DATE = date.today().isoformat()
 RUN_ID = str(uuid.uuid4())
 
-# Direct CSV download URLs from CMS data.json catalog
-URLS = {
+# Socrata/CKAN dataset identifiers on data.cms.gov for URL discovery.
+# These are stable and won't change when CMS publishes new data years.
+DATASET_CATALOG = {
+    "part_d_prescriber_provider": {
+        "catalog_url": "https://data.cms.gov/data-api/v1/dataset/c834093f-18d1-4401-8301-7e50e206d07e/data-viewer",
+        "search_term": "Medicare Part D Prescribers by Provider",
+        "landing_page": "https://data.cms.gov/provider-summary-by-type-of-service/medicare-part-d-prescribers/medicare-part-d-prescribers-by-provider",
+    },
+    "outpatient_by_provider": {
+        "catalog_url": "https://data.cms.gov/data-api/v1/dataset/e0b3b5f0-f647-4325-8690-6a7c84e79a85/data-viewer",
+        "search_term": "Medicare Outpatient Hospitals by Provider and Service",
+        "landing_page": "https://data.cms.gov/provider-summary-by-type-of-service/medicare-outpatient-hospitals/medicare-outpatient-hospitals-by-provider-and-service",
+    },
+}
+
+# Fallback hardcoded URLs (last known working as of 2025).
+# Used if the API discovery and HEAD validation both fail.
+FALLBACK_URLS = {
     "part_d_prescriber_provider": (
         "https://data.cms.gov/sites/default/files/2025-04/"
         "750769a3-bb0f-4f05-81dc-7dcb6e105cb0/MUP_DPR_RY25_P04_V10_DY23_NPI.csv"
@@ -50,6 +68,96 @@ URLS = {
         "bceaa5e1-e58c-4109-9f05-832fc5e6bbc8/MUP_OUT_RY25_P04_V10_DY23_Prov_Svc.csv"
     ),
 }
+
+
+def _head_check(url: str, timeout: int = 15) -> bool:
+    """Return True if a HEAD request to `url` gets HTTP 200."""
+    try:
+        req = urllib.request.Request(url, method="HEAD")
+        req.add_header("User-Agent", "Aradune-ETL/1.0")
+        with urllib.request.urlopen(req, timeout=timeout) as resp:
+            return resp.status == 200
+    except (urllib.error.HTTPError, urllib.error.URLError, OSError):
+        return False
+
+
+def _discover_download_url_from_catalog(name: str) -> str | None:
+    """
+    Try to discover the current CSV download URL from the CMS data.cms.gov
+    data.json catalog. Returns the URL string or None if discovery fails.
+
+    The data.json catalog at https://data.cms.gov/data.json lists every
+    dataset with its current download URLs. We search for our dataset
+    by keyword and extract the CSV distribution URL.
+    """
+    catalog_info = DATASET_CATALOG.get(name)
+    if not catalog_info:
+        return None
+
+    try:
+        # Try the CMS data.json catalog (DCAT-US standard)
+        req = urllib.request.Request(
+            "https://data.cms.gov/data.json",
+            method="GET",
+        )
+        req.add_header("User-Agent", "Aradune-ETL/1.0")
+        with urllib.request.urlopen(req, timeout=30) as resp:
+            catalog = json.loads(resp.read().decode("utf-8"))
+
+        search_term = catalog_info["search_term"].lower()
+        for dataset in catalog.get("dataset", []):
+            title = (dataset.get("title") or "").lower()
+            if search_term.lower() in title:
+                # Find the CSV distribution
+                for dist in dataset.get("distribution", []):
+                    media = (dist.get("mediaType") or "").lower()
+                    download_url = dist.get("downloadURL") or dist.get("accessURL")
+                    if "csv" in media and download_url:
+                        print(f"  [catalog] Discovered URL for {name}: {download_url[:80]}...")
+                        return download_url
+    except Exception as e:
+        print(f"  [catalog] data.json lookup failed for {name}: {e}")
+
+    return None
+
+
+def resolve_download_url(name: str) -> str:
+    """
+    Resolve the best available download URL for a dataset:
+      1. Try CMS data.json catalog API to discover the current URL
+      2. Validate the discovered URL with a HEAD request
+      3. Fall back to hardcoded URL if discovery fails
+      4. Validate the fallback URL with a HEAD request
+      5. If both fail, print a clear error and exit
+
+    This ensures the script doesn't silently download a 404 HTML page.
+    """
+    # Step 1: Try catalog discovery
+    discovered_url = _discover_download_url_from_catalog(name)
+    if discovered_url and _head_check(discovered_url):
+        print(f"  [resolve] Using catalog-discovered URL for {name}")
+        return discovered_url
+    elif discovered_url:
+        print(f"  [resolve] Catalog URL returned non-200, trying fallback...")
+
+    # Step 2: Try the hardcoded fallback
+    fallback_url = FALLBACK_URLS.get(name)
+    if fallback_url and _head_check(fallback_url):
+        print(f"  [resolve] Using fallback URL for {name}")
+        return fallback_url
+
+    # Step 3: Both failed
+    landing = DATASET_CATALOG.get(name, {}).get("landing_page", "https://data.cms.gov")
+    print(f"\n  ERROR: Cannot find a working download URL for '{name}'.")
+    print(f"  Both the CMS data.json catalog and the hardcoded fallback URL returned non-200.")
+    print(f"  CMS likely published a new data year with a new URL.")
+    print(f"")
+    print(f"  To fix:")
+    print(f"    1. Visit: {landing}")
+    print(f"    2. Find the CSV download link for the latest data year")
+    print(f"    3. Update FALLBACK_URLS['{name}'] in this script")
+    print(f"")
+    sys.exit(1)
 
 results = {}
 
@@ -66,15 +174,17 @@ def write_parquet(con: duckdb.DuckDBPyConnection, table: str, path: Path) -> int
     return count
 
 
-def download_csv(name: str, url: str) -> Path:
-    """Download a CSV file using curl (more reliable than urllib on macOS)."""
+def download_csv(name: str) -> Path:
+    """Download a CSV file, discovering the URL via catalog API or fallback."""
     out_path = RAW_DIR / f"medicare_puf_{name}.csv"
     if out_path.exists():
         size_mb = out_path.stat().st_size / 1_048_576
         print(f"  CSV already exists: {out_path.name} ({size_mb:.1f} MB), reusing")
         return out_path
 
+    url = resolve_download_url(name)
     print(f"  Downloading {name} CSV...")
+    RAW_DIR.mkdir(parents=True, exist_ok=True)
     result = subprocess.run(
         ["curl", "-L", "-s", "-o", str(out_path), url],
         capture_output=True,
@@ -85,7 +195,13 @@ def download_csv(name: str, url: str) -> Path:
         print(f"  ERROR: curl failed: {result.stderr}")
         sys.exit(1)
 
+    # Verify we didn't download an HTML error page
     size_mb = out_path.stat().st_size / 1_048_576
+    if size_mb < 0.01:
+        out_path.unlink(missing_ok=True)
+        print(f"  ERROR: Downloaded file is suspiciously small ({size_mb:.3f} MB). Deleted.")
+        sys.exit(1)
+
     print(f"  Downloaded: {out_path.name} ({size_mb:.1f} MB)")
     return out_path
 
@@ -99,7 +215,7 @@ def build_part_d_prescriber_provider(dry_run: bool) -> int:
     """
     print("\n=== Medicare Part D Prescribers - by Provider (DY2023) ===")
 
-    csv_path = download_csv("part_d_prescriber_provider", URLS["part_d_prescriber_provider"])
+    csv_path = download_csv("part_d_prescriber_provider")
 
     con = duckdb.connect()
     con.execute(f"""
@@ -237,7 +353,7 @@ def build_outpatient_by_provider(dry_run: bool) -> int:
     """
     print("\n=== Medicare Outpatient Hospitals - by Provider and Service (DY2023) ===")
 
-    csv_path = download_csv("outpatient_by_provider", URLS["outpatient_by_provider"])
+    csv_path = download_csv("outpatient_by_provider")
 
     con = duckdb.connect()
     con.execute(f"""

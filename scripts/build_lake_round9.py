@@ -415,16 +415,16 @@ def build_sdud_2024(con, dry_run: bool) -> int:
         CREATE OR REPLACE TABLE _fact AS
         SELECT
             "Utilization Type" AS utilization_type,
-            State AS state,
+            State AS state_code,
             NDC AS ndc,
             CAST(Year AS INTEGER) AS year,
             CAST(Quarter AS INTEGER) AS quarter,
             "Product Name" AS product_name,
             TRY_CAST("Units Reimbursed" AS DOUBLE) AS units_reimbursed,
-            TRY_CAST("Number of Prescriptions" AS INTEGER) AS num_prescriptions,
-            TRY_CAST("Total Amount Reimbursed" AS DOUBLE) AS total_reimbursed,
-            TRY_CAST("Medicaid Amount Reimbursed" AS DOUBLE) AS medicaid_reimbursed,
-            TRY_CAST("Non Medicaid Amount Reimbursed" AS DOUBLE) AS non_medicaid_reimbursed,
+            TRY_CAST("Number of Prescriptions" AS INTEGER) AS number_of_prescriptions,
+            TRY_CAST("Total Amount Reimbursed" AS DOUBLE) AS total_amount_reimbursed,
+            TRY_CAST("Medicaid Amount Reimbursed" AS DOUBLE) AS medicaid_amount_reimbursed,
+            TRY_CAST("Non Medicaid Amount Reimbursed" AS DOUBLE) AS non_medicaid_amount_reimbursed,
             '{SNAP}' AS snapshot_date
         FROM read_csv_auto('{csv}', header=true, ignore_errors=true)
         WHERE State IS NOT NULL AND NDC IS NOT NULL

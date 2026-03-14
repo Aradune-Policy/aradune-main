@@ -441,6 +441,20 @@ def _register_all_views() -> None:
                     view_name = f"ref_{ref_subdir.name}"
                     _register_view(view_name, p)
 
+    # SDUD standardized schema (all tables now use sdud_2025 column names):
+    #   state_code (not 'state'), number_of_prescriptions (not 'num_prescriptions'),
+    #   total_amount_reimbursed (not 'total_reimbursed'),
+    #   medicaid_amount_reimbursed (not 'medicaid_reimbursed')
+    # When ETL is re-run, a UNION ALL view can be created:
+    #   CREATE VIEW fact_sdud_all AS
+    #     SELECT state_code, year, quarter, ndc, product_name, utilization_type,
+    #            units_reimbursed, number_of_prescriptions, total_amount_reimbursed,
+    #            medicaid_amount_reimbursed, source, snapshot_date
+    #     FROM fact_sdud_2025
+    #     UNION ALL SELECT ... FROM fact_sdud_2024
+    #     UNION ALL SELECT ... FROM fact_sdud_combined  -- 2020-2023
+    #     UNION ALL SELECT ... FROM fact_sdud_historical_combined  -- 1991-2019
+
     # Create backward-compatibility views
     claims_path = _latest_snapshot(fact_dir, "claims")
     provider_path = _latest_snapshot(fact_dir, "provider")

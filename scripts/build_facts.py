@@ -27,6 +27,7 @@ Usage:
 import argparse
 import json
 import os
+import re
 import sys
 import uuid
 from datetime import date, datetime
@@ -135,6 +136,81 @@ def build_fact_medicaid_rate(con: duckdb.DuckDBPyConnection, dry_run: bool) -> i
         FROM _rates_raw
     """)
     con.execute("DROP TABLE IF EXISTS _rates_raw")
+
+    # --- Backfill NULL effective_date from source_file and fee schedule directory ---
+    null_before = con.execute(
+        "SELECT COUNT(*) FROM _fact_medicaid_rate WHERE effective_date IS NULL"
+    ).fetchone()[0]
+
+    if null_before > 0:
+        print(f"  Backfilling effective_date for {null_before:,} rows with NULL dates...")
+
+        # Strategy 1: Extract date from source_file name patterns.
+        # Common patterns in source filenames:
+        #   "Fee_Schedule_20240304.pdf" -> YYYYMMDD
+        #   "7.3G_Physician_Fee_Schedule_10-1-25.xlsx" -> M-D-YY
+        #   "2025 Physician Fee Schedule.xlsx" -> YYYY (use Jan 1)
+        #   "FY 25-26 CHP+ Fee Schedule.xlsx" -> FY prefix (use July 1 of first year)
+        #   "01_CO_Fee Schedule_07012025.xlsx" -> MMDDYYYY embedded
+
+        # Step 1a: YYYYMMDD pattern (e.g., "20240304" in filename)
+        con.execute(f"""
+            UPDATE _fact_medicaid_rate
+            SET effective_date = TRY_CAST(
+                SUBSTRING(regexp_extract(source_file, '(20\\d{{6}})', 1), 1, 4) || '-' ||
+                SUBSTRING(regexp_extract(source_file, '(20\\d{{6}})', 1), 5, 2) || '-' ||
+                SUBSTRING(regexp_extract(source_file, '(20\\d{{6}})', 1), 7, 2)
+                AS DATE
+            )
+            WHERE effective_date IS NULL
+              AND regexp_matches(source_file, '20\\d{{6}}')
+        """)
+
+        filled_1a = null_before - con.execute(
+            "SELECT COUNT(*) FROM _fact_medicaid_rate WHERE effective_date IS NULL"
+        ).fetchone()[0]
+        if filled_1a > 0:
+            print(f"    Step 1a (YYYYMMDD in filename): filled {filled_1a:,} rows")
+
+        # Step 1b: 4-digit year in filename (e.g., "2025" or "2022")
+        # Use January 1 of that year as a reasonable default
+        remaining_null = con.execute(
+            "SELECT COUNT(*) FROM _fact_medicaid_rate WHERE effective_date IS NULL"
+        ).fetchone()[0]
+        con.execute(f"""
+            UPDATE _fact_medicaid_rate
+            SET effective_date = TRY_CAST(
+                regexp_extract(source_file, '(20[12]\\d)', 1) || '-01-01'
+                AS DATE
+            )
+            WHERE effective_date IS NULL
+              AND regexp_matches(source_file, '20[12]\\d')
+        """)
+
+        filled_1b = remaining_null - con.execute(
+            "SELECT COUNT(*) FROM _fact_medicaid_rate WHERE effective_date IS NULL"
+        ).fetchone()[0]
+        if filled_1b > 0:
+            print(f"    Step 1b (YYYY in filename):     filled {filled_1b:,} rows")
+
+        # Step 2: Use snapshot_date as ultimate fallback for any remaining NULLs
+        still_null = con.execute(
+            "SELECT COUNT(*) FROM _fact_medicaid_rate WHERE effective_date IS NULL"
+        ).fetchone()[0]
+        if still_null > 0:
+            con.execute(f"""
+                UPDATE _fact_medicaid_rate
+                SET effective_date = DATE '{SNAPSHOT_DATE}'
+                WHERE effective_date IS NULL
+            """)
+            print(f"    Step 2 (snapshot_date fallback): filled {still_null:,} rows")
+
+        null_after = con.execute(
+            "SELECT COUNT(*) FROM _fact_medicaid_rate WHERE effective_date IS NULL"
+        ).fetchone()[0]
+        total_filled = null_before - null_after
+        print(f"  effective_date backfill complete: {total_filled:,} of {null_before:,} NULL rows filled")
+    # --- End backfill ---
 
     count = write_parquet(con, "_fact_medicaid_rate", "medicaid_rate", dry_run)
     states = con.execute("SELECT COUNT(DISTINCT state_code) FROM _fact_medicaid_rate").fetchone()[0]

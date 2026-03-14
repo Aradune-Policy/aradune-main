@@ -3,8 +3,9 @@
 build_lake_eligibility_enrollment_snapshot.py — Ingest Medicaid/CHIP eligibility
 and enrollment snapshot from CMS Medicaid.gov API JSON.
 
-Source: data/raw/eligibility_enrollment_snapshot.json
-  (CMS Medicaid.gov API: Performance Indicator data)
+Source: data.medicaid.gov API (Performance Indicator dataset)
+  API: https://data.medicaid.gov/api/1/datastore/query/{dataset_id}/0
+  Paginates through all records using $offset parameter (5,000 per page).
 
 This adds value beyond the existing medicaid_applications_v2 table by including:
   - Call center metrics (volume, wait time, abandonment rate)
@@ -12,10 +13,6 @@ This adds value beyond the existing medicaid_applications_v2 table by including:
   - Child enrollment breakdown
   - Separate Medicaid vs CHIP enrollment totals
   - Adult Medicaid enrollment
-
-Note: The source JSON contains only 5,000 of 10,404 total records (API pagination).
-Coverage is 25 states (A-M alphabetically). This is still valuable for the enriched
-columns not available in the existing table.
 
 Table built:
   fact_eligibility_enrollment_snapshot — Enriched monthly eligibility/enrollment data
@@ -26,7 +23,9 @@ Usage:
 
 import json
 import re
+import time
 import uuid
+import urllib.request
 from datetime import date
 from pathlib import Path
 
@@ -40,6 +39,11 @@ RAW_DIR = PROJECT_ROOT / "data" / "raw"
 
 SNAPSHOT_DATE = date.today().isoformat()
 RUN_ID = str(uuid.uuid4())
+
+# CMS Medicaid.gov API — Eligibility & Enrollment Performance Indicator dataset
+DATASET_ID = "4876993c-bf50-5005-a8e5-020b47339d33"
+API_BASE = "https://data.medicaid.gov/api/1/datastore/query"
+PAGE_SIZE = 5000
 
 # Column renaming: shorten CMS's verbose truncated column names to clean snake_case
 COLUMN_MAP = {
@@ -94,6 +98,50 @@ def clean_numeric(val):
         return None
 
 
+def fetch_all_pages():
+    """Download all records from data.medicaid.gov API with pagination."""
+    all_results = []
+    offset = 0
+    total_available = None
+
+    while True:
+        url = f"{API_BASE}/{DATASET_ID}/0?limit={PAGE_SIZE}&offset={offset}"
+        req = urllib.request.Request(url, headers={
+            "Accept": "application/json",
+            "User-Agent": "Aradune/1.0",
+        })
+
+        for attempt in range(3):
+            try:
+                with urllib.request.urlopen(req, timeout=120) as resp:
+                    data = json.loads(resp.read().decode("utf-8"))
+                results = data.get("results", [])
+                if total_available is None:
+                    total_available = data.get("count", 0)
+                    print(f"  Total records available: {total_available:,}")
+                break
+            except Exception as e:
+                print(f"  Retry {attempt + 1}/3 at offset {offset}: {e}", flush=True)
+                time.sleep(3 * (attempt + 1))
+                results = []
+        else:
+            print(f"  FAILED at offset {offset} after 3 retries", flush=True)
+            break
+
+        if not results:
+            break
+
+        all_results.extend(results)
+        print(f"  Fetched {len(all_results):,} / {total_available:,} records...", flush=True)
+
+        if len(results) < PAGE_SIZE:
+            break
+
+        offset += PAGE_SIZE
+
+    return all_results
+
+
 def main():
     print("=" * 60)
     print("Eligibility & Enrollment Snapshot Ingestion")
@@ -101,21 +149,18 @@ def main():
     print(f"  Run ID:   {RUN_ID}")
     print()
 
-    json_path = RAW_DIR / "eligibility_enrollment_snapshot.json"
-    if not json_path.exists():
-        print(f"  ERROR: {json_path} not found")
+    print("  Downloading from data.medicaid.gov API (paginated)...")
+    results = fetch_all_pages()
+
+    if not results:
+        print("  ERROR: No records fetched from API")
         return
 
-    with open(json_path) as f:
-        data = json.load(f)
-
-    results = data.get("results", [])
-    total_available = data.get("count", len(results))
-    print(f"  Records in file: {len(results)} (of {total_available} total)")
+    print(f"  Total records fetched: {len(results):,}")
 
     # Transform records
     rows = []
-    for rec in results:
+    for rec in results:  # each rec is a dict from the API
         row = {}
         for old_key, new_key in COLUMN_MAP.items():
             row[new_key] = rec.get(old_key)

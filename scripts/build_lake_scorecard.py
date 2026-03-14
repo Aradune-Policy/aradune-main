@@ -214,10 +214,24 @@ def build_expenditure_supplemental(con, dry_run: bool) -> dict:
     if na_path.exists():
         con.execute(f"""
             CREATE OR REPLACE TABLE _fact_cms64_na AS
-            SELECT *,
+            SELECT
+                TRIM("State") AS state_name,
+                TRY_CAST("Total Computable All Medical Assistance Expenditures" AS DOUBLE) AS total_computable_all_medical_assistance,
+                TRY_CAST("Total Federal Share All Medical Assistance Expenditures" AS DOUBLE) AS total_federal_share_all_medical_assistance,
+                TRY_CAST("Total Computable VIII Group Expenditures" AS DOUBLE) AS total_computable_viii_group,
+                TRY_CAST("Total Federal Share VIII Group Expenditures" AS DOUBLE) AS total_federal_share_viii_group,
+                TRY_CAST("Total Computable VIII Group Newly Eligible Expenditures" AS DOUBLE) AS total_computable_viii_newly_eligible,
+                TRY_CAST("Total Federal Share VIII Group Newly Eligible Expenditures" AS DOUBLE) AS total_federal_share_viii_newly_eligible,
+                TRY_CAST("Total Computable VIII Group Not Newly Eligible Expenditures" AS DOUBLE) AS total_computable_viii_not_newly_eligible,
+                TRY_CAST("Total Federal Share VIII Group Not Newly Eligible Expenditures" AS DOUBLE) AS total_federal_share_viii_not_newly_eligible,
+                "Quarter End Date" AS quarter_end_date,
+                TRY_CAST("Updated Year" AS INTEGER) AS updated_year,
+                TRY_CAST("Updated Month" AS INTEGER) AS updated_month,
+                "Notes" AS notes,
                 'data.medicaid.gov' AS source,
                 DATE '{SNAPSHOT_DATE}' AS snapshot_date
-            FROM read_csv_auto('{na_path}', sample_size=500)
+            FROM read_csv_auto('{na_path}', sample_size=500, all_varchar=true)
+            WHERE "State" IS NOT NULL
         """)
         totals['fact_cms64_new_adult'] = write_parquet(
             con, "_fact_cms64_na", _snapshot_path("cms64_new_adult"), dry_run
@@ -231,10 +245,20 @@ def build_expenditure_supplemental(con, dry_run: bool) -> dict:
     if ffcra_path.exists():
         con.execute(f"""
             CREATE OR REPLACE TABLE _fact_ffcra AS
-            SELECT *,
-                'data.medicaid.gov' AS source_url,
+            SELECT
+                TRIM("State") AS state_name,
+                TRY_CAST("Total Computable All Medical Assistance Expenditures" AS DOUBLE) AS total_computable_all_medical_assistance,
+                TRY_CAST("Total Federal Share All Medical Assistance Expenditures" AS DOUBLE) AS total_federal_share_all_medical_assistance,
+                TRY_CAST("Total Federal Share FFCRA Sections 6008 and 6004" AS DOUBLE) AS total_federal_share_ffcra_6008_6004,
+                TRY_CAST("Total Federal Share Section 6008 Expenditures (6.2 percentage point FMAP increase)" AS DOUBLE) AS total_federal_share_section_6008,
+                TRY_CAST("Total Federal Share Section 6004: COVID-19 Testing Group  MAP + ADM Expenditures (100% Federal Match)" AS DOUBLE) AS total_federal_share_section_6004_map_adm,
+                TRY_CAST("Total Federal Share Section 6004: COVID-19 Testing Group MAP Expenditures (100% Federal Match)" AS DOUBLE) AS total_federal_share_section_6004_map,
+                TRY_CAST("Total Federal Share Section 6004: COVID-19 Testing Group ADM Expenditures (100% Federal Match)" AS DOUBLE) AS total_federal_share_section_6004_adm,
+                "Quarter End Date" AS quarter_end_date,
+                'data.medicaid.gov' AS source,
                 DATE '{SNAPSHOT_DATE}' AS snapshot_date
-            FROM read_csv_auto('{ffcra_path}', sample_size=500)
+            FROM read_csv_auto('{ffcra_path}', sample_size=500, all_varchar=true)
+            WHERE "State" IS NOT NULL
         """)
         totals['fact_ffcra_fmap'] = write_parquet(
             con, "_fact_ffcra", _snapshot_path("ffcra_fmap"), dry_run
@@ -259,10 +283,24 @@ def build_mc_enrollment_detail(con, dry_run: bool) -> dict:
     if pop_path.exists():
         con.execute(f"""
             CREATE OR REPLACE TABLE _fact_mc_pop AS
-            SELECT *,
+            SELECT
+                TRIM("State") AS state_name,
+                "Notes" AS notes,
+                TRY_CAST("Total Medicaid Enrollees" AS BIGINT) AS total_medicaid_enrollees,
+                TRY_CAST("Comprehensive MCO with or without MLTSS" AS BIGINT) AS comprehensive_mco,
+                "PCCM" AS pccm,
+                "MLTSS only" AS mltss_only,
+                "BHO (PIHP and/or PAHP)" AS bho,
+                "Dental" AS dental,
+                "Transportation" AS transportation,
+                "PACE" AS pace,
+                "Other" AS other,
+                TRY_CAST("Year" AS INTEGER) AS year,
+                "PCCM Entity" AS pccm_entity,
                 'data.medicaid.gov' AS source,
                 DATE '{SNAPSHOT_DATE}' AS snapshot_date
-            FROM read_csv_auto('{pop_path}', sample_size=200)
+            FROM read_csv_auto('{pop_path}', sample_size=200, all_varchar=true)
+            WHERE "State" IS NOT NULL
         """)
         totals['fact_mc_enroll_pop'] = write_parquet(
             con, "_fact_mc_pop", _snapshot_path("mc_enroll_pop"), dry_run
@@ -276,10 +314,24 @@ def build_mc_enrollment_detail(con, dry_run: bool) -> dict:
     if duals_path.exists():
         con.execute(f"""
             CREATE OR REPLACE TABLE _fact_mc_duals AS
-            SELECT *,
+            SELECT
+                TRIM("State") AS state_name,
+                "Notes" AS notes,
+                TRY_CAST("Total beneficiaries" AS BIGINT) AS total_beneficiaries,
+                TRY_CAST("Comprehensive MCO (with or without MLTSS)" AS BIGINT) AS comprehensive_mco,
+                "PCCM" AS pccm,
+                "PCCM entity" AS pccm_entity,
+                "MLTSS only" AS mltss_only,
+                "BHO (PIHP and/or PAHP)" AS bho,
+                "Dental" AS dental,
+                "Transportation" AS transportation,
+                "PACE" AS pace,
+                "Other" AS other,
+                TRY_CAST("Year" AS INTEGER) AS year,
                 'data.medicaid.gov' AS source,
                 DATE '{SNAPSHOT_DATE}' AS snapshot_date
-            FROM read_csv_auto('{duals_path}', sample_size=200)
+            FROM read_csv_auto('{duals_path}', sample_size=200, all_varchar=true)
+            WHERE "State" IS NOT NULL
         """)
         totals['fact_mc_enroll_duals'] = write_parquet(
             con, "_fact_mc_duals", _snapshot_path("mc_enroll_duals"), dry_run

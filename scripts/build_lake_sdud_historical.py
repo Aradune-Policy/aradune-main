@@ -9,8 +9,8 @@ Writes to:  data/lake/fact/sdud_{YEAR}/data.parquet  (one per year)
 Download URLs discovered from data.medicaid.gov metastore API.
 Source: https://www.medicaid.gov/medicaid/prescription-drugs/state-drug-utilization-data
 
-Schema (matches existing SDUD tables):
-  utilization_type, state, ndc, labeler_code, product_code, package_size,
+Schema (standardized to sdud_2025 format):
+  utilization_type, state_code, ndc, labeler_code, product_code, package_size,
   year, quarter, suppression_used, product_name, units_reimbursed,
   number_of_prescriptions, total_amount_reimbursed, medicaid_amount_reimbursed,
   non_medicaid_amount_reimbursed, source, snapshot_date
@@ -167,7 +167,7 @@ def build_sdud_year(con, year: int, csv_path: Path, dry_run: bool) -> int:
         CREATE OR REPLACE TABLE _fact_sdud AS
         SELECT
             TRIM(utilization_type)                                              AS utilization_type,
-            TRIM(state)                                                         AS state,
+            TRIM(state)                                                         AS state_code,
             TRIM(ndc)                                                           AS ndc,
             TRIM(labeler_code)                                                  AS labeler_code,
             TRIM(product_code)                                                  AS product_code,
@@ -186,6 +186,8 @@ def build_sdud_year(con, year: int, csv_path: Path, dry_run: bool) -> int:
         FROM _sdud_renamed
         WHERE TRIM(state) IS NOT NULL
           AND LENGTH(TRIM(state)) = 2
+        -- Note: 'state' refers to the raw column alias in _sdud_renamed,
+        -- output column is 'state_code' to match sdud_2025 schema
     """)
 
     out = _out_path(fact_name)
@@ -195,7 +197,7 @@ def build_sdud_year(con, year: int, csv_path: Path, dry_run: bool) -> int:
     if count > 0:
         stats = con.execute("""
             SELECT
-                COUNT(DISTINCT state) AS states,
+                COUNT(DISTINCT state_code) AS states,
                 COUNT(DISTINCT quarter) AS quarters,
                 COUNT(DISTINCT ndc) AS ndcs,
                 SUM(total_amount_reimbursed) AS total_spent,
@@ -236,7 +238,7 @@ def build_historical_combined(con, years: list, dry_run: bool) -> int:
     con.execute(f"""
         CREATE OR REPLACE TABLE _sdud_hist_combined AS
         SELECT * FROM ({union_sql})
-        ORDER BY year, quarter, state, ndc
+        ORDER BY year, quarter, state_code, ndc
     """)
 
     out = _out_path("sdud_historical_combined")
@@ -247,7 +249,7 @@ def build_historical_combined(con, years: list, dry_run: bool) -> int:
             SELECT
                 MIN(year) AS min_year, MAX(year) AS max_year,
                 COUNT(DISTINCT year) AS num_years,
-                COUNT(DISTINCT state) AS states,
+                COUNT(DISTINCT state_code) AS states,
                 COUNT(DISTINCT ndc) AS ndcs,
                 SUM(total_amount_reimbursed) AS total_spent,
                 SUM(number_of_prescriptions) AS total_rx

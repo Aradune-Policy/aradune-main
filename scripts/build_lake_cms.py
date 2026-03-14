@@ -103,9 +103,9 @@ def build_fact_drug_utilization(con, dry_run: bool) -> int:
             ndc,
             product_name,
             CAST(units_reimbursed AS DOUBLE) AS units_reimbursed,
-            CAST(number_of_prescriptions AS INTEGER) AS prescription_count,
-            CAST(total_amount_reimbursed AS DOUBLE) AS total_reimbursed,
-            CAST(medicaid_amount_reimbursed AS DOUBLE) AS medicaid_reimbursed,
+            CAST(number_of_prescriptions AS INTEGER) AS number_of_prescriptions,
+            CAST(total_amount_reimbursed AS DOUBLE) AS total_amount_reimbursed,
+            CAST(medicaid_amount_reimbursed AS DOUBLE) AS medicaid_amount_reimbursed,
             'data.medicaid.gov' AS source,
             DATE '{SNAPSHOT_DATE}' AS snapshot_date
         FROM adb.drug_utilization

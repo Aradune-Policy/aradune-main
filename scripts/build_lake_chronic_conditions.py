@@ -293,6 +293,150 @@ def _parse_ccw_b2c() -> list:
     return rows
 
 
+# ---------------------------------------------------------------------------
+# Machine-readable CCW source (for reference / future auto-download)
+# ---------------------------------------------------------------------------
+# The CCW publishes an XLSX with all 30 chronic condition prevalence data:
+#   https://www2.ccwdata.org/documents/10280/19099065/medicare-charts-chronic-conditions-data.xlsx
+# This file has 18 worksheets covering Table B.2.a (FFS 2017-2022),
+# Table B.2.b (other conditions), and Table B.2.c (all Medicare 2012-2021).
+# The PDF version is at:
+#   https://www2.ccwdata.org/documents/10280/19099065/medicare-charts-chronic-conditions.pdf
+#
+# NOTE: CCW announced these charts will be retired effective 06/15/2026.
+# Future updates will move to data.cms.gov:
+#   https://data.cms.gov/medicare-chronic-conditions/specific-chronic-conditions
+#   https://data.cms.gov/medicare-chronic-conditions/multiple-chronic-conditions
+# The data.cms.gov datasets provide CSV/API access at national, state, and
+# county levels (dataset ID for specific conditions to be confirmed after
+# full migration).
+#
+# The hardcoded dictionaries below were manually transcribed from the CCW
+# PDF tables. The XLSX above can be used to cross-validate these values.
+
+
+# ---------------------------------------------------------------------------
+# CCW Data Validation
+# ---------------------------------------------------------------------------
+
+def validate_ccw_data():
+    """Validate hardcoded CCW chronic conditions data for consistency.
+
+    Checks:
+      1. All prevalence percentages are between 0 and 100
+      2. Year-over-year changes don't exceed 5 percentage points (suspicious)
+      3. Number of conditions matches expected counts
+      4. Prints a validation report
+    """
+    print("=" * 60)
+    print("CCW CHRONIC CONDITIONS DATA VALIDATION")
+    print("=" * 60)
+
+    errors = []
+    warnings = []
+
+    # --- Parse all data ---
+    ffs_rows = _parse_ccw_b2a()
+    all_medicare_rows = _parse_ccw_b2c()
+
+    # --- Check 3: condition counts ---
+    ffs_conditions = set(r["condition"] for r in ffs_rows)
+    all_conditions = set(r["condition"] for r in all_medicare_rows)
+
+    expected_ffs = 30
+    expected_all = 27
+
+    # The FFS data has 31 entries because "Cancer, breast (male)" is counted
+    # separately alongside 30 original conditions (some tables list 30 unique,
+    # this one has acute MI through stroke = 30 + breast male as separate = 31).
+    # We accept 30 or 31.
+    if len(ffs_conditions) < expected_ffs:
+        errors.append(
+            f"FFS condition count: expected >= {expected_ffs}, got {len(ffs_conditions)}"
+        )
+    else:
+        print(f"  [PASS] FFS conditions: {len(ffs_conditions)} (expected >= {expected_ffs})")
+
+    # The all-Medicare data lists "Alzheimer's disease" and "Alzheimer's disease,
+    # related disorders, or senile dementia" as separate rows, so we accept 27 or 28.
+    if len(all_conditions) < expected_all or len(all_conditions) > expected_all + 1:
+        errors.append(
+            f"All-Medicare condition count: expected {expected_all}-{expected_all + 1}, "
+            f"got {len(all_conditions)}"
+        )
+    else:
+        print(f"  [PASS] All-Medicare conditions: {len(all_conditions)} (expected {expected_all}-{expected_all + 1})")
+
+    # --- Check 1: prevalence ranges ---
+    for label, rows in [("FFS", ffs_rows), ("All-Medicare", all_medicare_rows)]:
+        out_of_range = []
+        for r in rows:
+            rate = r["prevalence_rate"]
+            if rate is not None and (rate < 0 or rate > 100):
+                out_of_range.append(
+                    f"  {r['condition']} ({r['year']}): {rate}%"
+                )
+        if out_of_range:
+            errors.append(
+                f"{label}: {len(out_of_range)} prevalence values out of [0, 100] range:\n"
+                + "\n".join(out_of_range)
+            )
+        else:
+            print(f"  [PASS] {label}: all prevalence rates in [0, 100] range")
+
+    # --- Check 2: year-over-year changes ---
+    for label, rows in [("FFS", ffs_rows), ("All-Medicare", all_medicare_rows)]:
+        # Build condition -> {year: rate} mapping
+        cond_years = {}
+        for r in rows:
+            cond_years.setdefault(r["condition"], {})[r["year"]] = r["prevalence_rate"]
+
+        suspicious = []
+        for condition, year_rates in sorted(cond_years.items()):
+            years_sorted = sorted(year_rates.keys())
+            for i in range(1, len(years_sorted)):
+                prev_year = years_sorted[i - 1]
+                curr_year = years_sorted[i]
+                prev_rate = year_rates[prev_year]
+                curr_rate = year_rates[curr_year]
+                if prev_rate is not None and curr_rate is not None:
+                    delta = abs(curr_rate - prev_rate)
+                    if delta > 5.0:
+                        suspicious.append(
+                            f"  {condition}: {prev_year}={prev_rate}% -> "
+                            f"{curr_year}={curr_rate}% (delta={delta:.1f}pp)"
+                        )
+        if suspicious:
+            warnings.append(
+                f"{label}: {len(suspicious)} year-over-year changes > 5 percentage points:\n"
+                + "\n".join(suspicious)
+            )
+        else:
+            print(f"  [PASS] {label}: no year-over-year changes > 5 percentage points")
+
+    # --- Summary ---
+    print()
+    if warnings:
+        print(f"WARNINGS ({len(warnings)}):")
+        for w in warnings:
+            print(f"  [WARN] {w}")
+        print()
+
+    if errors:
+        print(f"ERRORS ({len(errors)}):")
+        for e in errors:
+            print(f"  [FAIL] {e}")
+        print()
+        print("VALIDATION FAILED")
+        return False
+    else:
+        if warnings:
+            print("VALIDATION PASSED (with warnings)")
+        else:
+            print("VALIDATION PASSED")
+        return True
+
+
 def build_fact_chronic_conditions_national(con, dry_run: bool) -> int:
     """Build national-level chronic conditions prevalence (30 CCW, FFS)."""
     print("Building fact_chronic_conditions_national...")
@@ -832,6 +976,12 @@ def main():
     print(f"Run ID:   {RUN_ID}")
     print(f"Building: {', '.join(tables)}")
     print()
+
+    # Validate hardcoded CCW data before building any chronic conditions tables
+    ccw_tables = [t for t in tables if t.startswith("fact_chronic_conditions")]
+    if ccw_tables:
+        validate_ccw_data()
+        print()
 
     con = duckdb.connect()
     totals = {}

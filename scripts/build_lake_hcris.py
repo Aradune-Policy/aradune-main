@@ -149,7 +149,28 @@ def build_fact_hospital_cost(con, years: list[int], dry_run: bool) -> int:
         return 0
 
     full_query = " UNION ALL ".join(union_parts)
-    con.execute(f"CREATE OR REPLACE TABLE _fact_hospital_cost AS {full_query}")
+    con.execute(f"CREATE OR REPLACE TABLE _fact_hospital_cost_raw AS {full_query}")
+
+    # CHOW dedup: keep only the row with the latest fiscal_year_end_date
+    # for each provider_ccn + report_year combination. Change of Hospital
+    # Ownership (CHOW) events create multiple cost reports per CCN per year.
+    raw_count = con.execute("SELECT COUNT(*) FROM _fact_hospital_cost_raw").fetchone()[0]
+    con.execute("""
+        CREATE OR REPLACE TABLE _fact_hospital_cost AS
+        SELECT * EXCLUDE (rn) FROM (
+            SELECT *,
+                ROW_NUMBER() OVER (
+                    PARTITION BY provider_ccn, report_year
+                    ORDER BY fy_end_date DESC NULLS LAST
+                ) AS rn
+            FROM _fact_hospital_cost_raw
+        ) WHERE rn = 1
+    """)
+    deduped_count = con.execute("SELECT COUNT(*) FROM _fact_hospital_cost").fetchone()[0]
+    chow_dupes = raw_count - deduped_count
+    if chow_dupes > 0:
+        print(f"  CHOW dedup: {raw_count:,} raw -> {deduped_count:,} deduped ({chow_dupes:,} duplicates removed)")
+    con.execute("DROP TABLE IF EXISTS _fact_hospital_cost_raw")
 
     count = write_parquet(con, "_fact_hospital_cost", _snapshot_path("hospital_cost"), dry_run)
     states = con.execute("SELECT COUNT(DISTINCT state_code) FROM _fact_hospital_cost").fetchone()[0]
@@ -239,7 +260,28 @@ def build_fact_snf_cost(con, years: list[int], dry_run: bool) -> int:
         return 0
 
     full_query = " UNION ALL ".join(union_parts)
-    con.execute(f"CREATE OR REPLACE TABLE _fact_snf_cost AS {full_query}")
+    con.execute(f"CREATE OR REPLACE TABLE _fact_snf_cost_raw AS {full_query}")
+
+    # CHOW dedup: keep only the row with the latest fiscal_year_end_date
+    # for each provider_ccn + report_year combination. Change of Ownership
+    # (CHOW) events create multiple cost reports per CCN per year.
+    raw_count = con.execute("SELECT COUNT(*) FROM _fact_snf_cost_raw").fetchone()[0]
+    con.execute("""
+        CREATE OR REPLACE TABLE _fact_snf_cost AS
+        SELECT * EXCLUDE (rn) FROM (
+            SELECT *,
+                ROW_NUMBER() OVER (
+                    PARTITION BY provider_ccn, report_year
+                    ORDER BY fy_end_date DESC NULLS LAST
+                ) AS rn
+            FROM _fact_snf_cost_raw
+        ) WHERE rn = 1
+    """)
+    deduped_count = con.execute("SELECT COUNT(*) FROM _fact_snf_cost").fetchone()[0]
+    chow_dupes = raw_count - deduped_count
+    if chow_dupes > 0:
+        print(f"  CHOW dedup: {raw_count:,} raw -> {deduped_count:,} deduped ({chow_dupes:,} duplicates removed)")
+    con.execute("DROP TABLE IF EXISTS _fact_snf_cost_raw")
 
     count = write_parquet(con, "_fact_snf_cost", _snapshot_path("snf_cost"), dry_run)
     states = con.execute("SELECT COUNT(DISTINCT state_code) FROM _fact_snf_cost").fetchone()[0]

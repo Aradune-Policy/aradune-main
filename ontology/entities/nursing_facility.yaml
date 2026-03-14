@@ -45,6 +45,13 @@ properties:
   type: VARCHAR
 - name: chain_id
   type: VARCHAR
+relationships:
+- name: in_state
+  target_entity: state
+  via_table: fact_nh_provider_info
+  join_key: state_code
+  cardinality: many_to_one
+  description: The state where this nursing facility is located
 fact_tables:
 - fact_asc_facility
 - fact_asc_quality_facility

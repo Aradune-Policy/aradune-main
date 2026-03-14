@@ -31,6 +31,13 @@ properties:
   type: BIGINT
 - name: snapshot
   type: DATE
+relationships:
+- name: in_state
+  target_entity: state
+  via_table: fact_places_county
+  join_key: state_code
+  cardinality: many_to_one
+  description: The state containing this geographic area
 fact_tables:
 - fact_cms_impact
 - fact_county_health_rankings

@@ -31,6 +31,19 @@ properties:
   type: DATE
 - name: snapshot
   type: DATE
+relationships:
+- name: in_state
+  target_entity: state
+  via_table: fact_mc_enrollment_plan
+  join_key: state_code
+  cardinality: many_to_one
+  description: The state where this MCO operates
+- name: has_enrollment
+  target_entity: enrollment_record
+  via_table: fact_mc_enrollment_summary
+  join_key: state_code
+  cardinality: one_to_many
+  description: Enrollment records for this managed care plan
 fact_tables:
 - fact_mc_enrollment
 - fact_mc_enrollment_summary

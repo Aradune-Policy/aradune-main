@@ -22,6 +22,7 @@ supporting_tables:
 - fact_kff_1115_waivers
 - fact_kff_1115_work_requirements
 - fact_section_1115_waivers
+- fact_medicaid_enterprise_system
 planned_tables:
 - table: fact_section_1115_waivers
   description: Section 1115 waiver tracker by state — approved, pending, expired, with key provisions and effective dates. Source KFF or Medicaid.gov. ~200 rows.

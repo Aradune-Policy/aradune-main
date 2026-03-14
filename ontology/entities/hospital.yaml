@@ -45,6 +45,25 @@ properties:
   type: BIGINT
 - name: total_days
   type: BIGINT
+relationships:
+- name: in_state
+  target_entity: state
+  via_table: fact_hospital_cost
+  join_key: state_code
+  cardinality: many_to_one
+  description: The state where this hospital is located
+- name: has_quality
+  target_entity: quality_measure
+  via_table: fact_hospital_rating
+  join_key: provider_ccn
+  cardinality: one_to_many
+  description: Quality measures reported for this hospital
+- name: has_nursing_facilities
+  target_entity: nursing_facility
+  via_table: fact_nh_provider_info
+  join_key: state_code
+  cardinality: one_to_many
+  description: Co-located nursing facilities in the same state
 fact_tables:
 - fact_ahrq_psi11
 - fact_asc_facility

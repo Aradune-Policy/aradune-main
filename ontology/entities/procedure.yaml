@@ -45,6 +45,19 @@ properties:
   type: VARCHAR
 - name: type_of_service
   type: VARCHAR
+relationships:
+- name: has_rates
+  target_entity: rate_cell
+  via_table: fact_rate_comparison
+  join_key: procedure_code
+  cardinality: one_to_many
+  description: Medicaid-to-Medicare rate comparisons for this procedure
+- name: has_claims
+  target_entity: rate_cell
+  via_table: fact_claims
+  join_key: procedure_code
+  cardinality: one_to_many
+  description: Claims data associated with this procedure code
 fact_tables:
 - dim_hcpcs
 - dim_procedure

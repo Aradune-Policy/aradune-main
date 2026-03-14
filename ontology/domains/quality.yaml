@@ -40,6 +40,9 @@ primary_tables:
   row_count: 22513
 supporting_tables:
 - fact_epsdt
+- fact_mips_performance
+- fact_promoting_interoperability
+- fact_quality_measures_2024_detail
 planned_tables:
 - table: fact_quality_child_adult_2024
   description: Child and adult health care quality measures 2024 — may extend or replace quality_core_set_2024. 2024-child-and-adult-health-care-quality-measures.csv (9 MB) in raw.

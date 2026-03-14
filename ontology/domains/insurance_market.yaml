@@ -13,4 +13,5 @@ primary_tables:
   row_count: 415
 - table: fact_aca_effectuated_enrollment
   row_count: 254
-supporting_tables: []
+supporting_tables:
+- fact_mlr_summary_dec2025

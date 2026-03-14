@@ -73,3 +73,5 @@ supporting_tables:
 - fact_cms64_new_adult_expenditures
 - fact_macpac_fmap_multiyear
 - fact_macpac_hcbs_payment_scan
+- fact_cms64_financial_management_national
+- fact_dsh_reporting_latest

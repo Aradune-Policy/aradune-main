@@ -145,3 +145,5 @@ supporting_tables:
 - fact_mdrp_drug_products_q4_2025
 - fact_nadac_comparison_mar2026
 - fact_nadac_mar2026
+- fact_state_mac_ny
+- fact_state_mac_tx

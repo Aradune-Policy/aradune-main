@@ -10,6 +10,7 @@ primary_tables:
   row_count: 1300
 supporting_tables:
 - fact_1915c_participants
+- fact_1915c_waiver_participants_v2
 - fact_cms372_waiver
 - fact_hcbs_authority
 - fact_hcbs_waitlist

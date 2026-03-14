@@ -45,6 +45,67 @@ properties:
   type: DATE
 - name: region
   type: VARCHAR
+relationships:
+- name: has_rates
+  target_entity: rate_cell
+  via_table: fact_rate_comparison
+  join_key: state_code
+  cardinality: one_to_many
+  description: Medicaid-to-Medicare rate comparisons for this state
+- name: has_enrollment
+  target_entity: enrollment_record
+  via_table: fact_enrollment
+  join_key: state_code
+  cardinality: one_to_many
+  description: Monthly Medicaid enrollment records
+- name: has_expenditure
+  target_entity: expenditure_record
+  via_table: fact_expenditure
+  join_key: state_code
+  cardinality: one_to_many
+  description: CMS-64 expenditure by category
+- name: has_hospitals
+  target_entity: hospital
+  via_table: fact_hospital_cost
+  join_key: state_code
+  cardinality: one_to_many
+  description: Hospitals operating in this state
+- name: has_nursing_facilities
+  target_entity: nursing_facility
+  via_table: fact_nh_provider_info
+  join_key: state_code
+  cardinality: one_to_many
+  description: Nursing facilities in this state
+- name: has_providers
+  target_entity: provider
+  via_table: fact_provider
+  join_key: state_code
+  cardinality: one_to_many
+  description: Healthcare providers in this state
+- name: has_quality
+  target_entity: quality_measure
+  via_table: fact_quality_core_set_2024
+  join_key: state_code
+  cardinality: one_to_many
+  description: Core Set quality measure performance
+- name: has_economic
+  target_entity: economic_indicator
+  via_table: fact_unemployment
+  join_key: state_code
+  cardinality: one_to_many
+  description: Economic indicators (unemployment, poverty, income)
+- name: has_mcos
+  target_entity: mco
+  via_table: fact_mc_enrollment_plan
+  join_key: state_code
+  cardinality: one_to_many
+  description: Managed care organizations operating in this state
+- name: has_hcbs
+  target_entity: hcbs_program
+  via_table: fact_hcbs_waitlist
+  join_key: state_code
+  cardinality: one_to_many
+  description: HCBS waiver programs and waiting lists
 fact_tables:
 - dim_medicare_locality
 - dim_state

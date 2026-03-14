@@ -92,11 +92,11 @@ function calcMcr(h:AheadHospital,py:number,vA=0):McrResult{
   let iA=1,oA=1,uA=1;for(let y=b3+1;y<=cY;y++){const f=APA[y]||APA[2030];iA*=f.ip;oA*=f.op;uA*=f.uc;}
   const cmi=Math.min(1.05,Math.max(.95,1+(h.hcc-1)*.03*(cY-b3)));const wia=1+(h.wi-1)*.05;
   const pI=wI*opt*iA*cmi*wia,pO=wO*opt*oA*wia,pU=wU*opt*uA;const pA=pI+pO+pU;
-  const msa=(1+vA*.5)*1.01,dem=1.006,out=wT*opt*.03;const pV=pA*msa*dem+out;
+  const tia=py<=2?1.01:1.00;const msa=(1+vA*.5)*tia,dem=1.006,out=wT*opt*.03;const pV=pA*msa*dem+out;
   const srs=(h.cdi*.7+h.dp*100*.3)/100;const srP=srs>.3?Math.min(.02,srs*.025):0;const sra=pV*srP;
   const qB=h.q.vbp*h.q.hrrp*h.q.hacrp;const qD=(qB-1)*pV;const qF=h.cah?Math.max(0,qD):qD;
   const pau=(1-h.q.ra/.2)*.4+(1-h.q.pqi/.08)*.3+(1-h.q.ed/.65)*.3;const eff=(pau-.5)*.03*(1+srs*.5)*pV;
-  const tP=py>=4?(h.tcoc.a-h.tcoc.t)/h.tcoc.t:0;const tA=py>=4?Math.max(-.05,Math.min(.02,Math.abs(tP)>.02?(tP>0?-1:1)*(Math.abs(tP)-.02)*.5:0))*pV:0;
+  const tP=py>=4?(h.tcoc.a-h.tcoc.t)/h.tcoc.t:0;const tRaw=Math.abs(tP)>.02?(tP>0?-1:1)*(Math.abs(tP)-.02)*.5:0;const tA=py>=4?(py===4?Math.max(0,Math.min(.02,tRaw)):Math.max(-.05,Math.min(.02,tRaw)))*pV:0;
   const hb=py>=4&&h.sn?pV*.004:0;
   let fin=pV+sra+qF+eff+tA+hb;let cOn=false;
   if(h.cah&&h.cost>0){const cahF=h.cost*1.01*Math.pow(1.035,cY-b3);if(fin<cahF){fin=cahF;cOn=true;}}
@@ -974,17 +974,26 @@ export default function AheadCalculator(){
         runs Monte Carlo simulations across economic scenarios.
       </p>
       <p style={{margin:"0 0 8px"}}>
-        <strong>9 states supported:</strong> Maryland (TCOC), Connecticut (VBP), Vermont (All-Payer ACO),
-        Hawaii (QUEST), New York (VBP Roadmap), Rhode Island (Accountable Entity), Colorado (Hospital Transformation),
-        New Jersey (VBP), and New Mexico (Centennial Care 2.0).
+        <strong>AHEAD participating states (CMS):</strong> Maryland (Cohort 1), Connecticut, Hawaii, Vermont (Cohort 2),
+        Rhode Island, select New York counties (Cohort 3). Model extended through <strong>December 2035</strong>.
+        Additional states (CO, NJ, NM) are included for hypothetical modeling but are not confirmed AHEAD participants.
       </p>
       <p style={{margin:"0 0 8px"}}>
         <strong>How to use:</strong> Select a hospital from the sidebar, then explore the Executive Brief for a strategic summary,
         the Dashboard for detailed projections, or the Intervene tab to model specific policy scenarios. Use the APM Compare
         tab to evaluate across payment models (MSSP, BPCI-A, ACO REACH). Import your own hospital data via the Import tab for production analysis.
       </p>
+      <p style={{margin:"0 0 8px",fontSize:11,color:C.inkLight}}>
+        <strong>Known limitations:</strong> (1) Baseline uses single-year revenue with synthetic growth as a proxy for 3-year
+        historical weighting. (2) Volume corridor logic (CMS "appropriate patient choice" vs "unplanned" classification) is not
+        modeled. (3) Commercial payer participation (required by PY2) is not modeled. (4) Global budgets built on historical
+        prices may lock in inefficiencies. (5) CMS retains significant discretion in volume shift classification. (6) The model may
+        incentivize vertical consolidation as hospitals acquire specialty groups to capture more spending under the budget.
+      </p>
       <p style={{margin:0,fontSize:10,color:C.inkLight}}>
-        Sample hospitals use illustrative data calibrated to public CMS sources. Import your own data for production-grade analysis.
+        Sample hospitals use illustrative data calibrated to public CMS sources. States without existing rate-setting
+        infrastructure (CO, NJ, NM) may lack the regulatory apparatus to implement AHEAD budgets — results for these
+        states are hypothetical projections, not policy-ready estimates.
       </p>
     </div>}
     <Fade k={view}>

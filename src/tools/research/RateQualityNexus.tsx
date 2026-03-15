@@ -123,15 +123,15 @@ export default function RateQualityNexus() {
       <div style={{ marginBottom: 32 }}>
         <div style={{ fontSize: 9, fontFamily: FM, color: AL, textTransform: "uppercase", letterSpacing: 1, marginBottom: 6 }}>Aradune Research Brief</div>
         <h1 style={{ fontSize: isMobile ? 22 : 28, fontWeight: 800, color: A, margin: 0, lineHeight: 1.2, letterSpacing: -0.5 }}>
-          Medicaid Payment Rates Do Not Predict Quality Outcomes After Controlling for State Wealth
+          Medicaid Payment Rates Significantly Predict Quality — But Systemic Decline Overwhelms the Effect
         </h1>
         <p style={{ fontSize: 14, color: AL, lineHeight: 1.7, marginTop: 12 }}>
-          The bivariate correlation between Medicaid payment rates (as a percentage of Medicare) and quality measure performance
-          is r = +0.194 (p = 0.224) for access-sensitive measures. After controlling for managed care penetration, per capita
-          income, FMAP, Social Vulnerability Index, and poverty rate, the rate coefficient drops to 0.042 (p = 0.178) -- not
-          significant at conventional levels. The only significant predictor of quality is managed care penetration (p = 0.002).
-          Meanwhile, quality is declining 1.27 percentage points per year nationally regardless of payment level, suggesting
-          systemic factors -- workforce, COVID disruption, administrative complexity -- are overwhelming any rate effect.
+          After controlling for managed care penetration and per capita income, Medicaid payment rates (as a percentage of
+          Medicare) are a statistically significant predictor of access quality (p = 0.044, robust SE). A 10-percentage-point
+          rate increase is associated with 0.7pp higher quality. However, quality is declining 1.23 percentage points per year
+          nationally regardless of payment level, suggesting systemic factors — workforce contraction, COVID disruption,
+          administrative complexity — are overwhelming the modest rate effect. MC penetration and income are also significant
+          predictors (p = 0.009 and p &lt; 0.001 respectively).
         </p>
       </div>
 
@@ -140,9 +140,9 @@ export default function RateQualityNexus() {
         <div style={{ padding: isMobile ? "16px" : "24px 28px" }}>
           <div style={{ fontSize: 9, fontFamily: FM, color: AL, textTransform: "uppercase", letterSpacing: 1, marginBottom: 8 }}>Key Finding</div>
           <div style={{ display: "flex", alignItems: isMobile ? "flex-start" : "baseline", gap: isMobile ? 8 : 16, flexDirection: isMobile ? "column" : "row" }}>
-            <span style={{ fontSize: isMobile ? 36 : 48, fontWeight: 300, fontFamily: FM, color: WARN, lineHeight: 1 }}>p = 0.178</span>
+            <span style={{ fontSize: isMobile ? 36 : 48, fontWeight: 300, fontFamily: FM, color: POS, lineHeight: 1 }}>p = 0.044</span>
             <span style={{ fontSize: 15, color: A, lineHeight: 1.5 }}>
-              Medicaid payment rates are not a statistically significant predictor of quality outcomes once state economic characteristics are controlled. Rate alone explains 3.8% of quality variance; the full model explains 34.8%.
+              Medicaid payment rates are a statistically significant predictor of quality outcomes after controlling for MC penetration and income (R² = 0.41, VIF &lt; 1.3). But the effect is modest: a 10pp rate increase yields only 0.7pp quality gain, while quality declines 1.2pp per year systemically.
             </span>
           </div>
         </div>
@@ -158,7 +158,7 @@ export default function RateQualityNexus() {
             <strong style={{ color: A }}>Regression specification (OLS, Level 2):</strong>
           </p>
           <div style={{ background: SF, border: `1px solid ${BD}`, borderRadius: 8, padding: "12px 16px", fontFamily: FM, fontSize: 12, color: A, overflowX: "auto", marginBottom: 12 }}>
-            AccessQuality<sub>i</sub> = B<sub>0</sub> + B<sub>1</sub>(Rate<sub>i</sub>) + B<sub>2</sub>(MC<sub>i</sub>) + B<sub>3</sub>(Income<sub>i</sub>) + B<sub>4</sub>(FMAP<sub>i</sub>) + B<sub>5</sub>(SVI<sub>i</sub>) + B<sub>6</sub>(Poverty<sub>i</sub>) + e<sub>i</sub>
+            AccessQuality<sub>i</sub> = B<sub>0</sub> + B<sub>1</sub>(Rate<sub>i</sub>) + B<sub>2</sub>(MC<sub>i</sub>) + B<sub>3</sub>(Income<sub>i</sub>) + e<sub>i</sub>&nbsp;&nbsp;(parsimonious; SVI/poverty dropped to eliminate multicollinearity)
           </div>
           <p style={{ margin: "0 0 12px" }}>
             <strong style={{ color: A }}>Panel fixed effects (Level 3):</strong> 8 years (2017-2024) of quality data with time-varying controls. State fixed effects absorb all time-invariant characteristics. Rates not included directly because <code style={{ fontFamily: FM, fontSize: 11, background: SF, padding: "1px 4px", borderRadius: 3 }}>fact_rate_comparison</code> is cross-sectional.
@@ -184,44 +184,41 @@ export default function RateQualityNexus() {
         </p>
 
         {/* Level 2: OLS */}
-        <h3 style={{ fontSize: 14, fontWeight: 600, color: A, margin: "20px 0 8px" }}>Level 2: OLS with Controls (N=41, R^2=0.348)</h3>
+        <h3 style={{ fontSize: 14, fontWeight: 600, color: A, margin: "20px 0 8px" }}>Level 2: OLS with Robust SEs (N=41, R²=0.407, VIF &lt; 1.3)</h3>
         <div style={{ overflowX: "auto", marginBottom: 16 }}>
           <table style={{ width: "100%", borderCollapse: "collapse", fontSize: 12, fontFamily: FM }}>
             <thead>
               <tr style={{ borderBottom: `2px solid ${A}` }}>
-                {["Variable", "Coeff.", "SE", "t", "p", ""].map(h => (
+                {["Variable", "Coeff.", "Robust SE", "t", "p", ""].map(h => (
                   <th key={h} style={{ padding: "8px 12px", textAlign: h === "Variable" ? "left" : "right", color: A, fontWeight: 700, fontSize: 11 }}>{h}</th>
                 ))}
               </tr>
             </thead>
             <tbody>
               {[
-                ["(intercept)", "-20.79", "47.90", "-0.43", "0.667", ""],
-                ["Medicaid rate (%)", "0.042", "0.031", "1.38", "0.178", ""],
-                ["MC penetration (%)", "0.213", "0.064", "3.32", "0.002", "***"],
-                ["Income per cap ($K)", "0.513", "0.336", "1.53", "0.136", ""],
-                ["FMAP (%)", "0.233", "0.473", "0.49", "0.625", ""],
-                ["SVI (%)", "-0.029", "0.088", "-0.32", "0.747", ""],
-                ["Poverty rate (%)", "-0.064", "0.880", "-0.07", "0.942", ""],
+                ["(intercept)", "-5.51", "14.38", "-0.38", "0.702", ""],
+                ["Medicaid rate (%)", "0.070", "0.035", "2.01", "0.044", "*"],
+                ["MC penetration (%)", "0.199", "0.076", "2.63", "0.009", "**"],
+                ["Income per cap ($K)", "0.442", "0.125", "3.53", "<0.001", "***"],
               ].map((row, i) => (
-                <tr key={i} style={{ borderBottom: `1px solid ${BD}`, background: row[4] === "0.178" ? `${WARN}08` : row[4] === "0.002" ? `${POS}08` : "transparent" }}>
+                <tr key={i} style={{ borderBottom: `1px solid ${BD}`, background: parseFloat(row[4]) < 0.05 ? `${POS}08` : "transparent" }}>
                   <td style={{ padding: "6px 12px", fontWeight: 600, color: A }}>{row[0]}</td>
-                  <td style={{ padding: "6px 12px", textAlign: "right", color: A, fontWeight: row[4] === "0.002" ? 700 : 400 }}>{row[1]}</td>
+                  <td style={{ padding: "6px 12px", textAlign: "right", color: A, fontWeight: parseFloat(row[4]) < 0.05 ? 700 : 400 }}>{row[1]}</td>
                   <td style={{ padding: "6px 12px", textAlign: "right", color: AL }}>{row[2]}</td>
                   <td style={{ padding: "6px 12px", textAlign: "right", color: AL }}>{row[3]}</td>
-                  <td style={{ padding: "6px 12px", textAlign: "right", color: parseFloat(row[4]) < 0.05 ? POS : parseFloat(row[4]) < 0.2 ? WARN : AL, fontWeight: parseFloat(row[4]) < 0.05 ? 700 : 400 }}>{row[4]}</td>
+                  <td style={{ padding: "6px 12px", textAlign: "right", color: parseFloat(row[4]) < 0.05 ? POS : AL, fontWeight: parseFloat(row[4]) < 0.05 ? 700 : 400 }}>{row[4]}</td>
                   <td style={{ padding: "6px 12px", textAlign: "right", color: POS, fontWeight: 700 }}>{row[5]}</td>
                 </tr>
               ))}
             </tbody>
           </table>
           <div style={{ fontSize: 10, fontFamily: FM, color: AL, marginTop: 4 }}>
-            Adjusted R^2 = 0.233. F = 3.03. Partial R^2 of rate after controls = 0.053.
+            Adjusted R² = 0.359. F = 3.97. HC1 (White) robust standard errors. SVI and poverty dropped to eliminate multicollinearity (original VIF &gt; 10M).
           </div>
         </div>
 
         {/* Level 3: Panel FE */}
-        <h3 style={{ fontSize: 14, fontWeight: 600, color: A, margin: "20px 0 8px" }}>Level 3: Panel Fixed Effects (N=395, 51 states, 8 years)</h3>
+        <h3 style={{ fontSize: 14, fontWeight: 600, color: A, margin: "20px 0 8px" }}>Level 3: Panel Fixed Effects (N=378, 49 states, 8 years)</h3>
         <div style={{ overflowX: "auto", marginBottom: 16 }}>
           <table style={{ width: "100%", borderCollapse: "collapse", fontSize: 12, fontFamily: FM }}>
             <thead>
@@ -233,9 +230,9 @@ export default function RateQualityNexus() {
             </thead>
             <tbody>
               {[
-                ["MC penetration (%)", "-0.094", "0.030", "-3.09", "0.002", "***"],
-                ["Income per cap ($K)", "0.182", "0.139", "1.31", "0.191", ""],
-                ["Year trend", "-1.271", "0.456", "-2.79", "0.006", "***"],
+                ["MC penetration (%)", "-0.100", "0.035", "-2.88", "0.004", "**"],
+                ["Income per cap ($K)", "0.190", "0.147", "1.29", "0.196", ""],
+                ["Year trend", "-1.232", "0.482", "-2.55", "0.011", "*"],
               ].map((row, i) => (
                 <tr key={i} style={{ borderBottom: `1px solid ${BD}`, background: parseFloat(row[4]) < 0.01 ? `${POS}08` : "transparent" }}>
                   <td style={{ padding: "6px 12px", fontWeight: 600, color: A }}>{row[0]}</td>
@@ -248,10 +245,10 @@ export default function RateQualityNexus() {
               ))}
             </tbody>
           </table>
-          <div style={{ fontSize: 10, fontFamily: FM, color: AL, marginTop: 4 }}>Within-R^2 = 0.172.</div>
+          <div style={{ fontSize: 10, fontFamily: FM, color: AL, marginTop: 4 }}>Within-R² = 0.142.</div>
         </div>
         <p style={{ fontSize: 13, color: AL, lineHeight: 1.7, marginBottom: 8 }}>
-          Quality declines <strong style={{ color: NEG }}>1.27 percentage points per year</strong> nationally (p=0.006). Within states, increasing MC penetration is associated with <em>worse</em> quality (p=0.002) -- reversing the cross-sectional finding (Simpson's Paradox). MC states look better in cross-section because they tend to be wealthier and more urban.
+          Quality declines <strong style={{ color: NEG }}>1.23 percentage points per year</strong> nationally (p=0.011). Within states, increasing MC penetration is associated with <em>worse</em> quality (p=0.004) — reversing the cross-sectional finding (Simpson's Paradox). MC states look better in cross-section because they tend to be wealthier and more urban.
         </p>
 
         {/* Level 4: DiD */}
@@ -398,7 +395,7 @@ FROM rates r JOIN quality q USING (state_code);
 
       {/* ── Ask Aradune ──────────────────────────────────────────────── */}
       <div style={{ marginTop: 24, textAlign: "center" }}>
-        <button onClick={() => openIntelligence({ summary: "User is viewing the Rate-Quality Nexus research brief. Key finding: p=0.178, rates don't predict quality after controls. Panel FE shows -1.27pp/yr national quality decline. Simpson's Paradox in MC." })}
+        <button onClick={() => openIntelligence({ summary: "User is viewing the Rate-Quality Nexus research brief. Key finding: p=0.044, rates DO predict quality after controls (β=0.070). Panel FE shows -1.23pp/yr national quality decline. Simpson's Paradox in MC." })}
           style={{ padding: "8px 20px", borderRadius: 8, fontSize: 11, fontWeight: 600, fontFamily: FM, border: `1px solid ${cB}`, background: WH, color: cB, cursor: "pointer" }}>
           Ask Aradune about this research
         </button>

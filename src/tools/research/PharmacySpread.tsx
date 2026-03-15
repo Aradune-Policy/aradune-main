@@ -101,10 +101,10 @@ export default function PharmacySpread() {
           Joining NADAC (National Average Drug Acquisition Cost) to SDUD (State Drug Utilization Data) across 23,617 matched
           drugs reveals a net overpayment of $3.15 billion -- what Medicaid reimburses pharmacies above their cost to acquire
           drugs. 93% of matched drugs (22,028) are reimbursed above NADAC. The overpayment is concentrated in low-cost generics
-          (drugs under $1/unit), which account for 60% of total overpayment with a median markup of 2.75x acquisition cost.
+          (drugs under $1/unit), which account for 60% of total overpayment with a median markup of 2.61x acquisition cost.
           Specialty drugs ($100+/unit), which are more closely managed, show near-zero markup (1.02x). The conservative lower
-          bound ($2.06B, excluding very-low-cost drugs where NADAC &lt; $0.10) survives all robustness checks. Three states
-          (Michigan, Delaware, Hawaii) pay below NADAC on net, demonstrating the problem is solvable.
+          bound ($2.06B, excluding very-low-cost drugs where NADAC &lt; $0.10) survives all robustness checks. Four states
+          (New Hampshire, Michigan, Hawaii, Delaware) pay below NADAC on net, demonstrating the problem is solvable.
         </p>
       </div>
 
@@ -115,7 +115,7 @@ export default function PharmacySpread() {
           <div style={{ display: "flex", alignItems: isMobile ? "flex-start" : "baseline", gap: isMobile ? 8 : 16, flexDirection: isMobile ? "column" : "row" }}>
             <span style={{ fontSize: isMobile ? 36 : 48, fontWeight: 300, fontFamily: FM, color: NEG, lineHeight: 1 }}>$3.15B</span>
             <span style={{ fontSize: 15, color: A, lineHeight: 1.5 }}>
-              net overpayment above drug acquisition cost. Low-cost generics account for 60% of the total, with a median markup of 2.75x NADAC. Conservative estimate (NADAC &gt;= $0.10): $2.06B.
+              net overpayment above drug acquisition cost. Low-cost generics account for 60% of the total, with a median markup of 2.61x NADAC. Conservative estimate (NADAC &gt;= $0.10): $2.06B.
             </span>
           </div>
         </div>
@@ -350,7 +350,7 @@ export default function PharmacySpread() {
               </div>
             </ChartActions>
             <div style={{ textAlign: "center", fontSize: 10, fontFamily: FM, color: AL, marginTop: 8 }}>
-              23,617 drugs matched | 93% reimbursed above NADAC | Low-cost generics: 2.75x median markup
+              23,617 drugs matched | 93% reimbursed above NADAC | Low-cost generics: 2.61x median markup
             </div>
           </div>
         </Card>
@@ -413,7 +413,7 @@ ORDER BY total_spread DESC;
 
       {/* ── Ask Aradune ──────────────────────────────────────────────── */}
       <div style={{ marginTop: 24, textAlign: "center" }}>
-        <button onClick={() => openIntelligence({ summary: "User is viewing the Pharmacy Spread research brief. Key finding: $3.15B net overpayment (NADAC vs SDUD). 93% of drugs overpaid. Concentrated in low-cost generics (2.75x markup). Conservative lower bound $2.06B survives all robustness checks." })}
+        <button onClick={() => openIntelligence({ summary: "User is viewing the Pharmacy Spread research brief. Key finding: $3.15B net overpayment (NADAC vs SDUD). 93% of drugs overpaid. Concentrated in low-cost generics (2.61x markup). Conservative lower bound $2.06B survives all robustness checks." })}
           style={{ padding: "8px 20px", borderRadius: 8, fontSize: 11, fontWeight: 600, fontFamily: FM, border: `1px solid ${cB}`, background: WH, color: cB, cursor: "pointer" }}>
           Ask Aradune about this research
         </button>

@@ -242,10 +242,10 @@ def analysis_1_rate_quality(con):
               AND per_capita_personal_income IS NOT NULL
         ) bea ON d.state_code = bea.bea_st
         LEFT JOIN (
-            SELECT state_code AS svi_st, AVG(rpl_themes) AS avg_svi
+            SELECT st_abbr AS svi_st, AVG(rpl_themes) AS avg_svi  -- AUDIT FIX: state_code -> st_abbr (column doesn't exist in fact_svi_county)
             FROM fact_svi_county
-            WHERE rpl_themes IS NOT NULL
-            GROUP BY state_code
+            WHERE rpl_themes IS NOT NULL AND rpl_themes >= 0
+            GROUP BY st_abbr
         ) svi ON d.state_code = svi.svi_st
         LEFT JOIN (
             SELECT state_code AS pov_st, pct_poverty AS poverty_rate
@@ -450,26 +450,27 @@ def analysis_2_managed_care(con):
 
     # MCO MLR analysis
     report.append("## MCO Medical Loss Ratio Analysis\n")
+    # AUDIT FIX: mlr column doesn't exist -> use adjusted_mlr; total_premium doesn't exist -> use mlr_denominator
     mlr_sql = """
         SELECT state_code,
                COUNT(*) AS n_plans,
-               ROUND(AVG(mlr), 1) AS avg_mlr,
-               ROUND(MIN(mlr), 1) AS min_mlr,
-               SUM(CASE WHEN mlr < 85 THEN 1 ELSE 0 END) AS below_85,
-               ROUND(SUM(total_premium) / 1e9, 2) AS total_premium_B,
-               ROUND(SUM(total_premium) * (1 - AVG(mlr)/100) / 1e9, 2) AS admin_profit_B
+               ROUND(AVG(adjusted_mlr), 1) AS avg_mlr,
+               ROUND(MIN(adjusted_mlr), 1) AS min_mlr,
+               SUM(CASE WHEN adjusted_mlr < 85 THEN 1 ELSE 0 END) AS below_85,
+               ROUND(SUM(mlr_denominator) / 1e9, 2) AS total_premium_B,
+               ROUND(SUM(mlr_denominator) * (1 - AVG(adjusted_mlr)/100) / 1e9, 2) AS admin_profit_B
         FROM fact_mco_mlr
-        WHERE mlr IS NOT NULL AND mlr > 0 AND mlr < 120
+        WHERE adjusted_mlr IS NOT NULL AND adjusted_mlr > 0 AND adjusted_mlr < 120
         GROUP BY state_code
         ORDER BY avg_mlr ASC
     """
     report.append(f"```sql\n{mlr_sql}\n```\n")
     try:
         mlr = con.execute(mlr_sql).fetchdf()
-        total_premium = con.execute("SELECT SUM(total_premium)/1e9 FROM fact_mco_mlr WHERE total_premium > 0").fetchone()[0]
-        avg_mlr = con.execute("SELECT AVG(mlr) FROM fact_mco_mlr WHERE mlr > 0 AND mlr < 120").fetchone()[0]
-        below_85 = con.execute("SELECT COUNT(*) FROM fact_mco_mlr WHERE mlr < 85 AND mlr > 0").fetchone()[0]
-        total_plans = con.execute("SELECT COUNT(*) FROM fact_mco_mlr WHERE mlr > 0").fetchone()[0]
+        total_premium = con.execute("SELECT SUM(mlr_denominator)/1e9 FROM fact_mco_mlr WHERE mlr_denominator > 0").fetchone()[0]
+        avg_mlr = con.execute("SELECT AVG(adjusted_mlr) FROM fact_mco_mlr WHERE adjusted_mlr > 0 AND adjusted_mlr < 120").fetchone()[0]
+        below_85 = con.execute("SELECT COUNT(*) FROM fact_mco_mlr WHERE adjusted_mlr < 85 AND adjusted_mlr > 0").fetchone()[0]
+        total_plans = con.execute("SELECT COUNT(*) FROM fact_mco_mlr WHERE adjusted_mlr > 0").fetchone()[0]
         report.append(f"Total MCO premiums: **${total_premium:.0f}B**\n")
         report.append(f"Average MLR: **{avg_mlr:.1f}%**\n")
         report.append(f"Plans below 85% MLR: **{below_85}** of {total_plans} ({100*below_85/total_plans:.1f}%)\n")
@@ -534,7 +535,7 @@ def analysis_3_nursing_ownership(con):
                     THEN 1 ELSE 0 END AS is_for_profit,
                CASE WHEN chain_name IS NOT NULL AND chain_name != '' AND chain_name != 'N/A'
                     THEN 1 ELSE 0 END AS is_chain,
-               COALESCE(number_of_certified_beds, 0) / 10.0 AS beds_10
+               COALESCE(certified_beds, 0) / 10.0 AS beds_10  -- AUDIT FIX: number_of_certified_beds -> certified_beds
         FROM fact_five_star
         WHERE overall_rating IS NOT NULL
           AND state_code IS NOT NULL AND LENGTH(state_code) = 2
@@ -545,11 +546,11 @@ def analysis_3_nursing_ownership(con):
         n = len(fe_df)
         report.append(f"Sample: **{n} facilities, {fe_df['state_code'].nunique()} states**\n")
 
-        y = fe_df["overall_rating"].values
+        y = fe_df["overall_rating"].values.astype(np.float64)  # AUDIT FIX: int32 -> float64 for demeaning
         X = np.column_stack([
-            fe_df["is_for_profit"].values,
-            fe_df["is_chain"].values,
-            fe_df["beds_10"].values,
+            fe_df["is_for_profit"].values.astype(np.float64),
+            fe_df["is_chain"].values.astype(np.float64),
+            fe_df["beds_10"].values.astype(np.float64),
         ])
         groups = fe_df["state_code"].values
         result = panel_fe(y, X, groups, ["For-Profit", "Chain-Affiliated", "Per 10 Beds"])
@@ -693,7 +694,11 @@ def analysis_5_opioid_gap(con):
                SUM(number_of_prescriptions) AS mat_rx
         FROM fact_sdud_2025
         WHERE state_code != 'XX'
-          AND LOWER(product_name) SIMILAR TO '%(buprenorphine|suboxone|naloxone|naltrexone|vivitrol|sublocade|zubsolv)%'
+          AND (product_name ILIKE '%buprenorphine%' OR product_name ILIKE '%suboxone%'  -- AUDIT FIX: SIMILAR TO returned 0 rows; ILIKE matches correctly
+               OR product_name ILIKE '%naloxone%' OR product_name ILIKE '%naltrexone%'
+               OR product_name ILIKE '%vivitrol%' OR product_name ILIKE '%sublocade%'
+               OR product_name ILIKE '%zubsolv%' OR product_name ILIKE '%subutex%'
+               OR product_name ILIKE '%sublocade%')
           AND total_amount_reimbursed > 0
         GROUP BY state_code
         ORDER BY mat_spending_M DESC

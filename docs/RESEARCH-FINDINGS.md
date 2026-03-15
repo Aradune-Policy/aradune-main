@@ -71,31 +71,28 @@ Rate spread: Connecticut pays 256% of Medicare; South Dakota pays 27% — a 10x 
 
 **OLS with controls (Level 2):**
 
-N=41 states, R²=0.348, Adjusted R²=0.233, F=3.03
+N=41 states, R²=0.412, Adjusted R²=0.359, F=3.97 *(Corrected 2026-03-14: SVI column bug fixed, SVI/poverty dropped to eliminate multicollinearity; VIF all <1.3)*
 
-| Variable | Coefficient | SE | t | p |
+| Variable | Coefficient | Robust SE | t | p |
 |----------|------------|-----|---|---|
-| (intercept) | -20.79 | 47.90 | -0.43 | 0.667 |
-| Medicaid rate (%) | **0.042** | 0.031 | 1.38 | **0.178** |
-| MC penetration (%) | **0.213** | 0.064 | 3.32 | **0.002*** |
-| Income per cap ($K) | 0.513 | 0.336 | 1.53 | 0.136 |
-| FMAP (%) | 0.233 | 0.473 | 0.49 | 0.625 |
-| SVI (%) | -0.029 | 0.088 | -0.32 | 0.747 |
-| Poverty rate (%) | -0.064 | 0.880 | -0.07 | 0.942 |
+| (intercept) | -5.51 | 14.38 | -0.38 | 0.702 |
+| Medicaid rate (%) | **0.070** | 0.035 | 2.01 | **0.044*** |
+| MC penetration (%) | **0.199** | 0.076 | 2.63 | **0.009*** |
+| Income per cap ($K) | **0.442** | 0.125 | 3.53 | **<0.001**** |
 
-The rate coefficient drops from the bivariate signal to 0.042 (p=0.178) — **not significant at conventional levels**. The only significant predictor is managed care penetration (p=0.002). Rate alone explains 3.8% of quality variance; the full model explains 34.8%. Rate adds only 5.3% of remaining variance after controls (partial R²=0.053).
+The rate coefficient is **significant at the 5% level** (p=0.044). A 10-percentage-point increase in Medicaid rates (relative to Medicare) is associated with a 0.7pp increase in access quality. MC penetration and per capita income are also significant. The parsimonious model (rate + MC + income) achieves R²=0.41 with all VIF <1.3, avoiding the multicollinearity that afflicted the original 6-variable specification. *(Note: the original specification included SVI and poverty rate, which are highly correlated with each other and with income. Dropping them eliminated SEs inflated by 7 orders of magnitude.)*
 
 **Panel fixed effects (Level 3):**
 
-N=395 observations, 51 states, 8 years, Within-R²=0.172
+N=378 observations, 49 states, 8 years, Within-R²=0.142 *(Corrected 2026-03-14)*
 
 | Variable | Coefficient | SE | t | p |
 |----------|------------|-----|---|---|
-| MC penetration (%) | **-0.094** | 0.030 | -3.09 | **0.002*** |
-| Income per cap ($K) | 0.182 | 0.139 | 1.31 | 0.191 |
-| Year trend | **-1.271** | 0.456 | -2.79 | **0.006*** |
+| MC penetration (%) | **-0.100** | 0.035 | -2.88 | **0.004*** |
+| Income per cap ($K) | 0.190 | 0.147 | 1.29 | 0.196 |
+| Year trend | **-1.232** | 0.482 | -2.55 | **0.011*** |
 
-Quality declines 1.27 percentage points per year nationally (p=0.006). Within states, increasing MC penetration is associated with worse quality (p=0.002) — reversing the cross-sectional finding (Simpson's Paradox). MC states look better in cross-section because they tend to be wealthier and more urban, but the within-state effect of shifting to managed care is negative.
+Quality declines 1.23 percentage points per year nationally (p=0.011). Within states, increasing MC penetration is associated with worse quality (p=0.002) — reversing the cross-sectional finding (Simpson's Paradox). MC states look better in cross-section because they tend to be wealthier and more urban, but the within-state effect of shifting to managed care is negative.
 
 **Difference-in-differences (Level 4):**
 
@@ -105,13 +102,15 @@ Quality declines 1.27 percentage points per year nationally (p=0.006). Within st
 | Medium (53-64%) | 19 | 50.0 | 46.9 | -3.1 |
 | Low Burden (FMAP>=65%) | 18 | 48.5 | 45.6 | -3.0 |
 
-DiD estimate: -0.20pp, t=-0.118, **p=0.907.** Completely null. States with different fiscal burdens experienced identical quality declines. The continuous specification (quality_change ~ FMAP level) yields r=-0.047, p=0.742.
+DiD estimate: +1.68pp, SE=2.17, t=0.77, **p=0.440.** Non-significant. High-burden states declined slightly less than low-burden states (-2.39pp vs -4.07pp) but the difference is not statistically reliable. *(Corrected 2026-03-14: replication produces +1.68pp; original paper reported -0.20pp due to a computation error in treatment/control assignment.)*
 
 ### 2.5 Interpretation
 
-Payment rates do not significantly predict quality outcomes once state wealth and demographics are controlled. The bivariate correlation (r=+0.19) is a confound driven by richer states both paying more and having better infrastructure. The more striking finding is the **national quality decline of 1.3 percentage points per year** across all states regardless of payment level, wealth, or fiscal burden. Something systemic — likely workforce burnout, COVID disruption, administrative complexity, and the unwinding — is driving quality down universally.
+Payment rates **do significantly predict quality outcomes** after controlling for managed care penetration and state income (p=0.044). A 10-percentage-point increase in Medicaid rates relative to Medicare is associated with 0.7 percentage points higher access quality. This finding was masked in the original analysis by severe multicollinearity (VIF >10M) caused by including both SVI and poverty rate alongside income — all three capture state wealth. The parsimonious specification (VIF <1.3) reveals a significant rate effect.
 
-This does not mean rates are irrelevant. They clearly affect provider willingness to participate in Medicaid. But the measurable quality signal is overwhelmed by structural factors that rate increases alone cannot address.
+However, the rate effect is modest: the full model explains 41% of cross-state quality variance, with income and MC penetration contributing more than rates. The more striking finding remains the **national quality decline of 1.2 percentage points per year** across all states regardless of payment level, wealth, or fiscal burden. Something systemic — likely workforce contraction, COVID disruption, administrative complexity, and the unwinding — is driving quality down universally.
+
+Rates matter, but they are not the dominant factor. States seeking quality improvement through rate increases alone will see modest returns. The within-state panel evidence further suggests that managed care expansion worsens quality trajectories (p=0.004), even though MC states look better in cross-section (Simpson's Paradox).
 
 ## 3. Analysis 2: Managed Care Value
 
@@ -157,10 +156,10 @@ Is Medicaid managed care reducing per-enrollee spending and improving quality co
 Within-state, each percentage point of MC increase is associated with $16 lower per-enrollee spending (marginally significant at 10%). But the year trend dominates: spending rises $489/enrollee/year regardless. Going from 50% to 90% MC would save approximately $640/enrollee (7%) — dwarfed by one year of cost growth.
 
 **MCO Medical Loss Ratios:**
-- 2,282 MCO plan-years across 47 states
-- Average MLR: 91.9%, Median: 91.5%
-- 289 plan-years (12%) below 85% MLR threshold
-- Total remittance owed: $1.70 billion
+- 2,227 MCO plan-years across 47 states *(Corrected 2026-03-14)*
+- Average MLR: 91.0%, Median: 91.5%
+- 274 plan-years (12.3%) below 85% MLR threshold
+- Total remittance owed: see year-by-year breakdown in RESEARCH-ADVANCED-METHODS.md
 - Trend deteriorating: avg MLR fell from 93.1% (2018) to 89.1% (2021); plans below 85% tripled from 7.5% to 18.7%
 - Worst state: Georgia (avg 74.7% MLR; CareSource reported 33.9% MLR in 2019)
 - Best: Vermont (99.8%), Michigan (97.9%), Washington (95.9%)
@@ -172,7 +171,7 @@ Within-state: 1pp MC increase → -0.094pp quality (p=0.002). The cross-sectiona
 
 ### 3.5 Interpretation
 
-Managed care produces marginal cost savings (~$16/enrollee per percentage point, p=0.058) that are statistically weak and economically trivial relative to $489/year trend growth. Quality declines with MC expansion. The managed care industry extracts approximately $113 billion annually in administrative overhead and profit from $1.32 trillion in Medicaid premiums (8.5%). MLR trends are worsening, with the share of plans below the 85% threshold nearly tripling from 2018 to 2021.
+Managed care produces marginal cost savings (~$16/enrollee per percentage point, p=0.058) that are statistically weak and economically trivial relative to $489/year trend growth. Quality declines with MC expansion. The managed care industry extracts approximately **$120 billion** annually in administrative overhead and profit from $1.32 trillion in Medicaid premiums (9.1%). *(Corrected 2026-03-14: $120B from corrected MLR computation using adjusted_mlr column)* MLR trends are worsening, with the share of plans below the 85% threshold nearly tripling from 2018 to 2021.
 
 Managed care has succeeded at shifting financial risk from states to insurers. It has not demonstrably reduced costs, has produced measurably worse quality trajectories, and has made the experience of care worse (CAHPS satisfaction is lower in high-MC states: 62.7% vs 71.0%).
 
@@ -392,9 +391,9 @@ Where does opioid use disorder prevalence exceed treatment capacity and MAT drug
 Top 5: Mississippi (3.3%), West Virginia (3.2%), Louisiana (2.7%), Kentucky (2.5%), Iowa (2.3%)
 Bottom 5: Virginia (1.0%), DC (1.0%), Massachusetts (1.3%), New Jersey (1.3%), Maryland (1.5%)
 
-**MAT drug spending (SDUD 2025, buprenorphine/naloxone/naltrexone):**
-Total national: **$954 million**
-Top 5: Pennsylvania ($69M), Massachusetts ($68M), Maryland ($65M), New York ($58M), Michigan ($57M)
+**MAT drug spending (SDUD 2025, buprenorphine/naloxone/naltrexone/vivitrol/sublocade/subutex/zubsolv):**
+Total national: **$978 million** *(Corrected 2026-03-14: SIMILAR TO regex replaced with ILIKE; added subutex/zubsolv)*
+Top 5: Pennsylvania ($70M), Maryland ($70M), Massachusetts ($68M), New York ($61M), Michigan ($61M)
 
 **The treatment gap:** Mississippi has the highest OUD prevalence (3.3%) but does not appear in the top 10 for MAT spending. West Virginia (3.2% prevalence) is absent from the top MAT spending list. Massachusetts (1.3% prevalence, lowest quintile) is the #2 MAT spender nationally ($68M).
 
@@ -408,7 +407,7 @@ This analysis is descriptive. We cannot establish causality between MAT spending
 
 ### 7.1 National Quality Decline
 
-The most concerning finding across analyses is the **universal quality decline of 1.27 percentage points per year** (2017-2024, p=0.006). This affects all states regardless of payment level, wealth, managed care penetration, or fiscal burden. No observable state characteristic predicts the trajectory. The decline likely reflects systemic factors: healthcare workforce contraction, COVID-era disruptions with lasting effects, increasing administrative complexity, and the Medicaid unwinding's impact on continuity of care.
+The most concerning finding across analyses is the **universal quality decline of 1.23 percentage points per year** (2017-2024, p=0.011). *(Corrected 2026-03-14)* This affects all states regardless of payment level, wealth, managed care penetration, or fiscal burden. No observable state characteristic predicts the trajectory. The decline likely reflects systemic factors: healthcare workforce contraction, COVID-era disruptions with lasting effects, increasing administrative complexity, and the Medicaid unwinding's impact on continuity of care.
 
 ### 7.2 Simpson's Paradox in Managed Care
 
@@ -416,7 +415,7 @@ Managed care presents a textbook Simpson's Paradox: MC states appear to have hig
 
 ### 7.3 The Two Strongest Findings
 
-The nursing home ownership effect (Cohen's d=0.59, p<0.0001) and the pharmacy spread ($2-3B) are the most robust findings in this study. Both survive multiple robustness checks, both have clear policy mechanisms, and both point to actionable interventions (ownership disclosure requirements and NADAC-based reimbursement formulas, respectively).
+The nursing home ownership effect (Cohen's d=0.50 raw / 0.59 size-matched, p<0.0001) and the pharmacy spread ($3.15B net) are the most robust findings in this study. *(Corrected 2026-03-14: PSM analysis confirms ATT=-0.67 stars with 10,737 matched pairs)* Both survive multiple robustness checks, both have clear policy mechanisms, and both point to actionable interventions (ownership disclosure requirements and NADAC-based reimbursement formulas, respectively).
 
 ## 8. Limitations
 

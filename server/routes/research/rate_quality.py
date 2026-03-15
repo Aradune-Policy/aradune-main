@@ -17,7 +17,7 @@ async def rate_quality_correlation(measure_id: str = Query(default="prenatal_car
                            AVG(pct_of_medicare) AS avg_pct_medicare,
                            COUNT(*) AS procedure_count
                     FROM fact_rate_comparison
-                    WHERE pct_of_medicare > 0 AND pct_of_medicare < 10
+                    WHERE pct_of_medicare BETWEEN 10 AND 500  -- AUDIT FIX: was >0 AND <10 (captured 4.5% of data), correct range is 10-500
                     GROUP BY state_code
                 ),
                 quality AS (
@@ -63,7 +63,7 @@ async def rate_quality_access():
                 WITH rates AS (
                     SELECT state_code, AVG(pct_of_medicare) AS avg_pct_medicare
                     FROM fact_rate_comparison
-                    WHERE pct_of_medicare > 0 AND pct_of_medicare < 10
+                    WHERE pct_of_medicare BETWEEN 10 AND 500  -- AUDIT FIX: was >0 AND <10 (captured 4.5% of data), correct range is 10-500
                     GROUP BY state_code
                 ),
                 hpsas AS (
@@ -91,7 +91,7 @@ async def rate_quality_workforce():
                 WITH rates AS (
                     SELECT state_code, AVG(pct_of_medicare) AS avg_pct_medicare
                     FROM fact_rate_comparison
-                    WHERE pct_of_medicare > 0 AND pct_of_medicare < 10
+                    WHERE pct_of_medicare BETWEEN 10 AND 500  -- AUDIT FIX: was >0 AND <10 (captured 4.5% of data), correct range is 10-500
                     GROUP BY state_code
                 ),
                 wages AS (
@@ -123,7 +123,7 @@ async def rate_quality_detail():
                            AVG(pct_of_medicare) AS avg_pct_medicare,
                            COUNT(*) AS procedure_count
                     FROM fact_rate_comparison
-                    WHERE pct_of_medicare > 0 AND pct_of_medicare < 10
+                    WHERE pct_of_medicare BETWEEN 10 AND 500  -- AUDIT FIX: was >0 AND <10 (captured 4.5% of data), correct range is 10-500
                     GROUP BY state_code
                 ),
                 quality_agg AS (

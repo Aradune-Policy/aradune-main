@@ -48,6 +48,7 @@ async def spending_vs_revenue(state: str = Query(None), fiscal_year: int = Query
                 LEFT JOIN revenue r ON s.state_code = r.state_code AND s.fiscal_year = r.fiscal_year
                 WHERE 1=1 {extra_where}
                 ORDER BY s.fiscal_year DESC, medicaid_pct_of_revenue DESC
+                LIMIT 500
             """, params).fetchall()
             columns = [
                 "state_code", "fiscal_year", "total_spending", "federal_share",
@@ -197,7 +198,7 @@ async def fiscal_vulnerability(state: str = Query(None)):
                             THEN ROUND(b.state_share * 100.0 / b.total_tax_revenue, 1)
                             ELSE NULL END AS budget_share_pct,
                        CASE WHEN COALESCE(sg.prior_spending, 0) > 0
-                            THEN ROUND((sg.latest_spending - sg.prior_spending) * 100.0 / sg.prior_spending, 1)
+                            THEN ROUND((sg.latest_spending - sg.prior_spending) * 100.0 / NULLIF(sg.prior_spending, 0), 1)
                             ELSE NULL END AS spending_growth_pct,
                        ROUND((1 - COALESCE(f.fmap_rate, 0.5)) * 100, 1) AS state_burden_pct
                 FROM dim_state d

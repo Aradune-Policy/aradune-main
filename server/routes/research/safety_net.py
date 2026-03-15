@@ -116,10 +116,10 @@ async def staffing_crisis(state: str = Query(None)):
             rows = cur.execute(f"""
                 SELECT state_code,
                        ROUND(AVG(nursing_hprd), 2) AS avg_total_hprd,
-                       ROUND(AVG(CASE WHEN mds_census > 0 THEN hrs_rn * 24.0 / mds_census END), 2) AS avg_rn_hprd,
-                       ROUND(AVG(CASE WHEN mds_census > 0 THEN hrs_cna * 24.0 / mds_census END), 2) AS avg_cna_hprd,
+                       ROUND(AVG(CASE WHEN mds_census > 0 THEN hrs_rn * 24.0 / NULLIF(mds_census, 0) END), 2) AS avg_rn_hprd,
+                       ROUND(AVG(CASE WHEN mds_census > 0 THEN hrs_cna * 24.0 / NULLIF(mds_census, 0) END), 2) AS avg_cna_hprd,
                        ROUND(AVG(CASE WHEN nursing_hprd > 0 AND hrs_rn > 0
-                                 THEN COALESCE(hrs_rn_contract, 0) * 100.0 / hrs_rn
+                                 THEN COALESCE(hrs_rn_contract, 0) * 100.0 / NULLIF(hrs_rn, 0)
                                  END), 1) AS contract_rn_pct,
                        COUNT(DISTINCT provider_ccn) AS facilities_reporting,
                        COUNT(*) FILTER (WHERE nursing_hprd < 3.48 AND nursing_hprd > 0) AS below_minimum_count

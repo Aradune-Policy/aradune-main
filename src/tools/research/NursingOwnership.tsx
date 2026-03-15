@@ -111,10 +111,10 @@ export default function NursingOwnership() {
         <p style={{ fontSize: 14, color: AL, lineHeight: 1.7, marginTop: 12 }}>
           Facility-level analysis of 14,710 nursing homes finds that for-profit ownership is associated with a 0.67-star reduction
           in CMS Five-Star quality ratings after controlling for state fixed effects and facility size (p &lt; 0.0001, t = -23.0).
-          The effect size (Cohen's d = 0.59) is the strongest finding in this study -- medium-large and clinically meaningful,
-          representing the difference between "below average" and "above average" care. Chain affiliation costs an additional 0.09
-          stars. The mechanism is economic: for-profit facilities show staffing ratings of 2.58 vs 3.90 for nonprofit independents,
-          reflecting lower RN hours per resident day under pressure to maximize returns to investors.
+          The effect size (Cohen's d = 0.50) is the strongest finding in this study — medium and clinically meaningful,
+          representing the difference between "below average" and "above average" care. Propensity score matching (10,737 matched
+          pairs) confirms ATT = -0.67 stars (p &lt; 0.0001). Chain affiliation costs an additional 0.09 stars. The mechanism is
+          economic: for-profit facilities show staffing ratings of 2.58 vs 3.90 for nonprofit independents.
         </p>
       </div>
 
@@ -125,8 +125,8 @@ export default function NursingOwnership() {
           <div style={{ display: "flex", alignItems: isMobile ? "flex-start" : "baseline", gap: isMobile ? 8 : 16, flexDirection: isMobile ? "column" : "row" }}>
             <span style={{ fontSize: isMobile ? 36 : 48, fontWeight: 300, fontFamily: FM, color: NEG, lineHeight: 1 }}>-0.67</span>
             <span style={{ fontSize: 15, color: A, lineHeight: 1.5 }}>
-              star penalty for for-profit ownership (on a 5-point scale). p &lt; 0.0001. Cohen's d = 0.59 (medium effect).
-              Survives state fixed effects, size controls, interaction modeling, and size-matched comparisons.
+              star penalty for for-profit ownership (on a 5-point scale). p &lt; 0.0001. Cohen's d = 0.50 (medium effect).
+              Confirmed by PSM (10,737 matched pairs), state FE, size controls, and interaction modeling.
             </span>
           </div>
         </div>
@@ -456,7 +456,7 @@ HAVING group_label IS NOT NULL;`}</pre>
 
       {/* ── Ask Aradune ──────────────────────────────────────────────── */}
       <div style={{ marginTop: 24, textAlign: "center" }}>
-        <button onClick={() => openIntelligence({ summary: "User is viewing the Nursing Ownership research brief. Key finding: -0.67 star for-profit penalty (p<0.0001, Cohen's d=0.59). Strongest finding in the study. Survives state FE, size controls, interaction model, size-matched comparison." })}
+        <button onClick={() => openIntelligence({ summary: "User is viewing the Nursing Ownership research brief. Key finding: -0.67 star for-profit penalty (p<0.0001, Cohen's d=0.50). Confirmed by PSM (10,737 matched pairs). Strongest finding in the study." })}
           style={{ padding: "8px 20px", borderRadius: 8, fontSize: 11, fontWeight: 600, fontFamily: FM, border: `1px solid ${cB}`, background: WH, color: cB, cursor: "pointer" }}>
           Ask Aradune about this research
         </button>

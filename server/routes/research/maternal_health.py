@@ -223,10 +223,10 @@ async def maternal_composite(state: str = Query(None)):
                     GROUP BY state_code
                 )
                 SELECT d.state_code,
-                       smm.smm_rate AS smm_rate_per_10k,
+                       COALESCE(smm.smm_rate, 0) AS maternal_mortality_rate,
                        COALESCE(h.hpsa_count, 0) AS hpsa_count,
                        COALESCE(s.avg_svi, 0) AS avg_svi_score,
-                       q.avg_maternal_quality
+                       COALESCE(q.avg_maternal_quality, 0) AS avg_maternal_quality
                 FROM dim_state d
                 LEFT JOIN smm ON d.state_code = smm.state_code
                 LEFT JOIN hpsas h ON d.state_code = h.state_code
@@ -237,7 +237,7 @@ async def maternal_composite(state: str = Query(None)):
                 ORDER BY smm.smm_rate DESC NULLS LAST
             """, params).fetchall()
             columns = [
-                "state_code", "smm_rate_per_10k", "hpsa_count",
+                "state_code", "maternal_mortality_rate", "hpsa_count",
                 "avg_svi_score", "avg_maternal_quality",
             ]
             return {"rows": [dict(zip(columns, r)) for r in rows], "count": len(rows)}

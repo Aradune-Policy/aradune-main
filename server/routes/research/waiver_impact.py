@@ -256,8 +256,8 @@ async def waiver_compare(waiver_type: str = Query(default="expansion")):
                        CASE WHEN w.state_code IS NOT NULL THEN 'Waiver' ELSE 'No Waiver' END AS waiver_group,
                        e.total_enrollment,
                        s.total_spending,
-                       CASE WHEN e.total_enrollment > 0
-                            THEN ROUND(s.total_spending / e.total_enrollment, 2)
+                       CASE WHEN COALESCE(e.total_enrollment, 0) > 0
+                            THEN ROUND(s.total_spending / NULLIF(e.total_enrollment, 0), 2)
                             ELSE NULL END AS spending_per_enrollee
                 FROM dim_state d
                 LEFT JOIN waiver_states w ON d.state_code = w.state_code

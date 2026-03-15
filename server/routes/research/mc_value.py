@@ -50,6 +50,7 @@ async def mco_financials():
                        remittance_amount
                 FROM fact_mco_mlr
                 ORDER BY state_code, adjusted_mlr
+                LIMIT 2500
             """).fetchall()
             columns = [
                 "state_code", "plan_name", "program_name",
@@ -122,6 +123,7 @@ async def mc_quality_by_tier(measure_id: str = Query(default=None)):
                 INNER JOIN quality q ON mc.state_code = q.state_code
                 GROUP BY mc.mc_tier, q.measure_id, q.measure_name
                 ORDER BY q.measure_name, mc.mc_tier
+                LIMIT 1000
             """
             rows = cur.execute(sql, params).fetchall()
             columns = ["mc_tier", "measure_id", "measure_name", "avg_measure_rate", "state_count"]
@@ -153,6 +155,7 @@ async def mc_trend():
                 FROM mc_trend mt
                 LEFT JOIN spending_trend st ON mt.state_code = st.state_code AND mt.year = st.year
                 ORDER BY mt.year, mt.state_code
+                LIMIT 1000
             """).fetchall()
             columns = ["year", "state_code", "mc_penetration_pct", "total_spending"]
             return {"rows": [dict(zip(columns, r)) for r in rows], "count": len(rows)}

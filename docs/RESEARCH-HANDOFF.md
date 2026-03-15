@@ -145,11 +145,12 @@ curl http://localhost:8000/api/research/nursing-ownership/quality-by-type
 
 These modules were built to answer specific research questions. The data was queried and analyzed with OLS, panel fixed effects, and difference-in-differences. Key results:
 
-1. **Rates don't predict quality** after controlling for state wealth (p=0.18). Bivariate r=+0.19 is a confound.
-2. **MC saves marginally** (-$16/enrollee/pp, p=0.058) but quality *declines* with MC expansion within states (p=0.002). Simpson's Paradox.
-3. **For-profit nursing homes: -0.67 stars** with state FE, p<0.0001, Cohen's d=0.59. Strongest finding.
-4. **$2-3B pharmacy overpayment** above NADAC acquisition costs. Survives all robustness checks. Concentrated in low-cost generics (2.75x median markup).
-5. **Quality declining nationally** at 1.27pp/year regardless of state characteristics (p=0.006).
+1. **Rates DO predict quality** after controls (p=0.044, β=0.070). *(Corrected 2026-03-14: original SVI multicollinearity bug masked the effect. Parsimonious model with VIF<1.3 reveals significance.)*
+2. **MC saves marginally** (-$9.2/enrollee/pp, p=0.337) but quality *declines* with MC expansion within states (p=0.004). Simpson's Paradox. MCO admin retention: **$120B/year**.
+3. **For-profit nursing homes: -0.67 stars** with state FE, p<0.0001. PSM confirms ATT=-0.67 with 10,737 matched pairs. Strongest finding.
+4. **$3.15B net pharmacy overpayment** above NADAC acquisition costs. Survives all robustness checks. Concentrated in low-cost generics (2.61x median markup). 4 states pay below NADAC (NH, MI, HI, DE).
+5. **Quality declining nationally** at 1.23pp/year regardless of state characteristics (p=0.011).
+6. **$978M in MAT spending** — Mississippi (3.3% OUD prevalence) spends $2M vs Massachusetts (1.3%) spends $68M. Spatial Mismatch Index: 0.164.
 
 Full methods and results: `docs/RESEARCH-FINDINGS.md`
 
@@ -161,11 +162,11 @@ James wants a few headline stats near the top of the landing page — things tha
 
 | Metric | Value | Source Tables | Why It's Interesting |
 |--------|-------|---------------|---------------------|
-| **Pharmacy Overpayment** | $3.4B/year above acquisition cost | `fact_nadac` x `fact_sdud_2025` | Nobody else joins NADAC to SDUD. This number doesn't exist publicly. |
-| **MCO Admin/Profit Retention** | $113B/year (8.5% of premiums) | `fact_mco_mlr` | Computed from 2,282 MCO plan-year MLR filings. The total isn't published anywhere. |
+| **Pharmacy Overpayment** | $3.15B/year above acquisition cost | `fact_nadac` x `fact_sdud_2025` | Nobody else joins NADAC to SDUD. This number doesn't exist publicly. |
+| **MCO Admin/Profit Retention** | $120B/year (9.1% of premiums) | `fact_mco_mlr` | Computed from 2,282 MCO plan-year MLR filings. The total isn't published anywhere. |
 | **HCBS Waitlist** | 606,895 people waiting | `fact_hcbs_waitlist` | KFF publishes this but Aradune has it queryable and joinable to enrollment/spending. |
 | **Nursing Home Quality Gap** | 0.67-star for-profit penalty | `fact_five_star` (14,710 facilities) | The controlled effect size. Headlines say "for-profit worse" but nobody publishes the regression-adjusted number. |
-| **National Quality Trend** | -1.3pp/year decline (2017-2024) | `fact_quality_core_set_combined` | Panel FE across 51 states, 8 years. The direction of Medicaid quality is declining and nobody is reporting the trend line. |
+| **National Quality Trend** | -1.2pp/year decline (2017-2024) | `fact_quality_core_set_combined` | Panel FE across 51 states, 8 years. The direction of Medicaid quality is declining and nobody is reporting the trend line. |
 | **Safety Net Stress** | 20 states with compound failure | `fact_hospital_cost` x `fact_five_star` x `fact_hcbs_waitlist` | States where hospitals, nursing homes, AND HCBS are all failing simultaneously. Only possible with cross-domain joins. |
 
 **Alternative/additional options:**

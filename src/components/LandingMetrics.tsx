@@ -15,15 +15,15 @@ const METRICS: {
   accent: string;
 }[] = [
   {
-    value: "$3.4B",
+    value: "$3.15B",
     label: "Annual pharmacy overpayment above acquisition cost",
-    source: "NADAC vs. SDUD 2023",
+    source: "NADAC vs. SDUD 2025",
     accent: C.brand,
   },
   {
-    value: "$113B",
+    value: "$120B",
     label: "MCO administrative & profit retention per year",
-    source: "MCO MLR reports, 8.5% of premiums",
+    source: "MCO MLR reports, 9.1% of premiums",
     accent: "#3A7CC4",
   },
   {
@@ -33,9 +33,9 @@ const METRICS: {
     accent: "#C4590A",
   },
   {
-    value: "-1.3pp",
+    value: "-1.2pp",
     label: "Annual quality score decline, 2017-2024",
-    source: "Medicaid Core Set panel trend",
+    source: "Medicaid Core Set panel FE",
     accent: "#7B4EA3",
   },
 ];

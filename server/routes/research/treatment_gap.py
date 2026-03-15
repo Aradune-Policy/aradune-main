@@ -13,7 +13,8 @@ async def treatment_gap_demand_supply():
         with get_cursor() as cur:
             # Try opioid_use_disorder first, fall back to broader substance measures
             prevalence_sql = None
-            for measure in ("opioid_use_disorder", "illicit_drug_use_past_month", "any_substance_use_disorder"):
+            # AUDIT FIX: opioid_use_disorder doesn't exist; actual measure is oud_past_year
+            for measure in ("oud_past_year", "opioid_misuse_past_year", "sud_past_year", "illicit_drug_use_past_month"):
                 check = cur.execute(
                     "SELECT COUNT(*) FROM fact_nsduh_prevalence WHERE measure_id = $1 AND age_group = '18+'",
                     [measure],
@@ -156,6 +157,7 @@ async def treatment_gap_prescribing():
                 LEFT JOIN dim_state d ON d.state_name = o.geo_desc
                 WHERE o.geo_level = 'State'
                 ORDER BY o.year DESC, o.opioid_prescribing_rate DESC
+                LIMIT 1000
             """).fetchall()
             columns = ["state_code", "year", "opioid_prescribing_rate", "opioid_claims", "total_claims"]
             return {"rows": [dict(zip(columns, r)) for r in rows], "count": len(rows)}
@@ -191,8 +193,8 @@ async def treatment_gap_funding():
                        p.estimate_pct AS prevalence_pct,
                        COALESCE(g.total_block_grant, 0) AS total_block_grant,
                        e.total_enrollment,
-                       CASE WHEN e.total_enrollment > 0
-                            THEN ROUND(g.total_block_grant / e.total_enrollment, 2)
+                       CASE WHEN COALESCE(e.total_enrollment, 0) > 0
+                            THEN ROUND(COALESCE(g.total_block_grant, 0) / NULLIF(e.total_enrollment, 0), 2)
                             ELSE 0 END AS grant_per_enrollee
                 FROM prevalence p
                 LEFT JOIN grants g ON p.state_code = g.state_code

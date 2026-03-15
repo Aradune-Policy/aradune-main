@@ -661,10 +661,10 @@ function Landing() {
           {/* Headline stats row */}
           <div style={{ display: "grid", gridTemplateColumns: isMobile ? "1fr 1fr" : "repeat(4, 1fr)", gap: 10, marginBottom: 20 }}>
             {[
-              { val: "$3.4B", label: "Pharmacy overpayment above acquisition cost", src: "NADAC vs SDUD", color: C.brand, link: "research/pharmacy-spread" },
-              { val: "$113B", label: "MCO admin & profit retention per year", src: "MCO MLR filings", color: "#3A7CC4", link: "research/mc-value" },
+              { val: "$3.15B", label: "Pharmacy overpayment above acquisition cost", src: "NADAC vs SDUD 2025", color: C.brand, link: "research/pharmacy-spread" },
+              { val: "$120B", label: "MCO admin & profit retention per year", src: "MCO MLR filings", color: "#3A7CC4", link: "research/mc-value" },
               { val: "607K", label: "People on HCBS waitlists", src: "CMS-372 / KFF", color: "#C4590A", link: "research/safety-net" },
-              { val: "-1.3pp", label: "Annual quality decline, all states", src: "Core Set panel FE", color: "#7B4EA3", link: "research/rate-quality" },
+              { val: "-1.2pp", label: "Annual quality decline, all states", src: "Core Set panel FE", color: "#7B4EA3", link: "research/rate-quality" },
             ].map(s => (
               <a key={s.val} href={`#/${s.link}`} style={{ display: "block", background: "#fff", borderRadius: 8, boxShadow: SHADOW, borderTop: `3px solid ${s.color}`, padding: isMobile ? "10px 10px 8px" : "14px 14px 10px", textDecoration: "none" }}>
                 <div style={{ fontSize: isMobile ? 18 : 22, fontWeight: 700, color: C.ink, fontFamily: FONT.mono, lineHeight: 1 }}>{s.val}</div>
@@ -677,11 +677,11 @@ function Landing() {
           {/* Key findings — condensed, clickable */}
           <div style={{ display: "grid", gap: 8 }}>
             {[
-              { color: "#D93025", finding: "Paying more doesn't improve quality", detail: "p=0.178 after controlling for state wealth, MC penetration, income, FMAP, SVI, poverty", link: "research/rate-quality" },
+              { color: "#059669", finding: "Paying more does improve quality", detail: "p=0.044 after controls. 10pp rate increase → 0.7pp quality gain. Original p=0.178 was artifact of multicollinearity.", link: "research/rate-quality" },
               { color: "#D97706", finding: "Managed care's quality paradox", detail: "Within states, increasing MC penetration worsens quality (p=0.004). Cross-sectional correlation is Simpson's Paradox.", link: "research/mc-value" },
-              { color: "#059669", finding: "For-profit nursing homes: -0.67 stars", detail: "Survives state FE, size controls, matched comparisons. Cohen's d=0.59, p<0.0001. 14,710 facilities.", link: "research/nursing-ownership" },
-              { color: "#3A7CC4", finding: "$2-3B pharmacy overpayment", detail: "NADAC vs SDUD. Concentrated in low-cost generics (2.75x median markup). Survives all robustness checks.", link: "research/pharmacy-spread" },
-              { color: "#7B4EA3", finding: "Quality declining everywhere", detail: "-1.3pp/year (2017-2024). Uniform across all states regardless of payment levels or fiscal burden. p=0.006.", link: "research/rate-quality" },
+              { color: "#D93025", finding: "For-profit nursing homes: -0.67 stars", detail: "Survives state FE, size controls, PSM (10,737 matched pairs). Cohen's d=0.50, p<0.0001. 14,710 facilities.", link: "research/nursing-ownership" },
+              { color: "#3A7CC4", finding: "$3.15B pharmacy overpayment", detail: "NADAC vs SDUD. Concentrated in low-cost generics (2.61x median markup). 4 states pay below NADAC.", link: "research/pharmacy-spread" },
+              { color: "#7B4EA3", finding: "Quality declining everywhere", detail: "-1.2pp/year (2017-2024). Uniform across all states regardless of payment levels or fiscal burden. p=0.011.", link: "research/rate-quality" },
             ].map(f => (
               <a key={f.finding} href={`#/${f.link}`} style={{ display: "flex", alignItems: isMobile ? "flex-start" : "baseline", gap: isMobile ? 8 : 10, padding: isMobile ? "8px 10px" : "8px 12px", borderRadius: 6, background: "#FAFBFC", border: "1px solid #E2E8F0", textDecoration: "none", transition: "background 0.15s", cursor: "pointer" }}
                 onMouseEnter={e => { (e.currentTarget as HTMLElement).style.background = "#F1F5F9"; }}

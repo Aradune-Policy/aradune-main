@@ -1,6 +1,6 @@
 # Aradune Cross-Domain Research: Replication Results
 
-**Generated:** 2026-03-14 09:41
+**Generated:** 2026-03-14 21:40
 
 **Data Lake:** /Users/jamestori/Desktop/Aradune/data/lake
 
@@ -75,10 +75,10 @@ States with 3+ access measures: **51**
               AND per_capita_personal_income IS NOT NULL
         ) bea ON d.state_code = bea.bea_st
         LEFT JOIN (
-            SELECT state_code AS svi_st, AVG(rpl_themes) AS avg_svi
+            SELECT st_abbr AS svi_st, AVG(rpl_themes) AS avg_svi  -- AUDIT FIX: state_code -> st_abbr (column doesn't exist in fact_svi_county)
             FROM fact_svi_county
-            WHERE rpl_themes IS NOT NULL
-            GROUP BY state_code
+            WHERE rpl_themes IS NOT NULL AND rpl_themes >= 0
+            GROUP BY st_abbr
         ) svi ON d.state_code = svi.svi_st
         LEFT JOIN (
             SELECT state_code AS pov_st, pct_poverty AS poverty_rate
@@ -93,22 +93,22 @@ States with 3+ access measures: **51**
 
 Merged sample: **N=41** states
 
-**R² = -0.918, Adjusted R² = -1.325, F = -2.71**
+**R² = 0.412, Adjusted R² = 0.287, F = 3.97**
 
 
 ### OLS Results: Access Quality ~ Rate + Controls
 
 | Variable | Coefficient | SE | t | p |
 | --- | --- | --- | --- | --- |
-| (intercept) | -34.798 | 88150959.354 | -0.00 | 1.000 |
-| Medicaid rate (%) | 0.067 | 0.054 | 1.24 | 0.214 |
-| MC penetration (%) | 0.195 | 0.090 | 2.17 | 0.030* |
-| Income per cap ($K) | 0.556 | 0.566 | 0.98 | 0.326 |
-| FMAP (%) | 22.858 | 79.275 | 0.29 | 0.773 |
-| SVI (%) | 3.313 | 176304139.332 | 0.00 | 1.000 |
-| Poverty rate (%) | -0.260 | 1.278 | -0.20 | 0.839 |
+| (intercept) | -23.855 | 45.507 | -0.52 | 0.600 |
+| Medicaid rate (%) | 0.067 | 0.030 | 2.25 | 0.025* |
+| MC penetration (%) | 0.196 | 0.050 | 3.91 | 0.000*** |
+| Income per cap ($K) | 0.559 | 0.322 | 1.74 | 0.082† |
+| FMAP (%) | 23.202 | 44.545 | 0.52 | 0.602 |
+| SVI (%) | -0.376 | 8.327 | -0.05 | 0.964 |
+| Poverty rate (%) | -0.243 | 0.799 | -0.30 | 0.761 |
 
-**Key finding:** Medicaid rate coefficient = 0.067 (p=0.214). Not significant at 5% level. MC penetration coefficient = 0.195 (p=0.030).
+**Key finding:** Medicaid rate coefficient = 0.067 (p=0.025). Significant at 5% level. MC penetration coefficient = 0.196 (p=0.000).
 
 ## Step 5: Panel Fixed Effects (2017-2024)
 
@@ -207,23 +207,25 @@ N=332, groups=48, within-R²=0.385
 
         SELECT state_code,
                COUNT(*) AS n_plans,
-               ROUND(AVG(mlr), 1) AS avg_mlr,
-               ROUND(MIN(mlr), 1) AS min_mlr,
-               SUM(CASE WHEN mlr < 85 THEN 1 ELSE 0 END) AS below_85,
-               ROUND(SUM(total_premium) / 1e9, 2) AS total_premium_B,
-               ROUND(SUM(total_premium) * (1 - AVG(mlr)/100) / 1e9, 2) AS admin_profit_B
+               ROUND(AVG(adjusted_mlr), 1) AS avg_mlr,
+               ROUND(MIN(adjusted_mlr), 1) AS min_mlr,
+               SUM(CASE WHEN adjusted_mlr < 85 THEN 1 ELSE 0 END) AS below_85,
+               ROUND(SUM(mlr_denominator) / 1e9, 2) AS total_premium_B,
+               ROUND(SUM(mlr_denominator) * (1 - AVG(adjusted_mlr)/100) / 1e9, 2) AS admin_profit_B
         FROM fact_mco_mlr
-        WHERE mlr IS NOT NULL AND mlr > 0 AND mlr < 120
+        WHERE adjusted_mlr IS NOT NULL AND adjusted_mlr > 0 AND adjusted_mlr < 120
         GROUP BY state_code
         ORDER BY avg_mlr ASC
     
 ```
 
-MLR analysis failed: Binder Error: Referenced column "mlr" not found in FROM clause!
-Candidate bindings: "mlr_numerator", "mlr_denominator", "member_months", "source"
+Total MCO premiums: **$1324B**
 
-LINE 10:         WHERE mlr IS NOT NULL AND mlr > 0 AND mlr < 120
-                       ^
+Average MLR: **91.0%**
+
+Plans below 85% MLR: **274** of 2227 (12.3%)
+
+Estimated admin/profit retention: **$120B/year**
 
 
 ---
@@ -276,18 +278,28 @@ LINE 10:         WHERE mlr IS NOT NULL AND mlr > 0 AND mlr < 120
                     THEN 1 ELSE 0 END AS is_for_profit,
                CASE WHEN chain_name IS NOT NULL AND chain_name != '' AND chain_name != 'N/A'
                     THEN 1 ELSE 0 END AS is_chain,
-               COALESCE(number_of_certified_beds, 0) / 10.0 AS beds_10
+               COALESCE(certified_beds, 0) / 10.0 AS beds_10  -- AUDIT FIX: number_of_certified_beds -> certified_beds
         FROM fact_five_star
         WHERE overall_rating IS NOT NULL
           AND state_code IS NOT NULL AND LENGTH(state_code) = 2
     
 ```
 
-State FE failed: Binder Error: Referenced column "number_of_certified_beds" not found in FROM clause!
-Candidate bindings: "certified_beds", "fine_count", "avg_residents_per_day", "recent_ownership_change", "deficiency_score"
+Sample: **14574 facilities, 53 states**
 
-LINE 8:                COALESCE(number_of_certified_beds, 0) / 10.0 AS beds_10
-                                ^
+
+### State FE + Size Controls
+
+| Variable | Coefficient | SE | t | p |
+| --- | --- | --- | --- | --- |
+| For-Profit | -0.671 | 0.029 | -23.0 | 0.000000*** |
+| Chain-Affiliated | -0.088 | 0.027 | -3.2 | 0.001294** |
+| Per 10 Beds | -0.046 | 0.002 | -22.1 | 0.000000*** |
+
+N=14574, groups=53, within-R²=0.083
+
+
+**Cohen's d = 0.50** (for-profit vs non-for-profit, within-state)
 
 
 ## Worst Chains (≥10 facilities)
@@ -318,8 +330,8 @@ LINE 8:                COALESCE(number_of_certified_beds, 0) / 10.0 AS beds_10
 | PLANTATION MANAGEMENT COMPANY | 16 | 1.44 | 1.25 |
 | EVERCARE SKILLED NURSING | 11 | 1.45 | 1.55 |
 | SABA HEALTHCARE | 11 | 1.45 | 1.36 |
-| ALLIANCE HEALTH GROUP | 10 | 1.50 | 1.80 |
 | AVID HEALTHCARE GROUP | 10 | 1.50 | 2.70 |
+| ALLIANCE HEALTH GROUP | 10 | 1.50 | 1.80 |
 
 ---
 
@@ -398,16 +410,20 @@ Markup cap 2x: **$1.93B**
                SUM(number_of_prescriptions) AS mat_rx
         FROM fact_sdud_2025
         WHERE state_code != 'XX'
-          AND LOWER(product_name) SIMILAR TO '%(buprenorphine|suboxone|naloxone|naltrexone|vivitrol|sublocade|zubsolv)%'
+          AND (product_name ILIKE '%buprenorphine%' OR product_name ILIKE '%suboxone%'  -- AUDIT FIX: SIMILAR TO returned 0 rows; ILIKE matches correctly
+               OR product_name ILIKE '%naloxone%' OR product_name ILIKE '%naltrexone%'
+               OR product_name ILIKE '%vivitrol%' OR product_name ILIKE '%sublocade%'
+               OR product_name ILIKE '%zubsolv%' OR product_name ILIKE '%subutex%'
+               OR product_name ILIKE '%sublocade%')
           AND total_amount_reimbursed > 0
         GROUP BY state_code
         ORDER BY mat_spending_M DESC
     
 ```
 
-National MAT Medicaid spending: **$0M**
+National MAT Medicaid spending: **$978M**
 
-Top 5 states: 
+Top 5 states: PA ($70M), MD ($70M), MA ($68M), NY ($61M), MI ($61M)
 
 
 ---

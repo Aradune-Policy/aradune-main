@@ -113,14 +113,15 @@ async def integrity_enforcement(state: str = Query(None), fiscal_year: int = Que
 
             # Try the expected schema first
             try:
+                # AUDIT FIX: column names corrected to match actual fact_mfcu_stats schema
                 rows = cur.execute(f"""
                     SELECT state_code, fiscal_year,
-                           COALESCE(cases_opened, 0) AS cases_opened,
-                           COALESCE(convictions, 0) AS convictions,
-                           COALESCE(civil_settlements, 0) AS civil_settlements,
-                           COALESCE(recoveries_total, 0) AS recoveries_total,
-                           COALESCE(program_expenditures, 0) AS program_expenditures,
-                           ROUND(COALESCE(recoveries_total, 0) / NULLIF(COALESCE(program_expenditures, 0), 0), 2) AS roi
+                           COALESCE(total_investigations, 0) AS cases_opened,
+                           COALESCE(total_convictions, 0) AS convictions,
+                           COALESCE(civil_settlements_judgments, 0) AS civil_settlements,
+                           COALESCE(total_recoveries, 0) AS recoveries_total,
+                           COALESCE(mfcu_grant_expenditures, 0) AS program_expenditures,
+                           ROUND(COALESCE(total_recoveries, 0) / NULLIF(COALESCE(mfcu_grant_expenditures, 0), 0), 2) AS roi
                     FROM fact_mfcu_stats
                     {where_clause}
                     ORDER BY fiscal_year DESC, state_code
@@ -159,15 +160,19 @@ async def integrity_perm(fiscal_year: int = Query(None)):
                 params.append(fiscal_year)
 
             try:
+                # AUDIT FIX: column names corrected to match actual fact_perm_rates schema
+                # fiscal_year -> year, improper_payment_rate_pct -> overall_rate_pct,
+                # managed_care_rate_pct -> mc_rate_pct, eligibility_error_rate_pct -> eligibility_rate_pct
+                perm_where = where_clause.replace("fiscal_year", "year") if where_clause else ""
                 rows = cur.execute(f"""
-                    SELECT fiscal_year,
-                           COALESCE(improper_payment_rate_pct, 0) AS improper_payment_rate_pct,
+                    SELECT year AS fiscal_year,
+                           COALESCE(overall_rate_pct, 0) AS improper_payment_rate_pct,
                            COALESCE(ffs_rate_pct, 0) AS ffs_rate_pct,
-                           COALESCE(managed_care_rate_pct, 0) AS managed_care_rate_pct,
-                           COALESCE(eligibility_error_rate_pct, 0) AS eligibility_error_rate_pct
+                           COALESCE(mc_rate_pct, 0) AS managed_care_rate_pct,
+                           COALESCE(eligibility_rate_pct, 0) AS eligibility_error_rate_pct
                     FROM fact_perm_rates
-                    {where_clause}
-                    ORDER BY fiscal_year DESC
+                    {perm_where}
+                    ORDER BY year DESC
                 """, params).fetchall()
                 columns = [
                     "fiscal_year", "improper_payment_rate_pct", "ffs_rate_pct",

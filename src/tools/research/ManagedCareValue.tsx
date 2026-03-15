@@ -99,16 +99,15 @@ export default function ManagedCareValue() {
       <div style={{ marginBottom: 32 }}>
         <div style={{ fontSize: 9, fontFamily: FM, color: AL, textTransform: "uppercase", letterSpacing: 1, marginBottom: 6 }}>Aradune Research Brief</div>
         <h1 style={{ fontSize: isMobile ? 22 : 28, fontWeight: 800, color: A, margin: 0, lineHeight: 1.2, letterSpacing: -0.5 }}>
-          Medicaid Managed Care Saves Marginally, but Quality Declines and Industry Retains ~$113B Annually
+          Medicaid Managed Care Saves Marginally, but Quality Declines and Industry Retains ~$120B Annually
         </h1>
         <p style={{ fontSize: 14, color: AL, lineHeight: 1.7, marginTop: 12 }}>
-          Panel fixed effects analysis of 357 state-year observations finds that each percentage point increase in managed care
-          penetration is associated with $16 lower per-enrollee spending (p = 0.058, marginally significant). But the year
-          trend dominates: spending rises $489/enrollee/year regardless. Going from 50% to 90% MC would save roughly $640/enrollee
-          (7%) -- dwarfed by one year of cost growth. Within states, quality <em>declines</em> with MC expansion (-0.094pp per
-          1pp MC, p = 0.002), reversing the cross-sectional finding. The MCO industry retains approximately $113 billion annually
-          in administrative overhead and profit from $1.32 trillion in premiums. MLR trends are worsening: the share of plans
-          below the 85% threshold nearly tripled from 7.5% (2018) to 18.7% (2021).
+          Panel fixed effects analysis of 332 state-year observations finds that each percentage point increase in managed care
+          penetration is associated with $9.2 lower per-enrollee spending (p = 0.337, not significant). The year
+          trend dominates: spending rises $433/enrollee/year regardless. Within states, quality <em>declines</em> with MC
+          expansion (-0.100pp per 1pp MC, p = 0.004), reversing the cross-sectional finding. The MCO industry retains
+          approximately $120 billion annually in administrative overhead and profit from $1.32 trillion in premiums (9.1%).
+          MLR trends are worsening: the share of plans below the 85% threshold grew from 0% (2017) to 18.7% (2021).
         </p>
       </div>
 
@@ -117,9 +116,9 @@ export default function ManagedCareValue() {
         <div style={{ padding: isMobile ? "16px" : "24px 28px" }}>
           <div style={{ fontSize: 9, fontFamily: FM, color: AL, textTransform: "uppercase", letterSpacing: 1, marginBottom: 8 }}>Key Finding</div>
           <div style={{ display: "flex", alignItems: isMobile ? "flex-start" : "baseline", gap: isMobile ? 8 : 16, flexDirection: isMobile ? "column" : "row" }}>
-            <span style={{ fontSize: isMobile ? 36 : 48, fontWeight: 300, fontFamily: FM, color: NEG, lineHeight: 1 }}>~$113B</span>
+            <span style={{ fontSize: isMobile ? 36 : 48, fontWeight: 300, fontFamily: FM, color: NEG, lineHeight: 1 }}>~$120B</span>
             <span style={{ fontSize: 15, color: A, lineHeight: 1.5 }}>
-              retained annually by the MCO industry (8.5% of $1.32T in premiums). 289 plan-years (12%) report MLR below the 85% threshold. Total remittance owed: $1.70 billion.
+              retained annually by the MCO industry (9.1% of $1.32T in premiums). 274 plan-years (12.3%) report MLR below the 85% threshold. Plans below 85% nearly tripled from 2018 to 2021.
             </span>
           </div>
         </div>
@@ -324,7 +323,7 @@ ORDER BY avg_mlr;
 
       {/* ── Ask Aradune ──────────────────────────────────────────────── */}
       <div style={{ marginTop: 24, textAlign: "center" }}>
-        <button onClick={() => openIntelligence({ summary: "User is viewing the Managed Care Value research brief. Key findings: MC saves -$16/enrollee (p=0.058) but quality declines (p=0.002). Simpson's Paradox. MCO industry retains ~$113B/yr. MLR worsening." })}
+        <button onClick={() => openIntelligence({ summary: "User is viewing the Managed Care Value research brief. Key findings: MC saves -$9.2/enrollee (p=0.337, not significant) but quality declines (p=0.004). Simpson's Paradox. MCO industry retains ~$120B/yr. MLR worsening." })}
           style={{ padding: "8px 20px", borderRadius: 8, fontSize: 11, fontWeight: 600, fontFamily: FM, border: `1px solid ${cB}`, background: WH, color: cB, cursor: "pointer" }}>
           Ask Aradune about this research
         </button>

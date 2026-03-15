@@ -6,32 +6,64 @@ from server.db import get_cursor
 router = APIRouter()
 
 
+ACCESS_MEASURES = ('W30-CH','WCV-CH','CIS-CH','IMA-CH','PPC2-AD','CCS-AD','CHL-AD','DEV-CH','BCS-AD','COL-AD')
+
 @router.get("/api/research/rate-quality/correlation")
-async def rate_quality_correlation(measure_id: str = Query(default="prenatal_care")):
-    """Correlate average Medicaid-to-Medicare rate ratio with a quality measure by state."""
+async def rate_quality_correlation(measure_id: str = Query(default="access_composite")):
+    """Correlate average Medicaid-to-Medicare rate ratio with a quality measure by state.
+
+    Special measure_id 'access_composite' computes average across 10 access-sensitive measures.
+    """
     try:
         with get_cursor() as cur:
-            rows = cur.execute("""
-                WITH rates AS (
-                    SELECT state_code,
-                           AVG(pct_of_medicare) AS avg_pct_medicare,
-                           COUNT(*) AS procedure_count
-                    FROM fact_rate_comparison
-                    WHERE pct_of_medicare BETWEEN 10 AND 500  -- AUDIT FIX: was >0 AND <10 (captured 4.5% of data), correct range is 10-500
-                    GROUP BY state_code
-                ),
-                quality AS (
-                    SELECT state_code, state_rate
-                    FROM fact_quality_core_set_2024
-                    WHERE measure_id = $1
-                      AND state_rate IS NOT NULL
-                )
-                SELECT r.state_code, r.avg_pct_medicare, r.procedure_count,
-                       q.state_rate AS measure_rate
-                FROM rates r
-                INNER JOIN quality q ON r.state_code = q.state_code
-                ORDER BY r.avg_pct_medicare
-            """, [measure_id]).fetchall()
+            if measure_id == "access_composite":
+                # Compute average across access-sensitive measures
+                rows = cur.execute("""
+                    WITH rates AS (
+                        SELECT state_code,
+                               AVG(pct_of_medicare) AS avg_pct_medicare,
+                               COUNT(*) AS procedure_count
+                        FROM fact_rate_comparison
+                        WHERE pct_of_medicare BETWEEN 10 AND 500
+                        GROUP BY state_code
+                    ),
+                    quality AS (
+                        SELECT state_code, AVG(state_rate) AS state_rate
+                        FROM fact_quality_core_set_2024
+                        WHERE measure_id IN ('W30-CH','WCV-CH','CIS-CH','IMA-CH','PPC2-AD',
+                                             'CCS-AD','CHL-AD','DEV-CH','BCS-AD','COL-AD')
+                          AND state_rate IS NOT NULL AND state_rate > 0
+                        GROUP BY state_code
+                        HAVING COUNT(DISTINCT measure_id) >= 3
+                    )
+                    SELECT r.state_code, r.avg_pct_medicare, r.procedure_count,
+                           q.state_rate AS measure_rate
+                    FROM rates r
+                    INNER JOIN quality q ON r.state_code = q.state_code
+                    ORDER BY r.avg_pct_medicare
+                """).fetchall()
+            else:
+                rows = cur.execute("""
+                    WITH rates AS (
+                        SELECT state_code,
+                               AVG(pct_of_medicare) AS avg_pct_medicare,
+                               COUNT(*) AS procedure_count
+                        FROM fact_rate_comparison
+                        WHERE pct_of_medicare BETWEEN 10 AND 500
+                        GROUP BY state_code
+                    ),
+                    quality AS (
+                        SELECT state_code, state_rate
+                        FROM fact_quality_core_set_2024
+                        WHERE measure_id = $1
+                          AND state_rate IS NOT NULL
+                    )
+                    SELECT r.state_code, r.avg_pct_medicare, r.procedure_count,
+                           q.state_rate AS measure_rate
+                    FROM rates r
+                    INNER JOIN quality q ON r.state_code = q.state_code
+                    ORDER BY r.avg_pct_medicare
+                """, [measure_id]).fetchall()
             columns = ["state_code", "avg_pct_medicare", "procedure_count", "measure_rate"]
             return {"rows": [dict(zip(columns, r)) for r in rows], "count": len(rows)}
     except Exception as exc:

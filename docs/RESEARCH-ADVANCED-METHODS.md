@@ -1,6 +1,6 @@
 # Aradune Cross-Domain Research: Advanced Methods Report
 
-**Generated:** 2026-03-14 21:40
+**Generated:** 2026-03-15 00:40
 
 **Data Lake:** /Users/jamestori/Desktop/Aradune/data/lake
 
@@ -76,11 +76,11 @@ IV R² = -374.147
 
 | Quantile | Rate Coefficient | SE (bootstrap) | p |
 | --- | --- | --- | --- |
-| τ=0.10 | 0.0074 | 0.0520 | 0.8875 |
-| τ=0.25 | 0.0037 | 0.0520 | 0.9432 |
-| τ=0.50 | 0.0745 | 0.0520 | 0.1514 |
-| τ=0.75 | 0.0857 | 0.0520 | 0.0993† |
-| τ=0.90 | 0.0810 | 0.0520 | 0.1190 |
+| τ=0.10 | 0.0074 | 0.0471 | 0.8760 |
+| τ=0.25 | 0.0037 | 0.0471 | 0.9373 |
+| τ=0.50 | 0.0745 | 0.0471 | 0.1138 |
+| τ=0.75 | 0.0857 | 0.0471 | 0.0692† |
+| τ=0.90 | 0.0810 | 0.0471 | 0.0856† |
 
 *If the coefficient is larger at lower quantiles, rate increases help struggling states more.*
 
@@ -168,16 +168,18 @@ Matched pairs: **10737** (caliper=0.05)
 | Outcome | For-Profit | Nonprofit (matched) | ATT | p-value |
 | --- | --- | --- | --- | --- |
 | Overall Rating | 2.80 | 3.47 | -0.67 | 0.000000*** |
-| Staffing Rating | 2.62 | 3.60 | -0.98 | nan |
+| Staffing Rating | 2.62 | 3.60 | -0.98 | 0.000000*** |
 | Inspection Rating | 2.67 | 3.19 | -0.53 | 0.000000*** |
-| QM Rating | 3.60 | 3.63 | -0.03 | — |
-| Avg Deficiencies | 10.4 | 7.7 | +2.8 | — |
+| QM Rating | 3.60 | 3.63 | -0.03 | 0.137802 |
+| Avg Deficiencies | 10.4 | 7.7 | +2.8 | 0.000000*** |
 
 ### Covariate Balance (Post-Matching)
 
-- beds: SMD = -0.178 ⚠️ imbalanced
+- beds: SMD = -0.121 [!] imbalanced (>0.1)
 
-- avg_residents: SMD = -0.155 ⚠️ imbalanced
+- avg_residents: SMD = -0.112 [!] imbalanced (>0.1)
+
+- in_hospital: SMD = -0.020 [check]
 
 
 ## 3B. Change-of-Ownership (CHOW) Event Study
@@ -229,20 +231,24 @@ would enable a proper event study design.*
 
 Drugs for ML analysis: **30,558**
 
-**Random Forest R² (in-sample): 0.750**
+**Random Forest R² (in-sample): 0.751**
+
+**5-Fold Cross-Validated R²: 0.622 +/- 0.010**
+
+*(Fold scores: 0.632, 0.629, 0.604, 0.619, 0.627)*
 
 
 ### Top 10 Features Predicting Drug Overpayment
 
 | Feature | Importance | % Total |
 | --- | --- | --- |
-| log_rx | 0.4867 | 48.7% |
-| log_nadac | 0.3086 | 30.9% |
-| n_states | 0.1122 | 11.2% |
-| log_units | 0.0797 | 8.0% |
+| log_rx | 0.4776 | 47.8% |
+| log_nadac | 0.3084 | 30.8% |
+| n_states | 0.1209 | 12.1% |
+| log_units | 0.0804 | 8.0% |
 | unit_ML | 0.0079 | 0.8% |
-| unit_GM | 0.0036 | 0.4% |
-| tier_Medium ($1-$10) | 0.0006 | 0.1% |
+| unit_GM | 0.0035 | 0.4% |
+| tier_Medium ($1-$10) | 0.0007 | 0.1% |
 | tier_Low (<$1) | 0.0004 | 0.0% |
 | tier_Specialty ($100+) | 0.0002 | 0.0% |
 
@@ -323,6 +329,18 @@ National MAT spending: **$978M**
 | WY | 2.2% | $0M | $6110/1K | 133 | 0.601 |
 
 ## 5B. State Typology Clustering
+
+
+### Cluster Selection (Silhouette Analysis)
+
+| k | Silhouette Score | Inertia |
+| --- | --- | --- |
+| 3 | 0.270 | 79.4 |
+| 4 | 0.291 | 60.4 |
+| 5 | 0.284 | 50.7 |
+| 6 | 0.335 | 39.9 |
+
+*Best k by silhouette: **6** (score=0.335). Using k=4 for interpretability.*
 
 
 ### State Typology (K-Means, 4 clusters)

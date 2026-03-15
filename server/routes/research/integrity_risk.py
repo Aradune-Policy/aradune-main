@@ -125,6 +125,7 @@ async def integrity_enforcement(state: str = Query(None), fiscal_year: int = Que
                     FROM fact_mfcu_stats
                     {where_clause}
                     ORDER BY fiscal_year DESC, state_code
+                    LIMIT 500
                 """, params).fetchall()
                 columns = [
                     "state_code", "fiscal_year", "cases_opened", "convictions",

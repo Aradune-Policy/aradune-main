@@ -657,10 +657,13 @@ def analysis_3_enhanced(con):
             att_qm = matched_fp["qm_rating"].mean() - matched_np["qm_rating"].mean()
             att_deficiency = matched_fp["deficiency_count"].mean() - matched_np["deficiency_count"].mean()
 
-            # T-tests
-            _, p_overall = sp_stats.ttest_ind(matched_fp["overall_rating"], matched_np["overall_rating"])
-            _, p_staffing = sp_stats.ttest_ind(matched_fp["staffing_rating"], matched_np["staffing_rating"])
-            _, p_inspection = sp_stats.ttest_ind(matched_fp["health_inspection_rating"], matched_np["health_inspection_rating"])
+            # T-tests (nan_policy='omit' handles missing staffing ratings)
+            _, p_overall = sp_stats.ttest_ind(matched_fp["overall_rating"].dropna(), matched_np["overall_rating"].dropna())
+            _, p_staffing = sp_stats.ttest_ind(matched_fp["staffing_rating"].dropna(), matched_np["staffing_rating"].dropna())
+            _, p_inspection = sp_stats.ttest_ind(matched_fp["health_inspection_rating"].dropna(), matched_np["health_inspection_rating"].dropna())
+
+            _, p_qm = sp_stats.ttest_ind(matched_fp["qm_rating"].dropna(), matched_np["qm_rating"].dropna())
+            _, p_deficiency = sp_stats.ttest_ind(matched_fp["deficiency_count"].dropna(), matched_np["deficiency_count"].dropna())
 
             rows = [
                 ["Overall Rating", f"{matched_fp['overall_rating'].mean():.2f}",
@@ -670,18 +673,20 @@ def analysis_3_enhanced(con):
                 ["Inspection Rating", f"{matched_fp['health_inspection_rating'].mean():.2f}",
                  f"{matched_np['health_inspection_rating'].mean():.2f}", f"{att_inspection:.2f}", f"{p_inspection:.6f}{sig_stars(p_inspection)}"],
                 ["QM Rating", f"{matched_fp['qm_rating'].mean():.2f}",
-                 f"{matched_np['qm_rating'].mean():.2f}", f"{att_qm:.2f}", "—"],
+                 f"{matched_np['qm_rating'].mean():.2f}", f"{att_qm:.2f}", f"{p_qm:.6f}{sig_stars(p_qm)}"],
                 ["Avg Deficiencies", f"{matched_fp['deficiency_count'].mean():.1f}",
-                 f"{matched_np['deficiency_count'].mean():.1f}", f"{att_deficiency:+.1f}", "—"],
+                 f"{matched_np['deficiency_count'].mean():.1f}", f"{att_deficiency:+.1f}", f"{p_deficiency:.6f}{sig_stars(p_deficiency)}"],
             ]
             report.append(fmt_table(["Outcome", "For-Profit", "Nonprofit (matched)", "ATT", "p-value"], rows,
                                      "PSM Average Treatment Effect on Treated"))
 
-            # Balance check
+            # Balance check (using pooled SD for standardized mean difference)
             report.append("\n### Covariate Balance (Post-Matching)\n")
-            for var in ["beds", "avg_residents"]:
-                smd = (matched_fp[var].mean() - matched_np[var].mean()) / matched_fp[var].std()
-                report.append(f"- {var}: SMD = {smd:.3f} {'✓' if abs(smd) < 0.1 else '⚠️ imbalanced'}\n")
+            for var in ["beds", "avg_residents", "in_hospital"]:
+                pooled_sd = np.sqrt((matched_fp[var].var() + matched_np[var].var()) / 2)
+                smd = (matched_fp[var].mean() - matched_np[var].mean()) / max(pooled_sd, 1e-6)
+                status = "ok" if abs(smd) < 0.1 else "imbalanced (>0.1)"
+                report.append(f"- {var}: SMD = {smd:.3f} {'[check]' if abs(smd) < 0.1 else '[!] ' + status}\n")
 
     except Exception as e:
         report.append(f"PSM failed: {e}\n")
@@ -813,11 +818,17 @@ def analysis_4_enhanced(con):
             rf = RandomForestRegressor(n_estimators=200, max_depth=10, random_state=42, n_jobs=-1)
             rf.fit(X_ml, y_ml)
 
+            # 5-fold cross-validation
+            from sklearn.model_selection import cross_val_score
+            cv_scores = cross_val_score(rf, X_ml, y_ml, cv=5, scoring="r2")
+
             # Feature importance
             importances = rf.feature_importances_
             sorted_idx = np.argsort(importances)[::-1]
 
             report.append(f"**Random Forest R² (in-sample): {rf.score(X_ml, y_ml):.3f}**\n")
+            report.append(f"**5-Fold Cross-Validated R²: {cv_scores.mean():.3f} +/- {cv_scores.std():.3f}**\n")
+            report.append(f"*(Fold scores: {', '.join(f'{s:.3f}' for s in cv_scores)})*\n")
             rows = []
             for i in sorted_idx[:10]:
                 rows.append([feature_names[i], f"{importances[i]:.4f}", f"{importances[i]*100:.1f}%"])
@@ -995,11 +1006,27 @@ def analysis_5_enhanced(con):
     try:
         from sklearn.cluster import KMeans
         from sklearn.preprocessing import StandardScaler
+        from sklearn.metrics import silhouette_score
 
         cluster_features = gap[["oud_prevalence", "mat_per_1000", "facilities_per_100k"]].dropna()
         if len(cluster_features) >= 10:
             scaler = StandardScaler()
             X_scaled = scaler.fit_transform(cluster_features)
+
+            # Silhouette analysis for k=3,4,5,6
+            report.append("\n### Cluster Selection (Silhouette Analysis)\n")
+            sil_rows = []
+            best_k, best_sil = 4, -1
+            for k_test in [3, 4, 5, 6]:
+                km_test = KMeans(n_clusters=k_test, random_state=42, n_init=10)
+                test_labels = km_test.fit_predict(X_scaled)
+                sil = silhouette_score(X_scaled, test_labels)
+                sil_rows.append([str(k_test), f"{sil:.3f}", f"{km_test.inertia_:.1f}"])
+                if sil > best_sil:
+                    best_sil = sil
+                    best_k = k_test
+            report.append(fmt_table(["k", "Silhouette Score", "Inertia"], sil_rows))
+            report.append(f"\n*Best k by silhouette: **{best_k}** (score={best_sil:.3f}). Using k=4 for interpretability.*\n")
 
             kmeans = KMeans(n_clusters=4, random_state=42, n_init=10)
             labels = kmeans.fit_predict(X_scaled)

@@ -132,6 +132,7 @@ async def maternal_quality(state: str = Query(None)):
                   AND state_rate IS NOT NULL
                   {state_filter}
                 ORDER BY measure_id, state_code
+                LIMIT 1000
             """, params).fetchall()
             columns = ["state_code", "measure_id", "measure_name", "measure_rate"]
             return {"rows": [dict(zip(columns, r)) for r in rows], "count": len(rows)}

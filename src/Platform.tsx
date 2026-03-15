@@ -528,10 +528,10 @@ function Landing() {
       <div style={{ maxWidth: 1080, margin: "0 auto", padding: "0 20px" }}>
         <div style={{
           marginTop: -28,
-          background: "#085041", borderRadius: 16,
+          background: "#04332A", borderRadius: 16,
           padding: isMobile ? "24px 20px" : "32px 36px",
           position: "relative", overflow: "hidden",
-          boxShadow: "0 8px 32px rgba(8,80,65,0.25), 0 2px 8px rgba(8,80,65,0.10)",
+          boxShadow: "0 8px 32px rgba(4,51,42,0.35), 0 2px 8px rgba(4,51,42,0.15)",
         }}>
           {/* Decorative circles */}
           <div style={{ position: "absolute", top: -80, right: -80, width: 260, height: 260, borderRadius: "50%", background: "rgba(46,107,74,0.06)", pointerEvents: "none" }} />
@@ -570,7 +570,7 @@ function Landing() {
                 onFocus={() => setChatFocused(true)}
                 onBlur={() => setChatFocused(false)}
                 onKeyDown={e => { if (e.key === "Enter" && !e.shiftKey) { e.preventDefault(); handleChatSubmit(); } }}
-                placeholder="What does Florida pay for primary care E/M codes vs Medicare?"
+                placeholder="Ask anything about Medicaid..."
                 rows={1}
                 style={{
                   flex: 1, border: "none", outline: "none", resize: "none",
@@ -700,40 +700,33 @@ function Landing() {
             </p>
           </div>
 
-          {MODULE_GROUPS.map(group => (
-            <div key={group.title} style={{ marginBottom: 28 }}>
-              <div style={{
-                fontSize: 10, fontWeight: 700, color: group.color, fontFamily: FONT.mono,
-                letterSpacing: 1.5, textTransform: "uppercase", marginBottom: 10,
-              }}>
-                {group.title}
-              </div>
-              <div style={{
-                display: "grid",
-                gridTemplateColumns: `repeat(auto-fill, minmax(${isMobile ? "260px" : "240px"}, 1fr))`,
-                gap: 10,
-              }}>
-                {group.modules.map(mod => (
-                  <a
-                    key={mod.id}
-                    href={mod.route}
-                    style={{
-                      background: C.white, borderRadius: 10, padding: "16px 18px",
-                      textDecoration: "none", borderLeft: `3px solid ${group.color}`,
-                      boxShadow: SHADOW,
-                      transition: "box-shadow .2s, transform .15s",
-                      display: "block",
-                    }}
-                    onMouseEnter={e => { e.currentTarget.style.boxShadow = SHADOW_LG; e.currentTarget.style.transform = "translateY(-1px)"; }}
-                    onMouseLeave={e => { e.currentTarget.style.boxShadow = SHADOW; e.currentTarget.style.transform = "translateY(0)"; }}
-                  >
-                    <div style={{ fontSize: 13, fontWeight: 700, color: C.ink, marginBottom: 4 }}>{mod.name}</div>
-                    <div style={{ fontSize: 11, color: C.inkLight, lineHeight: 1.55 }}>{mod.desc}</div>
-                  </a>
-                ))}
-              </div>
-            </div>
-          ))}
+          <div style={{
+            display: "grid",
+            gridTemplateColumns: isMobile ? "1fr" : "repeat(3, 1fr)",
+            gap: 10,
+          }}>
+            {MODULE_GROUPS.flatMap(group =>
+              group.modules.map(mod => (
+                <a
+                  key={mod.id}
+                  href={mod.route}
+                  style={{
+                    background: C.white, borderRadius: 10, padding: "16px 18px",
+                    textDecoration: "none", borderLeft: `3px solid ${group.color}`,
+                    boxShadow: SHADOW,
+                    transition: "box-shadow .2s, transform .15s",
+                    display: "block",
+                  }}
+                  onMouseEnter={e => { e.currentTarget.style.boxShadow = SHADOW_LG; e.currentTarget.style.transform = "translateY(-1px)"; }}
+                  onMouseLeave={e => { e.currentTarget.style.boxShadow = SHADOW; e.currentTarget.style.transform = "translateY(0)"; }}
+                >
+                  <div style={{ fontSize: 10, fontFamily: FONT.mono, color: group.color, letterSpacing: 1, textTransform: "uppercase", marginBottom: 6 }}>{group.title}</div>
+                  <div style={{ fontSize: 13, fontWeight: 700, color: C.ink, marginBottom: 4 }}>{mod.name}</div>
+                  <div style={{ fontSize: 11, color: C.inkLight, lineHeight: 1.55 }}>{mod.desc}</div>
+                </a>
+              ))
+            )}
+          </div>
         </div>
 
         {/* ── ENSURING ACCESS / COMPLIANCE CALLOUT ────────────────── */}
@@ -767,7 +760,7 @@ function Landing() {
             Three layers turn scattered public data into actionable Medicaid intelligence.
           </p>
 
-          <div style={{ maxWidth: 780, margin: "0 auto" }}>
+          <div style={{ margin: "0 auto" }}>
 
             {/* ── Intelligence Layer ── */}
             <div style={{

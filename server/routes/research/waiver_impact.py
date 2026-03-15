@@ -102,6 +102,7 @@ async def waiver_catalog(
                 FROM {table_name}
                 {where_clause}
                 ORDER BY {order_col}
+                LIMIT 1000
             """, params).fetchall()
             columns = [
                 "state_code", "waiver_name", "waiver_type",
@@ -178,6 +179,7 @@ async def waiver_quality(state_code: str):
                     WHERE state_code = $1
                       AND state_rate IS NOT NULL
                     ORDER BY core_set_year, measure_id
+                    LIMIT 1000
                 """, [sc]).fetchall()
             except Exception:
                 # Fall back to 2024 single-year table
@@ -189,6 +191,7 @@ async def waiver_quality(state_code: str):
                     WHERE state_code = $1
                       AND state_rate IS NOT NULL
                     ORDER BY measure_id
+                    LIMIT 500
                 """, [sc]).fetchall()
             columns = ["data_year", "measure_id", "measure_name", "measure_rate"]
             return {"rows": [dict(zip(columns, r)) for r in rows], "count": len(rows)}

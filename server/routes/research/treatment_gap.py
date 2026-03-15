@@ -129,12 +129,14 @@ async def treatment_gap_mat_utilization():
                        SUM(units_reimbursed) AS mat_units
                 FROM fact_sdud_2025
                 WHERE state_code != 'XX'
-                  AND (product_name ILIKE '%buprenorphine%'
+                  AND (product_name ILIKE '%buprenorph%'
+                       OR product_name ILIKE '%bupren&nal%'
                        OR product_name ILIKE '%suboxone%'
                        OR product_name ILIKE '%naloxone%'
                        OR product_name ILIKE '%naltrexone%'
                        OR product_name ILIKE '%vivitrol%'
-                       OR product_name ILIKE '%sublocade%')
+                       OR product_name ILIKE '%sublocade%'
+                       OR product_name ILIKE '%zubsolv%')
                 GROUP BY state_code
                 ORDER BY mat_total_spending DESC
             """).fetchall()

@@ -83,6 +83,7 @@ async def fmap_impact(state: str = Query(None)):
                 FROM fmap_pivoted
                 {state_filter}
                 ORDER BY fiscal_year, state_code
+                LIMIT 1000
             """, params).fetchall()
             columns = ["state_code", "fiscal_year", "fmap_rate", "enhanced_fmap"]
             return {"rows": [dict(zip(columns, r)) for r in rows], "count": len(rows)}

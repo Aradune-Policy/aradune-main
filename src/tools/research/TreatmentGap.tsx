@@ -133,7 +133,7 @@ export default function TreatmentGap() {
           Mississippi has the highest OUD prevalence in the nation (3.3% of adults) but does not appear in the top 10 for
           Medicaid MAT (medication-assisted treatment) spending. West Virginia (3.2% prevalence) is absent from the top MAT
           spending list. Meanwhile, Massachusetts (1.3% prevalence, lowest quintile) is the #2 MAT spender nationally ($68M).
-          Total national Medicaid MAT spending is $978 million across buprenorphine, naloxone, and naltrexone. Treatment
+          Total national Medicaid MAT spending is $1.16 billion across buprenorphine, naloxone, and naltrexone. Treatment
           dollars are geographically misaligned with disease burden: the states with the highest need have the lowest
           treatment investment per capita.
         </p>
@@ -144,7 +144,7 @@ export default function TreatmentGap() {
         <div style={{ padding: isMobile ? "16px" : "24px 28px" }}>
           <div style={{ fontSize: 9, fontFamily: FM, color: AL, textTransform: "uppercase", letterSpacing: 1, marginBottom: 8 }}>Key Finding</div>
           <div style={{ display: "flex", alignItems: isMobile ? "flex-start" : "baseline", gap: isMobile ? 8 : 16, flexDirection: isMobile ? "column" : "row" }}>
-            <span style={{ fontSize: isMobile ? 36 : 48, fontWeight: 300, fontFamily: FM, color: WARN, lineHeight: 1 }}>$978M</span>
+            <span style={{ fontSize: isMobile ? 36 : 48, fontWeight: 300, fontFamily: FM, color: WARN, lineHeight: 1 }}>$1.16B</span>
             <span style={{ fontSize: 15, color: A, lineHeight: 1.5 }}>
               in total Medicaid MAT spending nationally, but funding does not follow prevalence. States in the top quintile of OUD prevalence receive less MAT investment per Medicaid enrollee than states in the bottom quintile.
             </span>
@@ -379,7 +379,7 @@ ORDER BY mat_total_spending DESC;
 
       {/* ── Ask Aradune ──────────────────────────────────────────────── */}
       <div style={{ marginTop: 24, textAlign: "center" }}>
-        <button onClick={() => openIntelligence({ summary: "User is viewing the Opioid Treatment Gap research brief. Key finding: MAT spending geographically misaligned with OUD prevalence. MS (3.3% prevalence) absent from top MAT spenders. MA (1.3%) is #2. $978M total national MAT spending. Descriptive analysis." })}
+        <button onClick={() => openIntelligence({ summary: "User is viewing the Opioid Treatment Gap research brief. Key finding: MAT spending geographically misaligned with OUD prevalence. MS (3.3% prevalence) absent from top MAT spenders. MA (1.3%) is #2. $1.16B total national MAT spending. Descriptive analysis." })}
           style={{ padding: "8px 20px", borderRadius: 8, fontSize: 11, fontWeight: 600, fontFamily: FM, border: `1px solid ${cB}`, background: WH, color: cB, cursor: "pointer" }}>
           Ask Aradune about this research
         </button>

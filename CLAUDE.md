@@ -1105,7 +1105,7 @@ fly deploy --remote-only --config server/fly.toml --dockerfile server/Dockerfile
 **Session 30 (2026-03-15) — Research forensic audit + UI overhaul:**
 - Full 8-prompt research audit (RESEARCH_AUDIT_GUIDE.md): 25 bugs fixed, all 46 endpoints pass, 10/10 data accuracy checks pass.
 - NARRATIVE CHANGE: Rate-quality p-value flipped from 0.178 (not significant) to 0.044 (significant). Root cause: SVI column bug caused multicollinearity (VIF > 10M). Parsimonious model (rate + MC + income, VIF < 1.3) reveals significant rate effect.
-- Corrected headline numbers: pharmacy $3.15B (was $3.4B), MCO retention $120B (was $113B), quality decline -1.2pp/yr (was -1.3), MAT spending $978M (was $0 — SIMILAR TO bug fixed to ILIKE).
+- Corrected headline numbers: pharmacy $3.15B (was $3.4B), MCO retention $120B (was $113B), quality decline -1.2pp/yr (was -1.3), MAT spending $1.16B (was $0 — SIMILAR TO→ILIKE, then buprenorphine→buprenorph for truncated names).
 - 7 advanced statistical methods added (scripts/research_advanced_methods.py): IV/2SLS (GPCI weak instrument — honest negative finding), VIF diagnostics, PSM (10,737 matched pairs confirm -0.67 stars), CHOW event study (4,952 SNF transfers), Random Forest (R²=0.75 for pharmacy overpayment drivers), quantile regression, K-means clustering (26 treatment desert states), spatial mismatch index (0.164).
 - Edge cases: 5 division-by-zero NULLIF guards, 5 LIMIT clauses, 1 critical maternal_health column mismatch fixed.
 - Blank chart fix: rate-quality endpoint now handles access_composite measure_id (computes average across 10 access-sensitive measures).

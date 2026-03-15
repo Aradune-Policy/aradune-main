@@ -671,7 +671,7 @@ function Landing() {
               { color: "#D93025", finding: "For-profit nursing homes: -0.67 stars", detail: "Survives state FE, PSM (10,737 matched pairs). Cohen's d=0.50, p<0.0001.", link: "research/nursing-ownership" },
               { color: "#3A7CC4", finding: "$3.15B pharmacy overpayment", detail: "NADAC vs SDUD. Low-cost generics drive 60% at 2.61x markup. 4 states pay below NADAC.", link: "research/pharmacy-spread" },
               { color: "#7B4EA3", finding: "Quality declining everywhere", detail: "-1.2pp/year (2017-2024). Uniform across all states regardless of payment or fiscal burden.", link: "research/rate-quality" },
-              { color: "#C4590A", finding: "$978M MAT spending misaligned", detail: "Mississippi (3.3% OUD) spends $2M. Massachusetts (1.3%) spends $68M. 26 treatment desert states.", link: "research/treatment-gap" },
+              { color: "#C4590A", finding: "$1.16B MAT spending misaligned", detail: "Mississippi (3.3% OUD) spends $2M. Massachusetts (1.3%) spends $68M. 26 treatment desert states.", link: "research/treatment-gap" },
             ].map(f => (
               <a key={f.finding} href={`#/${f.link}`} style={{ display: "flex", alignItems: isMobile ? "flex-start" : "baseline", gap: isMobile ? 8 : 10, padding: isMobile ? "8px 10px" : "8px 12px", borderRadius: 6, background: "#FAFBFC", border: "1px solid #E2E8F0", textDecoration: "none", transition: "background 0.15s", cursor: "pointer" }}
                 onMouseEnter={e => { (e.currentTarget as HTMLElement).style.background = "#F1F5F9"; }}

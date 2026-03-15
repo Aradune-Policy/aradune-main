@@ -694,11 +694,11 @@ def analysis_5_opioid_gap(con):
                SUM(number_of_prescriptions) AS mat_rx
         FROM fact_sdud_2025
         WHERE state_code != 'XX'
-          AND (product_name ILIKE '%buprenorphine%' OR product_name ILIKE '%suboxone%'  -- AUDIT FIX: SIMILAR TO returned 0 rows; ILIKE matches correctly
-               OR product_name ILIKE '%naloxone%' OR product_name ILIKE '%naltrexone%'
-               OR product_name ILIKE '%vivitrol%' OR product_name ILIKE '%sublocade%'
-               OR product_name ILIKE '%zubsolv%' OR product_name ILIKE '%subutex%'
-               OR product_name ILIKE '%sublocade%')
+          AND (product_name ILIKE '%buprenorph%' OR product_name ILIKE '%bupren%nal%'  -- AUDIT FIX: truncation-safe patterns ($1.16B vs $978M)
+               OR product_name ILIKE '%suboxone%' OR product_name ILIKE '%naloxone%'
+               OR product_name ILIKE '%naltrexone%' OR product_name ILIKE '%vivitrol%'
+               OR product_name ILIKE '%sublocade%' OR product_name ILIKE '%zubsolv%'
+               OR product_name ILIKE '%subutex%')
           AND total_amount_reimbursed > 0
         GROUP BY state_code
         ORDER BY mat_spending_M DESC

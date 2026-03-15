@@ -2,7 +2,9 @@
 > **The operating system for Medicaid intelligence.**
 > Read this file at the start of every session. It defines what Aradune is, how it's built, and the rules for building it.
 > Build plan: See ARADUNE_BUILD_GUIDE.md for the phased build plan, module specs, and data import architecture.
-> Last updated: 2026-03-14 (Session 29 final) · Live: https://www.aradune.co
+> Last updated: 2026-03-14 (Session 30 — research audit) · Live: https://www.aradune.co
+> Research audit: See RESEARCH_AUDIT_GUIDE.md (8-prompt forensic audit). Advanced methods: scripts/research_advanced_methods.py
+> Complete reference: See ARADUNE-COMPLETE-REFERENCE.md for data catalog, module inventory, and audit test catalog
 
 ---
 
@@ -1106,7 +1108,8 @@ fly deploy --remote-only --config server/fly.toml --dockerfile server/Dockerfile
 - AHEAD calculator architectural rework: 3-year 10/30/60 CMS baseline (was single-year + synthetic growth), ±2% volume corridor, commercial payer engine (PY2+), TIA PY1/PY2 limited, TCOC PY4 upside-only.
 - DOGE quarantine: 3-layer controls (Intelligence system prompt, ontology QUARANTINE tags, ETL docstring). OT-only, provider state, MC distortion, Nov/Dec 2024 incomplete.
 - Ontology overhaul: 28 relationship edges, entity blast-lists pruned (5 entities: 107→10-19 tables each), MCO entity connected, 680 tables covered (was 632).
-- 10 research modules integrated: Rate-Quality Nexus, Managed Care Value, Opioid Treatment Gap, Safety Net Stress, Integrity Risk, Fiscal Cliff, Maternal Health Deserts, Pharmacy Spread ($2-3B overpayment), Nursing Ownership (-0.67 star for-profit penalty), Waiver Impact.
+- 10 research modules integrated and forensically audited (Session 30): Rate-Quality Nexus (p=0.044, rates predict quality), Managed Care Value ($120B MCO retention), Opioid Treatment Gap ($978M MAT, 26 treatment desert states), Safety Net Stress, Integrity Risk, Fiscal Cliff, Maternal Health Deserts, Pharmacy Spread ($3.15B net overpayment, RF R²=0.75), Nursing Ownership (-0.67 stars, PSM confirmed 10,737 pairs), Waiver Impact.
+- Advanced methods: IV/2SLS, VIF diagnostics, propensity score matching, CHOW event study (4,952 transfers), Random Forest, quantile regression, K-means clustering, spatial mismatch index. See scripts/research_advanced_methods.py and docs/RESEARCH-ADVANCED-METHODS.md.
 - UX: search parser (67 synonyms), ExplainButton, QuickStart landing cards, AHEAD overview + interpretation guide.
 - Open Payments: $2.2B → $10.83B (all 3 CMS categories).
 - R2 fully synced: 826 files, ~5GB.

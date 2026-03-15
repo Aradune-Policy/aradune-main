@@ -74,7 +74,7 @@ const RESEARCH_TOOLS = [
   {
     id: "nursing-ownership", group: "research", name: "Nursing Ownership & Quality",
     tagline: "For-profit chain quality gap",
-    desc: "Ownership-quality relationship with state FE, interaction models, and size-matched comparisons. Cohen's d=0.59 across 14,710 facilities.",
+    desc: "Ownership-quality relationship with state FE, PSM (10,737 matched pairs), and interaction models. Cohen's d=0.50 across 14,710 facilities.",
     status: "live" as const, icon: "N", color: "#059669",
   },
   {

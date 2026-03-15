@@ -256,7 +256,7 @@ const TOOLS: ToolDef[] = [
   {
     id: "research/nursing-ownership", group: "research", name: "Nursing Ownership & Quality",
     tagline: "For-profit chain quality gap",
-    desc: "Ownership-quality relationship with state FE, interaction models, and size-matched comparisons. Cohen's d=0.59 across 14,710 facilities.",
+    desc: "Ownership-quality relationship with state FE, PSM (10,737 matched pairs), and interaction models. Cohen's d=0.50 across 14,710 facilities.",
     status: "live" as const, icon: "N", color: "#059669",
   },
   {
@@ -269,33 +269,22 @@ const TOOLS: ToolDef[] = [
 
 const NAV_GROUPS: NavGroup[] = [
   { key: "states", label: "States", tools: TOOLS.filter(t => t.group === "states") },
-  { key: "rates", label: "Rates", tools: TOOLS.filter(t => t.group === "rates") },
-  { key: "forecast", label: "Forecast", tools: TOOLS.filter(t => t.group === "forecast") },
-  { key: "providers", label: "Providers", tools: TOOLS.filter(t => t.group === "providers") },
-  { key: "workforce", label: "Workforce", tools: TOOLS.filter(t => t.group === "workforce") },
-  { key: "pharmacy", label: "Pharmacy", tools: TOOLS.filter(t => t.group === "pharmacy") },
-  { key: "behavioral-health", label: "BH/SUD", tools: TOOLS.filter(t => t.group === "behavioral-health") },
-  { key: "nursing", label: "Nursing", tools: TOOLS.filter(t => t.group === "nursing") },
-  { key: "integrity", label: "Integrity", tools: TOOLS.filter(t => t.group === "integrity") },
+  { key: "rates", label: "Rates & Compliance", tools: TOOLS.filter(t => t.group === "rates" || t.group === "workforce") },
+  { key: "finance", label: "Finance", tools: TOOLS.filter(t => t.group === "forecast" || t.group === "providers") },
+  { key: "clinical", label: "Clinical", tools: TOOLS.filter(t => ["pharmacy", "behavioral-health", "nursing", "integrity"].includes(t.group)) },
   { key: "research", label: "Research", tools: TOOLS.filter(t => t.group === "research") },
 ];
 
 const GROUP_COLORS: Record<string, string> = {
-  states: C.brand, rates: C.brand, forecast: C.teal,
-  providers: C.accent, workforce: C.teal, pharmacy: "#7C3AED", "behavioral-health": "#6366F1",
-  nursing: "#D97706", integrity: "#DC2626", research: "#6366F1",
+  states: C.brand, rates: C.brand, finance: C.accent,
+  clinical: "#6366F1", research: "#6366F1",
 };
 const GROUP_DESCS: Record<string, string> = {
   states: "State profiles with enrollment, rates, hospitals, quality, and economic context.",
-  rates: "Fee schedule comparison, CPRA compliance, rate lookup, and rate modeling.",
-  forecast: "Caseload and expenditure projections with scenario modeling.",
-  providers: "Hospital intelligence, AHEAD readiness, and provider spending analysis.",
-  workforce: "Wage adequacy, quality linkage, HCBS tracking, and compliance.",
-  pharmacy: "Medicaid drug spending, utilization, NADAC pricing, and drug rebate data.",
-  "behavioral-health": "Mental health prevalence, SUD treatment, opioid prescribing, and BH services.",
-  nursing: "Nursing facility Five-Star quality ratings, PBJ staffing, and facility-level detail.",
-  integrity: "LEIE exclusions, Open Payments, MFCU fraud statistics, and PERM error rates.",
-  research: "Cross-domain research modules: rate-quality nexus, managed care value, treatment gaps, safety net stress, and more.",
+  rates: "Fee schedules, CPRA compliance, rate lookup, wage adequacy, HCBS tracking, and workforce quality.",
+  finance: "Caseload forecasting, expenditure projections, hospital intelligence, AHEAD readiness, and supplemental payments.",
+  clinical: "Pharmacy drug spending, behavioral health, nursing facility quality, and program integrity.",
+  research: "Cross-domain research briefs: rate-quality, managed care value, treatment gaps, safety net stress, and more.",
 };
 
 // ── Platform Nav ─────────────────────────────────────────────────────────
@@ -539,10 +528,10 @@ function Landing() {
       <div style={{ maxWidth: 1080, margin: "0 auto", padding: "0 20px" }}>
         <div style={{
           marginTop: -28,
-          background: C.ink, borderRadius: 16,
+          background: "#085041", borderRadius: 16,
           padding: isMobile ? "24px 20px" : "32px 36px",
           position: "relative", overflow: "hidden",
-          boxShadow: "0 8px 32px rgba(10,37,64,0.18), 0 2px 8px rgba(10,37,64,0.08)",
+          boxShadow: "0 8px 32px rgba(8,80,65,0.25), 0 2px 8px rgba(8,80,65,0.10)",
         }}>
           {/* Decorative circles */}
           <div style={{ position: "absolute", top: -80, right: -80, width: 260, height: 260, borderRadius: "50%", background: "rgba(46,107,74,0.06)", pointerEvents: "none" }} />
@@ -674,14 +663,15 @@ function Landing() {
             ))}
           </div>
 
-          {/* Key findings — condensed, clickable */}
-          <div style={{ display: "grid", gap: 8 }}>
+          {/* Key findings — condensed, clickable, 2-column grid */}
+          <div style={{ display: "grid", gridTemplateColumns: isMobile ? "1fr" : "1fr 1fr", gap: 8 }}>
             {[
-              { color: "#059669", finding: "Paying more does improve quality", detail: "p=0.044 after controls. A 10pp rate increase is associated with 0.7pp higher access quality (robust SE, VIF < 1.3).", link: "research/rate-quality" },
-              { color: "#D97706", finding: "Managed care's quality paradox", detail: "Within states, increasing MC penetration worsens quality (p=0.004). Cross-sectional correlation is Simpson's Paradox.", link: "research/mc-value" },
-              { color: "#D93025", finding: "For-profit nursing homes: -0.67 stars", detail: "Survives state FE, size controls, PSM (10,737 matched pairs). Cohen's d=0.50, p<0.0001. 14,710 facilities.", link: "research/nursing-ownership" },
-              { color: "#3A7CC4", finding: "$3.15B pharmacy overpayment", detail: "NADAC vs SDUD. Concentrated in low-cost generics (2.61x median markup). 4 states pay below NADAC.", link: "research/pharmacy-spread" },
-              { color: "#7B4EA3", finding: "Quality declining everywhere", detail: "-1.2pp/year (2017-2024). Uniform across all states regardless of payment levels or fiscal burden. p=0.011.", link: "research/rate-quality" },
+              { color: "#059669", finding: "Paying more does improve quality", detail: "p=0.044. A 10pp rate increase yields 0.7pp quality gain (robust SE, VIF < 1.3).", link: "research/rate-quality" },
+              { color: "#D97706", finding: "Managed care's quality paradox", detail: "Within states, MC expansion worsens quality (p=0.004). Cross-sectional positive is Simpson's Paradox.", link: "research/mc-value" },
+              { color: "#D93025", finding: "For-profit nursing homes: -0.67 stars", detail: "Survives state FE, PSM (10,737 matched pairs). Cohen's d=0.50, p<0.0001.", link: "research/nursing-ownership" },
+              { color: "#3A7CC4", finding: "$3.15B pharmacy overpayment", detail: "NADAC vs SDUD. Low-cost generics drive 60% at 2.61x markup. 4 states pay below NADAC.", link: "research/pharmacy-spread" },
+              { color: "#7B4EA3", finding: "Quality declining everywhere", detail: "-1.2pp/year (2017-2024). Uniform across all states regardless of payment or fiscal burden.", link: "research/rate-quality" },
+              { color: "#C4590A", finding: "$978M MAT spending misaligned", detail: "Mississippi (3.3% OUD) spends $2M. Massachusetts (1.3%) spends $68M. 26 treatment desert states.", link: "research/treatment-gap" },
             ].map(f => (
               <a key={f.finding} href={`#/${f.link}`} style={{ display: "flex", alignItems: isMobile ? "flex-start" : "baseline", gap: isMobile ? 8 : 10, padding: isMobile ? "8px 10px" : "8px 12px", borderRadius: 6, background: "#FAFBFC", border: "1px solid #E2E8F0", textDecoration: "none", transition: "background 0.15s", cursor: "pointer" }}
                 onMouseEnter={e => { (e.currentTarget as HTMLElement).style.background = "#F1F5F9"; }}
@@ -777,7 +767,7 @@ function Landing() {
             Three layers turn scattered public data into actionable Medicaid intelligence.
           </p>
 
-          <div style={{ maxWidth: 680, margin: "0 auto" }}>
+          <div style={{ maxWidth: 780, margin: "0 auto" }}>
 
             {/* ── Intelligence Layer ── */}
             <div style={{
@@ -904,7 +894,7 @@ function Landing() {
             {/* ── Data Lake ── */}
             <div style={{
               borderRadius: 12, padding: isMobile ? "14px 12px" : "14px 16px",
-              background: C.ink, color: "#E1F5EE", marginBottom: 10,
+              background: "#1E3A5F", color: "#E1EEFF", marginBottom: 10,
             }}>
               <div style={{ fontSize: 10, letterSpacing: 2, textTransform: "uppercase", opacity: 0.7, marginBottom: 8 }}>
                 The data lake

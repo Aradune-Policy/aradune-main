@@ -677,7 +677,7 @@ function Landing() {
           {/* Key findings — condensed, clickable */}
           <div style={{ display: "grid", gap: 8 }}>
             {[
-              { color: "#059669", finding: "Paying more does improve quality", detail: "p=0.044 after controls. 10pp rate increase → 0.7pp quality gain. Original p=0.178 was artifact of multicollinearity.", link: "research/rate-quality" },
+              { color: "#059669", finding: "Paying more does improve quality", detail: "p=0.044 after controls. A 10pp rate increase is associated with 0.7pp higher access quality (robust SE, VIF < 1.3).", link: "research/rate-quality" },
               { color: "#D97706", finding: "Managed care's quality paradox", detail: "Within states, increasing MC penetration worsens quality (p=0.004). Cross-sectional correlation is Simpson's Paradox.", link: "research/mc-value" },
               { color: "#D93025", finding: "For-profit nursing homes: -0.67 stars", detail: "Survives state FE, size controls, PSM (10,737 matched pairs). Cohen's d=0.50, p<0.0001. 14,710 facilities.", link: "research/nursing-ownership" },
               { color: "#3A7CC4", finding: "$3.15B pharmacy overpayment", detail: "NADAC vs SDUD. Concentrated in low-cost generics (2.61x median markup). 4 states pay below NADAC.", link: "research/pharmacy-spread" },

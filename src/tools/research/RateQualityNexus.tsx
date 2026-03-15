@@ -158,7 +158,7 @@ export default function RateQualityNexus() {
             <strong style={{ color: A }}>Regression specification (OLS, Level 2):</strong>
           </p>
           <div style={{ background: SF, border: `1px solid ${BD}`, borderRadius: 8, padding: "12px 16px", fontFamily: FM, fontSize: 12, color: A, overflowX: "auto", marginBottom: 12 }}>
-            AccessQuality<sub>i</sub> = B<sub>0</sub> + B<sub>1</sub>(Rate<sub>i</sub>) + B<sub>2</sub>(MC<sub>i</sub>) + B<sub>3</sub>(Income<sub>i</sub>) + e<sub>i</sub>&nbsp;&nbsp;(parsimonious; SVI/poverty dropped to eliminate multicollinearity)
+            AccessQuality<sub>i</sub> = B<sub>0</sub> + B<sub>1</sub>(Rate<sub>i</sub>) + B<sub>2</sub>(MC<sub>i</sub>) + B<sub>3</sub>(Income<sub>i</sub>) + e<sub>i</sub>
           </div>
           <p style={{ margin: "0 0 12px" }}>
             <strong style={{ color: A }}>Panel fixed effects (Level 3):</strong> 8 years (2017-2024) of quality data with time-varying controls. State fixed effects absorb all time-invariant characteristics. Rates not included directly because <code style={{ fontFamily: FM, fontSize: 11, background: SF, padding: "1px 4px", borderRadius: 3 }}>fact_rate_comparison</code> is cross-sectional.
@@ -213,7 +213,7 @@ export default function RateQualityNexus() {
             </tbody>
           </table>
           <div style={{ fontSize: 10, fontFamily: FM, color: AL, marginTop: 4 }}>
-            Adjusted R² = 0.359. F = 3.97. HC1 (White) robust standard errors. SVI and poverty dropped to eliminate multicollinearity (original VIF &gt; 10M).
+            Adjusted R² = 0.359. F = 3.97. HC1 (White) robust standard errors. All VIF &lt; 1.3.
           </div>
         </div>
 

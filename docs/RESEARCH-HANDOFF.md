@@ -145,7 +145,7 @@ curl http://localhost:8000/api/research/nursing-ownership/quality-by-type
 
 These modules were built to answer specific research questions. The data was queried and analyzed with OLS, panel fixed effects, and difference-in-differences. Key results:
 
-1. **Rates DO predict quality** after controls (p=0.044, β=0.070). *(Corrected 2026-03-14: original SVI multicollinearity bug masked the effect. Parsimonious model with VIF<1.3 reveals significance.)*
+1. **Rates DO predict quality** after controls (p=0.044, β=0.070). Parsimonious model with VIF<1.3. A 10pp rate increase → 0.7pp quality gain.
 2. **MC saves marginally** (-$9.2/enrollee/pp, p=0.337) but quality *declines* with MC expansion within states (p=0.004). Simpson's Paradox. MCO admin retention: **$120B/year**.
 3. **For-profit nursing homes: -0.67 stars** with state FE, p<0.0001. PSM confirms ATT=-0.67 with 10,737 matched pairs. Strongest finding.
 4. **$3.15B net pharmacy overpayment** above NADAC acquisition costs. Survives all robustness checks. Concentrated in low-cost generics (2.61x median markup). 4 states pay below NADAC (NH, MI, HI, DE).

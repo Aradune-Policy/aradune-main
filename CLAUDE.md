@@ -2,9 +2,9 @@
 > **The operating system for Medicaid intelligence.**
 > Read this file at the start of every session. It defines what Aradune is, how it's built, and the rules for building it.
 > Build plan: See ARADUNE_BUILD_GUIDE.md for the phased build plan, module specs, and data import architecture.
-> Last updated: 2026-03-14 (Session 30 — research audit) · Live: https://www.aradune.co
-> Research audit: See RESEARCH_AUDIT_GUIDE.md (8-prompt forensic audit). Advanced methods: scripts/research_advanced_methods.py
-> Complete reference: See ARADUNE-COMPLETE-REFERENCE.md for data catalog, module inventory, and audit test catalog
+> Last updated: 2026-03-15 (Session 30) · Live: https://www.aradune.co
+> Research audit: RESEARCH_AUDIT_GUIDE.md (v1) + RESEARCH_AUDIT_GUIDE_v2.md (verification-first). Advanced methods: scripts/research_advanced_methods.py
+> Complete reference: ARADUNE-COMPLETE-REFERENCE.md — data catalog, module inventory, audit test catalog (hand to another Claude session for autonomous auditing)
 
 ---
 
@@ -1102,14 +1102,25 @@ fly deploy --remote-only --config server/fly.toml --dockerfile server/Dockerfile
 
 **Now (March 2026):** 700 views (669 fact + 9 dim + 22 ref), 400M+ rows, 4.9 GB, 325+ endpoints across 35 route files, 7 engines, 18 ontology domains with 28 relationship edges, Intelligence with SSE + DuckDB + RAG + web search + DOGE quarantine + FL Medicaid context, 25 standalone modules (15 core + 10 research) behind password gate, CPRA regulatory-correct both modes. 107 ETL scripts. Export pipeline: DOCX/PDF/Excel/CSV + chart PNG/SVG. Demo mode with 27 pre-cached Intelligence responses.
 
+**Session 30 (2026-03-15) — Research forensic audit + UI overhaul:**
+- Full 8-prompt research audit (RESEARCH_AUDIT_GUIDE.md): 25 bugs fixed, all 46 endpoints pass, 10/10 data accuracy checks pass.
+- NARRATIVE CHANGE: Rate-quality p-value flipped from 0.178 (not significant) to 0.044 (significant). Root cause: SVI column bug caused multicollinearity (VIF > 10M). Parsimonious model (rate + MC + income, VIF < 1.3) reveals significant rate effect.
+- Corrected headline numbers: pharmacy $3.15B (was $3.4B), MCO retention $120B (was $113B), quality decline -1.2pp/yr (was -1.3), MAT spending $978M (was $0 — SIMILAR TO bug fixed to ILIKE).
+- 7 advanced statistical methods added (scripts/research_advanced_methods.py): IV/2SLS (GPCI weak instrument — honest negative finding), VIF diagnostics, PSM (10,737 matched pairs confirm -0.67 stars), CHOW event study (4,952 SNF transfers), Random Forest (R²=0.75 for pharmacy overpayment drivers), quantile regression, K-means clustering (26 treatment desert states), spatial mismatch index (0.164).
+- Edge cases: 5 division-by-zero NULLIF guards, 5 LIMIT clauses, 1 critical maternal_health column mismatch fixed.
+- Blank chart fix: rate-quality endpoint now handles access_composite measure_id (computes average across 10 access-sensitive measures).
+- UI overhaul: nav consolidated 10 groups → 5 (States, Rates & Compliance, Finance, Clinical, Research). Chat box → dark green. Data lake → blue. Key findings → 6-item 2-column grid (no orphans).
+- Doc consolidation: 12 superseded docs → docs/archive/, 8 audit reports → docs/audit/, project root cleaned from 20+ MD files to 10.
+- New: ARADUNE-COMPLETE-REFERENCE.md (1,030 lines — complete data catalog, module inventory, 40+ audit tests), RESEARCH_AUDIT_GUIDE_v2.md (verification-first approach).
+- All docs reconciled: RESEARCH-FINDINGS.md, REPLICATION-RESULTS.md, homepage, LandingMetrics, all 4 research brief components updated.
+
 **Session 29 (2026-03-14) — Full forensic audit + research integration:**
 - 8-prompt forensic audit completed (ARADUNE_AUDIT_GUIDE.md): data integrity sweep, Gold table spot-check, DOGE quarantine, ontology graph, tool functional audit, AHEAD validation, Intelligence regression (30 queries, 22 pass), end-to-end workflow smoke test (6/6 pass).
 - 30+ bugs fixed: 17 critical ETL bugs, 18 stale snapshot cleanups, SDUD schema standardization, HCRIS CHOW dedup, FMAP dynamic header detection, Medicare PUF Socrata discovery, scorecard explicit columns, CCW validation, eligibility API pagination.
 - AHEAD calculator architectural rework: 3-year 10/30/60 CMS baseline (was single-year + synthetic growth), ±2% volume corridor, commercial payer engine (PY2+), TIA PY1/PY2 limited, TCOC PY4 upside-only.
 - DOGE quarantine: 3-layer controls (Intelligence system prompt, ontology QUARANTINE tags, ETL docstring). OT-only, provider state, MC distortion, Nov/Dec 2024 incomplete.
 - Ontology overhaul: 28 relationship edges, entity blast-lists pruned (5 entities: 107→10-19 tables each), MCO entity connected, 680 tables covered (was 632).
-- 10 research modules integrated and forensically audited (Session 30): Rate-Quality Nexus (p=0.044, rates predict quality), Managed Care Value ($120B MCO retention), Opioid Treatment Gap ($978M MAT, 26 treatment desert states), Safety Net Stress, Integrity Risk, Fiscal Cliff, Maternal Health Deserts, Pharmacy Spread ($3.15B net overpayment, RF R²=0.75), Nursing Ownership (-0.67 stars, PSM confirmed 10,737 pairs), Waiver Impact.
-- Advanced methods: IV/2SLS, VIF diagnostics, propensity score matching, CHOW event study (4,952 transfers), Random Forest, quantile regression, K-means clustering, spatial mismatch index. See scripts/research_advanced_methods.py and docs/RESEARCH-ADVANCED-METHODS.md.
+- 10 research modules built and integrated as academic briefs.
 - UX: search parser (67 synonyms), ExplainButton, QuickStart landing cards, AHEAD overview + interpretation guide.
 - Open Payments: $2.2B → $10.83B (all 3 CMS categories).
 - R2 fully synced: 826 files, ~5GB.

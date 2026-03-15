@@ -2,7 +2,7 @@
 
 ## Abstract
 
-We present five empirical analyses exploiting a unified Medicaid data lake containing 700 tables from 60+ federal sources (CMS, SAMHSA, CDC, HRSA, BLS, BEA, Census). The integrated dataset enables cross-domain analyses that are typically impossible because the underlying data lives in separate federal systems. Our analyses cover: (1) the relationship between Medicaid payment rates and quality outcomes; (2) whether managed care reduces spending or improves quality; (3) the nursing home ownership-quality relationship; (4) pharmacy reimbursement spreads above drug acquisition costs; and (5) the opioid treatment demand-supply gap. We employ bivariate correlations, OLS with controls, panel fixed effects (2017-2024), difference-in-differences, and size-matched facility comparisons. Key findings: payment rates do not significantly predict quality after controlling for state wealth (p=0.18); managed care's modest cost savings (-$16/enrollee per percentage point, p=0.058) are swamped by $489/enrollee/year cost growth while quality declines with MC expansion; for-profit nursing home ownership reduces quality by 0.67 stars (p<0.0001, Cohen's d=0.59); Medicaid overpays $2-3 billion annually above drug acquisition costs, concentrated in low-cost generics; and MAT treatment spending does not follow OUD prevalence geographically. All analyses use publicly available federal data queryable in a single DuckDB instance.
+We present five empirical analyses exploiting a unified Medicaid data lake containing 700 tables from 60+ federal sources (CMS, SAMHSA, CDC, HRSA, BLS, BEA, Census). The integrated dataset enables cross-domain analyses that are typically impossible because the underlying data lives in separate federal systems. Our analyses cover: (1) the relationship between Medicaid payment rates and quality outcomes; (2) whether managed care reduces spending or improves quality; (3) the nursing home ownership-quality relationship; (4) pharmacy reimbursement spreads above drug acquisition costs; and (5) the opioid treatment demand-supply gap. We employ bivariate correlations, OLS with controls, panel fixed effects (2017-2024), difference-in-differences, and size-matched facility comparisons. Key findings: payment rates significantly predict quality after controlling for MC penetration and income (p=0.044); managed care's cost savings are not statistically significant (-$9.2/enrollee, p=0.337) while quality declines with MC expansion; for-profit nursing home ownership reduces quality by 0.67 stars (p<0.0001, Cohen's d=0.50, confirmed by PSM with 10,737 matched pairs); Medicaid overpays $3.15 billion annually above drug acquisition costs, concentrated in low-cost generics (2.61x median markup); and $978M in MAT treatment spending does not follow OUD prevalence geographically (Spatial Mismatch Index=0.164). All analyses use publicly available federal data queryable in a single DuckDB instance.
 
 ## 1. Introduction
 
@@ -303,7 +303,7 @@ Join NADAC (latest effective date per NDC, using ROW_NUMBER window function) to 
 
 ### 5.4 Results
 
-**Headline finding:** 23,617 drugs matched across NADAC and SDUD. Medicaid overpays $4.13 billion above acquisition cost; underpays $0.70 billion below. **Net overpayment: $3.43 billion.** 93% of matched drugs (22,028) are reimbursed above NADAC.
+**Headline finding:** 23,530 drugs matched across NADAC and SDUD. Medicaid overpays $4.82 billion above acquisition cost; underpays $1.67 billion below. **Net overpayment: $3.15 billion.** 91% of matched drugs (21,420) are reimbursed above NADAC.
 
 **Unit type validation:**
 
@@ -342,14 +342,14 @@ Excluding very-low-cost drugs (NADAC<$0.10) still yields $2.06B — robust.
 
 | Tier | Drugs | Overpayment | Median Markup |
 |------|-------|-------------|--------------|
-| Low-cost (<$1/unit) | 17,743 | **$2.53B** | **2.75x** |
+| Low-cost (<$1/unit) | 17,743 | **$2.53B** | **2.61x** |
 | Medium ($1-$10) | 3,704 | $0.45B | 1.16x |
 | High ($10-$100) | 1,683 | $0.59B | 1.03x |
 | Specialty ($100+) | 420 | $0.50B | 1.02x |
 
-**Low-cost generics drive 60% of the overpayment.** Median markup on generics is 2.75x NADAC. Specialty drugs have near-zero markup (1.02x) because reimbursement is tightly managed.
+**Low-cost generics drive 60% of the overpayment.** Median markup on generics is 2.61x NADAC. Specialty drugs have near-zero markup (1.02x) because reimbursement is tightly managed.
 
-**State variation:** Top 5 states (CA, NY, OH, NC, PA) account for 61% of total spread. Spread percentage ranges from 6.5% (Michigan) to 17.5% (Minnesota). Three states (Michigan, Delaware, Hawaii) pay below NADAC on net — demonstrating the problem is solvable.
+**State variation:** Top 5 states (CA, NY, OH, NC, PA) account for 61% of total spread. Spread percentage ranges from 6.5% (Michigan) to 17.5% (Minnesota). Four states (New Hampshire, Michigan, Hawaii, Delaware) pay below NADAC on net — demonstrating the problem is solvable.
 
 **Top overpaid drugs:**
 
@@ -363,7 +363,7 @@ Excluding very-low-cost drugs (NADAC<$0.10) still yields $2.06B — robust.
 
 ### 5.5 Interpretation
 
-Medicaid pharmacy programs overpay an estimated **$2-3 billion annually** above drug acquisition costs, with the conservative lower bound ($2.06B) surviving all robustness checks. The overpayment is concentrated in low-cost generics, where the median state reimburses pharmacies at 2.75x acquisition cost. Specialty drugs, which are more closely managed, show near-zero spread.
+Medicaid pharmacy programs overpay an estimated **$3.15 billion annually** above drug acquisition costs, with the conservative lower bound ($2.06B) surviving all robustness checks. The overpayment is concentrated in low-cost generics, where the median state reimburses pharmacies at 2.61x acquisition cost. Specialty drugs, which are more closely managed, show near-zero spread.
 
 This represents the **dispensing margin** — what Medicaid pays pharmacies above their cost to acquire drugs. It is distinct from manufacturer rebates, which reduce the effective cost to Medicaid after the point of sale. The policy implication is that states using cost-plus reimbursement formulas (NADAC + dispensing fee) should see lower spreads than those using AWP-based formulas — and the three states that pay below NADAC (MI, DE, HI) demonstrate this is achievable.
 

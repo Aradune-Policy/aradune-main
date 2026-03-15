@@ -50,7 +50,7 @@ const Collapsible = ({ title, defaultOpen = false, children }: { title: string; 
 
 // Static data from research findings (price tier decomposition)
 const TIER_DATA = [
-  { tier: "Low-cost (<$1)", drugs: 17743, overpayment: 2.53e9, markup: 2.75, fill: NEG },
+  { tier: "Low-cost (<$1)", drugs: 17743, overpayment: 2.53e9, markup: 2.61, fill: NEG },
   { tier: "Medium ($1-$10)", drugs: 3704, overpayment: 0.45e9, markup: 1.16, fill: WARN },
   { tier: "High ($10-$100)", drugs: 1683, overpayment: 0.59e9, markup: 1.03, fill: AL },
   { tier: "Specialty ($100+)", drugs: 420, overpayment: 0.50e9, markup: 1.02, fill: cB },
@@ -246,7 +246,7 @@ export default function PharmacySpread() {
         {/* State variation */}
         <h3 style={{ fontSize: 14, fontWeight: 600, color: A, margin: "20px 0 8px" }}>State Variation</h3>
         <p style={{ fontSize: 13, color: AL, lineHeight: 1.7, marginBottom: 8 }}>
-          Top 5 states (CA, NY, OH, NC, PA) account for 61% of total spread. Spread percentage ranges from 6.5% (Michigan) to 17.5% (Minnesota). Three states -- <strong style={{ color: POS }}>Michigan, Delaware, Hawaii</strong> -- pay below NADAC on net, demonstrating cost-plus reimbursement formulas (NADAC + dispensing fee) can eliminate the spread.
+          Top 5 states (CA, NY, OH, NC, PA) account for 61% of total spread. Spread percentage ranges from 6.5% (Michigan) to 17.5% (Minnesota). Four states -- <strong style={{ color: POS }}>New Hampshire, Michigan, Hawaii, Delaware</strong> -- pay below NADAC on net, demonstrating cost-plus reimbursement formulas (NADAC + dispensing fee) can eliminate the spread.
         </p>
       </div>
 

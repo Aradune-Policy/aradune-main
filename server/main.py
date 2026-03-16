@@ -8,6 +8,7 @@ from server.routes.research import (
     rate_quality, mc_value, treatment_gap, safety_net,
     integrity_risk, fiscal_cliff, maternal_health,
     pharmacy_spread, nursing_ownership, waiver_impact,
+    tmsis_calibration,
 )
 
 
@@ -67,6 +68,7 @@ app.include_router(maternal_health.router)
 app.include_router(pharmacy_spread.router)
 app.include_router(nursing_ownership.router)
 app.include_router(waiver_impact.router)
+app.include_router(tmsis_calibration.router)
 
 
 @app.get("/health")

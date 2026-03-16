@@ -85,6 +85,7 @@ const MaternalHealth = lazy(() => import("./tools/research/MaternalHealth"));
 const PharmacySpread = lazy(() => import("./tools/research/PharmacySpread"));
 const NursingOwnership = lazy(() => import("./tools/research/NursingOwnership"));
 const WaiverImpact = lazy(() => import("./tools/research/WaiverImpact"));
+const TmsisCalibration = lazy(() => import("./tools/research/TmsisCalibration"));
 
 // ── Hash Router ──────────────────────────────────────────────────────────
 function useRoute() {
@@ -264,6 +265,12 @@ const TOOLS: ToolDef[] = [
     tagline: "Do waivers actually work?",
     desc: "Before/after evaluation of 647 Section 1115 waivers. Enrollment, spending, and quality trajectories with waiver-type comparisons.",
     status: "live" as const, icon: "W", color: "#4F46E5",
+  },
+  {
+    id: "research/tmsis-calibration", group: "research", name: "T-MSIS Claims Calibration",
+    tagline: "Claims vs fee schedule reality check",
+    desc: "How do actual T-MSIS paid amounts compare to published fee schedule rates? State-level calibration factors, service category patterns, and Tennessee fee schedule simulation.",
+    status: "live" as const, icon: "T", color: "#D97706",
   },
 ];
 
@@ -1421,6 +1428,7 @@ function PlatformInner() {
       "/research/pharmacy-spread": <PharmacySpread />,
       "/research/nursing-ownership": <NursingOwnership />,
       "/research/waiver-impact": <WaiverImpact />,
+      "/research/tmsis-calibration": <TmsisCalibration />,
       // ── Utility tools ──────────────────────────────────────────
       "/ask": <ToolErrorBoundary><Suspense fallback={loadingFallback}><IntelligenceChat /></Suspense></ToolErrorBoundary>,
       "/catalog": <DataCatalog />,

@@ -314,8 +314,10 @@ _SYSTEM_PROMPT_RULES = """
 
 **dim_state** (51 rows) -- state_code VARCHAR PK, state_name, fmap, methodology, conversion_factor, region
 **dim_procedure** (16,978 rows) -- procedure_code VARCHAR PK, description, category, is_em_code, em_category, work_rvu, total_rvu_nonfac, medicare_rate_nonfac
-**fact_rate_comparison** (302,332 rows) -- state_code, procedure_code, medicaid_rate, medicare_nonfac_rate, pct_of_medicare, em_category
+**fact_rate_comparison** (302,332 rows) -- state_code, procedure_code, medicaid_rate, medicare_nonfac_rate, pct_of_medicare, em_category. PUBLISHED fee schedule rates only (45 states).
+**fact_rate_comparison_v2** (410,035 rows) -- Same schema + rate_source column. Covers ALL 54 jurisdictions. rate_source: 'published_cpra', 'published_direct', 'cf_x_rvu_computed', 'tmsis_claims'. IMPORTANT: When using tmsis_claims data, always note it represents actual paid amounts (avg 72% of fee schedule), NOT the fee schedule max. Label clearly.
 **fact_medicaid_rate** (597,483 rows) -- state_code, procedure_code, modifier, rate, rate_facility, rate_nonfacility. Use COALESCE(rate, rate_nonfacility, rate_facility).
+**fact_tmsis_effective_rates** (68,891 rows) -- state_code, procedure_code, effective_paid_rate, medicare_rate, pct_of_medicare, rate_source. T-MSIS claims-based. Always label as "claims-based effective rate, not fee schedule."
 **fact_enrollment** (10,399 rows) -- state_code, year, month, total_enrollment, chip_enrollment, ffs_enrollment, mc_enrollment
 **fact_hospital_cost** (18,220 rows) -- provider_ccn, hospital_name, state_code, bed_count, total_costs, net_income, cost_to_charge_ratio, report_year
 **fact_expenditure** (5,379 rows) -- state_code, fiscal_year, quarter, category, subcategory, federal_share, total_computable

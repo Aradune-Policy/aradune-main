@@ -1302,6 +1302,18 @@ export default function StateProfile() {
             {sections.rates && (
               <Card>
                 <CH title="Medicaid-to-Medicare Rate Comparison" sub={`${d.cpraRates.length} codes matched | ${d.cpraSummary.emCount} E/M codes`} />
+                {d.cpraRates.length < 200 && d.cpraRates.length > 0 && (
+                  <div style={{ margin: "0 16px 12px", padding: "8px 12px", borderRadius: 6, background: "#FEF3C7", border: "1px solid #F59E0B", fontSize: 11, color: "#92400E", lineHeight: 1.5 }}>
+                    Limited published fee schedule data for this state ({d.cpraRates.length} codes). This state may use bundled payments (DRG/APG) or be primarily managed care.{" "}
+                    <a href="#/research/tmsis-calibration" style={{ color: "#92400E", fontWeight: 600 }}>View T-MSIS claims-based rate analysis</a> for additional coverage.
+                  </div>
+                )}
+                {d.cpraRates.length === 0 && (
+                  <div style={{ margin: "0 16px 12px", padding: "8px 12px", borderRadius: 6, background: "#FEF3C7", border: "1px solid #F59E0B", fontSize: 11, color: "#92400E", lineHeight: 1.5 }}>
+                    No published FFS fee schedule available for this state.{" "}
+                    <a href="#/research/tmsis-calibration" style={{ color: "#92400E", fontWeight: 600 }}>View T-MSIS claims-based rate estimates</a> (labeled as claims data, not fee schedule).
+                  </div>
+                )}
                 {d.cpraRates.length > 0 ? (() => {
                   // Build distribution histogram (pct_of_medicare is already percentage, e.g. 76.83)
                   const buckets = [0, 25, 50, 75, 100, 125, 150, 200, 99999];

@@ -86,6 +86,7 @@ const PharmacySpread = lazy(() => import("./tools/research/PharmacySpread"));
 const NursingOwnership = lazy(() => import("./tools/research/NursingOwnership"));
 const WaiverImpact = lazy(() => import("./tools/research/WaiverImpact"));
 const TmsisCalibration = lazy(() => import("./tools/research/TmsisCalibration"));
+const MepsAnalysis = lazy(() => import("./tools/research/MepsAnalysis"));
 
 // ── Hash Router ──────────────────────────────────────────────────────────
 function useRoute() {
@@ -271,6 +272,12 @@ const TOOLS: ToolDef[] = [
     tagline: "Claims vs fee schedule reality check",
     desc: "How do actual T-MSIS paid amounts compare to published fee schedule rates? State-level calibration factors, service category patterns, and Tennessee fee schedule simulation.",
     status: "live" as const, icon: "T", color: "#D97706",
+  },
+  {
+    id: "research/meps-analysis", group: "research", name: "MEPS Expenditure Analysis",
+    tagline: "Individual-level spending by insurance type",
+    desc: "Medical Expenditure Panel Survey: 22,431 respondents. Medicaid vs private vs uninsured expenditure, utilization, and out-of-pocket burden.",
+    status: "live" as const, icon: "E", color: "#0891B2",
   },
 ];
 
@@ -1429,6 +1436,7 @@ function PlatformInner() {
       "/research/nursing-ownership": <NursingOwnership />,
       "/research/waiver-impact": <WaiverImpact />,
       "/research/tmsis-calibration": <TmsisCalibration />,
+      "/research/meps-analysis": <MepsAnalysis />,
       // ── Utility tools ──────────────────────────────────────────
       "/ask": <ToolErrorBoundary><Suspense fallback={loadingFallback}><IntelligenceChat /></Suspense></ToolErrorBoundary>,
       "/catalog": <DataCatalog />,

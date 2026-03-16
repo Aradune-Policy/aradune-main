@@ -611,3 +611,4 @@ def get_cursor():
         yield cursor
     finally:
         cursor.close()
+    # No changes needed — fee_schedule_il and fee_schedule_mt auto-discovered

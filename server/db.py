@@ -379,6 +379,14 @@ FACT_NAMES = [
     "teds_admissions_2023",
     "cdc_chronic_disease",
     "cdc_behavioral_risk", "cdc_underlying_cod",
+    # Session 30: Manual data ingestion + T-MSIS analysis
+    "adi_block_group", "ahrq_sdoh_county",
+    "fee_schedule_ks", "fee_schedule_wi", "fee_schedule_nj",
+    "fee_schedule_tx", "fee_schedule_ny", "fee_schedule_va",
+    "fmap_kff_historical",
+    "mcpar", "meps_hc_2022", "meps_hc_full_2022",
+    "tmsis_calibration", "tn_simulated_fee_schedule", "tmsis_effective_rates",
+    "rate_comparison_v2",
 ]
 
 

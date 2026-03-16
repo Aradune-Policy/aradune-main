@@ -383,6 +383,7 @@ FACT_NAMES = [
     "adi_block_group", "ahrq_sdoh_county",
     "fee_schedule_ks", "fee_schedule_wi", "fee_schedule_nj",
     "fee_schedule_tx", "fee_schedule_ny", "fee_schedule_va",
+    "fee_schedule_ia", "fee_schedule_pa", "fee_schedule_vt",
     "fmap_kff_historical",
     "mcpar", "meps_hc_2022", "meps_hc_full_2022",
     "tmsis_calibration", "tn_simulated_fee_schedule", "tmsis_effective_rates",

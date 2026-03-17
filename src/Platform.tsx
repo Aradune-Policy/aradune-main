@@ -1137,7 +1137,7 @@ function Landing() {
 // ── About Page ───────────────────────────────────────────────────────────
 function About() {
   return (
-    <div style={{ maxWidth: 640, margin: "0 auto", padding: "40px 20px 60px" }}>
+    <div style={{ maxWidth: 680, margin: "0 auto", padding: "40px 20px 60px" }}>
       <h1 style={{ fontSize: 24, fontWeight: 700, color: C.ink, margin: "0 0 24px" }}>
         About Aradune
       </h1>
@@ -1147,17 +1147,20 @@ function About() {
           EverQuest. He played a paladin. A defender. That's the idea here.
         </p>
         <p style={{ margin: 0 }}>
-          Medicaid spending data is public but practically inaccessible. The
-          dataset on opendata.hhs.gov is over 3 GB. Too large for
-          spreadsheets, too messy for most analytical tools, and buried behind
-          enough friction that very few people ever look at it.
+          Medicaid is a $1 trillion program that covers over 90 million Americans. The data that
+          governs it is public, but practically inaccessible. It's scattered across dozens of
+          federal agencies, published in incompatible formats, and buried behind enough friction
+          that very few people ever look at it. The result: trillion-dollar policy decisions made
+          on incomplete information.
         </p>
         <p style={{ margin: 0 }}>
-          Aradune exists to change that. Free, open tools for anyone who needs
-          to understand how Medicaid dollars move: state policy analysts,
-          academic researchers, journalists covering healthcare, advocates
-          pushing for better rates, legislative staff scoring bills, and federal
-          officials tracking program integrity. No paywall, no login.
+          Aradune changes that. We've assembled 750+ tables from 90+ federal data sources into a
+          single queryable data lake, covering every dimension of Medicaid: rates and fee schedules
+          for all 54 jurisdictions, enrollment, quality measures, hospital finances, pharmacy
+          spending, managed care performance, nursing facility quality, workforce supply, behavioral
+          health, social determinants, and program integrity. An AI analyst sits on top of the
+          entire lake, so you can ask questions in plain English and get analysis with full audit
+          trails and source citations.
         </p>
 
         <div style={{
@@ -1168,10 +1171,47 @@ function About() {
             Built with AI as a force multiplier
           </div>
           <div style={{ fontSize: 12, color: C.inkLight, lineHeight: 1.7 }}>
-            This entire platform, from the data pipeline to the analysis
-            tools to the interface, was built by one person using AI as a
-            collaborator. Aradune is proof of what's possible when AI
-            is used for public good instead of extraction.
+            This entire platform was built by one person using AI as a collaborator. 115+ ETL
+            scripts ingest and normalize data from CMS, HRSA, CDC, SAMHSA, BLS, BEA, Census,
+            FDA, HUD, USDA, and state Medicaid agencies. The AI layer uses Claude to query the
+            data lake directly, search a corpus of 1,039 CMS policy documents, and access current
+            regulatory context via web search. Aradune is proof of what's possible when AI is used
+            for public good instead of extraction.
+          </div>
+        </div>
+
+        <div>
+          <div style={{ fontSize: 14, fontWeight: 600, color: C.ink, marginBottom: 8 }}>
+            What's in the data lake
+          </div>
+          <div style={{ fontSize: 12, color: C.inkLight, lineHeight: 1.8 }}>
+            <b>Fee schedules:</b> Official published Medicaid fee schedules for all 50 states + DC, scraped directly from state Medicaid agency websites. 483,000+ procedure-level rate comparisons to Medicare.<br />
+            <b>Enrollment:</b> Monthly Medicaid/CHIP enrollment for all jurisdictions (2013-2025). Managed care penetration by state and year.<br />
+            <b>Expenditure:</b> CMS-64 state expenditure data (FY1997-2024). National Health Expenditure Accounts (30-year series by service category). FMAP rates (FY2011-2026).<br />
+            <b>Quality:</b> Medicaid Core Set quality measures (2017-2024, 8 years of panel data). Hospital quality ratings, nursing facility Five-Star ratings.<br />
+            <b>Pharmacy:</b> State Drug Utilization Data (1991-2025, 70M+ records). NADAC drug acquisition costs. FDA Orange Book patent/exclusivity data.<br />
+            <b>Providers:</b> Hospital cost reports (HCRIS), AHEAD readiness, nursing facility staffing (PBJ), FQHC sites, ownership changes (CHOW).<br />
+            <b>Social determinants:</b> Area Deprivation Index (240,000 block groups), AHRQ SDOH (14 years), SVI, food access atlas, HUD housing data, dental/MH/primary care HPSA designations.<br />
+            <b>Behavioral health:</b> NSDUH prevalence, MH/SUD treatment facilities, MAT drug spending, opioid prescribing rates, SAMHSA block grants.<br />
+            <b>Program integrity:</b> LEIE exclusions, Open Payments ($10.8B), MFCU fraud statistics, PERM improper payment rates.<br />
+            <b>Individual-level:</b> MEPS Household Component (22,431 respondents, expenditure and utilization by insurance type).
+          </div>
+        </div>
+
+        <div>
+          <div style={{ fontSize: 14, fontWeight: 600, color: C.ink, marginBottom: 8 }}>
+            Research
+          </div>
+          <div style={{ fontSize: 12, color: C.inkLight, lineHeight: 1.7 }}>
+            Aradune publishes 12 cross-domain research briefs that exploit the integrated data lake
+            to answer questions that are typically impossible because the underlying data lives in
+            separate federal systems. Analyses include: rate-quality correlation (OLS, panel FE,
+            DiD), managed care value assessment, nursing home ownership quality gap (propensity score
+            matching, 14,710 facilities), pharmacy reimbursement spread ($3.15B net overpayment),
+            opioid treatment gap (spatial mismatch index, K-means clustering), safety net stress,
+            program integrity risk, fiscal cliff analysis, maternal health deserts, Section 1115
+            waiver impact, T-MSIS claims calibration, and MEPS expenditure analysis. Every analysis
+            includes full methodology, replication code, and data source citations.
           </div>
         </div>
 
@@ -1180,54 +1220,29 @@ function About() {
           borderLeft: `3px solid ${C.accent}`,
         }}>
           <div style={{ fontSize: 12, fontWeight: 600, color: C.ink, marginBottom: 6 }}>
-            CMS Ensuring Access Final Rule (42 CFR 447.203)
+            42 CFR 447.203: Ensuring Access (July 2026)
           </div>
           <div style={{ fontSize: 12, color: C.inkLight, lineHeight: 1.7 }}>
-            The Ensuring Access final rule creates new transparency and adequacy
-            requirements for every state Medicaid program, with deadlines starting
-            July 2026. Aradune's tools map directly to these requirements:
-            fee schedule publication (b)(1)-(3), rate reduction analysis (b)(4),
-            and HCBS compensation reporting (b)(5). The platform is structured
-            around this framework (Transparency, Adequacy, and Modeling) so
-            states can track compliance and build the analytical case for their
-            rate-setting decisions.
+            The first national transparency and adequacy requirements for Medicaid rate-setting take
+            effect in July 2026. Aradune's CPRA generator, fee schedule directory, rate reduction
+            analyzer, and HCBS tracker map directly to subsections (b)(1) through (b)(5). States
+            can use the platform to benchmark rates, generate compliance artifacts, and build the
+            analytical case for their rate-setting decisions.
           </div>
         </div>
 
         <div>
           <div style={{ fontSize: 14, fontWeight: 600, color: C.ink, marginBottom: 8 }}>
-            Data sources
+            Where we're headed
           </div>
-          <div style={{ fontSize: 12, color: C.inkLight, lineHeight: 1.8 }}>
-            <b>Claims data:</b> HHS Medicaid Provider Spending dataset from{" "}
-            <a href="https://opendata.hhs.gov" style={{ color: C.brand }} target="_blank" rel="noopener">
-              opendata.hhs.gov
-            </a>
-            <br />
-            <b>Provider geography:</b> NPPES National Provider Identifier file from CMS
-            <br />
-            <b>Code descriptions:</b> CMS Physician Fee Schedule RVU files + HCPCS Level II Alpha-Numeric file
-            <br />
-            <b>Enrollment:</b> CMS Medicaid enrollment data (November 2024, Medicaid only; CHIP excluded; enriched with state exhibit data)
-            <br />
-            <b>FMAP:</b> FY2025 Federal Medical Assistance Percentages
-          </div>
-        </div>
-
-        <div>
-          <div style={{ fontSize: 14, fontWeight: 600, color: C.ink, marginBottom: 8 }}>
-            Methodology
-          </div>
-          <div style={{ fontSize: 12, color: C.inkLight, lineHeight: 1.8 }}>
-            <b>Rates:</b> total paid ÷ total claims, per code per state. These are paid claims averages from T-MSIS data, not fee schedule amounts. Fee schedule rates (what states officially set) may differ from what is actually paid due to modifiers, managed care, and other adjustments. No risk adjustment, no modifier weighting.
-            <br />
-            <b>Fiscal impact:</b> (national avg − state rate) × state claims.
-            <br />
-            <b>Case mix:</b> Laspeyres decomposition into price index and mix index.
-            <br />
-            <b>Concentration:</b> Gini coefficient and top-percentile spending shares.
-            <br />
-            <b>Per enrollee:</b> total state spend ÷ CMS Medicaid enrollment.
+          <div style={{ fontSize: 12, color: C.inkLight, lineHeight: 1.7 }}>
+            The next phase focuses on three areas. First, deeper causal inference: using Medicaid
+            expansion dates, historical FMAP variation, and nursing home ownership changes as
+            natural experiments to move beyond correlation toward causation. Second, network
+            adequacy: combining provider directories, HPSA designations, and managed care enrollment
+            to map access gaps at the county level. Third, real-time compliance: building automated
+            monitoring for the Ensuring Access deadlines so states can track their obligations
+            continuously rather than scrambling before filing dates.
           </div>
         </div>
 
@@ -1236,10 +1251,9 @@ function About() {
             Contact
           </div>
           <div style={{ fontSize: 12, color: C.inkLight, lineHeight: 1.8 }}>
-            The free tools are designed to cover most use cases. For custom
-            rate studies, AHEAD global budget modeling, SPA fiscal impact
-            analysis, or other methodology work beyond what the public tools
-            provide, please get in touch.
+            The free tools are designed to cover most use cases. For custom rate studies, AHEAD
+            global budget modeling, SPA fiscal impact analysis, or other methodology work beyond
+            what the public tools provide, please get in touch.
           </div>
           <a
             href="mailto:aradune-medicaid@proton.me"
@@ -1478,8 +1492,8 @@ function PlatformInner() {
         display: "flex", justifyContent: "space-between", alignItems: "center",
         flexWrap: "wrap", gap: 8,
       }}>
-        <span style={{ fontSize: 10, color: C.inkLight }}>Aradune · aradune.co</span>
-        <span style={{ fontSize: 10, color: C.inkLight, fontFamily: FONT.mono }}>749 tables · 400M+ rows · 90+ federal sources</span>
+        <span style={{ fontSize: 10, color: C.inkLight }}>Aradune · aradune.co · <a href="#/about" style={{ color: C.inkLight, textDecoration: "none" }}>About</a> · <a href="#/catalog" style={{ color: C.inkLight, textDecoration: "none" }}>Data Catalog</a></span>
+        <span style={{ fontSize: 10, color: C.inkLight, fontFamily: FONT.mono }}>750+ tables · 400M+ rows · 90+ federal sources</span>
       </footer>
     </div>
     </AraduneProvider>

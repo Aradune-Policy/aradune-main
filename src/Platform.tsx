@@ -59,6 +59,7 @@ const RateReduction = lazy(() => import("./tools/RateReduction"));
 const HcbsTracker = lazy(() => import("./tools/HcbsTracker"));
 const FeeScheduleDir = lazy(() => import("./tools/FeeScheduleDir"));
 const RateLookup = lazy(() => import("./tools/RateLookup"));
+const RateExplorer = lazy(() => import("./tools/RateExplorer"));
 const ComplianceReport = lazy(() => import("./tools/ComplianceReport"));
 const CpraGenerator = lazy(() => import("./tools/CpraGenerator"));
 const AheadReadiness = lazy(() => import("./tools/AheadReadiness"));
@@ -126,6 +127,12 @@ const TOOLS: ToolDef[] = [
     tagline: "Search any HCPCS code across all states",
     desc: "Look up Medicaid reimbursement rates for any procedure code across all 47 states with fee schedule data.",
     status: "live", icon: "⌗", color: C.brand,
+  },
+  {
+    id: "rate-explorer", group: "rates", name: "Rate Explorer",
+    tagline: "Procedure code rates ranked by % of Medicare",
+    desc: "Search any HCPCS/CPT code and see Medicaid rates for all 54 jurisdictions in a ranked bar chart with sortable table. Uses fact_rate_comparison_v2.",
+    status: "live", icon: "⊞", color: C.brand,
   },
   // ── FORECAST (direct link, no dropdown) ───────────────────────────────
   {
@@ -1418,6 +1425,7 @@ function PlatformInner() {
       "/rates": <TmsisExplorer />,
       "/cpra": <CpraGenerator />,
       "/lookup": <RateLookup />,
+      "/rate-explorer": <RateExplorer />,
       "/forecast": <CaseloadForecaster />,
       "/fiscal-impact": <FiscalImpact />,
       "/spending": <SpendingEfficiency />,

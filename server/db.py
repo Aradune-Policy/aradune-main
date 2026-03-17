@@ -389,6 +389,8 @@ FACT_NAMES = [
     "fee_schedule_ca",
     # Session 30 deep dive — SDOH + drug reference
     "dental_hpsa", "fda_orange_book_products", "fda_orange_book_patent", "fda_orange_book_exclusivity", "food_access_research_atlas",
+    # NHE + HRSA access designations
+    "mental_health_hpsa", "mua_mup", "fqhc_sites_v2", "nhe_national_2024", "nhe_medicare_aggregate", "nhe_medicare_per_enrollee", "nhe_phi_aggregate", "nhe_phi_per_enrollee", "nhe_us_aggregate", "nhe_us_per_capita", "nhe_us_population",
     "nhe_medicaid_aggregate", "nhe_medicaid_per_enrollee", "nhe_medicaid_enrollment", "nhe_residence_all_tables",
     "fmap_kff_historical",
     "mcpar", "meps_hc_2022", "meps_hc_full_2022",

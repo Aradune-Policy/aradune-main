@@ -1112,10 +1112,17 @@ fly deploy --remote-only --config server/fly.toml --dockerfile server/Dockerfile
 - T-MSIS Calibration module: claims vs fee schedule analysis, TN simulated rates, state-level discount factors.
 - MEPS Expenditure module: 22,431 respondents, Medicaid vs private vs uninsured spending/utilization.
 - Data ingestion: ADI (240K block groups), AHRQ SDOH (44K county-years, 14 years), FMAP FY2011-2023 (663 rows), MCPAR (300 PDF reports), MEPS HC-243, expansion dates in dim_state (41 expanded, 10 not).
-- UI: nav 10→5, chat box dark green, module grid 3-column flat, architecture visual full-width.
+- Deep data dive: dental HPSA (43K), MH HPSA (38K), MUA/MUP (20K), FQHC sites (19K), food access atlas (72K tracts), FDA Orange Book (48K products + 21K patents), NHE 30-year Medicaid/Medicare/private spending series (1991-2020), HUD housing data.
+- State Profile SDOH section: new collapsible section with ADI, food deserts, dental/MH HPSAs, MUA/MUP per state. Backend /api/sdoh/{state_code}.
+- Intelligence: repetition detection guard (truncates looping model output). Chat colors: Aradune=green, You=orange.
+- Ontology updated: 722 tables across 20 domains. Regenerated system prompt (33.7K chars).
+- About page rewritten: origin story, 750+ tables, 90+ sources, research overview, roadmap. No emdashes.
+- UI: nav 10→5, chat box dark green, module grid 3-column flat, architecture visual full-width. Data lake pipeline: Ingest→Normalize→Query. Infrastructure box blue to match.
+- Homepage: "54 jurisdictions" (not "50 states"), official data source names, 750+ tables everywhere, footer links to About + Data Catalog.
 - Doc consolidation: 12 archived, 8 audit reports organized, ARADUNE-COMPLETE-REFERENCE.md (1,030 lines).
 - 12 research modules (was 10): + T-MSIS Calibration + MEPS Expenditure Analysis.
-- 730+ lake views (was 697). 25+ new fact tables. ~30 commits pushed.
+- R2 synced: 49 new parquets uploaded (83 MB). Vercel + Fly.io deployed.
+- 750+ lake tables (was 697). 52+ new fact tables. ~45 commits pushed.
 
 **Session 29 (2026-03-14) — Full forensic audit + research integration:**
 - 8-prompt forensic audit completed (ARADUNE_AUDIT_GUIDE.md): data integrity sweep, Gold table spot-check, DOGE quarantine, ontology graph, tool functional audit, AHEAD validation, Intelligence regression (30 queries, 22 pass), end-to-end workflow smoke test (6/6 pass).

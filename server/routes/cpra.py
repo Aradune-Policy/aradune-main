@@ -251,6 +251,7 @@ def cpra_upload_codes():
 
 
 @router.get("/api/cpra/upload/templates/fee-schedule")
+@safe_route(default_response={"error": "Template generation failed"})
 def cpra_fee_schedule_template():
     """Download a fee schedule CSV template with the 68 E/M codes."""
     import csv as csv_mod
@@ -273,6 +274,7 @@ def cpra_fee_schedule_template():
 
 
 @router.get("/api/cpra/upload/templates/utilization")
+@safe_route(default_response={"error": "Template generation failed"})
 def cpra_utilization_template():
     """Download a utilization CSV template with the 171 code-category pairs."""
     import csv as csv_mod
@@ -298,6 +300,7 @@ def cpra_utilization_template():
 
 
 @router.post("/api/cpra/upload/generate")
+@safe_route(default_response={"meta": {}, "statewide": [], "category_summary": [], "category_locality_summary": [], "codes_no_rate": []})
 async def cpra_upload_generate(
     state: str = Form(...),
     fee_schedule: UploadFile = File(...),
@@ -370,6 +373,7 @@ async def cpra_upload_generate(
 
 
 @router.post("/api/cpra/upload/generate/csv")
+@safe_route(default_response={"error": "CPRA CSV generation failed"})
 async def cpra_upload_generate_csv(
     state: str = Form(...),
     fee_schedule: UploadFile = File(...),
@@ -400,6 +404,7 @@ async def cpra_upload_generate_csv(
 
 
 @router.post("/api/cpra/upload/generate/report")
+@safe_route(default_response={"error": "CPRA report generation failed"})
 async def cpra_upload_generate_report(
     state: str = Form(...),
     fee_schedule: UploadFile = File(...),

@@ -1,11 +1,13 @@
 """Behavioral health endpoints — NSDUH, MH facilities, IPF quality, BRFSS, block grants."""
 from fastapi import APIRouter, Query
 from server.db import get_cursor
+from server.utils.error_handler import safe_route
 
 router = APIRouter()
 
 
 @router.get("/api/behavioral-health/nsduh")
+@safe_route(default_response={"rows": [], "count": 0})
 def nsduh_prevalence(
     state: str = Query(default=None),
     measure: str = Query(default=None),
@@ -38,6 +40,7 @@ def nsduh_prevalence(
 
 
 @router.get("/api/behavioral-health/nsduh/measures")
+@safe_route(default_response={"measures": []})
 def nsduh_measures():
     """List available NSDUH measures."""
     with get_cursor() as cur:
@@ -50,6 +53,7 @@ def nsduh_measures():
 
 
 @router.get("/api/behavioral-health/nsduh/ranking")
+@safe_route(default_response={"rows": [], "count": 0})
 def nsduh_ranking(
     measure: str = Query(default="any_mental_illness"),
     age_group: str = Query(default="18+"),
@@ -72,6 +76,7 @@ def nsduh_ranking(
 
 
 @router.get("/api/behavioral-health/facilities")
+@safe_route(default_response={"rows": [], "count": 0})
 def mh_facilities(
     state: str = Query(default=None),
     facility_type: str = Query(default=None),
@@ -107,6 +112,7 @@ def mh_facilities(
 
 
 @router.get("/api/behavioral-health/facilities/summary")
+@safe_route(default_response={"rows": [], "count": 0})
 def mh_facilities_summary():
     """State-level summary of MH/SUD treatment facilities and bed capacity."""
     with get_cursor() as cur:
@@ -135,6 +141,7 @@ def mh_facilities_summary():
 
 
 @router.get("/api/behavioral-health/ipf")
+@safe_route(default_response={"rows": [], "count": 0})
 def ipf_quality(state: str = Query(default=None)):
     """Inpatient psychiatric facility quality measures by state."""
     with get_cursor() as cur:
@@ -152,6 +159,7 @@ def ipf_quality(state: str = Query(default=None)):
 
 
 @router.get("/api/behavioral-health/block-grants")
+@safe_route(default_response={"rows": [], "count": 0})
 def block_grants(state: str = Query(default=None)):
     """SAMHSA Mental Health Block Grant allotments by state."""
     with get_cursor() as cur:
@@ -173,6 +181,7 @@ def block_grants(state: str = Query(default=None)):
 
 
 @router.get("/api/behavioral-health/brfss")
+@safe_route(default_response={"rows": [], "count": 0})
 def brfss_behavioral(
     state: str = Query(default=None),
     topic: str = Query(default=None),
@@ -210,6 +219,7 @@ def brfss_behavioral(
 
 
 @router.get("/api/gme/providers")
+@safe_route(default_response={"rows": [], "count": 0})
 def gme_providers(
     state: str = Query(default=None),
     teaching_only: bool = Query(default=False),
@@ -246,6 +256,7 @@ def gme_providers(
 
 
 @router.get("/api/gme/summary")
+@safe_route(default_response={"rows": [], "count": 0})
 def gme_summary():
     """State-level summary of teaching hospitals and GME/IME data."""
     with get_cursor() as cur:
@@ -272,6 +283,7 @@ def gme_summary():
 
 
 @router.get("/api/chip/enrollment")
+@safe_route(default_response={"rows": [], "count": 0})
 def chip_enrollment(
     state: str = Query(default=None),
     year: int = Query(default=None),
@@ -307,6 +319,7 @@ def chip_enrollment(
 
 
 @router.get("/api/chip/summary")
+@safe_route(default_response={"rows": [], "count": 0})
 def chip_summary():
     """Latest CHIP enrollment summary by state."""
     with get_cursor() as cur:
@@ -330,6 +343,7 @@ def chip_summary():
 
 
 @router.get("/api/hcbs/waiver-enrollment")
+@safe_route(default_response={"rows": [], "count": 0})
 def hcbs_waiver_enrollment(state: str = Query(default=None)):
     """1915(c) HCBS waiver participant counts by state."""
     with get_cursor() as cur:
@@ -355,6 +369,7 @@ def hcbs_waiver_enrollment(state: str = Query(default=None)):
 
 
 @router.get("/api/hospice/quality")
+@safe_route(default_response={"rows": [], "count": 0})
 def hospice_quality(
     state: str = Query(default=None),
     measure: str = Query(default=None),
@@ -386,6 +401,7 @@ def hospice_quality(
 
 
 @router.get("/api/hospice/summary")
+@safe_route(default_response={"rows": [], "count": 0})
 def hospice_summary():
     """State-level hospice facility summary."""
     with get_cursor() as cur:
@@ -408,6 +424,7 @@ def hospice_summary():
 
 
 @router.get("/api/hospice/measures")
+@safe_route(default_response={"measures": []})
 def hospice_measures():
     """List available hospice quality measures."""
     with get_cursor() as cur:
@@ -421,6 +438,7 @@ def hospice_measures():
 
 
 @router.get("/api/chip/eligibility")
+@safe_route(default_response={"rows": [], "count": 0})
 def chip_eligibility():
     """CHIP and Medicaid eligibility income thresholds by state."""
     with get_cursor() as cur:
@@ -441,6 +459,7 @@ def chip_eligibility():
 
 
 @router.get("/api/eligibility/continuous")
+@safe_route(default_response={"rows": [], "count": 0})
 def continuous_eligibility():
     """Continuous eligibility policies by state."""
     with get_cursor() as cur:
@@ -457,6 +476,7 @@ def continuous_eligibility():
 
 
 @router.get("/api/hcbs/authority")
+@safe_route(default_response={"rows": [], "count": 0})
 def hcbs_authority():
     """HCBS measures by authority type from Medicaid Scorecard."""
     with get_cursor() as cur:
@@ -477,6 +497,7 @@ def hcbs_authority():
 
 
 @router.get("/api/managed-care/quality-features")
+@safe_route(default_response={"rows": [], "count": 0})
 def mc_quality_features():
     """Managed care quality assurance features by plan type."""
     with get_cursor() as cur:
@@ -495,6 +516,7 @@ def mc_quality_features():
 
 
 @router.get("/api/maternal-health")
+@safe_route(default_response={"rows": [], "count": 0})
 def maternal_health(
     state: str = Query(default=None),
     measure: str = Query(default=None),
@@ -526,6 +548,7 @@ def maternal_health(
 
 
 @router.get("/api/maternal-health/summary")
+@safe_route(default_response={"rows": [], "count": 0})
 def maternal_health_summary():
     """State-level maternal health facility summary."""
     with get_cursor() as cur:
@@ -547,6 +570,7 @@ def maternal_health_summary():
 
 
 @router.get("/api/hospice/state")
+@safe_route(default_response={"rows": [], "count": 0})
 def hospice_state_data(state: str = Query(default=None)):
     """State-level hospice quality measures."""
     with get_cursor() as cur:
@@ -570,6 +594,7 @@ def hospice_state_data(state: str = Query(default=None)):
 
 
 @router.get("/api/asc/quality")
+@safe_route(default_response={"rows": [], "count": 0})
 def asc_quality_state():
     """Ambulatory surgical center quality measures by state."""
     with get_cursor() as cur:
@@ -584,6 +609,7 @@ def asc_quality_state():
 
 
 @router.get("/api/home-health/state")
+@safe_route(default_response={"rows": [], "count": 0})
 def home_health_state_data():
     """Home health quality ratings by state."""
     with get_cursor() as cur:
@@ -598,6 +624,7 @@ def home_health_state_data():
 
 
 @router.get("/api/oas-cahps/state")
+@safe_route(default_response={"rows": [], "count": 0})
 def oas_cahps_state(state: str = Query(default=None)):
     """Outpatient surgery patient experience (OAS CAHPS) by state."""
     with get_cursor() as cur:
@@ -623,6 +650,7 @@ def oas_cahps_state(state: str = Query(default=None)):
 
 
 @router.get("/api/hcbs/cms372")
+@safe_route(default_response={"rows": [], "count": 0})
 def cms372_waiver(
     state: str = Query(default=None),
     year: int = Query(default=None),
@@ -656,6 +684,7 @@ def cms372_waiver(
 
 
 @router.get("/api/hcbs/cms372/summary")
+@safe_route(default_response={"rows": [], "count": 0})
 def cms372_summary():
     """State-level summary of 1915(c) waiver expenditures and participants."""
     with get_cursor() as cur:
@@ -679,6 +708,7 @@ def cms372_summary():
 
 
 @router.get("/api/managed-care/plans")
+@safe_route(default_response={"rows": [], "count": 0})
 def mc_plans(
     state: str = Query(default=None),
     year: int = Query(default=None),
@@ -715,6 +745,7 @@ def mc_plans(
 
 
 @router.get("/api/managed-care/pace")
+@safe_route(default_response={"rows": [], "count": 0})
 def pace_enrollment():
     """PACE enrollment summary by state and year."""
     with get_cursor() as cur:
@@ -741,6 +772,7 @@ def pace_enrollment():
 
 
 @router.get("/api/behavioral-health/conditions")
+@safe_route(default_response={"rows": [], "count": 0})
 def bh_by_condition(
     state: str = Query(default=None),
     year: int = Query(default=None),
@@ -774,6 +806,7 @@ def bh_by_condition(
 
 
 @router.get("/api/behavioral-health/conditions/summary")
+@safe_route(default_response={"rows": [], "count": 0})
 def bh_conditions_summary():
     """Summary of BH conditions — most prevalent conditions by state count."""
     with get_cursor() as cur:
@@ -796,6 +829,7 @@ def bh_conditions_summary():
 
 
 @router.get("/api/behavioral-health/mh-sud-recipients")
+@safe_route(default_response={"rows": [], "count": 0})
 def mh_sud_recipients(
     year: int = Query(default=None),
     geography: str = Query(default=None),
@@ -827,6 +861,7 @@ def mh_sud_recipients(
 
 
 @router.get("/api/maternal/morbidity")
+@safe_route(default_response={"rows": [], "count": 0})
 def maternal_morbidity(
     year: int = Query(default=None),
     geography: str = Query(default=None),
@@ -858,6 +893,7 @@ def maternal_morbidity(
 
 
 @router.get("/api/dental/services")
+@safe_route(default_response={"rows": [], "count": 0})
 def dental_services(
     state: str = Query(default=None),
     year: int = Query(default=None),
@@ -889,6 +925,7 @@ def dental_services(
 
 
 @router.get("/api/telehealth/services")
+@safe_route(default_response={"rows": [], "count": 0})
 def telehealth_services(
     state: str = Query(default=None),
     year: int = Query(default=None),
@@ -924,6 +961,7 @@ def telehealth_services(
 
 
 @router.get("/api/irf/quality")
+@safe_route(default_response={"rows": [], "count": 0})
 def irf_quality(
     state: str = Query(default=None),
     measure: str = Query(default=None),
@@ -955,6 +993,7 @@ def irf_quality(
 
 
 @router.get("/api/irf/summary")
+@safe_route(default_response={"rows": [], "count": 0})
 def irf_summary():
     """State-level IRF summary — facility count and average scores."""
     with get_cursor() as cur:
@@ -977,6 +1016,7 @@ def irf_summary():
 
 
 @router.get("/api/ltch/quality")
+@safe_route(default_response={"rows": [], "count": 0})
 def ltch_quality(
     state: str = Query(default=None),
     measure: str = Query(default=None),
@@ -1008,6 +1048,7 @@ def ltch_quality(
 
 
 @router.get("/api/ltch/summary")
+@safe_route(default_response={"rows": [], "count": 0})
 def ltch_summary():
     """State-level LTCH summary — facility count and average scores."""
     with get_cursor() as cur:
@@ -1030,6 +1071,7 @@ def ltch_summary():
 
 
 @router.get("/api/home-health/agencies")
+@safe_route(default_response={"rows": [], "count": 0})
 def home_health_agencies(
     state: str = Query(default=None),
 ):
@@ -1061,6 +1103,7 @@ def home_health_agencies(
 
 
 @router.get("/api/home-health/agencies/summary")
+@safe_route(default_response={"rows": [], "count": 0})
 def home_health_agencies_summary():
     """State-level HHA summary — count, ownership mix, quality ratings."""
     with get_cursor() as cur:
@@ -1084,6 +1127,7 @@ def home_health_agencies_summary():
 
 
 @router.get("/api/behavioral-health/physical-among-mh")
+@safe_route(default_response={"rows": [], "count": 0})
 def physical_among_mh(
     state: str = Query(default=None),
     year: int = Query(default=None),
@@ -1117,6 +1161,7 @@ def physical_among_mh(
 
 
 @router.get("/api/behavioral-health/physical-among-sud")
+@safe_route(default_response={"rows": [], "count": 0})
 def physical_among_sud(
     state: str = Query(default=None),
     year: int = Query(default=None),
@@ -1155,6 +1200,7 @@ def physical_among_sud(
 
 
 @router.get("/api/behavioral-health/services")
+@safe_route(default_response={"rows": [], "count": 0})
 def bh_services(
     state: str = Query(default=None),
     year: int = Query(default=None),
@@ -1194,6 +1240,7 @@ def bh_services(
 
 
 @router.get("/api/behavioral-health/services/summary")
+@safe_route(default_response={"rows": [], "count": 0})
 def bh_services_summary():
     """State-level BH services summary — total service counts by condition."""
     with get_cursor() as cur:
@@ -1217,6 +1264,7 @@ def bh_services_summary():
 
 
 @router.get("/api/behavioral-health/integrated-care")
+@safe_route(default_response={"rows": [], "count": 0})
 def integrated_care(
     state: str = Query(default=None),
     year: int = Query(default=None),
@@ -1246,6 +1294,7 @@ def integrated_care(
 
 
 @router.get("/api/hcbs/1915c-participants")
+@safe_route(default_response={"rows": [], "count": 0})
 def waiver_1915c_participants(
     year: int = Query(default=None),
     geography: str = Query(default=None),
@@ -1277,6 +1326,7 @@ def waiver_1915c_participants(
 
 
 @router.get("/api/managed-care/share")
+@safe_route(default_response={"rows": [], "count": 0})
 def mc_share(
     state: str = Query(default=None),
     year: int = Query(default=None),
@@ -1310,6 +1360,7 @@ def mc_share(
 
 
 @router.get("/api/managed-care/monthly")
+@safe_route(default_response={"rows": [], "count": 0})
 def mc_monthly(
     state: str = Query(default=None),
     mc_type: str = Query(default=None),
@@ -1344,6 +1395,7 @@ def mc_monthly(
 
 
 @router.get("/api/dialysis/facilities")
+@safe_route(default_response={"rows": [], "count": 0})
 def dialysis_facilities(
     state: str = Query(default=None),
     min_stars: int = Query(default=None),
@@ -1379,6 +1431,7 @@ def dialysis_facilities(
 
 
 @router.get("/api/dialysis/summary")
+@safe_route(default_response={"rows": [], "count": 0})
 def dialysis_summary():
     """State-level dialysis facility summary — counts, stars, ownership."""
     with get_cursor() as cur:
@@ -1404,6 +1457,7 @@ def dialysis_summary():
 
 
 @router.get("/api/behavioral-health/ipf-facility")
+@safe_route(default_response={"rows": [], "count": 0})
 def ipf_facility(
     state: str = Query(default=None),
 ):
@@ -1433,6 +1487,7 @@ def ipf_facility(
 
 
 @router.get("/api/behavioral-health/ipf-facility/summary")
+@safe_route(default_response={"rows": [], "count": 0})
 def ipf_facility_summary():
     """State-level IPF summary — facility count and average quality metrics."""
     with get_cursor() as cur:
@@ -1455,6 +1510,7 @@ def ipf_facility_summary():
 
 
 @router.get("/api/hospice/providers")
+@safe_route(default_response={"rows": [], "count": 0})
 def hospice_providers(
     state: str = Query(default=None),
     measure: str = Query(default=None),
@@ -1486,6 +1542,7 @@ def hospice_providers(
 
 
 @router.get("/api/hospice/providers/summary")
+@safe_route(default_response={"rows": [], "count": 0})
 def hospice_providers_summary():
     """State-level hospice provider summary."""
     with get_cursor() as cur:
@@ -1511,6 +1568,7 @@ def hospice_providers_summary():
 
 
 @router.get("/api/children/screenings")
+@safe_route(default_response={"rows": [], "count": 0})
 def health_screenings(
     state: str = Query(default=None),
     year: int = Query(default=None),
@@ -1542,6 +1600,7 @@ def health_screenings(
 
 
 @router.get("/api/acute-care/services")
+@safe_route(default_response={"rows": [], "count": 0})
 def acute_care_services(
     state: str = Query(default=None),
     year: int = Query(default=None),
@@ -1577,6 +1636,7 @@ def acute_care_services(
 
 
 @router.get("/api/acute-care/summary")
+@safe_route(default_response={"rows": [], "count": 0})
 def acute_care_summary():
     """State-level acute care summary — total services by condition."""
     with get_cursor() as cur:
@@ -1599,6 +1659,7 @@ def acute_care_summary():
 
 
 @router.get("/api/perinatal/services")
+@safe_route(default_response={"rows": [], "count": 0})
 def perinatal_services(
     state: str = Query(default=None),
     year: int = Query(default=None),
@@ -1630,6 +1691,7 @@ def perinatal_services(
 
 
 @router.get("/api/managed-care/summary")
+@safe_route(default_response={"rows": [], "count": 0})
 def mc_enrollment_summary(
     state: str = Query(default=None),
     year: int = Query(default=None),
@@ -1663,6 +1725,7 @@ def mc_enrollment_summary(
 
 
 @router.get("/api/asc/facilities")
+@safe_route(default_response={"rows": [], "count": 0})
 def asc_facilities(
     state: str = Query(default=None),
 ):
@@ -1690,6 +1753,7 @@ def asc_facilities(
 
 
 @router.get("/api/asc/facilities/summary")
+@safe_route(default_response={"rows": [], "count": 0})
 def asc_facilities_summary():
     """State-level ASC summary — facility count and average quality rates."""
     with get_cursor() as cur:
@@ -1713,6 +1777,7 @@ def asc_facilities_summary():
 
 
 @router.get("/api/hospitals/directory")
+@safe_route(default_response={"rows": [], "count": 0})
 def hospital_directory(
     state: str = Query(default=None),
     hospital_type: str = Query(default=None),
@@ -1750,6 +1815,7 @@ def hospital_directory(
 
 
 @router.get("/api/hospitals/directory/summary")
+@safe_route(default_response={"rows": [], "count": 0})
 def hospital_directory_summary():
     """State-level hospital directory summary — counts by type, ratings, ownership."""
     with get_cursor() as cur:
@@ -1780,6 +1846,7 @@ def hospital_directory_summary():
 # ── Managed Care Programs (2019) ──────────────────────────────────
 
 @router.get("/api/managed-care/programs")
+@safe_route(default_response={"rows": [], "count": 0})
 def mc_programs(
     state: str = Query(default=None),
     program_type: str = Query(default=None),
@@ -1810,6 +1877,7 @@ def mc_programs(
 
 
 @router.get("/api/managed-care/programs/summary")
+@safe_route(default_response={"rows": [], "count": 0})
 def mc_programs_summary():
     """Summary of managed care programs by state and program type."""
     with get_cursor() as cur:
@@ -1838,6 +1906,7 @@ def mc_programs_summary():
 # ── CHIP Enrollment ───────────────────────────────────────────────
 
 @router.get("/api/chip/enrollment-unwinding")
+@safe_route(default_response={"rows": [], "count": 0})
 def chip_enrollment_unwinding(
     state: str = Query(default=None),
     limit: int = Query(default=1000, le=5000),
@@ -1860,6 +1929,7 @@ def chip_enrollment_unwinding(
 
 
 @router.get("/api/chip/program-monthly")
+@safe_route(default_response={"rows": [], "count": 0})
 def chip_program_monthly(
     state: str = Query(default=None),
     program_type: str = Query(default=None),
@@ -1886,6 +1956,7 @@ def chip_program_monthly(
 
 
 @router.get("/api/chip/program-monthly/summary")
+@safe_route(default_response={"rows": [], "count": 0})
 def chip_program_monthly_summary():
     """Summary of Medicaid vs CHIP enrollment by state (latest month)."""
     with get_cursor() as cur:
@@ -1912,6 +1983,7 @@ def chip_program_monthly_summary():
 # ── Applications & Renewals ───────────────────────────────────────
 
 @router.get("/api/enrollment/applications")
+@safe_route(default_response={"rows": [], "count": 0})
 def medicaid_applications(
     state: str = Query(default=None),
     limit: int = Query(default=1000, le=15000),
@@ -1934,6 +2006,7 @@ def medicaid_applications(
 
 
 @router.get("/api/enrollment/renewals")
+@safe_route(default_response={"rows": [], "count": 0})
 def renewal_processing(
     state: str = Query(default=None),
     limit: int = Query(default=1000, le=5000),
@@ -1956,6 +2029,7 @@ def renewal_processing(
 
 
 @router.get("/api/enrollment/renewals/summary")
+@safe_route(default_response={"rows": [], "count": 0})
 def renewal_processing_summary():
     """Summary of renewal processing outcomes by state (latest period)."""
     with get_cursor() as cur:
@@ -1985,6 +2059,7 @@ def renewal_processing_summary():
 # ── Children's Health Services ────────────────────────────────────
 
 @router.get("/api/children/vaccinations")
+@safe_route(default_response={"rows": [], "count": 0})
 def children_vaccinations(
     state: str = Query(default=None),
     vaccine_type: str = Query(default=None),
@@ -2015,6 +2090,7 @@ def children_vaccinations(
 
 
 @router.get("/api/children/vaccinations/summary")
+@safe_route(default_response={"rows": [], "count": 0})
 def children_vaccinations_summary():
     """Summary of vaccination rates by state (latest year)."""
     with get_cursor() as cur:
@@ -2037,6 +2113,7 @@ def children_vaccinations_summary():
 
 
 @router.get("/api/children/lead-screening")
+@safe_route(default_response={"rows": [], "count": 0})
 def blood_lead_screening(
     state: str = Query(default=None),
     year: int = Query(default=None),
@@ -2065,6 +2142,7 @@ def blood_lead_screening(
 # ── Dual Eligibility ─────────────────────────────────────────────
 
 @router.get("/api/enrollment/dual-status")
+@safe_route(default_response={"rows": [], "count": 0})
 def dual_status_monthly(
     state: str = Query(default=None),
     dual_status: str = Query(default=None),
@@ -2091,6 +2169,7 @@ def dual_status_monthly(
 
 
 @router.get("/api/enrollment/dual-status/summary")
+@safe_route(default_response={"rows": [], "count": 0})
 def dual_status_summary():
     """Summary of dual eligibility by state (latest month)."""
     with get_cursor() as cur:
@@ -2122,6 +2201,7 @@ def dual_status_summary():
 # ── Benefit Package & Program Annual ─────────────────────────────
 
 @router.get("/api/enrollment/benefit-package")
+@safe_route(default_response={"rows": [], "count": 0})
 def benefit_package(
     state: str = Query(default=None),
     year: int = Query(default=None),
@@ -2148,6 +2228,7 @@ def benefit_package(
 
 
 @router.get("/api/enrollment/program-annual")
+@safe_route(default_response={"rows": [], "count": 0})
 def program_annual(
     state: str = Query(default=None),
     year: int = Query(default=None),
@@ -2176,6 +2257,7 @@ def program_annual(
 # ── Maternal Health (Extended) ────────────────────────────────────
 
 @router.get("/api/maternal/nas-rates")
+@safe_route(default_response={"rows": [], "count": 0})
 def nas_rates(
     state: str = Query(default=None),
     year: int = Query(default=None),
@@ -2202,6 +2284,7 @@ def nas_rates(
 
 
 @router.get("/api/maternal/nas-rates/summary")
+@safe_route(default_response={"rows": [], "count": 0})
 def nas_rates_summary():
     """NAS rates by state for the latest year."""
     with get_cursor() as cur:
@@ -2217,6 +2300,7 @@ def nas_rates_summary():
 
 
 @router.get("/api/maternal/pregnant-postpartum")
+@safe_route(default_response={"rows": [], "count": 0})
 def pregnant_postpartum(
     state: str = Query(default=None),
     year: int = Query(default=None),
@@ -2243,6 +2327,7 @@ def pregnant_postpartum(
 
 
 @router.get("/api/maternal/smm-extended")
+@safe_route(default_response={"rows": [], "count": 0})
 def smm_extended(
     state: str = Query(default=None),
     year: int = Query(default=None),
@@ -2271,6 +2356,7 @@ def smm_extended(
 # ── CAA 2023 Enhanced FMAP ───────────────────────────────────────
 
 @router.get("/api/expenditure/caa-fmap")
+@safe_route(default_response={"rows": [], "count": 0})
 def caa_fmap(
     state: str = Query(default=None),
     limit: int = Query(default=200, le=500),
@@ -2340,6 +2426,7 @@ router.get("/api/hospitals/psi90-facility")(
 # ── SNF / Nursing Home Quality ────────────────────────────────────
 
 @router.get("/api/nursing-homes/snf-vbp")
+@safe_route(default_response={"rows": [], "count": 0})
 def snf_vbp(
     state: str = Query(default=None),
     ccn: str = Query(default=None),
@@ -2366,6 +2453,7 @@ def snf_vbp(
 
 
 @router.get("/api/nursing-homes/claims-quality")
+@safe_route(default_response={"rows": [], "count": 0})
 def nh_claims_quality(
     state: str = Query(default=None),
     ccn: str = Query(default=None),
@@ -2396,6 +2484,7 @@ def nh_claims_quality(
 
 
 @router.get("/api/nursing-homes/snf-quality")
+@safe_route(default_response={"rows": [], "count": 0})
 def snf_quality_provider(
     state: str = Query(default=None),
     ccn: str = Query(default=None),
@@ -2426,6 +2515,7 @@ def snf_quality_provider(
 
 
 @router.get("/api/nursing-homes/state-averages")
+@safe_route(default_response={"rows": [], "count": 0})
 def nh_state_averages():
     """Nursing home state and national quality averages (ratings, staffing, deficiencies)."""
     with get_cursor() as cur:
@@ -2442,6 +2532,7 @@ def nh_state_averages():
 # ---------------------------------------------------------------------------
 
 @router.get("/api/providers/fqhc")
+@safe_route(default_response={"rows": [], "count": 0})
 def fqhc_directory_v1(
     state: str = Query(default=None),
     health_center_type: str = Query(default=None),
@@ -2477,6 +2568,7 @@ def fqhc_directory_v1(
 
 
 @router.get("/api/providers/fqhc/summary")
+@safe_route(default_response={"rows": [], "count": 0})
 def fqhc_summary_v1():
     """FQHC site count by state."""
     with get_cursor() as cur:
@@ -2498,6 +2590,7 @@ def fqhc_summary_v1():
 # ---------------------------------------------------------------------------
 
 @router.get("/api/demographics/vital-stats")
+@safe_route(default_response={"rows": [], "count": 0})
 def vital_stats(
     state: str = Query(default=None),
     indicator: str = Query(default=None),
@@ -2536,6 +2629,7 @@ def vital_stats(
 # ---------------------------------------------------------------------------
 
 @router.get("/api/maternal/mortality-national")
+@safe_route(default_response={"rows": [], "count": 0})
 def maternal_mortality_national(
     group: str = Query(default=None),
     subgroup: str = Query(default=None),
@@ -2572,6 +2666,7 @@ def maternal_mortality_national(
 # ── HHCAHPS ─────────────────────────────────────────────────────────────
 
 @router.get("/api/home-health/hhcahps-provider")
+@safe_route(default_response={"rows": [], "count": 0})
 def hhcahps_provider(
     state: str | None = None,
     ccn: str | None = None,
@@ -2608,6 +2703,7 @@ def hhcahps_provider(
 
 
 @router.get("/api/home-health/hhcahps-state")
+@safe_route(default_response={"rows": [], "count": 0})
 def hhcahps_state(state: str | None = None):
     with get_cursor() as cur:
         where, params = ["1=1"], []
@@ -2631,6 +2727,7 @@ def hhcahps_state(state: str | None = None):
 # ── Hospice Directory + CAHPS ────────────────────────────────────────────
 
 @router.get("/api/hospice/directory")
+@safe_route(default_response={"rows": [], "count": 0})
 def hospice_directory(
     state: str | None = None,
     ownership: str | None = None,
@@ -2660,6 +2757,7 @@ def hospice_directory(
 
 
 @router.get("/api/hospice/cahps-state")
+@safe_route(default_response={"rows": [], "count": 0})
 def hospice_cahps_state(
     state: str | None = None,
     measure: str | None = None,
@@ -2687,6 +2785,7 @@ def hospice_cahps_state(
 # ── Medicare Spending by Claim ───────────────────────────────────────────
 
 @router.get("/api/medicare/spending-by-claim")
+@safe_route(default_response={"rows": [], "count": 0})
 def medicare_spending_by_claim(
     state: str | None = None,
     facility_id: str | None = None,
@@ -2724,6 +2823,7 @@ def medicare_spending_by_claim(
 # ── VHA Providers ────────────────────────────────────────────────────────
 
 @router.get("/api/vha/providers")
+@safe_route(default_response={"rows": [], "count": 0})
 def vha_providers(
     state: str | None = None,
     min_rating: int | None = None,
@@ -2753,6 +2853,7 @@ def vha_providers(
 # ── Pregnancy Outcomes ───────────────────────────────────────────────────
 
 @router.get("/api/maternal/pregnancy-outcomes")
+@safe_route(default_response={"rows": [], "count": 0})
 def pregnancy_outcomes(
     state: str | None = None,
     outcome: str | None = None,
@@ -2785,6 +2886,7 @@ def pregnancy_outcomes(
 # ── CHIP Program Annual ─────────────────────────────────────────────────
 
 @router.get("/api/chip/program-annual")
+@safe_route(default_response={"rows": [], "count": 0})
 def chip_program_annual(
     state: str | None = None,
     program_type: str | None = None,
@@ -2818,6 +2920,7 @@ def chip_program_annual(
 # ── Well-Child Visits ────────────────────────────────────────────────────
 
 @router.get("/api/children/well-child-visits")
+@safe_route(default_response={"rows": [], "count": 0})
 def well_child_visits(year: int | None = None):
     with get_cursor() as cur:
         where, params = ["1=1"], []
@@ -2839,6 +2942,7 @@ def well_child_visits(year: int | None = None):
 # ── Financial Management National ────────────────────────────────────────
 
 @router.get("/api/expenditure/financial-mgmt-national")
+@safe_route(default_response={"rows": [], "count": 0})
 def financial_mgmt_national(
     year: int | None = None,
     program: str | None = None,
@@ -2870,6 +2974,7 @@ def financial_mgmt_national(
 # ══════════════════════════════════════════════════════════════════════
 
 @router.get("/api/medicare/mspb-hospital")
+@safe_route(default_response={"rows": [], "count": 0})
 def mspb_hospital_detail(
     state: str = Query(default=None),
     ccn: str = Query(default=None),
@@ -2899,6 +3004,7 @@ def mspb_hospital_detail(
 
 
 @router.get("/api/hospitals/imaging")
+@safe_route(default_response={"rows": [], "count": 0})
 def imaging_hospital_detail(
     state: str = Query(default=None),
     ccn: str = Query(default=None),
@@ -2932,6 +3038,7 @@ def imaging_hospital_detail(
 
 
 @router.get("/api/dialysis/esrd-qip")
+@safe_route(default_response={"rows": [], "count": 0})
 def esrd_qip_quality(
     state: str = Query(default=None),
     ccn: str = Query(default=None),
@@ -2967,6 +3074,7 @@ def esrd_qip_quality(
 
 
 @router.get("/api/dialysis/esrd-qip/summary")
+@safe_route(default_response={"rows": [], "count": 0})
 def esrd_qip_summary():
     """ESRD QIP state-level summary statistics."""
     with get_cursor() as cur:
@@ -2988,6 +3096,7 @@ def esrd_qip_summary():
 
 
 @router.get("/api/providers/physicians")
+@safe_route(default_response={"rows": [], "count": 0})
 def physician_directory(
     state: str = Query(default=None),
     specialty: str = Query(default=None),
@@ -3023,6 +3132,7 @@ def physician_directory(
 
 
 @router.get("/api/providers/physicians/specialties")
+@safe_route(default_response={"rows": [], "count": 0})
 def physician_specialties():
     """Count of physicians by specialty."""
     with get_cursor() as cur:

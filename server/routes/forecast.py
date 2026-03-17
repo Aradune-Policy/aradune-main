@@ -26,6 +26,7 @@ from server.engines.expenditure_model import (
     generate_params_template,
 )
 from server.engines.fiscal_impact import FiscalImpactEngine
+from server.utils.error_handler import safe_route
 
 router = APIRouter()
 
@@ -34,6 +35,7 @@ router = APIRouter()
 
 
 @router.get("/api/forecast/templates/caseload")
+@safe_route(default_response={"error": "Template generation failed"})
 def forecast_caseload_template(
     include_regional: bool = Query(False),
     include_delivery: bool = Query(False),
@@ -53,6 +55,7 @@ def forecast_caseload_template(
 
 
 @router.get("/api/forecast/templates/events")
+@safe_route(default_response={"error": "Template generation failed"})
 def forecast_events_template():
     """Download a blank events CSV template with example structural events."""
     content = generate_events_template()
@@ -69,6 +72,7 @@ def forecast_events_template():
 
 
 @router.post("/api/forecast/generate")
+@safe_route(default_response={"error": "Forecast generation failed"})
 async def forecast_generate(
     state: str = Form(...),
     caseload: UploadFile = File(...),
@@ -137,6 +141,7 @@ async def forecast_generate(
 
 
 @router.post("/api/forecast/generate/csv")
+@safe_route(default_response={"error": "Forecast CSV generation failed"})
 async def forecast_generate_csv(
     state: str = Form(...),
     caseload: UploadFile = File(...),
@@ -196,6 +201,7 @@ async def forecast_generate_csv(
 
 
 @router.get("/api/forecast/public-enrollment")
+@safe_route(default_response={"rows": [], "count": 0})
 async def public_enrollment(
     state: Optional[str] = Query(None),
 ):
@@ -224,6 +230,7 @@ async def public_enrollment(
 
 
 @router.get("/api/forecast/public-enrollment/by-group")
+@safe_route(default_response={"rows": [], "count": 0})
 async def public_enrollment_by_group(
     state: Optional[str] = Query(None),
 ):
@@ -251,6 +258,7 @@ async def public_enrollment_by_group(
 
 
 @router.get("/api/forecast/templates/expenditure-params")
+@safe_route(default_response={"error": "Template generation failed"})
 def expenditure_params_template():
     """Download a blank expenditure parameters CSV template."""
     content = generate_params_template()
@@ -264,6 +272,7 @@ def expenditure_params_template():
 
 
 @router.post("/api/forecast/expenditure")
+@safe_route(default_response={"error": "Expenditure projection failed"})
 async def forecast_expenditure(
     state: str = Form(...),
     caseload: UploadFile = File(...),
@@ -358,6 +367,7 @@ async def forecast_expenditure(
 
 
 @router.post("/api/forecast/expenditure/csv")
+@safe_route(default_response={"error": "Expenditure CSV generation failed"})
 async def forecast_expenditure_csv(
     state: str = Form(...),
     caseload: UploadFile = File(...),
@@ -437,6 +447,7 @@ async def forecast_expenditure_csv(
 
 
 @router.post("/api/forecast/expenditure-only")
+@safe_route(default_response={"error": "Expenditure projection failed"})
 async def expenditure_from_forecast(
     state: str = Form(...),
     forecast_csv: UploadFile = File(...),
@@ -480,6 +491,7 @@ async def expenditure_from_forecast(
 
 
 @router.post("/api/forecast/fiscal-impact")
+@safe_route(default_response={"error": "Fiscal impact calculation failed"})
 async def fiscal_impact(
     state: str = Form(...),
     fy_start: int = Form(None),
@@ -529,6 +541,7 @@ async def fiscal_impact(
 
 
 @router.post("/api/forecast/fiscal-impact/csv")
+@safe_route(default_response={"error": "Fiscal impact CSV generation failed"})
 async def fiscal_impact_csv(
     state: str = Form(...),
     fy_start: int = Form(None),

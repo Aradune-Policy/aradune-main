@@ -1748,20 +1748,23 @@ Full 8-prompt research audit (V1 + V2): 25 bugs fixed, all 46 endpoints pass. Ra
 |--------|-------|
 | Lake views | 750+ |
 | Total rows | 400M+ |
-| Parquet size | 4.9 GB |
-| Ontology domains | 20 |
+| Parquet size | 5.1 GB |
+| Ontology domains | 20 (722 tables mapped) |
 | Entity types | 16 |
 | Relationship edges | 28 |
 | ETL scripts | 115+ |
-| Backend endpoints | 258+ across 25 route files |
-| Engines | 7 (Intelligence, Query Router, RAG, Caseload, Expenditure, CPRA Upload, CPRA Engine) |
-| Frontend modules | 27 standalone (15 core + 12 research) |
+| Backend endpoints | 325+ across 35 route files |
+| Engines | 10 (Intelligence, Query Router, RAG, Caseload, Expenditure, CPRA Upload, CPRA Engine, Skillbook, Reflector, Validator) |
+| Frontend modules | 28 standalone (15 core + 13 research) |
 | Export formats | 6 (CSV, Excel, DOCX, PDF, PNG, SVG) |
 | R2 parquet files | 890+ |
 | Demo responses | 27 pre-cached |
 | CI/CD | Both Vercel + Fly.io deploying |
-| Fee schedule coverage | All 51 jurisdictions |
-| Rate comparison rows | 483,154 across 54 states |
+| Auth | Clerk (JWT, test keys active) |
+| Fee schedule coverage | All 54 jurisdictions (official published rates) |
+| Rate comparison rows | 483,154 across 54 jurisdictions |
+| Skillbook | 24 seed skills, auto-learning from every query |
+| Research modules | 13 (Rate-Quality, MC Value, Treatment Gap, Safety Net, Integrity, Fiscal Cliff, Maternal Health, Pharmacy Spread, Nursing Ownership, Waiver Impact, T-MSIS Calibration, MEPS Expenditure, Network Adequacy) |
 
 ---
 

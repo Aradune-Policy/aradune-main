@@ -1120,9 +1120,20 @@ fly deploy --remote-only --config server/fly.toml --dockerfile server/Dockerfile
 - UI: nav 10→5, chat box dark green, module grid 3-column flat, architecture visual full-width. Data lake pipeline: Ingest→Normalize→Query. Infrastructure box blue to match.
 - Homepage: "54 jurisdictions" (not "50 states"), official data source names, 750+ tables everywhere, footer links to About + Data Catalog.
 - Doc consolidation: 12 archived, 8 audit reports organized, ARADUNE-COMPLETE-REFERENCE.md (1,030 lines).
-- 12 research modules (was 10): + T-MSIS Calibration + MEPS Expenditure Analysis.
-- R2 synced: 49 new parquets uploaded (83 MB). Vercel + Fly.io deployed.
-- 750+ lake tables (was 697). 52+ new fact tables. ~45 commits pushed.
+- 13 research modules (was 10): + T-MSIS Calibration + MEPS Expenditure + Network Adequacy.
+- Rate Explorer tool: search any HCPCS code, see rates across all 54 jurisdictions. Registered in Rates & Compliance nav.
+- CDC Natality 2023: 3.6M births parsed. 41.1% Medicaid. State-level payer mix + national clinical outcomes by payer.
+- Compliance Countdown: days to July 2026 CPRA deadline with linked tools per subsection.
+- Skillbook (self-improving Intelligence): 24 seed skills from audit findings + DOGE quarantine + FL rules + query patterns. Async Haiku reflector learns from every query. Thumbs up/down feedback buttons. server/engines/skillbook.py + reflector.py.
+- Clerk auth: test keys active (pk_test/sk_test). ClerkProvider scaffolding activated. Switch to live keys before demo.
+- Error handling: @safe_route decorator applied to 176 endpoints across 10 route files. Validator engine + /api/validation.
+- Architecture one-pager: docs/architecture-summary.md (for Big 5 demo).
+- Smoke test script: scripts/smoke_test_endpoints.py (331 endpoints, multi-variant testing).
+- MCPAR deeper extraction: 300 reports with 21 columns (appeals, grievances, program types, overpayment standards).
+- Pharmacy enhancements: generic opportunity endpoint (Orange Book join), patent search endpoint.
+- Workforce enhancements: comprehensive access designations endpoint (PC + dental + MH HPSAs + MUA/MUP + FQHCs).
+- R2 synced. Vercel + Fly.io deployed. Clerk keys set.
+- 750+ lake tables (was 697). 55+ new fact tables. ~55 commits pushed.
 
 **Session 29 (2026-03-14) — Full forensic audit + research integration:**
 - 8-prompt forensic audit completed (ARADUNE_AUDIT_GUIDE.md): data integrity sweep, Gold table spot-check, DOGE quarantine, ontology graph, tool functional audit, AHEAD validation, Intelligence regression (30 queries, 22 pass), end-to-end workflow smoke test (6/6 pass).

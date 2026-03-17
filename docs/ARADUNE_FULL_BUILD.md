@@ -119,7 +119,7 @@ Data store:     DuckDB-WASM (browser-side client queries)
 Data lake:      Hive-partitioned Parquet (data/lake/) -- 400M+ rows, 750+ views
                 DuckDB in-memory views over Parquet files, 4.9 GB on disk
                 S3/R2 sync (scripts/sync_lake_wrangler.py --remote)
-Backend:        Python FastAPI (server/) -- 258+ endpoints across 25 route files
+Backend:        Python FastAPI (server/) -- 325+ endpoints across 35 route files
 AI:             Claude Sonnet 4.6 + extended thinking + DuckDB tools + RAG + web search
                 Haiku for routing, Sonnet for analysis, Opus for complex reasoning
 RAG:            DuckDB FTS over policy corpus (1,039 docs, 6,058 chunks)
@@ -757,7 +757,7 @@ event: done\ndata: {}
 
 **Entry point:** `server/main.py`
 **Framework:** Python FastAPI with uvicorn
-**Total:** 258+ endpoints across 25 route files, ~10,752 total lines of route code
+**Total:** 325+ endpoints across 35 route files. 176 endpoints protected by @safe_route error handler.
 
 ### Server Startup Sequence
 
@@ -1851,7 +1851,10 @@ Full 8-prompt research audit (V1 + V2): 25 bugs fixed, all 46 endpoints pass. Ra
 23. Never trust a single source (triangulate: TAF + CMS-64 + supplemental for expenditures)
 24. State-level variation is the dominant quality dimension (DQ Atlas first)
 25. Test adversarially (Hypothesis + chaos + SDV + 10x volume)
+26. Intelligence learns from every query. The Skillbook accumulates domain knowledge. Skills have provenance, scores, and audit trails.
+27. Reflection is async and non-blocking. Users never wait for the learning step.
+28. Skills are not prompts. A skill is a validated domain insight with a score, not a prompt engineering hack.
 
 ---
 
-*The data is the moat. Intelligence is the interface. Compliance is the wedge. Build in that order.*
+*The data is the moat. Intelligence is the interface. The Skillbook is the compounding advantage. Build in that order.*

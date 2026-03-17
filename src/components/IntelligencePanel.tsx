@@ -179,7 +179,7 @@ export default function IntelligencePanel() {
         {messages.map((m, i) => (
           <div key={i} style={{ marginBottom: 16 }}>
             <div style={{
-              fontSize: 9, fontWeight: 600, color: m.role === "user" ? C.brand : C.accent,
+              fontSize: 9, fontWeight: 600, color: m.role === "user" ? C.accent : C.brand,
               textTransform: "uppercase", letterSpacing: 1, marginBottom: 4, fontFamily: FONT.mono,
             }}>
               {m.role === "user" ? "You" : "Aradune"}

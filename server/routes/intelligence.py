@@ -966,6 +966,22 @@ async def intelligence_stream(req: IntelligenceRequest, user: dict = Depends(req
         for block in response.content:
             if block.type == "text":
                 text = block.text
+                # ── Repetition detection: truncate if model enters a loop ──
+                if len(text) > 500:
+                    # Check for repeating patterns (sliding window)
+                    window = 40
+                    for check_pos in range(200, min(len(text), 2000), 50):
+                        snippet = text[check_pos:check_pos + window]
+                        if snippet and text.count(snippet) > 5:
+                            # Found a repeating pattern — truncate before the repetition starts
+                            first_occurrence = text.index(snippet)
+                            # Find where the repetition block begins
+                            repeat_start = first_occurrence + len(snippet)
+                            for scan in range(repeat_start, min(repeat_start + 500, len(text))):
+                                if text[scan:scan + window] == snippet:
+                                    text = text[:scan].rstrip() + "\n\n*[Response truncated — repetition detected]*"
+                                    break
+                            break
                 final_text += text
                 text_len = len(text)
                 chunk_size = 20
@@ -973,7 +989,6 @@ async def intelligence_stream(req: IntelligenceRequest, user: dict = Depends(req
                 for i in range(0, text_len, chunk_size):
                     yield _sse_event("token", {"text": text[i:i + chunk_size]})
                     chunks_emitted += 1
-                    # Update progress every ~10 chunks
                     if chunks_emitted % 10 == 0:
                         stream_pct = min(75 + int((i + chunk_size) / max(text_len, 1) * 20), 95)
                         yield _sse_event("progress", {"pct": stream_pct, "label": "Writing analysis..."})

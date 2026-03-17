@@ -329,3 +329,85 @@ def get_state_insights(state_code: str):
         "insights": insights,
         "count": len(insights),
     }
+
+
+@router.get("/api/sdoh/{state_code}")
+def get_state_sdoh(state_code: str):
+    """Social Determinants of Health indicators for a state."""
+    sc = state_code.upper()
+    result: dict = {"state_code": sc}
+
+    # 1. Average ADI national rank
+    adi = _safe_query("""
+        SELECT
+            ROUND(AVG(adi_national_rank), 1) AS avg_adi_rank,
+            COUNT(*) AS block_group_count
+        FROM fact_adi_block_group
+        WHERE state_code = $1
+          AND adi_national_rank IS NOT NULL
+    """, [sc])
+    result["adi"] = {
+        "avg_national_rank": adi["avg_adi_rank"] if adi else None,
+        "block_group_count": adi["block_group_count"] if adi else 0,
+    }
+
+    # 2. Food desert tracts (LILA 1 and 10 mile threshold)
+    #    food_access_research_atlas uses full state names — join via dim_state
+    food = _safe_query("""
+        SELECT
+            COUNT(*) AS total_tracts,
+            SUM(CASE WHEN "LILATracts_1And10" = 1 THEN 1 ELSE 0 END) AS food_desert_tracts,
+            ROUND(AVG("PovertyRate"), 1) AS avg_poverty_rate
+        FROM fact_food_access_research_atlas f
+        JOIN dim_state d ON d.state_name = f."State"
+        WHERE d.state_code = $1
+    """, [sc])
+    result["food_access"] = {
+        "total_tracts": food["total_tracts"] if food else 0,
+        "food_desert_tracts": food["food_desert_tracts"] if food else 0,
+        "avg_poverty_rate": food["avg_poverty_rate"] if food else None,
+    }
+
+    # 3. Dental HPSA count (designated only)
+    dental = _safe_query("""
+        SELECT
+            COUNT(DISTINCT "HPSA ID") AS designated_count,
+            ROUND(AVG("HPSA Score"), 1) AS avg_score
+        FROM fact_dental_hpsa
+        WHERE "Primary State Abbreviation" = $1
+          AND "HPSA Status" = 'Designated'
+    """, [sc])
+    result["dental_hpsa"] = {
+        "designated_count": dental["designated_count"] if dental else 0,
+        "avg_score": dental["avg_score"] if dental else None,
+    }
+
+    # 4. Mental health HPSA count (designated only)
+    mh = _safe_query("""
+        SELECT
+            COUNT(DISTINCT "HPSA ID") AS designated_count,
+            ROUND(AVG("HPSA Score"), 1) AS avg_score
+        FROM fact_mental_health_hpsa
+        WHERE "Primary State Abbreviation" = $1
+          AND "HPSA Status" = 'Designated'
+    """, [sc])
+    result["mental_health_hpsa"] = {
+        "designated_count": mh["designated_count"] if mh else 0,
+        "avg_score": mh["avg_score"] if mh else None,
+    }
+
+    # 5. MUA/MUP count (designated only)
+    mua = _safe_query("""
+        SELECT
+            COUNT(DISTINCT "MUA/P ID") AS designated_count,
+            ROUND(AVG("IMU Score"), 1) AS avg_imu_score
+        FROM fact_mua_mup
+        WHERE "State Abbreviation" = $1
+          AND "MUA/P Status Description" = 'Designated'
+    """, [sc])
+    result["mua_mup"] = {
+        "designated_count": mua["designated_count"] if mua else 0,
+        "avg_imu_score": mua["avg_imu_score"] if mua else None,
+    }
+
+    return result

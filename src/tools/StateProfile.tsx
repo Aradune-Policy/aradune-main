@@ -418,7 +418,7 @@ async function loadStateData(code: string): Promise<any> {
     fmap, hpsa, wages, quality, scorecard,
     fiveStarSummary, staffingSummary, topDrugs,
     supplementalSummary, unwinding, spas, insightsData,
-    statesData,
+    statesData, sdoh,
   ] = await Promise.all([
     safeFetch(`${API_BASE}/api/demographics/${code}`),
     safeFetch(`${API_BASE}/api/economic/${code}`),
@@ -440,9 +440,10 @@ async function loadStateData(code: string): Promise<any> {
     safeFetch(`${API_BASE}/api/policy/spas/${code}`),
     safeFetch(`${API_BASE}/api/insights/${code}`),
     safeFetch(`${API_BASE}/api/states`),
+    safeFetch(`${API_BASE}/api/sdoh/${code}`),
   ]);
 
-  const allResults = [demographics, economic, enrollment, enrollmentByGroup, cpraRates, hospitalSummary, hospitals, fmap, hpsa, wages, quality, scorecard, fiveStarSummary, staffingSummary, topDrugs, supplementalSummary, unwinding, spas, insightsData, statesData];
+  const allResults = [demographics, economic, enrollment, enrollmentByGroup, cpraRates, hospitalSummary, hospitals, fmap, hpsa, wages, quality, scorecard, fiveStarSummary, staffingSummary, topDrugs, supplementalSummary, unwinding, spas, insightsData, statesData, sdoh];
   const successCount = allResults.filter(r => r !== null).length;
   if (successCount === 0) return null;
 
@@ -496,6 +497,7 @@ async function loadStateData(code: string): Promise<any> {
     unwinding: rows(unwinding),
     spas: rows(spas),
     insights: insightsData?.insights || [],
+    sdoh: sdoh || null,
   };
 }
 
@@ -992,7 +994,7 @@ export default function StateProfile() {
   // Section visibility (single-state only)
   const [sections, setSections] = useState<Record<string, boolean>>({
     enrollment: true, rates: true, hospitals: true,
-    quality: true, workforce: false, pharmacy: false, economic: true,
+    quality: true, workforce: false, pharmacy: false, sdoh: true, economic: true,
   });
   const toggle = (key: string) => setSections(s => ({ ...s, [key]: !s[key] }));
 
@@ -1611,6 +1613,91 @@ export default function StateProfile() {
                 ) : (
                   <div style={{ textAlign: "center", padding: 20, fontSize: 12, color: AL }}>No drug spending data available.</div>
                 )}
+              </Card>
+            )}
+
+            {/* ─── Social Determinants ──────────────────────────────── */}
+            <SectionToggle label="Social Determinants of Health" open={sections.sdoh} onClick={() => toggle("sdoh")} />
+            {sections.sdoh && d.sdoh && (
+              <Card>
+                <CH title="Social Determinants" sub="ADI, food access, shortage areas, underserved designations" />
+                <div style={{ display: "grid", gridTemplateColumns: isMobile ? "1fr" : "repeat(auto-fit, minmax(180px, 1fr))", gap: 12, padding: "8px 0" }}>
+                  {/* ADI */}
+                  {d.sdoh.adi?.avg_national_rank != null && (
+                    <div style={{ background: SF, borderRadius: 8, padding: "14px 16px" }}>
+                      <div style={{ fontSize: 10, color: AL, marginBottom: 4 }}>Area Deprivation Index</div>
+                      <div style={{ fontSize: 20, fontWeight: 700, color: d.sdoh.adi.avg_national_rank > 60 ? NEG : d.sdoh.adi.avg_national_rank > 40 ? WARN : POS, fontFamily: FM }}>
+                        {d.sdoh.adi.avg_national_rank}
+                      </div>
+                      <div style={{ fontSize: 9, color: AL, marginTop: 2 }}>
+                        avg national rank (1-100, higher = more deprived)
+                      </div>
+                      <div style={{ fontSize: 9, color: AL }}>
+                        {d.sdoh.adi.block_group_count?.toLocaleString()} block groups
+                      </div>
+                    </div>
+                  )}
+
+                  {/* Food Access */}
+                  {d.sdoh.food_access?.total_tracts > 0 && (
+                    <div style={{ background: SF, borderRadius: 8, padding: "14px 16px" }}>
+                      <div style={{ fontSize: 10, color: AL, marginBottom: 4 }}>Food Desert Tracts</div>
+                      <div style={{ fontSize: 20, fontWeight: 700, color: d.sdoh.food_access.food_desert_tracts > 200 ? NEG : WARN, fontFamily: FM }}>
+                        {d.sdoh.food_access.food_desert_tracts?.toLocaleString()}
+                      </div>
+                      <div style={{ fontSize: 9, color: AL, marginTop: 2 }}>
+                        of {d.sdoh.food_access.total_tracts?.toLocaleString()} total tracts (LILA 1mi/10mi)
+                      </div>
+                      {d.sdoh.food_access.avg_poverty_rate != null && (
+                        <div style={{ fontSize: 9, color: AL }}>
+                          avg tract poverty rate: {d.sdoh.food_access.avg_poverty_rate}%
+                        </div>
+                      )}
+                    </div>
+                  )}
+
+                  {/* Dental HPSA */}
+                  {d.sdoh.dental_hpsa?.designated_count > 0 && (
+                    <div style={{ background: SF, borderRadius: 8, padding: "14px 16px" }}>
+                      <div style={{ fontSize: 10, color: AL, marginBottom: 4 }}>Dental Shortage Areas</div>
+                      <div style={{ fontSize: 20, fontWeight: 700, color: d.sdoh.dental_hpsa.designated_count > 100 ? NEG : AL, fontFamily: FM }}>
+                        {d.sdoh.dental_hpsa.designated_count}
+                      </div>
+                      <div style={{ fontSize: 9, color: AL, marginTop: 2 }}>designated dental HPSAs</div>
+                      {d.sdoh.dental_hpsa.avg_score != null && (
+                        <div style={{ fontSize: 9, color: AL }}>avg score: {d.sdoh.dental_hpsa.avg_score}</div>
+                      )}
+                    </div>
+                  )}
+
+                  {/* Mental Health HPSA */}
+                  {d.sdoh.mental_health_hpsa?.designated_count > 0 && (
+                    <div style={{ background: SF, borderRadius: 8, padding: "14px 16px" }}>
+                      <div style={{ fontSize: 10, color: AL, marginBottom: 4 }}>Mental Health Shortage Areas</div>
+                      <div style={{ fontSize: 20, fontWeight: 700, color: d.sdoh.mental_health_hpsa.designated_count > 100 ? NEG : AL, fontFamily: FM }}>
+                        {d.sdoh.mental_health_hpsa.designated_count}
+                      </div>
+                      <div style={{ fontSize: 9, color: AL, marginTop: 2 }}>designated MH HPSAs</div>
+                      {d.sdoh.mental_health_hpsa.avg_score != null && (
+                        <div style={{ fontSize: 9, color: AL }}>avg score: {d.sdoh.mental_health_hpsa.avg_score}</div>
+                      )}
+                    </div>
+                  )}
+
+                  {/* MUA/MUP */}
+                  {d.sdoh.mua_mup?.designated_count > 0 && (
+                    <div style={{ background: SF, borderRadius: 8, padding: "14px 16px" }}>
+                      <div style={{ fontSize: 10, color: AL, marginBottom: 4 }}>Medically Underserved Areas</div>
+                      <div style={{ fontSize: 20, fontWeight: 700, color: d.sdoh.mua_mup.designated_count > 100 ? NEG : AL, fontFamily: FM }}>
+                        {d.sdoh.mua_mup.designated_count}
+                      </div>
+                      <div style={{ fontSize: 9, color: AL, marginTop: 2 }}>designated MUA/MUP areas</div>
+                      {d.sdoh.mua_mup.avg_imu_score != null && (
+                        <div style={{ fontSize: 9, color: AL }}>avg IMU score: {d.sdoh.mua_mup.avg_imu_score}</div>
+                      )}
+                    </div>
+                  )}
+                </div>
               </Card>
             )}
 

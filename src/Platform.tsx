@@ -970,14 +970,6 @@ function Landing() {
               </div>
             </div>
 
-            {/* Tagline */}
-            <div style={{
-              textAlign: "center", marginTop: 12, fontSize: 10,
-              color: C.inkLight, letterSpacing: 1, fontStyle: "italic",
-            }}>
-              {`The data is the moat \u00B7 Intelligence is the interface \u00B7 Compliance is the wedge`}
-            </div>
-
           </div>
 
           {/* ── YOUR DATA + OUR INTELLIGENCE ─────────────────────── */}
@@ -1039,7 +1031,7 @@ function Landing() {
           <h3 style={{ fontSize: 15, fontWeight: 700, color: C.ink, margin: "0 0 4px", letterSpacing: -0.3 }}>
             Publicly available Medicaid data sources
           </h3>
-          <p style={{ fontSize: 12, color: C.inkLight, margin: "0 0 16px", maxWidth: 540, lineHeight: 1.55 }}>
+          <p style={{ fontSize: 12, color: C.inkLight, margin: "0 0 16px", lineHeight: 1.55 }}>
             No other platform normalizes and cross-references this breadth of Medicaid data into a single queryable layer.
           </p>
           <div style={{ overflowX: "auto" }}>
@@ -1078,9 +1070,9 @@ function Landing() {
               </tbody>
             </table>
           </div>
-          <p style={{ fontSize: 10.5, color: C.inkLight, margin: "10px 0 0", lineHeight: 1.55, maxWidth: 600 }}>
+          <p style={{ fontSize: 10.5, color: C.inkLight, margin: "10px 0 0", lineHeight: 1.55 }}>
             ResDAC/VRDC provides access to CMS claims microdata (billions of rows) but requires a Data Use Agreement, IRB approval, and per-project fees.
-            Aradune assembles only publicly available data but normalizes and cross-references it across 18 domains for immediate query access.
+            Aradune assembles only publicly available data but normalizes and cross-references it across 20 domains for immediate query access.
           </p>
         </div>
 

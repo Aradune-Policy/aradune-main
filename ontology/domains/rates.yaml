@@ -66,6 +66,52 @@ primary_tables:
   row_count: 15911
 - table: fact_ambulance_geographic
   row_count: 109
+- table: fact_rate_comparison_v2
+  row_count: 483154
+  description: "Expanded rate comparison: 54 states, 4 sources (published CPRA, state FS, CF×RVU, T-MSIS). rate_source column identifies data provenance."
+- table: fact_tmsis_effective_rates
+  row_count: 68891
+  description: "T-MSIS claims-based effective paid rates (NOT fee schedule). Labeled as claims data."
+- table: fact_tmsis_calibration
+  row_count: 215
+  description: "State × category discount factors: claims as % of fee schedule."
+- table: fact_tn_simulated_fee_schedule
+  row_count: 1696
+  description: "Tennessee simulated fee schedule from T-MSIS claims calibrated via SE states."
+- table: fact_fee_schedule_ca
+  row_count: 11454
+- table: fact_fee_schedule_tx
+  row_count: 10242
+- table: fact_fee_schedule_ny
+  row_count: 7132
+- table: fact_fee_schedule_va
+  row_count: 17453
+- table: fact_fee_schedule_ks
+  row_count: 21268
+- table: fact_fee_schedule_wi
+  row_count: 8216
+- table: fact_fee_schedule_nj
+  row_count: 21981
+- table: fact_fee_schedule_ia
+  row_count: 10412
+- table: fact_fee_schedule_il
+  row_count: 10552
+- table: fact_fee_schedule_mt
+  row_count: 9047
+- table: fact_fee_schedule_or
+  row_count: 12354
+- table: fact_fee_schedule_wa
+  row_count: 8774
+- table: fact_fee_schedule_oh
+  row_count: 8778
+- table: fact_fee_schedule_nc
+  row_count: 8122
+- table: fact_fee_schedule_nd
+  row_count: 9145
+- table: fact_fee_schedule_pa
+  row_count: 2301
+- table: fact_fee_schedule_vt
+  row_count: 9483
 supporting_tables:
 - fact_integrated_care
 - fact_nas_rates

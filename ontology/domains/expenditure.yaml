@@ -45,6 +45,27 @@ primary_tables:
   row_count: 51
 - table: fact_macpac_mc_enrollment_detail
   row_count: 52
+- table: fact_fmap_kff_historical
+  row_count: 663
+  description: "KFF FMAP rates FY2011-2023 (extends existing FY2023-2026 to 17 years)."
+- table: fact_nhe_medicaid_aggregate
+  row_count: 600
+  description: "CMS NHE: state Medicaid spending by service category 1991-2020 (30-year series)."
+- table: fact_nhe_medicaid_per_enrollee
+  row_count: 600
+  description: "CMS NHE: per-enrollee Medicaid spending by service category 1991-2020."
+- table: fact_nhe_medicaid_enrollment
+  row_count: 60
+  description: "CMS NHE: state Medicaid enrollment 1991-2020."
+- table: fact_nhe_medicare_aggregate
+  row_count: 600
+  description: "CMS NHE: state Medicare spending for Medicaid-Medicare comparison."
+- table: fact_nhe_national_2024
+  row_count: 544
+  description: "CMS NHE: national health expenditure accounts 2024."
+- table: fact_mcpar
+  row_count: 300
+  description: "CMS MCPAR: 300 Managed Care Program Annual Reports (PY2023-2025, 48 states). Enrollment, plan names, program types."
 supporting_tables:
 - fact_caa_fmap
 - fact_financial_mgmt_national

@@ -149,6 +149,13 @@ CMS-64 expenditure (FY2016 + multi-year FY2018-2024 by service category, 117K ro
 - **fact_macpac_benefit_spending_fy2024**: 56 rows
 - **fact_macpac_spending_by_elig_fy2023**: 51 rows
 - **fact_macpac_mc_enrollment_detail**: 52 rows
+- **fact_fmap_kff_historical**: 663 rows
+- **fact_nhe_medicaid_aggregate**: 600 rows
+- **fact_nhe_medicaid_per_enrollee**: 600 rows
+- **fact_nhe_medicaid_enrollment**: 60 rows
+- **fact_nhe_medicare_aggregate**: 600 rows
+- **fact_nhe_national_2024**: 544 rows
+- **fact_mcpar**: 300 rows
 - Supporting: fact_caa_fmap, fact_financial_mgmt_national, fact_fmap, fact_macpac_benefit_spending, fact_macpac_spending_by_state, fact_macpac_spending_per_enrollee, fact_macpac_supplemental, fact_sdp_preprint, fact_kff_total_spending, fact_kff_spending_per_enrollee (+19 more)
 
 **Named metrics (use these for consistency):**
@@ -505,15 +512,19 @@ CDC PLACES, BRFSS, vital statistics, maternal health/mortality, natality, infant
 - **fact_well_child_visits_v2**: 63 rows
 - **fact_nam_cahps**: 272,679 rows
 - **fact_covid_testing**: 3,180 rows
-- Supporting: fact_maternal_morbidity, fact_maternal_mortality_monthly, fact_maternal_mortality_national, fact_smm_extended, fact_well_child_visits, fact_respiratory_conditions_v2
-
-**Planned (not yet in lake):**
-- fact_svi_county: CDC/ATSDR Social Vulnerability Index at county level — composite ranking on 16 social factors (poverty, housing, transportation, minority status) grouped into 4 themes. ~3,200 rows.
-- fact_svi_tract: CDC SVI at census tract level — same indicators at finer geography. ~74,000 tracts.
-- fact_adi_block_group: Area Deprivation Index at block group level — socioeconomic deprivation ranking (1-100 national, 1-10 state). ~220,000 rows.
-- fact_brfss_state_indicators: BRFSS behavioral risk factors aggregated to state level — smoking, obesity, diabetes, mental health, exercise, healthcare access. Filter from 1GB raw JSON.
-- fact_cdc_behavioral_risk: 
-- fact_cdc_underlying_cod: 
+- **fact_adi_block_group**: 239,781 rows
+- **fact_ahrq_sdoh_county**: 44,025 rows
+- **fact_food_access_research_atlas**: 72,531 rows
+- **fact_dental_hpsa**: 42,890 rows
+- **fact_mental_health_hpsa**: 38,090 rows
+- **fact_mua_mup**: 19,662 rows
+- **fact_fqhc_sites_v2**: 18,820 rows
+- **fact_meps_hc_2022**: 22,431 rows
+- **fact_meps_hc_full_2022**: 22,431 rows
+- **fact_fda_orange_book_products**: 47,926 rows
+- **fact_fda_orange_book_patent**: 20,517 rows
+- **fact_fda_orange_book_exclusivity**: 2,018 rows
+- Supporting: fact_maternal_morbidity, fact_maternal_mortality_monthly, fact_maternal_mortality_national, fact_smm_extended, fact_well_child_visits, fact_respiratory_conditions_v2, fact_cdc_behavioral_risk, fact_cdc_underlying_cod
 
 ### Quality & Outcomes
 CMS Core Set quality measures (2023-2024), Scorecard with detailed stratification, EPSDT, and performance indicators
@@ -576,6 +587,27 @@ Medicaid provider payment rates, Medicare benchmarks, rate comparisons, PFS RVUs
 - **fact_dmepos_cba_zipcodes**: 16,124 rows
 - **fact_dmepos_rural_zipcodes**: 15,911 rows
 - **fact_ambulance_geographic**: 109 rows
+- **fact_rate_comparison_v2**: 483,154 rows
+- **fact_tmsis_effective_rates**: 68,891 rows
+- **fact_tmsis_calibration**: 215 rows
+- **fact_tn_simulated_fee_schedule**: 1,696 rows
+- **fact_fee_schedule_ca**: 11,454 rows
+- **fact_fee_schedule_tx**: 10,242 rows
+- **fact_fee_schedule_ny**: 7,132 rows
+- **fact_fee_schedule_va**: 17,453 rows
+- **fact_fee_schedule_ks**: 21,268 rows
+- **fact_fee_schedule_wi**: 8,216 rows
+- **fact_fee_schedule_nj**: 21,981 rows
+- **fact_fee_schedule_ia**: 10,412 rows
+- **fact_fee_schedule_il**: 10,552 rows
+- **fact_fee_schedule_mt**: 9,047 rows
+- **fact_fee_schedule_or**: 12,354 rows
+- **fact_fee_schedule_wa**: 8,774 rows
+- **fact_fee_schedule_oh**: 8,778 rows
+- **fact_fee_schedule_nc**: 8,122 rows
+- **fact_fee_schedule_nd**: 9,145 rows
+- **fact_fee_schedule_pa**: 2,301 rows
+- **fact_fee_schedule_vt**: 9,483 rows
 - Supporting: fact_integrated_care, fact_nas_rates, fact_doge_state_hcpcs, fact_doge_state_taxonomy, fact_doge_state_monthly, fact_doge_state_category, fact_doge_top_providers, fact_kff_fee_index
 
 **Named metrics (use these for consistency):**

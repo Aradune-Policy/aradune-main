@@ -93,6 +93,42 @@ primary_tables:
   row_count: 272679
 - table: fact_covid_testing
   row_count: 3180
+- table: fact_adi_block_group
+  row_count: 239781
+  description: "Area Deprivation Index by census block group. ADI national rank (1-100) and state rank (1-10). Source: UW Neighborhood Atlas 2023."
+- table: fact_ahrq_sdoh_county
+  row_count: 44025
+  description: "AHRQ SDOH database: 1,437 county-level variables across 14 years (2009-2023). Education, employment, housing, food, transportation."
+- table: fact_food_access_research_atlas
+  row_count: 72531
+  description: "USDA Food Access Atlas: census tract-level food desert indicators, SNAP participation, vehicle access, low-income + low-access flags."
+- table: fact_dental_hpsa
+  row_count: 42890
+  description: "HRSA dental Health Professional Shortage Area designations."
+- table: fact_mental_health_hpsa
+  row_count: 38090
+  description: "HRSA mental health HPSA designations."
+- table: fact_mua_mup
+  row_count: 19662
+  description: "HRSA Medically Underserved Areas/Populations designations."
+- table: fact_fqhc_sites_v2
+  row_count: 18820
+  description: "FQHC service delivery site locations with services offered."
+- table: fact_meps_hc_2022
+  row_count: 22431
+  description: "MEPS Household Component 2022: individual-level expenditure, utilization, insurance. 28 key variables."
+- table: fact_meps_hc_full_2022
+  row_count: 22431
+  description: "MEPS full 1,420-variable public use file."
+- table: fact_fda_orange_book_products
+  row_count: 47926
+  description: "FDA Orange Book: approved drug products with TE codes, applicant, route."
+- table: fact_fda_orange_book_patent
+  row_count: 20517
+  description: "Drug patent data with expiration dates. Join to SDUD for generic availability analysis."
+- table: fact_fda_orange_book_exclusivity
+  row_count: 2018
+  description: "Drug exclusivity periods."
 supporting_tables:
 - fact_maternal_morbidity
 - fact_maternal_mortality_monthly
@@ -100,24 +136,5 @@ supporting_tables:
 - fact_smm_extended
 - fact_well_child_visits
 - fact_respiratory_conditions_v2
-planned_tables:
-- table: fact_svi_county
-  description: CDC/ATSDR Social Vulnerability Index at county level — composite ranking on 16 social factors (poverty, housing, transportation, minority status) grouped into 4 themes. ~3,200 rows.
-  strategy: Manual browser download from atsdr.cdc.gov (WAF blocks programmatic). Simple CSV ingest.
-  priority: high
-- table: fact_svi_tract
-  description: CDC SVI at census tract level — same indicators at finer geography. ~74,000 tracts.
-  strategy: Same manual download. Larger file but same schema.
-  priority: medium
-- table: fact_adi_block_group
-  description: Area Deprivation Index at block group level — socioeconomic deprivation ranking (1-100 national, 1-10 state). ~220,000 rows.
-  strategy: Manual registration + download from neighborhoodatlas.medicine.wisc.edu
-  priority: medium
-- table: fact_brfss_state_indicators
-  description: BRFSS behavioral risk factors aggregated to state level — smoking, obesity, diabetes, mental health, exercise, healthcare access. Filter from 1GB raw JSON.
-  strategy: DuckDB read_json on cdc_brfss_state.json, filter to Medicaid-relevant indicators
-  priority: medium
-- table: fact_cdc_behavioral_risk
-  row_count: 50000
-- table: fact_cdc_underlying_cod
-  row_count: 10659
+- fact_cdc_behavioral_risk
+- fact_cdc_underlying_cod

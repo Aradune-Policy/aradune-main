@@ -191,13 +191,33 @@ export default function IntelligencePanel() {
               {m.content}
             </div>
             {m.role === "assistant" && m.content && (
-              <button onClick={() => handleAddToReport(m)} style={{
-                background: "none", border: `1px solid ${C.border}`, borderRadius: 4,
-                padding: "3px 8px", fontSize: 10, color: C.inkLight, cursor: "pointer",
-                marginTop: 6, fontFamily: FONT.mono,
-              }}>
-                + Add to Report
-              </button>
+              <div style={{ display: "flex", gap: 6, marginTop: 6, alignItems: "center" }}>
+                <button onClick={() => handleAddToReport(m)} style={{
+                  background: "none", border: `1px solid ${C.border}`, borderRadius: 4,
+                  padding: "3px 8px", fontSize: 10, color: C.inkLight, cursor: "pointer",
+                  fontFamily: FONT.mono,
+                }}>
+                  + Add to Report
+                </button>
+                <button onClick={() => {
+                  fetch(`${API_BASE}/api/intelligence/feedback`, {
+                    method: "POST", headers: { "Content-Type": "application/json" },
+                    body: JSON.stringify({ feedback: "positive", conversation_id: "" }),
+                  }).catch(() => {});
+                  (event?.target as HTMLElement)?.closest?.("button")?.setAttribute("style", "opacity:0.3");
+                }} style={{ background: "none", border: "none", cursor: "pointer", fontSize: 14, opacity: 0.5, padding: "2px 4px" }} title="Helpful">
+                  👍
+                </button>
+                <button onClick={() => {
+                  fetch(`${API_BASE}/api/intelligence/feedback`, {
+                    method: "POST", headers: { "Content-Type": "application/json" },
+                    body: JSON.stringify({ feedback: "negative", conversation_id: "" }),
+                  }).catch(() => {});
+                  (event?.target as HTMLElement)?.closest?.("button")?.setAttribute("style", "opacity:0.3");
+                }} style={{ background: "none", border: "none", cursor: "pointer", fontSize: 14, opacity: 0.5, padding: "2px 4px" }} title="Not helpful">
+                  👎
+                </button>
+              </div>
             )}
           </div>
         ))}

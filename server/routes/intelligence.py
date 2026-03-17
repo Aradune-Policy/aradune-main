@@ -1067,3 +1067,31 @@ async def corpus_search(q: str, doc_type: str = None, state: str = None, top_k: 
     doc_types = [doc_type] if doc_type else None
     states = [state.upper()] if state else None
     return hybrid_search(q, doc_types=doc_types, states=states, top_k=top_k)
+
+
+@router.post("/feedback")
+async def intelligence_feedback(req: dict):
+    """Process user feedback (thumbs up/down) on Intelligence responses."""
+    feedback = req.get("feedback", "")
+    conversation_id = req.get("conversation_id", "")
+    skill_ids = req.get("skill_ids", [])
+
+    if feedback not in ("positive", "negative"):
+        return {"status": "invalid_feedback"}
+
+    # Fire async reflection with feedback signal
+    try:
+        import asyncio
+        from server.engines.reflector import reflect_on_response
+        asyncio.create_task(reflect_on_response(
+            query=req.get("query", ""),
+            domain=req.get("domain", "rates"),
+            sql_traces=[],
+            response_text=req.get("response_text", ""),
+            feedback=feedback,
+            retrieved_skill_ids=skill_ids,
+        ))
+    except Exception:
+        pass
+
+    return {"status": "feedback_received"}

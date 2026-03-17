@@ -194,3 +194,23 @@ async def rate_quality_detail():
             return {"rows": [dict(zip(columns, r)) for r in rows], "count": len(rows)}
     except Exception as exc:
         raise HTTPException(status_code=500, detail=f"rate-quality detail failed: {exc}")
+
+
+@router.get("/api/research/rate-quality/spending-trend")
+async def rate_quality_spending_trend():
+    """30-year Medicaid spending trend from NHE state health expenditure data."""
+    try:
+        with get_cursor() as cur:
+            rows = cur.execute("""
+                SELECT
+                    UNNEST(['Y2000','Y2005','Y2010','Y2015','Y2018','Y2019','Y2020']) AS year_label,
+                    UNNEST([Y2000, Y2005, Y2010, Y2015, Y2018, Y2019, Y2020]) AS per_enrollee
+                FROM fact_nhe_medicaid_per_enrollee
+                WHERE "Group" = 'United States'
+                  AND "Item" = 'Medicaid/Personal Health Care ($)'
+                LIMIT 7
+            """).fetchall()
+            columns = ["year", "per_enrollee"]
+            return {"rows": [dict(zip(columns, r)) for r in rows], "count": len(rows)}
+    except Exception as exc:
+        raise HTTPException(status_code=500, detail=f"spending trend failed: {exc}")

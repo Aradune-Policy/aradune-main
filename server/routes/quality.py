@@ -2,11 +2,13 @@
 
 from fastapi import APIRouter, HTTPException, Query
 from server.db import get_cursor
+from server.utils.error_handler import safe_route
 
 router = APIRouter()
 
 
 @router.get("/api/five-star/summary")
+@safe_route(default_response=[])
 async def five_star_summary():
     """State-level summary of nursing home ratings."""
     with get_cursor() as cur:
@@ -40,6 +42,7 @@ async def five_star_summary():
 
 
 @router.get("/api/five-star/{state_code}")
+@safe_route(default_response=[])
 async def five_star_by_state(state_code: str, min_rating: int = Query(None)):
     """Get nursing home Five-Star ratings for a state."""
     state_code = state_code.upper()
@@ -77,6 +80,7 @@ async def five_star_by_state(state_code: str, min_rating: int = Query(None)):
 
 
 @router.get("/api/hac/{state_code}")
+@safe_route(default_response=[])
 async def hac_by_state(state_code: str):
     """Get HAC measure rates for hospitals in a state (joined via POS)."""
     state_code = state_code.upper()
@@ -96,6 +100,7 @@ async def hac_by_state(state_code: str):
 
 
 @router.get("/api/pos/hospitals/{state_code}")
+@safe_route(default_response=[])
 async def pos_hospitals(state_code: str):
     """Get hospital characteristics from POS for a state."""
     state_code = state_code.upper()
@@ -123,6 +128,7 @@ async def pos_hospitals(state_code: str):
 
 
 @router.get("/api/pos/providers/{state_code}")
+@safe_route(default_response=[])
 async def pos_other_providers(state_code: str, provider_type: str = Query(None)):
     """Get non-hospital provider characteristics from POS/iQIES for a state."""
     state_code = state_code.upper()
@@ -150,6 +156,7 @@ async def pos_other_providers(state_code: str, provider_type: str = Query(None))
 
 
 @router.get("/api/hospital-ratings/{state_code}")
+@safe_route(default_response=[])
 async def hospital_ratings(state_code: str):
     """Get Care Compare hospital overall ratings for a state."""
     state_code = state_code.upper()
@@ -177,6 +184,7 @@ async def hospital_ratings(state_code: str):
 
 
 @router.get("/api/vbp/{state_code}")
+@safe_route(default_response=[])
 async def vbp_scores(state_code: str):
     """Get Hospital Value-Based Purchasing scores for a state."""
     state_code = state_code.upper()
@@ -200,6 +208,7 @@ async def vbp_scores(state_code: str):
 
 
 @router.get("/api/hrrp/{state_code}")
+@safe_route(default_response=[])
 async def hrrp_by_state(state_code: str):
     """Get Hospital Readmissions Reduction Program data for a state."""
     state_code = state_code.upper()
@@ -221,6 +230,7 @@ async def hrrp_by_state(state_code: str):
 
 
 @router.get("/api/epsdt")
+@safe_route(default_response=[])
 async def epsdt_all():
     """Get EPSDT (CMS-416) participation data for all states."""
     with get_cursor() as cur:
@@ -246,6 +256,7 @@ async def epsdt_all():
 
 
 @router.get("/api/hpsa/summary")
+@safe_route(default_response=[])
 async def hpsa_summary():
     """Get HPSA summary statistics by state and discipline."""
     with get_cursor() as cur:
@@ -268,6 +279,7 @@ async def hpsa_summary():
 
 
 @router.get("/api/hpsa/{state_code}")
+@safe_route(default_response=[])
 async def hpsa_by_state(state_code: str, discipline: str = Query(None)):
     """Get HPSA designations for a state."""
     state_code = state_code.upper()
@@ -305,6 +317,7 @@ async def hpsa_by_state(state_code: str, discipline: str = Query(None)):
 # ── Medically Underserved Areas ──────────────────────────────────────────
 
 @router.get("/api/mua/summary")
+@safe_route(default_response=[])
 async def mua_summary():
     """State-level MUA/MUP designation summary."""
     with get_cursor() as cur:
@@ -321,6 +334,7 @@ async def mua_summary():
 
 
 @router.get("/api/mua/{state_code}")
+@safe_route(default_response=[])
 async def mua_by_state(state_code: str):
     """MUA/MUP designations for a state."""
     state_code = state_code.upper()

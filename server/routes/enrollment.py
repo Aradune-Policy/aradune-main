@@ -2,11 +2,13 @@
 
 from fastapi import APIRouter, HTTPException, Query
 from server.db import get_cursor
+from server.utils.error_handler import safe_route
 
 router = APIRouter()
 
 
 @router.get("/api/enrollment/eligibility/{state_code}")
+@safe_route(default_response=[])
 async def eligibility(state_code: str):
     """Get monthly eligibility and enrollment data for a state."""
     state_code = state_code.upper()
@@ -33,6 +35,7 @@ async def eligibility(state_code: str):
 
 
 @router.get("/api/enrollment/expansion/{state_code}")
+@safe_route(default_response=[])
 async def expansion_enrollment(state_code: str):
     """Get ACA expansion (new adult group VIII) enrollment for a state."""
     state_code = state_code.upper()
@@ -55,6 +58,7 @@ async def expansion_enrollment(state_code: str):
 
 
 @router.get("/api/enrollment/unwinding/{state_code}")
+@safe_route(default_response=[])
 async def unwinding(state_code: str):
     """Get post-PHE unwinding/redetermination outcomes for a state."""
     state_code = state_code.upper()
@@ -77,6 +81,7 @@ async def unwinding(state_code: str):
 
 
 @router.get("/api/enrollment/managed-care-plans/{state_code}")
+@safe_route(default_response=[])
 async def managed_care_plans(state_code: str):
     """Get managed care plan enrollment details for a state."""
     state_code = state_code.upper()

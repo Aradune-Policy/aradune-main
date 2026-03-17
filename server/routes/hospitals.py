@@ -2,11 +2,13 @@
 
 from fastapi import APIRouter, HTTPException, Query
 from server.db import get_cursor
+from server.utils.error_handler import safe_route
 
 router = APIRouter()
 
 
 @router.get("/api/hospitals/search")
+@safe_route(default_response=[])
 async def search_hospitals(
     q: str = Query(..., min_length=2, description="Search by name, city, or CCN"),
     state: str = Query(None, description="Optional state filter"),
@@ -36,6 +38,7 @@ async def search_hospitals(
 
 
 @router.get("/api/hospitals/ccn/{ccn}")
+@safe_route(default_response=[])
 async def hospital_by_ccn(ccn: str):
     """Get all available HCRIS data for a specific hospital CCN."""
     ccn = ccn.strip()
@@ -87,6 +90,7 @@ async def hospital_by_ccn(ccn: str):
 
 
 @router.get("/api/hospitals/ccn/{ccn}/peers")
+@safe_route(default_response={"hospital": {}, "state_peers": None, "national_peers": None})
 async def hospital_peers(ccn: str):
     """Get peer benchmark statistics for a hospital's designation and state."""
     ccn = ccn.strip()
@@ -188,6 +192,7 @@ async def hospital_peers(ccn: str):
 
 
 @router.get("/api/hospitals/summary")
+@safe_route(default_response=[])
 async def hospital_summary():
     """Get state-level hospital financial summaries."""
     with get_cursor() as cur:
@@ -218,6 +223,7 @@ async def hospital_summary():
 
 
 @router.get("/api/hospitals/{state_code}")
+@safe_route(default_response=[])
 async def state_hospitals(
     state_code: str,
     min_beds: int = Query(0, description="Minimum bed count"),
@@ -254,6 +260,7 @@ async def state_hospitals(
 
 
 @router.get("/api/nursing-facilities/{state_code}")
+@safe_route(default_response=[])
 async def state_nursing_facilities(
     state_code: str,
     limit: int = Query(200, le=1000),

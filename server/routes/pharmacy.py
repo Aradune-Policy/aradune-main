@@ -2,11 +2,13 @@
 
 from fastapi import APIRouter, HTTPException, Query
 from server.db import get_cursor
+from server.utils.error_handler import safe_route
 
 router = APIRouter()
 
 
 @router.get("/api/pharmacy/utilization/{state_code}")
+@safe_route(default_response=[])
 async def drug_utilization(
     state_code: str,
     year: int = Query(None),
@@ -39,6 +41,7 @@ async def drug_utilization(
 
 
 @router.get("/api/pharmacy/nadac")
+@safe_route(default_response=[])
 async def nadac_pricing(
     ndc: str = Query(None, description="Filter by NDC code"),
     search: str = Query(None, description="Search drug name"),
@@ -78,6 +81,7 @@ async def nadac_pricing(
 
 
 @router.get("/api/pharmacy/top-drugs/{state_code}")
+@safe_route(default_response=[])
 async def top_drugs(state_code: str, limit: int = Query(20, le=100)):
     """Get top drugs by Medicaid spending for a state."""
     state_code = state_code.upper()
@@ -107,6 +111,7 @@ async def top_drugs(state_code: str, limit: int = Query(20, le=100)):
 # -- Orange Book / Generic Opportunity ----------------------------------------
 
 @router.get("/api/pharmacy/generic-opportunity")
+@safe_route(default_response={"rows": [], "count": 0, "source": ""})
 async def generic_opportunity(
     limit: int = Query(50, le=200),
 ):
@@ -167,6 +172,7 @@ async def generic_opportunity(
 
 
 @router.get("/api/pharmacy/patents")
+@safe_route(default_response={"rows": [], "count": 0, "source": ""})
 async def drug_patents(
     search: str = Query(default=None, description="Search by drug/ingredient name"),
     limit: int = Query(100, le=500),

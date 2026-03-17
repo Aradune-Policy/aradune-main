@@ -2,12 +2,14 @@
 
 from fastapi import APIRouter, HTTPException, Query
 from server.db import get_cursor
+from server.utils.error_handler import safe_route
 from collections import defaultdict
 
 router = APIRouter()
 
 
 @router.get("/api/wages/{state_code}")
+@safe_route(default_response=[])
 async def state_wages(state_code: str):
     """Get BLS OEWS wages for Medicaid occupations in a state."""
     state_code = state_code.upper()
@@ -36,6 +38,7 @@ async def state_wages(state_code: str):
 
 
 @router.get("/api/wages/compare/{soc_code}")
+@safe_route(default_response=[])
 async def wage_comparison(soc_code: str):
     """Compare wages for a specific occupation across all states."""
     try:
@@ -57,6 +60,7 @@ async def wage_comparison(soc_code: str):
 
 
 @router.get("/api/wages/msa/{state_code}")
+@safe_route(default_response=[])
 async def msa_wages(
     state_code: str,
     soc_code: str = Query(None, description="Filter by SOC code"),
@@ -85,6 +89,7 @@ async def msa_wages(
 
 
 @router.get("/api/wages/bulk")
+@safe_route(default_response={"source": "", "states": {}, "national": {}})
 async def bulk_wages():
     """All state + national wages in nested format for frontend WageAdequacy tool."""
     states: dict = defaultdict(dict)
@@ -135,6 +140,7 @@ async def bulk_wages():
 
 
 @router.get("/api/wages/national")
+@safe_route(default_response=[])
 async def national_wages(
     search: str = Query(None, description="Search occupation title"),
     limit: int = Query(100, le=1000),
@@ -175,6 +181,7 @@ async def national_wages(
 # -- Workforce Supply ---------------------------------------------------------
 
 @router.get("/api/workforce/projections")
+@safe_route(default_response={"rows": [], "count": 0})
 async def workforce_projections(state: str = None):
     """HRSA workforce supply/demand projections 2023-2038.
 
@@ -207,6 +214,7 @@ async def workforce_projections(state: str = None):
 
 
 @router.get("/api/workforce/projections/summary")
+@safe_route(default_response={"rows": [], "count": 0})
 async def workforce_projections_summary():
     """State-level workforce projection summary."""
     try:
@@ -229,6 +237,7 @@ async def workforce_projections_summary():
 
 
 @router.get("/api/workforce/nursing")
+@safe_route(default_response={"rows": [], "count": 0})
 async def nursing_workforce(state_name: str = None):
     """NSSRN nursing workforce demographics by state.
 
@@ -260,6 +269,7 @@ async def nursing_workforce(state_name: str = None):
 
 
 @router.get("/api/workforce/nhsc")
+@safe_route(default_response={"rows": [], "count": 0})
 async def nhsc_field_strength(state_code: str = None):
     """NHSC clinician counts by state and discipline."""
     try:
@@ -292,6 +302,7 @@ async def nhsc_field_strength(state_code: str = None):
 # -- Comprehensive Access Designations ----------------------------------------
 
 @router.get("/api/workforce/access-designations/{state_code}")
+@safe_route(default_response={"state_code": "", "primary_care_hpsa": None, "dental_hpsa": None, "mental_health_hpsa": None, "mua_mup": None, "fqhc_sites": None})
 async def access_designations(state_code: str):
     """Comprehensive access designation summary for a state.
 

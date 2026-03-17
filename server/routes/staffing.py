@@ -2,11 +2,13 @@
 
 from fastapi import APIRouter, Query
 from server.db import get_cursor
+from server.utils.error_handler import safe_route
 
 router = APIRouter()
 
 
 @router.get("/api/staffing/summary")
+@safe_route(default_response=[])
 async def staffing_summary():
     """Get state-level nursing facility staffing summary from PBJ data."""
     with get_cursor() as cur:
@@ -35,6 +37,7 @@ async def staffing_summary():
 
 
 @router.get("/api/staffing/{state_code}")
+@safe_route(default_response=[])
 async def state_staffing(
     state_code: str,
     limit: int = Query(200, le=1000),

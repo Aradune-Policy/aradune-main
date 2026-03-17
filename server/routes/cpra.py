@@ -14,11 +14,13 @@ from fastapi import APIRouter, File, Form, HTTPException, Query, UploadFile
 from fastapi.responses import StreamingResponse
 
 from server.db import get_cursor
+from server.utils.error_handler import safe_route
 
 router = APIRouter()
 
 
 @router.get("/api/cpra/states")
+@safe_route(default_response=[])
 async def cpra_states():
     """List all states with CPRA rate comparison data."""
     with get_cursor() as cur:
@@ -39,6 +41,7 @@ async def cpra_states():
 
 
 @router.get("/api/cpra/rates/{state_code}")
+@safe_route(default_response=[])
 async def cpra_rates(
     state_code: str,
     em_only: bool = Query(False, description="Filter to E/M codes only"),
@@ -77,6 +80,7 @@ async def cpra_rates(
 
 
 @router.get("/api/cpra/dq/{state_code}")
+@safe_route(default_response=[])
 async def cpra_dq_flags(state_code: str):
     """Get data quality flags for a specific state."""
     state_code = state_code.upper()
@@ -93,6 +97,7 @@ async def cpra_dq_flags(state_code: str):
 
 
 @router.get("/api/cpra/compare")
+@safe_route(default_response=[])
 async def cpra_compare_codes(
     codes: str = Query(..., description="Comma-separated HCPCS codes"),
     states: str = Query(None, description="Comma-separated state codes (all if omitted)"),
@@ -200,6 +205,7 @@ _cpra_state_localities = _get_state_localities()
 
 
 @router.get("/api/cpra/upload/states")
+@safe_route(default_response={"states": [], "total": 0})
 def cpra_upload_states():
     """List all 53 states/territories with Medicare locality info for the upload tool."""
     return {
@@ -209,6 +215,7 @@ def cpra_upload_states():
 
 
 @router.get("/api/cpra/upload/codes")
+@safe_route(default_response={"n_codes": 0, "codes": [], "categories": [], "code_categories": []})
 def cpra_upload_codes():
     """Return the 68 CMS CY 2025 E/M codes and category mapping."""
     import csv

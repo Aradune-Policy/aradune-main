@@ -1,5 +1,5 @@
 /**
- * Data Catalog — Browse all 185+ tables in the Aradune data lake.
+ * Data Catalog — Browse all 750+ tables in the Aradune data lake.
  * Shows table names, row counts, columns, and descriptions.
  */
 import { useState, useEffect, useMemo } from "react";

@@ -89,6 +89,7 @@ const WaiverImpact = lazy(() => import("./tools/research/WaiverImpact"));
 const TmsisCalibration = lazy(() => import("./tools/research/TmsisCalibration"));
 const MepsAnalysis = lazy(() => import("./tools/research/MepsAnalysis"));
 const NetworkAdequacy = lazy(() => import("./tools/research/NetworkAdequacy"));
+const ComplianceCountdown = lazy(() => import("./components/ComplianceCountdown"));
 
 // ── Hash Router ──────────────────────────────────────────────────────────
 function useRoute() {
@@ -1462,6 +1463,7 @@ function PlatformInner() {
       // ── Utility tools ──────────────────────────────────────────
       "/ask": <ToolErrorBoundary><Suspense fallback={loadingFallback}><IntelligenceChat /></Suspense></ToolErrorBoundary>,
       "/catalog": <DataCatalog />,
+      "/compliance-countdown": <ComplianceCountdown />,
       // ── Legacy routes (old bookmarks still work) ───────────────
       "/analyst": <IntelligenceChat />,
       "/fees": <FeeScheduleDir />,

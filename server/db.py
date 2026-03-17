@@ -384,6 +384,8 @@ FACT_NAMES = [
     "fee_schedule_ks", "fee_schedule_wi", "fee_schedule_nj",
     "fee_schedule_tx", "fee_schedule_ny", "fee_schedule_va",
     "fee_schedule_ia", "fee_schedule_pa", "fee_schedule_vt",
+    "fee_schedule_il", "fee_schedule_mt",
+    "fee_schedule_or", "fee_schedule_wa", "fee_schedule_oh", "fee_schedule_nc", "fee_schedule_nd",
     "fmap_kff_historical",
     "mcpar", "meps_hc_2022", "meps_hc_full_2022",
     "tmsis_calibration", "tn_simulated_fee_schedule", "tmsis_effective_rates",

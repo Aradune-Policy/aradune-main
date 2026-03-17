@@ -389,6 +389,7 @@ FACT_NAMES = [
     "fee_schedule_ca",
     # Session 30 deep dive — SDOH + drug reference
     "dental_hpsa", "fda_orange_book_products", "fda_orange_book_patent", "fda_orange_book_exclusivity", "food_access_research_atlas",
+    "nhe_medicaid_aggregate", "nhe_medicaid_per_enrollee", "nhe_medicaid_enrollment", "nhe_residence_all_tables",
     "fmap_kff_historical",
     "mcpar", "meps_hc_2022", "meps_hc_full_2022",
     "tmsis_calibration", "tn_simulated_fee_schedule", "tmsis_effective_rates",

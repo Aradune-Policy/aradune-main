@@ -191,3 +191,19 @@ async def catalog():
             }
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"Catalog error: {e}")
+
+
+@router.get("/api/validation")
+async def run_validation():
+    """Run core data validation checks and return results."""
+    try:
+        from server.engines.validator import run_core_checks
+        results = run_core_checks()
+        passed = sum(1 for r in results if r["passed"])
+        failed = sum(1 for r in results if not r["passed"])
+        return {
+            "total": len(results), "passed": passed, "failed": failed,
+            "results": results,
+        }
+    except Exception as e:
+        return {"total": 0, "passed": 0, "failed": 0, "error": str(e), "results": []}

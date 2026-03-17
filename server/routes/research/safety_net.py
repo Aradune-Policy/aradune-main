@@ -177,21 +177,39 @@ async def safety_net_composite(state: str = Query(None)):
                     FROM fact_fmap_historical
                     WHERE fiscal_year = (SELECT MAX(fiscal_year) FROM fact_fmap_historical)
                     GROUP BY state_code
+                ),
+                adi AS (
+                    SELECT state_code, ROUND(AVG(adi_national_rank), 1) AS avg_adi
+                    FROM fact_adi_block_group
+                    WHERE adi_national_rank IS NOT NULL
+                    GROUP BY state_code
+                ),
+                food AS (
+                    SELECT d2.state_code,
+                           ROUND(SUM(CASE WHEN fa."LILATracts_1And10" = 1 THEN 1 ELSE 0 END) * 100.0
+                                 / NULLIF(COUNT(*), 0), 1) AS food_desert_pct
+                    FROM fact_food_access_research_atlas fa
+                    JOIN dim_state d2 ON d2.state_name = fa."State"
+                    GROUP BY d2.state_code
                 )
                 SELECT d.state_code,
                        COALESCE(h.pct_negative_margin, 0) AS hospital_stress,
                        COALESCE(w.waitlist_per_1000, 0) AS hcbs_pressure,
                        ROUND(COALESCE(5 - n.avg_rating, 0), 2) AS nursing_deficit,
-                       COALESCE(f.fmap_rate, 0.5) AS fmap_rate
+                       COALESCE(f.fmap_rate, 0.5) AS fmap_rate,
+                       COALESCE(a.avg_adi, 0) AS avg_deprivation,
+                       COALESCE(fd.food_desert_pct, 0) AS food_desert_pct
                 FROM dim_state d
                 LEFT JOIN hospital h ON d.state_code = h.state_code
                 LEFT JOIN waitlists w ON d.state_code = w.state_code
                 LEFT JOIN nursing n ON d.state_code = n.state_code
                 LEFT JOIN fmap f ON d.state_code = f.state_code
+                LEFT JOIN adi a ON d.state_code = a.state_code
+                LEFT JOIN food fd ON d.state_code = fd.state_code
                 {state_filter}
                 ORDER BY hospital_stress + hcbs_pressure + nursing_deficit DESC
             """, params).fetchall()
-            columns = ["state_code", "hospital_stress", "hcbs_pressure", "nursing_deficit", "fmap_rate"]
+            columns = ["state_code", "hospital_stress", "hcbs_pressure", "nursing_deficit", "fmap_rate", "avg_deprivation", "food_desert_pct"]
             return {"rows": [dict(zip(columns, r)) for r in rows], "count": len(rows)}
     except Exception as e:
         raise HTTPException(status_code=500, detail={"error": "Safety net composite query failed", "detail": str(e)})

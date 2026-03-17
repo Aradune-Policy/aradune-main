@@ -487,6 +487,18 @@ async def intelligence(req: IntelligenceRequest, user: dict = Depends(require_cl
     _hydrate_imported_data(req.session_id)
     system_prompt = _build_system_prompt(req.imported_files)
 
+    # ── Skillbook injection: retrieve domain-relevant skills ──
+    try:
+        from server.engines.skillbook import retrieve_skills, format_skills_for_prompt
+        classified_domain = route.get("domain", "rates") if isinstance(route, dict) else "rates"
+        skills = retrieve_skills(domain=classified_domain, query=req.message)
+        skill_section = format_skills_for_prompt(skills)
+        retrieved_skill_ids = [s["skill_id"] for s in skills]
+        if skill_section:
+            system_prompt = system_prompt + skill_section
+    except Exception:
+        retrieved_skill_ids = []
+
     messages = []
     for m in req.history[-20:]:
         messages.append({"role": m["role"], "content": m["content"]})
@@ -1014,6 +1026,21 @@ async def intelligence_stream(req: IntelligenceRequest, user: dict = Depends(req
 
         yield _sse_event("progress", {"pct": 100, "label": "Complete"})
         yield _sse_event("done", {})
+
+        # ── Async reflection (non-blocking) ──
+        try:
+            import asyncio
+            from server.engines.reflector import reflect_on_response
+            asyncio.create_task(reflect_on_response(
+                query=req.message,
+                domain=classified_domain if 'classified_domain' in dir() else "rates",
+                sql_traces=queries_executed[:5],
+                response_text=final_text[:2000],
+                feedback=None,
+                retrieved_skill_ids=retrieved_skill_ids if 'retrieved_skill_ids' in dir() else [],
+            ))
+        except Exception:
+            pass  # reflection failure is non-blocking
 
     return StreamingResponse(
         event_generator(),

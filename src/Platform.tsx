@@ -469,11 +469,11 @@ function Landing() {
   ];
 
   const LANDSCAPE = [
-    { name: "Aradune", tables: "750+", rows: "400M+", domains: "20", states: "54", crossRef: true, ai: true, compliance: true },
-    { name: "data.medicaid.gov", tables: "~40", rows: "~30M", domains: "6", states: "54", crossRef: false, ai: false, compliance: false },
-    { name: "CMS Data.gov", tables: "~50", rows: "~50M", domains: "8", states: "54", crossRef: false, ai: false, compliance: false },
-    { name: "KFF / MACPAC", tables: "~30", rows: "~500K", domains: "4", states: "54", crossRef: false, ai: false, compliance: false },
-    { name: "ResDAC / VRDC", tables: "100+", rows: "Billions", domains: "5", states: "54", crossRef: false, ai: false, compliance: false },
+    { name: "Aradune", tables: "750+", rows: "400M+", domains: "20", jurisdictions: "54", crossRef: true, ai: true, compliance: true },
+    { name: "CMS Medicaid.gov", tables: "~40", rows: "~30M", domains: "6", jurisdictions: "54", crossRef: false, ai: false, compliance: false },
+    { name: "CMS Open Data (Data.gov)", tables: "~50", rows: "~50M", domains: "8", jurisdictions: "54", crossRef: false, ai: false, compliance: false },
+    { name: "Kaiser Family Foundation", tables: "~30", rows: "~500K", domains: "4", jurisdictions: "54", crossRef: false, ai: false, compliance: false },
+    { name: "CMS ResDAC / VRDC", tables: "100+", rows: "Billions", domains: "5", jurisdictions: "54", crossRef: false, ai: false, compliance: false },
   ];
 
   const handleChatSubmit = () => {
@@ -746,7 +746,7 @@ function Landing() {
         {/* ── ENSURING ACCESS / COMPLIANCE CALLOUT ────────────────── */}
         <div style={{
           padding: "20px 24px", background: C.surface, borderRadius: 12,
-          borderLeft: `3px solid ${C.accent}`, marginBottom: 40,
+          borderLeft: `3px solid ${C.accent}`, marginTop: 20, marginBottom: 40,
         }}>
           <div style={{ display: "flex", alignItems: "center", gap: 10, marginBottom: 6, flexWrap: "wrap" }}>
             <span style={{ fontSize: 14, fontWeight: 700, color: C.ink }}>42 CFR 447.203: Ensuring Access</span>
@@ -901,7 +901,7 @@ function Landing() {
             {/* ── Data Lake ── */}
             <div style={{
               borderRadius: 12, padding: isMobile ? "14px 12px" : "14px 16px",
-              background: "#1E3A5F", color: "#E1EEFF", marginBottom: 10,
+              background: "#2A4F7A", color: "#E1EEFF", marginBottom: 10,
             }}>
               <div style={{ fontSize: 10, letterSpacing: 2, textTransform: "uppercase", opacity: 0.7, marginBottom: 8 }}>
                 The data lake
@@ -909,16 +909,16 @@ function Landing() {
               <div style={{
                 display: "flex", alignItems: "center", justifyContent: "center", gap: 6, marginBottom: 10,
               }}>
-                <div style={{ borderRadius: 6, padding: "6px 14px", fontSize: 11, fontWeight: 500, textAlign: "center", background: "#412402", color: "#FAC775" }}>
-                  Bronze<br /><span style={{ fontSize: 9, fontWeight: 400, opacity: 0.7 }}>Raw ingestion</span>
+                <div style={{ borderRadius: 6, padding: "6px 14px", fontSize: 11, fontWeight: 500, textAlign: "center", background: "rgba(255,255,255,0.12)", color: "#E1EEFF" }}>
+                  Ingest<br /><span style={{ fontSize: 9, fontWeight: 400, opacity: 0.7 }}>115+ ETL scripts</span>
                 </div>
                 <div style={{ fontSize: 14, opacity: 0.5 }}>{"\u2192"}</div>
-                <div style={{ borderRadius: 6, padding: "6px 14px", fontSize: 11, fontWeight: 500, textAlign: "center", background: "#2C2C2A", color: "#D3D1C7" }}>
-                  Silver<br /><span style={{ fontSize: 9, fontWeight: 400, opacity: 0.7 }}>Normalized</span>
+                <div style={{ borderRadius: 6, padding: "6px 14px", fontSize: 11, fontWeight: 500, textAlign: "center", background: "rgba(255,255,255,0.12)", color: "#E1EEFF" }}>
+                  Normalize<br /><span style={{ fontSize: 9, fontWeight: 400, opacity: 0.7 }}>Clean + standardize</span>
                 </div>
                 <div style={{ fontSize: 14, opacity: 0.5 }}>{"\u2192"}</div>
-                <div style={{ borderRadius: 6, padding: "6px 14px", fontSize: 11, fontWeight: 500, textAlign: "center", background: "#854F0B", color: "#FAEEDA" }}>
-                  Gold<br /><span style={{ fontSize: 9, fontWeight: 400, opacity: 0.7 }}>Analytics-ready</span>
+                <div style={{ borderRadius: 6, padding: "6px 14px", fontSize: 11, fontWeight: 500, textAlign: "center", background: "rgba(255,255,255,0.18)", color: "#FFFFFF" }}>
+                  Query<br /><span style={{ fontSize: 9, fontWeight: 400, opacity: 0.7 }}>Analytics-ready</span>
                 </div>
               </div>
               <div style={{
@@ -955,16 +955,16 @@ function Landing() {
             {/* ── Infrastructure ── */}
             <div style={{
               borderRadius: 12, padding: isMobile ? "14px 12px" : "14px 16px",
-              background: C.surface, color: C.ink, border: `0.5px solid ${C.border}`,
+              background: "#1E3A5F", color: "#E1EEFF",
             }}>
-              <div style={{ fontSize: 10, letterSpacing: 2, textTransform: "uppercase", opacity: 0.7, marginBottom: 8, color: C.inkLight }}>
-                Infrastructure + validation
+              <div style={{ fontSize: 10, letterSpacing: 2, textTransform: "uppercase", opacity: 0.7, marginBottom: 8 }}>
+                Infrastructure
               </div>
               <div style={{ display: "flex", gap: 6, flexWrap: "wrap", justifyContent: "center" }}>
-                {["115+ ETL scripts", "Dagster", "Soda Core", "dbt", "Pandera", "React 18 \u00B7 Vercel", "FastAPI \u00B7 Fly.io", "Clerk auth", "GitHub CI/CD"].map(tag => (
+                {["DuckDB in-memory", "Hive-partitioned Parquet", "Cloudflare R2", "React 18 \u00B7 Vercel", "FastAPI \u00B7 Fly.io", "Clerk auth", "GitHub CI/CD"].map(tag => (
                   <div key={tag} style={{
                     fontSize: 10, padding: "4px 10px", borderRadius: 4,
-                    background: C.white, color: C.inkLight, border: `0.5px solid ${C.border}`,
+                    background: "rgba(255,255,255,0.1)", color: "#E1EEFF",
                   }}>{tag}</div>
                 ))}
               </div>
@@ -1049,7 +1049,7 @@ function Landing() {
             }}>
               <thead>
                 <tr>
-                  {["", "Tables", "Rows", "Domains", "States", "Cross-referenced", "AI query", "Compliance output"].map(h => (
+                  {["", "Tables", "Rows", "Domains", "Jurisdictions", "Cross-referenced", "AI query", "Compliance output"].map(h => (
                     <th key={h} style={{
                       padding: "10px 14px", borderBottom: `2px solid ${C.border}`,
                       textAlign: "left", fontWeight: 600, color: C.ink, fontSize: 11,
@@ -1069,7 +1069,7 @@ function Landing() {
                     <td style={{ padding: "10px 14px", borderBottom: `1px solid ${C.border}`, fontFamily: FONT.mono, fontSize: 11 }}>{row.tables}</td>
                     <td style={{ padding: "10px 14px", borderBottom: `1px solid ${C.border}`, fontFamily: FONT.mono, fontSize: 11 }}>{row.rows}</td>
                     <td style={{ padding: "10px 14px", borderBottom: `1px solid ${C.border}`, fontFamily: FONT.mono, fontSize: 11 }}>{row.domains}</td>
-                    <td style={{ padding: "10px 14px", borderBottom: `1px solid ${C.border}`, fontFamily: FONT.mono, fontSize: 11 }}>{row.states}</td>
+                    <td style={{ padding: "10px 14px", borderBottom: `1px solid ${C.border}`, fontFamily: FONT.mono, fontSize: 11 }}>{row.jurisdictions}</td>
                     <td style={{ padding: "10px 14px", borderBottom: `1px solid ${C.border}`, color: row.crossRef ? C.brand : C.inkLight }}>{row.crossRef ? "Yes" : "--"}</td>
                     <td style={{ padding: "10px 14px", borderBottom: `1px solid ${C.border}`, color: row.ai ? C.brand : C.inkLight }}>{row.ai ? "Yes" : "--"}</td>
                     <td style={{ padding: "10px 14px", borderBottom: `1px solid ${C.border}`, color: row.compliance ? C.brand : C.inkLight }}>{row.compliance ? "Yes" : "--"}</td>

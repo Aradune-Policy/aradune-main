@@ -1102,17 +1102,20 @@ fly deploy --remote-only --config server/fly.toml --dockerfile server/Dockerfile
 
 **Now (March 2026):** 700 views (669 fact + 9 dim + 22 ref), 400M+ rows, 4.9 GB, 325+ endpoints across 35 route files, 7 engines, 18 ontology domains with 28 relationship edges, Intelligence with SSE + DuckDB + RAG + web search + DOGE quarantine + FL Medicaid context, 25 standalone modules (15 core + 10 research) behind password gate, CPRA regulatory-correct both modes. 107 ETL scripts. Export pipeline: DOCX/PDF/Excel/CSV + chart PNG/SVG. Demo mode with 27 pre-cached Intelligence responses.
 
-**Session 30 (2026-03-15) — Research forensic audit + UI overhaul:**
-- Full 8-prompt research audit (RESEARCH_AUDIT_GUIDE.md): 25 bugs fixed, all 46 endpoints pass, 10/10 data accuracy checks pass.
-- NARRATIVE CHANGE: Rate-quality p-value flipped from 0.178 (not significant) to 0.044 (significant). Root cause: SVI column bug caused multicollinearity (VIF > 10M). Parsimonious model (rate + MC + income, VIF < 1.3) reveals significant rate effect.
-- Corrected headline numbers: pharmacy $3.15B (was $3.4B), MCO retention $120B (was $113B), quality decline -1.2pp/yr (was -1.3), MAT spending $1.16B (was $0 — SIMILAR TO→ILIKE, then buprenorphine→buprenorph for truncated names).
-- 7 advanced statistical methods added (scripts/research_advanced_methods.py): IV/2SLS (GPCI weak instrument — honest negative finding), VIF diagnostics, PSM (10,737 matched pairs confirm -0.67 stars), CHOW event study (4,952 SNF transfers), Random Forest (R²=0.75 for pharmacy overpayment drivers), quantile regression, K-means clustering (26 treatment desert states), spatial mismatch index (0.164).
-- Edge cases: 5 division-by-zero NULLIF guards, 5 LIMIT clauses, 1 critical maternal_health column mismatch fixed.
-- Blank chart fix: rate-quality endpoint now handles access_composite measure_id (computes average across 10 access-sensitive measures).
-- UI overhaul: nav consolidated 10 groups → 5 (States, Rates & Compliance, Finance, Clinical, Research). Chat box → dark green. Data lake → blue. Key findings → 6-item 2-column grid (no orphans).
-- Doc consolidation: 12 superseded docs → docs/archive/, 8 audit reports → docs/audit/, project root cleaned from 20+ MD files to 10.
-- New: ARADUNE-COMPLETE-REFERENCE.md (1,030 lines — complete data catalog, module inventory, 40+ audit tests), RESEARCH_AUDIT_GUIDE_v2.md (verification-first approach).
-- All docs reconciled: RESEARCH-FINDINGS.md, REPLICATION-RESULTS.md, homepage, LandingMetrics, all 4 research brief components updated.
+**Session 30 (2026-03-15 through 2026-03-17) — Research audit + fee schedule expansion + data ingestion:**
+- Full 8-prompt research audit (V1 + V2): 25 bugs fixed, all 46 endpoints pass, 10/10 data accuracy checks pass.
+- NARRATIVE CHANGE: Rate-quality p=0.044 (was 0.178). SVI multicollinearity fixed. Sensitivity note: depends on N=41 (AK/CT COALESCE'd).
+- Corrected numbers: pharmacy $3.15B, MCO $120B, quality -1.2pp/yr, MAT $1.16B, Cohen's d=0.50.
+- 7 advanced methods: IV/2SLS, VIF, PSM (10,737 pairs), CHOW (4,952 transfers), RF (CV R²=0.622), quantile regression, K-means (26 desert states).
+- FEE SCHEDULE COMPLETION: All 51 jurisdictions now have official published fee schedule data. 17 new state fee schedule tables scraped (CA 11.4K, TX 10.2K, NY 7.1K, VA 17.5K, KS 21.3K, WI 8.2K, NJ 22K, IA 10.4K, IL 10.6K, MT 9K, OR 12.4K, WA 8.8K, OH 8.8K, NC 8.1K, ND 9.1K, PA 2.3K, VT 7.8K). TN excluded (94% MC, no FFS).
+- rate_comparison_v2: 483,154 rows, 54 states. Published rates 88%, CF×RVU 11%, T-MSIS 1.1%.
+- T-MSIS Calibration module: claims vs fee schedule analysis, TN simulated rates, state-level discount factors.
+- MEPS Expenditure module: 22,431 respondents, Medicaid vs private vs uninsured spending/utilization.
+- Data ingestion: ADI (240K block groups), AHRQ SDOH (44K county-years, 14 years), FMAP FY2011-2023 (663 rows), MCPAR (300 PDF reports), MEPS HC-243, expansion dates in dim_state (41 expanded, 10 not).
+- UI: nav 10→5, chat box dark green, module grid 3-column flat, architecture visual full-width.
+- Doc consolidation: 12 archived, 8 audit reports organized, ARADUNE-COMPLETE-REFERENCE.md (1,030 lines).
+- 12 research modules (was 10): + T-MSIS Calibration + MEPS Expenditure Analysis.
+- 730+ lake views (was 697). 25+ new fact tables. ~30 commits pushed.
 
 **Session 29 (2026-03-14) — Full forensic audit + research integration:**
 - 8-prompt forensic audit completed (ARADUNE_AUDIT_GUIDE.md): data integrity sweep, Gold table spot-check, DOGE quarantine, ontology graph, tool functional audit, AHEAD validation, Intelligence regression (30 queries, 22 pass), end-to-end workflow smoke test (6/6 pass).

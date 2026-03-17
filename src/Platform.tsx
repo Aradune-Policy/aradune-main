@@ -469,7 +469,7 @@ function Landing() {
   ];
 
   const LANDSCAPE = [
-    { name: "Aradune", tables: "667+", rows: "400M+", domains: "18", states: "54", crossRef: true, ai: true, compliance: true },
+    { name: "Aradune", tables: "749+", rows: "400M+", domains: "20", states: "54", crossRef: true, ai: true, compliance: true },
     { name: "data.medicaid.gov", tables: "~40", rows: "~30M", domains: "6", states: "54", crossRef: false, ai: false, compliance: false },
     { name: "CMS Data.gov", tables: "~50", rows: "~50M", domains: "8", states: "54", crossRef: false, ai: false, compliance: false },
     { name: "KFF / MACPAC", tables: "~30", rows: "~500K", domains: "4", states: "54", crossRef: false, ai: false, compliance: false },
@@ -510,7 +510,7 @@ function Landing() {
             fontSize: isMobile ? 14 : 16, color: C.inkLight, lineHeight: 1.7,
             marginTop: 18, maxWidth: 620,
           }}>
-            667+ tables across 18 data domains. Upload your own data to cross-reference
+            749+ tables across 20 data domains. Upload your own data to cross-reference
             against the national layer. An AI analyst that reads the data, connects the
             dots, and writes the analysis. Full audit trails. Submission-ready compliance
             output. Not a dashboard. An intelligence system built for anyone who needs
@@ -523,7 +523,7 @@ function Landing() {
             flexWrap: "wrap",
           }}>
             {([
-              ["667+", "fact tables"],
+              ["749+", "fact tables"],
               ["400M+", "rows"],
               ["54", "jurisdictions"],
               ["18", "data domains"],
@@ -565,7 +565,7 @@ function Landing() {
               <div>
                 <div style={{ fontSize: 18, fontWeight: 700, color: C.white, letterSpacing: -0.3 }}>Ask Aradune anything</div>
                 <div style={{ fontSize: 12, color: "rgba(255,255,255,0.5)", marginTop: 2 }}>
-                  AI analyst with direct query access to 667+ tables, policy corpus, and web search
+                  AI analyst with direct query access to 749+ tables, policy corpus, and web search
                 </div>
               </div>
             </div>
@@ -925,10 +925,10 @@ function Landing() {
                 display: "flex", gap: 8, justifyContent: "center", flexWrap: "wrap", marginBottom: 6,
               }}>
                 {[
-                  { val: "667+", dim: "tables" },
+                  { val: "749+", dim: "tables" },
                   { val: "400M+", dim: "rows" },
-                  { val: "4.9", dim: "GB" },
-                  { val: "50", dim: "states" },
+                  { val: "5.1", dim: "GB" },
+                  { val: "51", dim: "states" },
                 ].map(s => (
                   <div key={s.dim} style={{ fontSize: 13, fontWeight: 500, opacity: 0.9 }}>
                     {s.val}<span style={{ fontSize: 11, opacity: 0.5, marginLeft: 2 }}>{s.dim}</span>
@@ -997,7 +997,7 @@ function Landing() {
               </h3>
               <p style={{ fontSize: 13, color: C.inkLight, margin: 0, lineHeight: 1.6, maxWidth: 560 }}>
                 Bring your fee schedules, enrollment projections, or claims data.
-                Aradune cross-references your files against 667+ national tables in real time,
+                Aradune cross-references your files against 749+ national tables in real time,
                 inside your session.
               </p>
             </div>
@@ -1104,7 +1104,7 @@ function Landing() {
             <div style={{ fontSize: 15, fontWeight: 700, color: C.ink, marginBottom: 10 }}>How it works</div>
             <div style={{ fontSize: 13, color: C.inkLight, lineHeight: 1.75 }}>
               100+ ETL pipelines ingest data from 80+ federal sources into a
-              Hive-partitioned Parquet lake. DuckDB serves 667+ fact tables via
+              Hive-partitioned Parquet lake. DuckDB serves 749+ fact tables via
               FastAPI. Aradune translates natural-language questions into SQL,
               searches a 1,039-document policy corpus, and returns answers
               grounded in real data with full citation and query transparency.
@@ -1487,7 +1487,7 @@ function PlatformInner() {
         flexWrap: "wrap", gap: 8,
       }}>
         <span style={{ fontSize: 10, color: C.inkLight }}>Aradune · aradune.co</span>
-        <span style={{ fontSize: 10, color: C.inkLight, fontFamily: FONT.mono }}>667 tables · 400M+ rows · 80+ federal sources</span>
+        <span style={{ fontSize: 10, color: C.inkLight, fontFamily: FONT.mono }}>749 tables · 400M+ rows · 90+ federal sources</span>
       </footer>
     </div>
     </AraduneProvider>

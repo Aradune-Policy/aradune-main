@@ -195,7 +195,7 @@ export default function TmsisCalibration() {
               {catAgg.map((r, i) => (
                 <tr key={i} style={{ borderBottom: `1px solid ${BD}` }}>
                   <td style={{ padding: "6px 12px", fontWeight: 600, color: A }}>{r.category}</td>
-                  <td style={{ padding: "6px 12px", textAlign: "right", color: r.median < 70 ? NEG : r.median < 85 ? WARN : POS, fontWeight: 600 }}>{r.median.toFixed(1)}%</td>
+                  <td style={{ padding: "6px 12px", textAlign: "right", color: (r.median || 0) < 70 ? NEG : (r.median || 0) < 85 ? WARN : POS, fontWeight: 600 }}>{r.median?.toFixed(1) ?? "--"}%</td>
                   <td style={{ padding: "6px 12px", textAlign: "right", color: AL }}>{r.n_states}</td>
                 </tr>
               ))}
@@ -235,10 +235,10 @@ export default function TmsisCalibration() {
                   <tr key={i} style={{ borderBottom: `1px solid ${BD}` }}>
                     <td style={{ padding: "5px 8px", fontWeight: 600, color: A }}>{r.procedure_code}</td>
                     <td style={{ padding: "5px 8px", color: AL, fontSize: 10, maxWidth: 180, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{r.description}</td>
-                    <td style={{ padding: "5px 8px", textAlign: "right", color: WARN }}>${r.claims_avg_paid?.toFixed(2)}</td>
-                    <td style={{ padding: "5px 8px", textAlign: "right", color: A, fontSize: 10 }}>${r.simulated_fs_high?.toFixed(0)}-${r.simulated_fs_low?.toFixed(0)}</td>
-                    <td style={{ padding: "5px 8px", textAlign: "right", color: AL }}>${r.medicare_rate?.toFixed(2)}</td>
-                    <td style={{ padding: "5px 8px", textAlign: "right", color: (r.simulated_pct_medicare || 0) < 60 ? NEG : (r.simulated_pct_medicare || 0) < 80 ? WARN : POS, fontWeight: 600 }}>{r.simulated_pct_medicare?.toFixed(0)}%</td>
+                    <td style={{ padding: "5px 8px", textAlign: "right", color: WARN }}>${r.claims_avg_paid?.toFixed(2) ?? "--"}</td>
+                    <td style={{ padding: "5px 8px", textAlign: "right", color: A, fontSize: 10 }}>${r.simulated_fs_high?.toFixed(0) ?? "?"}-${r.simulated_fs_low?.toFixed(0) ?? "?"}</td>
+                    <td style={{ padding: "5px 8px", textAlign: "right", color: AL }}>${r.medicare_rate?.toFixed(2) ?? "--"}</td>
+                    <td style={{ padding: "5px 8px", textAlign: "right", color: (r.simulated_pct_medicare || 0) < 60 ? NEG : (r.simulated_pct_medicare || 0) < 80 ? WARN : POS, fontWeight: 600 }}>{r.simulated_pct_medicare?.toFixed(0) ?? "--"}%</td>
                   </tr>
                 ))}
               </tbody>

@@ -114,11 +114,11 @@ export default function MepsAnalysis() {
               <div style={{ display: "grid", gap: 12 }}>
                 {medicaid && priv && (
                   <div style={{ fontSize: 14, color: A, lineHeight: 1.6 }}>
-                    Medicaid enrollees average <strong>${medicaid.mean_total_exp?.toLocaleString()}</strong> in total annual expenditure
-                    vs <strong>${priv.mean_total_exp?.toLocaleString()}</strong> for privately insured — but pay only{" "}
-                    <strong style={{ color: POS }}>${medicaid.mean_oop?.toLocaleString()}</strong> out of pocket
-                    ({medicaid.oop_pct_of_total?.toFixed(0)}% of total) compared to{" "}
-                    <strong>${priv.mean_oop?.toLocaleString()}</strong> ({priv.oop_pct_of_total?.toFixed(0)}%) for private coverage.
+                    Medicaid enrollees average <strong>${medicaid.mean_total_exp?.toLocaleString() ?? "N/A"}</strong> in total annual expenditure
+                    vs <strong>${priv.mean_total_exp?.toLocaleString() ?? "N/A"}</strong> for privately insured — but pay only{" "}
+                    <strong style={{ color: POS }}>${medicaid.mean_oop?.toLocaleString() ?? "N/A"}</strong> out of pocket
+                    ({medicaid.oop_pct_of_total?.toFixed(0) ?? "N/A"}% of total) compared to{" "}
+                    <strong>${priv.mean_oop?.toLocaleString() ?? "N/A"}</strong> ({priv.oop_pct_of_total?.toFixed(0) ?? "N/A"}%) for private coverage.
                   </div>
                 )}
                 {unins && (

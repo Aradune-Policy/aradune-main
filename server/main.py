@@ -10,6 +10,7 @@ from server.routes.research import (
     pharmacy_spread, nursing_ownership, waiver_impact,
     tmsis_calibration,
     meps_analysis,
+    network_adequacy,
 )
 
 
@@ -72,6 +73,7 @@ app.include_router(nursing_ownership.router)
 app.include_router(waiver_impact.router)
 app.include_router(tmsis_calibration.router)
 app.include_router(meps_analysis.router)
+app.include_router(network_adequacy.router)
 
 
 @app.get("/health")

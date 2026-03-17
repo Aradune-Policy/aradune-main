@@ -88,6 +88,7 @@ const NursingOwnership = lazy(() => import("./tools/research/NursingOwnership"))
 const WaiverImpact = lazy(() => import("./tools/research/WaiverImpact"));
 const TmsisCalibration = lazy(() => import("./tools/research/TmsisCalibration"));
 const MepsAnalysis = lazy(() => import("./tools/research/MepsAnalysis"));
+const NetworkAdequacy = lazy(() => import("./tools/research/NetworkAdequacy"));
 
 // ── Hash Router ──────────────────────────────────────────────────────────
 function useRoute() {
@@ -285,6 +286,12 @@ const TOOLS: ToolDef[] = [
     tagline: "Individual-level spending by insurance type",
     desc: "Medical Expenditure Panel Survey: 22,431 respondents. Medicaid vs private vs uninsured expenditure, utilization, and out-of-pocket burden.",
     status: "live" as const, icon: "E", color: "#0891B2",
+  },
+  {
+    id: "research/network-adequacy", group: "research", name: "Network Adequacy",
+    tagline: "Mapping access gaps across Medicaid",
+    desc: "Primary care, dental, and mental health HPSA designations combined with MUA/MUP and FQHC coverage to score access vulnerability by state.",
+    status: "live" as const, icon: "A", color: "#DC2626",
   },
 ];
 
@@ -1451,6 +1458,7 @@ function PlatformInner() {
       "/research/waiver-impact": <WaiverImpact />,
       "/research/tmsis-calibration": <TmsisCalibration />,
       "/research/meps-analysis": <MepsAnalysis />,
+      "/research/network-adequacy": <NetworkAdequacy />,
       // ── Utility tools ──────────────────────────────────────────
       "/ask": <ToolErrorBoundary><Suspense fallback={loadingFallback}><IntelligenceChat /></Suspense></ToolErrorBoundary>,
       "/catalog": <DataCatalog />,

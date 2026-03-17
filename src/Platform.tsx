@@ -774,8 +774,8 @@ function Landing() {
             The first national transparency and adequacy requirements for Medicaid rate-setting.
             Aradune's CPRA generator, fee schedule directory, rate reduction analyzer, and HCBS tracker
             map directly to subsections (b)(1) through (b)(5).{" "}
-            <a href="#/compliance" style={{ color: C.brand, textDecoration: "none", fontWeight: 600 }}>
-              View compliance tools
+            <a href="#/compliance-countdown" style={{ color: C.brand, textDecoration: "none", fontWeight: 600 }}>
+              View compliance countdown and tools
             </a>
           </div>
         </div>

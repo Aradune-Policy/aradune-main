@@ -78,7 +78,7 @@ CUSTOM_TOOLS = [
         "name": "query_database",
         "description": (
             "Run a SELECT-only SQL query against the Aradune DuckDB data lake. "
-            "Contains 749+ Medicaid fact tables with 400M+ rows. "
+            "Contains 750+ Medicaid fact tables with 400M+ rows. "
             "Always include a LIMIT clause (max 200). "
             "Use DuckDB syntax (ILIKE for case-insensitive, :: for casts)."
         ),
@@ -278,7 +278,7 @@ def _cache_set(key: str, response: str, tool_calls: list, queries: list):
 # System prompt
 # ---------------------------------------------------------------------------
 
-_SYSTEM_PROMPT_STATIC = """You are Aradune, an AI analyst with direct access to the most comprehensive public Medicaid data lake ever assembled: 749+ tables, 400M+ rows, covering rates, enrollment, hospitals, quality, workforce, pharmacy, expenditure, behavioral health, and economics for all 54 jurisdictions, organized into 20 domains. Fee schedules for all 51 jurisdictions (50 states + DC).
+_SYSTEM_PROMPT_STATIC = """You are Aradune, an AI analyst with direct access to the most comprehensive public Medicaid data lake ever assembled: 750+ tables, 400M+ rows, covering rates, enrollment, hospitals, quality, workforce, pharmacy, expenditure, behavioral health, and economics for all 54 jurisdictions, organized into 20 domains. Fee schedules for all 51 jurisdictions (50 states + DC).
 
 ## How to Handle Questions
 

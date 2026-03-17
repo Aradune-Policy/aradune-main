@@ -287,3 +287,161 @@ async def nhsc_field_strength(state_code: str = None):
             return {"rows": data, "count": len(data)}
     except Exception as e:
         raise HTTPException(500, {"error": "NHSC query failed", "detail": str(e)})
+
+
+# -- Comprehensive Access Designations ----------------------------------------
+
+@router.get("/api/workforce/access-designations/{state_code}")
+async def access_designations(state_code: str):
+    """Comprehensive access designation summary for a state.
+
+    Aggregates primary care HPSAs, dental HPSAs, mental health HPSAs,
+    MUA/MUP designations, and FQHC site counts into a single response.
+    """
+    state_code = state_code.upper()
+    result = {
+        "state_code": state_code,
+        "primary_care_hpsa": None,
+        "dental_hpsa": None,
+        "mental_health_hpsa": None,
+        "mua_mup": None,
+        "fqhc_sites": None,
+    }
+
+    try:
+        with get_cursor() as cur:
+            # 1. Primary care HPSA (from fact_hpsa)
+            try:
+                rows = cur.execute("""
+                    SELECT
+                        COUNT(*) AS designation_count,
+                        AVG(hpsa_score) AS avg_score,
+                        SUM(designation_population) AS total_designation_pop,
+                        SUM(estimated_underserved_pop) AS total_underserved_pop,
+                        SUM(shortage) AS total_shortage
+                    FROM fact_hpsa
+                    WHERE state_code = $1
+                      AND discipline = 'Primary Care'
+                      AND hpsa_status = 'Designated'
+                """, [state_code]).fetchone()
+                if rows and rows[0] > 0:
+                    result["primary_care_hpsa"] = {
+                        "count": rows[0],
+                        "avg_score": round(rows[1], 1) if rows[1] else None,
+                        "total_designation_pop": rows[2],
+                        "total_underserved_pop": rows[3],
+                        "total_shortage": rows[4],
+                    }
+            except Exception:
+                pass
+
+            # 2. Dental HPSA (from fact_dental_hpsa)
+            try:
+                rows = cur.execute("""
+                    SELECT
+                        COUNT(*) AS designation_count,
+                        AVG("HPSA Score") AS avg_score,
+                        SUM("HPSA Designation Population") AS total_designation_pop,
+                        SUM("HPSA Estimated Underserved Population") AS total_underserved_pop,
+                        SUM("HPSA Shortage") AS total_shortage
+                    FROM fact_dental_hpsa
+                    WHERE "Primary State Abbreviation" = $1
+                      AND "HPSA Status" = 'Designated'
+                """, [state_code]).fetchone()
+                if rows and rows[0] > 0:
+                    result["dental_hpsa"] = {
+                        "count": rows[0],
+                        "avg_score": round(rows[1], 1) if rows[1] else None,
+                        "total_designation_pop": rows[2],
+                        "total_underserved_pop": rows[3],
+                        "total_shortage": rows[4],
+                    }
+            except Exception:
+                pass
+
+            # 3. Mental health HPSA (from fact_mental_health_hpsa)
+            try:
+                rows = cur.execute("""
+                    SELECT
+                        COUNT(*) AS designation_count,
+                        AVG("HPSA Score") AS avg_score,
+                        SUM("HPSA Designation Population") AS total_designation_pop,
+                        SUM("HPSA Estimated Underserved Population") AS total_underserved_pop,
+                        SUM("HPSA Shortage") AS total_shortage
+                    FROM fact_mental_health_hpsa
+                    WHERE "Primary State Abbreviation" = $1
+                      AND "HPSA Status" = 'Designated'
+                """, [state_code]).fetchone()
+                if rows and rows[0] > 0:
+                    result["mental_health_hpsa"] = {
+                        "count": rows[0],
+                        "avg_score": round(rows[1], 1) if rows[1] else None,
+                        "total_designation_pop": rows[2],
+                        "total_underserved_pop": rows[3],
+                        "total_shortage": rows[4],
+                    }
+            except Exception:
+                pass
+
+            # 4. MUA/MUP (from fact_mua_mup)
+            try:
+                rows = cur.execute("""
+                    SELECT
+                        COUNT(*) AS designation_count,
+                        AVG("IMU Score") AS avg_imu_score,
+                        SUM("Designation Population in a Medically Underserved Area/Population (MUA/P)") AS total_designation_pop,
+                        COUNT(DISTINCT "Designation Type") AS designation_types
+                    FROM fact_mua_mup
+                    WHERE "State Abbreviation" = $1
+                      AND "MUA/P Status Description" = 'Designated'
+                """, [state_code]).fetchone()
+                if rows and rows[0] > 0:
+                    result["mua_mup"] = {
+                        "count": rows[0],
+                        "avg_imu_score": round(rows[1], 1) if rows[1] else None,
+                        "total_designation_pop": rows[2],
+                        "designation_types": rows[3],
+                    }
+            except Exception:
+                pass
+
+            # 5. FQHC sites (from fact_fqhc_sites_v2)
+            try:
+                rows = cur.execute("""
+                    SELECT
+                        COUNT(*) AS site_count,
+                        COUNT(DISTINCT "Health Center Name") AS health_center_count,
+                        COUNT(DISTINCT "Health Center Type Description") AS type_count
+                    FROM fact_fqhc_sites_v2
+                    WHERE "Site State Abbreviation" = $1
+                      AND "Site Status Description" = 'Active'
+                """, [state_code]).fetchone()
+                if rows and rows[0] > 0:
+                    result["fqhc_sites"] = {
+                        "site_count": rows[0],
+                        "health_center_count": rows[1],
+                        "type_count": rows[2],
+                    }
+            except Exception:
+                # Try without status filter in case column values differ
+                try:
+                    rows = cur.execute("""
+                        SELECT
+                            COUNT(*) AS site_count,
+                            COUNT(DISTINCT "Health Center Name") AS health_center_count,
+                            COUNT(DISTINCT "Health Center Type Description") AS type_count
+                        FROM fact_fqhc_sites_v2
+                        WHERE "Site State Abbreviation" = $1
+                    """, [state_code]).fetchone()
+                    if rows and rows[0] > 0:
+                        result["fqhc_sites"] = {
+                            "site_count": rows[0],
+                            "health_center_count": rows[1],
+                            "type_count": rows[2],
+                        }
+                except Exception:
+                    pass
+
+        return result
+    except Exception as e:
+        raise HTTPException(500, {"error": "Access designations query failed", "detail": str(e)})

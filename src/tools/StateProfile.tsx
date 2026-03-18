@@ -133,28 +133,28 @@ function computeInsights(d: any, state: string): Insight[] {
 
     if (pctMcr < 0.70) {
       insights.push({
-        icon: "\u26A0",
+        icon: "\u25C7",
         title: "Low Rate Adequacy",
         description: `${STATE_NAMES[state]} pays a median of ${pctStr}% of Medicare across ${d.cpraSummary.count} matched codes${emCount > 0 ? ` (${emCount} E/M)` : ""}. States paying below 70% of Medicare face higher provider opt-out rates and reduced appointment availability for Medicaid beneficiaries.`,
         severity: "alert",
       });
     } else if (pctMcr < 0.85) {
       insights.push({
-        icon: "\uD83D\uDCC9",
+        icon: "\u25BD",
         title: "Below-Average Rate Adequacy",
-        description: `Medicaid rates are ${pctStr}% of Medicare (national median ~85%). This gap may limit provider participation, particularly for primary care and specialty services${hpsaCount > 20 ? ` \u2014 compounded by ${hpsaCount} health professional shortage areas in the state` : ""}.`,
+        description: `Medicaid rates are ${pctStr}% of Medicare (national median ~85%). This gap may limit provider participation, particularly for primary care and specialty services${hpsaCount > 20 ? `, compounded by ${hpsaCount} health professional shortage areas in the state` : ""}.`,
         severity: "warning",
       });
     } else if (pctMcr >= 1.0) {
       insights.push({
-        icon: "\u2705",
+        icon: "\u25C6",
         title: "Strong Rate Adequacy",
-        description: `Medicaid rates are at ${pctStr}% of Medicare \u2014 at or above parity. This positions ${STATE_NAMES[state]} favorably for provider recruitment and network adequacy.`,
+        description: `Medicaid rates are at ${pctStr}% of Medicare, at or above parity. This positions ${STATE_NAMES[state]} favorably for provider recruitment and network adequacy.`,
         severity: "info",
       });
     } else {
       insights.push({
-        icon: "\uD83D\uDCCA",
+        icon: "\u25CE",
         title: "Rate Adequacy Near National Median",
         description: `Medicaid-to-Medicare ratio of ${pctStr}% is near the national median of ~85%. Across ${d.cpraSummary.count} matched procedure codes${emCount > 0 ? ` (${emCount} E/M)` : ""}.`,
         severity: "info",
@@ -183,14 +183,14 @@ function computeInsights(d: any, state: string): Insight[] {
 
         if (premium < 10) {
           insights.push({
-            icon: "\uD83D\uDC69\u200D\u2695\uFE0F",
+            icon: "\u25B3",
             title: "Direct Care Workforce Pressure",
-            description: `${title}s earn a median of $${medianHourly.toFixed(2)}/hr in ${STATE_NAMES[state]} \u2014 only ${premium > 0 ? premium.toFixed(0) + "% above" : Math.abs(premium).toFixed(0) + "% below"} entry-level retail wages ($${retailBenchmark.toFixed(2)}/hr). This narrow gap drives turnover and vacancy in nursing facilities and HCBS programs.${p90Hourly > 0 ? ` Top earners reach $${p90Hourly.toFixed(2)}/hr.` : ""}`,
+            description: `${title}s earn a median of $${medianHourly.toFixed(2)}/hr in ${STATE_NAMES[state]}, only ${premium > 0 ? premium.toFixed(0) + "% above" : Math.abs(premium).toFixed(0) + "% below"} entry-level retail wages ($${retailBenchmark.toFixed(2)}/hr). This narrow gap drives turnover and vacancy in nursing facilities and HCBS programs.${p90Hourly > 0 ? ` Top earners reach $${p90Hourly.toFixed(2)}/hr.` : ""}`,
             severity: premium < 0 ? "alert" : "warning",
           });
         } else {
           insights.push({
-            icon: "\uD83D\uDC69\u200D\u2695\uFE0F",
+            icon: "\u25B3",
             title: "Direct Care Workforce",
             description: `${title}s earn $${medianHourly.toFixed(2)}/hr median in ${STATE_NAMES[state]}, ${premium.toFixed(0)}% above entry-level retail.${p90Hourly > 0 ? ` 90th percentile: $${p90Hourly.toFixed(2)}/hr.` : ""} Higher pay helps retention, but workforce shortages persist nationally.`,
             severity: "info",
@@ -216,14 +216,14 @@ function computeInsights(d: any, state: string): Insight[] {
 
     if (hpsaCount > 50 && pctMcr > 0 && pctMcr < 0.85) {
       insights.push({
-        icon: "\uD83C\uDFE5",
+        icon: "\u25A1",
         title: "Elevated Access Risk",
         description: `${hpsaCount} health professional shortage area designations (${discSummary}). Combined with Medicaid rates at ${(pctMcr * 100).toFixed(0)}% of Medicare, providers in underserved areas face compounding financial pressure that may limit beneficiary access.`,
         severity: "alert",
       });
     } else if (hpsaCount > 30) {
       insights.push({
-        icon: "\uD83C\uDFE5",
+        icon: "\u25A1",
         title: "Provider Shortage Areas",
         description: `${hpsaCount} HPSA designations across the state (${discSummary}). These areas face documented shortages in primary care, dental, or mental health providers.`,
         severity: hpsaCount > 80 ? "warning" : "info",
@@ -251,14 +251,14 @@ function computeInsights(d: any, state: string): Insight[] {
 
         if (absChange > 5) {
           insights.push({
-            icon: yoyChange > 0 ? "\uD83D\uDCC8" : "\uD83D\uDCC9",
+            icon: yoyChange > 0 ? "\u25B2" : "\u25BD",
             title: `Enrollment ${direction === "up" ? "Growing" : "Declining"} Sharply`,
             description: `Medicaid enrollment is ${direction} ${absChange.toFixed(1)}% year-over-year (${fmtNum(yearAgoEnroll)} \u2192 ${fmtNum(latestEnroll)}).${unwindingNote} Changes of this magnitude impact state budgets, provider networks, and managed care plan capacity.`,
             severity: absChange > 10 ? "warning" : "info",
           });
         } else {
           insights.push({
-            icon: "\uD83D\uDCCA",
+            icon: "\u25CE",
             title: "Enrollment Trend",
             description: `Enrollment is ${direction} ${absChange.toFixed(1)}% year-over-year at ${fmtNum(latestEnroll)} total enrollees.${unwindingNote}`,
             severity: "info",
@@ -283,7 +283,7 @@ function computeInsights(d: any, state: string): Insight[] {
     if (highMedicaid.length > 3 && highMcdPct > 15) {
       const dshTotal = d.hospitalSummary?.total_dsh || 0;
       insights.push({
-        icon: "\uD83C\uDFE5",
+        icon: "\u25A1",
         title: "Safety Net Hospital Dependency",
         description: `${highMedicaid.length} of ${totalHospitals} hospitals (${highMcdPct.toFixed(0)}%) have Medicaid representing >25% of patient days.${negMargin.length > 0 ? ` ${negMargin.length} hospitals operate at negative margins.` : ""}${dshTotal > 0 ? ` DSH payments total ${fmtDollars(dshTotal)}.` : ""} Rate adequacy directly impacts these safety net facilities.`,
         severity: highMcdPct > 30 ? "warning" : "info",
@@ -305,14 +305,14 @@ function computeInsights(d: any, state: string): Insight[] {
     if (povertyRate > 0.15 && uninsuredRate > 0.10) {
       const estUninsuredPoor = Math.round(pop * povertyRate * uninsuredRate);
       insights.push({
-        icon: "\uD83D\uDCCB",
+        icon: "\u25CA",
         title: "Coverage Gap Signal",
         description: `${(povertyRate * 100).toFixed(1)}% poverty rate combined with ${(uninsuredRate * 100).toFixed(1)}% uninsured rate suggests a significant coverage gap. An estimated ${fmtNum(estUninsuredPoor)} residents are both below the poverty line and uninsured.`,
         severity: "alert",
       });
     } else if (uninsuredRate > 0.08) {
       insights.push({
-        icon: "\uD83D\uDCCB",
+        icon: "\u25CA",
         title: "Uninsured Population",
         description: `${(uninsuredRate * 100).toFixed(1)}% of residents lack insurance (national avg ~8%). ${pop > 0 ? `Approximately ${fmtNum(Math.round(pop * uninsuredRate))} uninsured individuals.` : ""}`,
         severity: "warning",
@@ -328,14 +328,14 @@ function computeInsights(d: any, state: string): Insight[] {
 
     if (avgRating < 3.0 && avgHprd < 3.5) {
       insights.push({
-        icon: "\u2B50",
+        icon: "\u25C9",
         title: "Nursing Facility Quality Concern",
         description: `${facilityCount > 0 ? facilityCount + " nursing facilities average" : "Average rating is"} ${avgRating.toFixed(1)} out of 5 stars with ${avgHprd.toFixed(2)} nursing hours per resident day. Both metrics fall below national benchmarks (3.3 stars, 3.8 HPRD), indicating systemic quality pressure.`,
         severity: "alert",
       });
     } else if (avgRating < 3.3) {
       insights.push({
-        icon: "\u2B50",
+        icon: "\u25C9",
         title: "Nursing Facility Quality",
         description: `Nursing facilities average ${avgRating.toFixed(1)} stars (${facilityCount > 0 ? facilityCount + " facilities" : ""}), below the national average of 3.3. Staffing: ${avgHprd.toFixed(2)} nursing hours per resident day.`,
         severity: "warning",

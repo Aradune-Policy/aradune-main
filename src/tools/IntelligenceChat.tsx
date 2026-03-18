@@ -665,7 +665,7 @@ export default function IntelligenceChat() {
             padding: "0 20px",
           }}>
             <div style={{ display: "flex", alignItems: "center", gap: 10, marginBottom: 10 }}>
-              <img src="/assets/logo-mark.svg" alt="" style={{ width: 32, height: 32 }}
+              <img src="/assets/logo-mark.png" alt="" style={{ width: 32, height: 32 }}
                 onError={e => { (e.target as HTMLImageElement).style.display = "none"; }} />
               <h1 style={{
                 fontSize: 22, fontWeight: 700, color: C.ink, margin: 0,

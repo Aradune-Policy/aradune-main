@@ -16,7 +16,7 @@ import { ClerkAuthProvider, RequireAuth, UserNav, isClerkEnabled } from "./compo
 function SwordLoader({ text = "Loading..." }: { text?: string }) {
   return (
     <div style={{ maxWidth: 600, margin: "0 auto", padding: "60px 20px", textAlign: "center", display: "flex", flexDirection: "column", alignItems: "center" }}>
-      <img src="/assets/logo-mark.svg" alt="" style={{ width: 40, height: 40, opacity: 0.6, marginBottom: 16 }}
+      <img src="/assets/logo-mark.png" alt="" style={{ width: 40, height: 40, opacity: 0.6, marginBottom: 16 }}
         onError={e => { (e.target as HTMLImageElement).style.display = "none"; }} />
       <div style={{ width: 200, height: 3, background: C.border, borderRadius: 2, overflow: "hidden" }}>
         <div style={{
@@ -340,7 +340,7 @@ function PlatformNav({ route }: { route: string }) {
       }}>
         <div style={{ display: "flex", alignItems: "center", gap: 8, flexShrink: 0 }}>
           <a href="#/" style={{ textDecoration: "none", display: "flex", alignItems: "center", gap: 7 }}>
-            <img src="/assets/logo-mark.svg" alt="" style={{ width: 22, height: 22 }}
+            <img src="/assets/logo-mark.png" alt="" style={{ width: 22, height: 22 }}
               onError={e => { (e.target as HTMLImageElement).style.display = "none"; }} />
             <span style={{ fontSize: 16, fontWeight: 800, color: C.brand, letterSpacing: 2, fontFamily: FONT.body }}>ARADUNE</span>
           </a>
@@ -572,10 +572,10 @@ function Landing() {
             <div style={{ display: "flex", alignItems: "center", gap: 12, marginBottom: 20 }}>
               <div style={{
                 width: 36, height: 36, borderRadius: 10,
-                background: "rgba(46,107,74,0.2)",
+                background: "rgba(255,255,255,0.95)",
                 display: "flex", alignItems: "center", justifyContent: "center",
               }}>
-                <img src="/assets/icon-bot.png" alt="" style={{ width: 22, height: 22, borderRadius: 5 }}
+                <img src="/assets/logo-mark.png" alt="A" style={{ width: 22, height: 22 }}
                   onError={e => { (e.target as HTMLImageElement).style.display = "none"; }} />
               </div>
               <div>

@@ -1,7 +1,10 @@
-// /api/chat.js — DEPRECATED — Vercel Serverless Function
-// Replaced by /api/intelligence (server/routes/intelligence.py) which has:
-// SSE streaming, DuckDB tools, RAG policy search, web search, query routing.
-// This file is kept for backwards compatibility only. Remove after verification.
+/**
+ * DEPRECATED: This file is the legacy Vercel serverless function for AI chat.
+ * It has been replaced by server/routes/intelligence.py (FastAPI + SSE streaming).
+ * Kept for reference only. Do not modify or extend.
+ * See: server/routes/intelligence.py for the current Intelligence implementation.
+ * Deprecated: Session 34 (2026-03-18)
+ */
 //
 // Original: Proxies requests to Anthropic API with tool use for Aradune data access
 // Rate-limited, token-gated, with smart context management

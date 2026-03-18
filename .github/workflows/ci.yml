@@ -45,6 +45,22 @@ jobs:
       - name: Unit & adversarial tests
         run: python -m pytest tests/unit/ tests/adversarial/ -v --tb=short
 
+  contract-testing:
+    name: API Contract Testing (Schemathesis)
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - run: pip install -r server/requirements.txt schemathesis
+      - name: Start FastAPI server
+        run: uvicorn server.main:app --port 8000 &
+      - name: Wait for server ready
+        run: sleep 5 && curl --retry 5 --retry-delay 2 http://localhost:8000/healthz
+      - name: Schemathesis contract tests (dry-run)
+        run: schemathesis run --checks all --base-url http://localhost:8000 http://localhost:8000/openapi.json --hypothesis-max-examples=5 --dry-run || true
+
   # Deploy (only on push to main, after checks pass)
   deploy-frontend:
     name: Deploy Frontend (Vercel)

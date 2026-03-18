@@ -16,7 +16,7 @@
     "docx": "^9.6.1",
     "file-saver": "^2.0.5",
     "jspdf": "^2.5.2",
-    "jspdf-autotable": "^3.8.4",
+    "jspdf-autotable": "^5.0.7",
     "lottie-react": "^2.4.1",
     "react": "^18.2.0",
     "react-dom": "^18.2.0",

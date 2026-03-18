@@ -5,6 +5,8 @@ import { LoadingBar } from "../components/LoadingBar";
 import { useAradune } from "../context/AraduneContext";
 import ChartActions from "../components/ChartActions";
 import { useIsMobile } from "../design";
+import StateContextBar from "../components/StateContextBar";
+import { STATE_NAMES } from "../data/states";
 
 // ── Design System (matches Aradune v14) ─────────────────────────────────
 const A = "#0A2540";
@@ -19,7 +21,6 @@ const cB = "#2E6B4A";
 const FM = "'SF Mono',Menlo,monospace";
 const SH = "0 1px 3px rgba(0,0,0,.04),0 4px 12px rgba(0,0,0,.03)";
 
-const STATE_NAMES: Record<string, string> = {AL:"Alabama",AK:"Alaska",AZ:"Arizona",AR:"Arkansas",CA:"California",CO:"Colorado",CT:"Connecticut",DE:"Delaware",DC:"D.C.",FL:"Florida",GA:"Georgia",HI:"Hawaii",ID:"Idaho",IL:"Illinois",IN:"Indiana",IA:"Iowa",KS:"Kansas",KY:"Kentucky",LA:"Louisiana",ME:"Maine",MD:"Maryland",MA:"Massachusetts",MI:"Michigan",MN:"Minnesota",MS:"Mississippi",MO:"Missouri",MT:"Montana",NE:"Nebraska",NV:"Nevada",NH:"New Hampshire",NJ:"New Jersey",NM:"New Mexico",NY:"New York",NC:"N. Carolina",ND:"N. Dakota",OH:"Ohio",OK:"Oklahoma",OR:"Oregon",PA:"Pennsylvania",RI:"Rhode Island",SC:"S. Carolina",SD:"S. Dakota",TN:"Tennessee",TX:"Texas",UT:"Utah",VT:"Vermont",VA:"Virginia",WA:"Washington",WV:"W. Virginia",WI:"Wisconsin",WY:"Wyoming",PR:"Puerto Rico",GU:"Guam",VI:"Virgin Islands"};
 
 // ── Interfaces ─────────────────────────────────────────────────────────
 interface NsduhRow { state: string; estimate_pct: number; ci_lower_pct: number; ci_upper_pct: number }
@@ -86,6 +87,7 @@ export default function BehavioralHealth() {
   const [tab, setTab] = useState<Tab>("Prevalence");
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [selectedState, setSelectedState] = useState<string | null>(null);
   const isMobile = useIsMobile();
 
   // ── Prevalence state ──
@@ -229,6 +231,20 @@ export default function BehavioralHealth() {
         </p>
       </div>
 
+      {/* State selector */}
+      <div style={{ display:"flex",gap:8,alignItems:"center",marginBottom:12,flexWrap:"wrap" }}>
+        <select value={selectedState || ""} onChange={e => setSelectedState(e.target.value || null)}
+          style={{ fontSize:12,padding:"4px 8px",borderRadius:4,border:`1px solid ${BD}`,fontFamily:FM }}>
+          <option value="">All States</option>
+          {Object.entries(STATE_NAMES).sort((a, b) => a[1].localeCompare(b[1])).map(([code, name]) =>
+            <option key={code} value={code}>{name}</option>
+          )}
+        </select>
+        {selectedState && <Pill label="Clear" active={false} onClick={() => setSelectedState(null)} />}
+      </div>
+
+      {selectedState && <StateContextBar stateCode={selectedState} mode="compact" />}
+
       {/* Tabs */}
       <div style={{ display:"flex",gap:6,marginBottom:16,flexWrap:"wrap" }}>
         {TABS.map(t => <Pill key={t} label={t} active={tab===t} onClick={() => setTab(t)} />)}
@@ -287,7 +303,8 @@ export default function BehavioralHealth() {
                       <XAxis type="number" tick={{ fontSize:9,fill:AL }} tickFormatter={v => `${v}%`} />
                       <YAxis type="category" dataKey="name" tick={{ fontSize:9,fill:AL }} width={isMobile ? 36 : 66} />
                       <Tooltip content={<SafeTip formatter={(v) => `${v.toFixed(1)}%`} />} />
-                      <Bar dataKey="pct" radius={[0,3,3,0]} maxBarSize={14}>
+                      <Bar dataKey="pct" radius={[0,3,3,0]} maxBarSize={14} cursor="pointer"
+                        onClick={(_: unknown, idx: number) => { if (rankingChart[idx]) setSelectedState(rankingChart[idx].state); }}>
                         {rankingChart.map((d, i) => (
                           <Cell key={i} fill={d.pct > nationalAvg ? NEG : POS} fillOpacity={0.8} />
                         ))}
@@ -367,8 +384,10 @@ export default function BehavioralHealth() {
                       <XAxis type="number" tick={{ fontSize:9,fill:AL }} />
                       <YAxis type="category" dataKey="name" tick={{ fontSize:9,fill:AL }} width={isMobile?36:66} />
                       <Tooltip content={<SafeTip formatter={(v, k) => `${v.toLocaleString()} ${k === "mh" ? "MH" : k === "su" ? "SUD" : "total"}`} />} />
-                      <Bar dataKey="mh" stackId="a" fill={cB} radius={[0,0,0,0]} maxBarSize={14} name="MH" />
-                      <Bar dataKey="su" stackId="a" fill="#6366F1" radius={[0,3,3,0]} maxBarSize={14} name="SUD" />
+                      <Bar dataKey="mh" stackId="a" fill={cB} radius={[0,0,0,0]} maxBarSize={14} name="MH" cursor="pointer"
+                        onClick={(_: unknown, idx: number) => { if (facilityChart[idx]) setSelectedState(facilityChart[idx].state); }} />
+                      <Bar dataKey="su" stackId="a" fill="#6366F1" radius={[0,3,3,0]} maxBarSize={14} name="SUD" cursor="pointer"
+                        onClick={(_: unknown, idx: number) => { if (facilityChart[idx]) setSelectedState(facilityChart[idx].state); }} />
                     </BarChart>
                   </ResponsiveContainer>
                 </div>

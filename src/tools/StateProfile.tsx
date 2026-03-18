@@ -12,7 +12,10 @@ import { STATE_NAMES } from "../data/states";
 import { API_BASE } from "../lib/api";
 import { useAradune } from "../context/AraduneContext";
 import ChartActions from "../components/ChartActions";
+import StateContextBar from "../components/StateContextBar";
 import { useIsMobile } from "../design";
+import { stateContextSummary } from "../utils/formatContext";
+import { useStateContext } from "../hooks/useStateContext";
 
 // ── Design tokens ───────────────────────────────────────────────────────
 const A = "#0A2540", AL = "#425A70", POS = "#2E6B4A", NEG = "#A4262C", WARN = "#B8860B";
@@ -988,6 +991,7 @@ export default function StateProfile() {
   const { openIntelligence, addReportSection } = useAradune();
   const isMobile = useIsMobile();
   const [stateCodes, setStateCodes] = useState<string[]>(parseStatesFromHash);
+  const stateCtx = useStateContext(stateCodes.length === 1 ? stateCodes[0] : null);
   const [loading, setLoading] = useState(false);
   const [dataMap, setDataMap] = useState<Record<string, any>>({});
   const [apiError, setApiError] = useState(false);
@@ -1086,7 +1090,7 @@ export default function StateProfile() {
             padding: "8px 14px", borderRadius: 8, border: `1px solid ${BD}`,
             background: WH, color: cB, fontSize: 12, cursor: "pointer", fontFamily: FB, fontWeight: 600,
           }}>+ Compare</button>
-          <button onClick={() => openIntelligence({ state, summary: `User is viewing State Profile for ${STATE_NAMES[state] || state}` })} style={{
+          <button onClick={() => openIntelligence({ state, summary: `User is viewing State Profile for ${STATE_NAMES[state] || state}.${stateCtx.data ? " " + stateContextSummary(stateCtx.data) : ""}` })} style={{
             padding: "8px 14px", borderRadius: 8, border: "none",
             background: cB, color: WH, fontSize: 12, cursor: "pointer", fontFamily: FB, fontWeight: 600,
           }}>Ask Aradune</button>
@@ -1228,6 +1232,8 @@ export default function StateProfile() {
                 )}
               </div>
             </Card>
+
+            <StateContextBar stateCode={state} mode="compact" />
 
             {/* ─── Cross-Dataset Insights ──────────────────────────────── */}
             {(() => {

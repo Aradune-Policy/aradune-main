@@ -6,6 +6,7 @@ import { LoadingBar } from "../components/LoadingBar";
 import { useAradune } from "../context/AraduneContext";
 import ChartActions from "../components/ChartActions";
 import { useIsMobile } from "../design";
+import StateContextBar from "../components/StateContextBar";
 
 // ── Design System (matches Aradune v14) ─────────────────────────────────
 const A = "#0A2540";
@@ -406,6 +407,8 @@ export default function SpendingEfficiency() {
           </select>
         </div>
       </div>
+
+      <StateContextBar stateCode={highlightState} mode="expanded" />
 
       {/* ═══════════════════ TAB 1: Per-Enrollee Spending ═══════════════════ */}
       {tab === "per-enrollee" && <>

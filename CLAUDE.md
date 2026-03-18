@@ -91,6 +91,14 @@ AI:             Intelligence (server/routes/intelligence.py) — Claude Sonnet 4
                 Haiku for routing · Sonnet for analysis · Opus for complex reasoning
 Skillbook:      Skillbook (self-improving): server/engines/skillbook.py + reflector.py, CRUSP lifecycle, score decay, graph expansion
 Adversarial:    Adversarial testing: 7-agent suite (scripts/adversarial/)
+Production:     DuckDB memory_limit=900MB, 2 threads, object cache, disk spill
+                Security headers (HSTS, nosniff, DENY, referrer, permissions)
+                Gunicorn 2 workers + preload + max-requests recycling
+                Rate limiting: 15 Intelligence queries/min/user
+                Health probes: /healthz (liveness), /ready (readiness), /startup
+                JSON structured logging + request timing middleware
+                Dependabot (npm, pip, GitHub Actions) + supply chain auditing in CI
+                Schemathesis API contract testing (auto-tests 340+ endpoints)
 RAG:            DuckDB FTS over policy corpus (1,039 docs, 6,058 chunks from medicaid.gov)
                 BM25 full-text search with ILIKE fallback (server/engines/rag_engine.py)
 Search:         Platform-wide Cmd+K search (PlatformSearch.tsx + /api/search)
@@ -1004,9 +1012,16 @@ Aradune/
 │
 ├── .github/workflows/ci.yml        ← Build, lint, deploy Vercel + Fly.io
 ├── .github/workflows/adversarial.yml ← Weekly adversarial test run + auto-import to Skillbook + issue on failure
-└── docs/
-    ├── ARADUNE_MASTER.md / TMSIS_DATA_GUIDE.md / AraduneMockup.jsx
-    ├── SESSION-34-DEPLOY-GUIDE.md   ← Session 34 deployment guide
+├── docs/
+│   ├── adr/                         ← Architecture Decision Records
+│   │   ├── 001-duckdb-over-postgresql.md
+│   │   ├── 002-parquet-over-delta-iceberg.md
+│   │   ├── 003-claude-api-with-skillbook.md
+│   │   ├── 004-data-partitioning-strategy.md
+│   │   └── 005-auth-architecture.md
+│   ├── ARADUNE_MASTER.md / TMSIS_DATA_GUIDE.md / AraduneMockup.jsx
+│   ├── SESSION-34-DEPLOY-GUIDE.md   ← Session 34 deployment guide
+└── ...
 ```
 
 **db.py critical note:** Only facts in `fact_names` (currently 667 entries) are registered as views. Always update when adding lake tables. `_latest_snapshot()` supports both `data.parquet` and `snapshot=*/data.parquet` formats.
@@ -1140,6 +1155,8 @@ fly deploy --remote-only --config server/fly.toml --dockerfile server/Dockerfile
 | 25 | Intelligence: no DuckDB query timeout | **Fixed** -- Session 34. 30s statement_timeout + 120s API timeout. |
 | 26 | Cache seeds stale (contain old responses with em-dashes) | Open -- need regeneration with updated prompt |
 | 27 | ANTHROPIC_API_KEY not in GitHub secrets | Open -- needed for adversarial workflow |
+| 28 | 31 broken/empty raw files in data/raw/ (7 empty, 2 HTML/WAF) | Identified, not deleted. Cleanup when ready. |
+| 29 | 11 duplicate _v2 raw file pairs (~51.5MB) | Identified, not deleted. Safe to remove _v2 copies. |
 
 ---
 
@@ -1159,6 +1176,10 @@ fly deploy --remote-only --config server/fly.toml --dockerfile server/Dockerfile
 - Cross-dataset enrichment: universal state context endpoint (/api/state-context/{state_code}, 12 queries, 1hr cache) + StateContextBar component deployed across all 12 modules. Every module shows FMAP, enrollment, HPSAs, quality, rates, workforce, HCBS, CMS-64, T-MSIS alongside its domain data.
 - Rates & Compliance redesign: new Rate Browse & Compare tool (RateBrowse.tsx, 1,230 lines) with Dashboard, Code Lookup, State Compare views. Replaced 5 overlapping tools. Backend: /api/rates/state-summary + /api/rates/compare-states + /api/rates/context/{state}.
 - Shared frontend infrastructure: formatContext.ts (format helpers), StateContextData type, useStateContext hook.
+- Production hardening: DuckDB memory config (900MB limit, 2 threads, object cache), security headers (5 OWASP headers on all responses), Gunicorn (2 workers, preload, max-requests), rate limiting (15 queries/min/user), health probes (/healthz, /ready, /startup), JSON structured logging, request timing middleware.
+- Supply chain security: Dependabot for npm/pip/GitHub Actions, pip-audit + npm audit in CI, Schemathesis API contract testing.
+- 5 Architecture Decision Records: DuckDB, Parquet, Skillbook, partitioning, auth.
+- Legacy cleanup: api/chat.js deprecated. Raw file audit: 31 broken files + 11 duplicate pairs identified.
 
 **Session 32 (2026-03-17) — Post-review fixes + adversarial testing framework:**
 - @safe_route on all 336/336 endpoints (was 176). safe_route updated to re-raise HTTPException.

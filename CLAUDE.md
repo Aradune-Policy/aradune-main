@@ -2,9 +2,9 @@
 > **The operating system for Medicaid intelligence.**
 > Read this file at the start of every session. It defines what Aradune is, how it's built, and the rules for building it.
 > Build plan: See ARADUNE_BUILD_GUIDE.md for the phased build plan, module specs, and data import architecture.
-> Last updated: 2026-03-15 (Session 30) · Live: https://www.aradune.co
+> Last updated: 2026-03-18 (Session 34) · Live: https://www.aradune.co
 > Research audit: RESEARCH_AUDIT_GUIDE.md (v1) + RESEARCH_AUDIT_GUIDE_v2.md (verification-first). Advanced methods: scripts/research_advanced_methods.py
-> Adversarial testing: docs/ADVERSARIAL_TESTING_IMPL.md (7-agent suite). 4 agents built, 3 pending. Run: `python -m scripts.adversarial.runner`
+> Adversarial testing: docs/ADVERSARIAL_TESTING_IMPL.md (7-agent suite). All 7 agents built. Run: `python -m scripts.adversarial.runner`
 > Complete reference: ARADUNE-COMPLETE-REFERENCE.md — data catalog, module inventory, audit test catalog (hand to another Claude session for autonomous auditing)
 
 ---
@@ -85,10 +85,12 @@ Data store:     DuckDB-WASM (browser-side client queries)
 Data lake:      Hive-partitioned Parquet (data/lake/) — 400M+ rows, 698 views
                 DuckDB in-memory views over Parquet files, 4.9 GB on disk
                 S3/R2 sync (scripts/sync_lake_wrangler.py --remote, Cloudflare R2 bucket: aradune-datalake)
-Backend:        Python FastAPI (server/) — 336 endpoints across 39 route files, DuckDB-backed
+Backend:        Python FastAPI (server/) — 336+ endpoints across 39+ route files, DuckDB-backed
 AI:             Intelligence (server/routes/intelligence.py) — Claude Sonnet 4.6 + SSE streaming
                 + extended thinking + DuckDB tools + RAG policy corpus + web search
                 Haiku for routing · Sonnet for analysis · Opus for complex reasoning
+Skillbook:      Skillbook (self-improving): server/engines/skillbook.py + reflector.py, CRUSP lifecycle, score decay, graph expansion
+Adversarial:    Adversarial testing: 7-agent suite (scripts/adversarial/)
 RAG:            DuckDB FTS over policy corpus (1,039 docs, 6,058 chunks from medicaid.gov)
                 BM25 full-text search with ILIKE fallback (server/engines/rag_engine.py)
 Search:         Platform-wide Cmd+K search (PlatformSearch.tsx + /api/search)
@@ -222,6 +224,17 @@ event: token\ndata: {"text": "Florida's"}\n\n
 event: metadata\ndata: {"tables": [...], "charts": [...], "queries": [...], "citations": [...]}\n\n
 event: done\ndata: {}\n\n
 ```
+
+### Programmatic Enforcement (Session 34)
+
+Intelligence enforces data quality and safety rules at **code level**, not just via prompt:
+- **DOGE quarantine:** Injected programmatically into system prompt by `intelligence.py` (code-level, not just prompt text). OT-only, provider state, MC distortion, Nov/Dec 2024 incomplete.
+- **IL T-MSIS caveats:** Injected programmatically when IL is detected in query context.
+- **Territory-aware fallback:** Guam, PR, VI get appropriate caveats when territories lack data coverage.
+- **DuckDB 30s `statement_timeout`** prevents runaway queries. Anthropic API has 120s timeout.
+- **`_postprocess_response`:** Em-dash removal (U+2014 → " - ") applied to all Intelligence output.
+- **`fact_intelligence_trace`:** Every Intelligence interaction logged for audit trail (query, response hash, model, tokens, cost, trace_id).
+- **`trace_id` in SSE metadata events:** Every streamed response includes a trace_id for end-to-end audit correlation.
 
 ### Entity Registry and Ontology
 
@@ -968,9 +981,19 @@ Aradune/
 │   ├── sync_lake.py                 ← R2 download via boto3 (used by Fly.io entrypoint, incremental)
 │   ├── build_cache_seeds.py         ← Populates server/cache_seeds.json for demo mode
 │   └── build_lake_*.py              ← 115+ ETL scripts across all data domains
+├── scripts/adversarial/             ← 7-agent adversarial testing suite
+│   ├── runner.py                    ← Test orchestrator (runs all agents, reports results)
+│   ├── skillbook_import.py          ← Converts test failures → Skillbook skills (closed feedback loop)
+│   ├── config.py                    ← Agent configuration and thresholds
+│   ├── agents/                      ← 7 agent modules (intelligence, api_fuzzer, consistency, persona, florida_rate, skillbook, browser)
+│   └── fixtures/known_facts.json    ← 28 ground-truth anchor facts across 11 domains
+├── scripts/prune_skillbook.py       ← Skillbook maintenance: prune low-score/stale skills
+│
 ├── .github/workflows/ci.yml        ← Build, lint, deploy Vercel + Fly.io
+├── .github/workflows/adversarial.yml ← Weekly adversarial test run + auto-import to Skillbook + issue on failure
 └── docs/
     ├── ARADUNE_MASTER.md / TMSIS_DATA_GUIDE.md / AraduneMockup.jsx
+    ├── SESSION-34-DEPLOY-GUIDE.md   ← Session 34 deployment guide
 ```
 
 **db.py critical note:** Only facts in `fact_names` (currently 667 entries) are registered as views. Always update when adding lake tables. `_latest_snapshot()` supports both `data.parquet` and `snapshot=*/data.parquet` formats.
@@ -1109,7 +1132,7 @@ fly deploy --remote-only --config server/fly.toml --dockerfile server/Dockerfile
 
 ## 21. What Success Looks Like
 
-**Now (March 2026):** 750+ views, 400M+ rows, 4.9 GB, 336 endpoints across 39 route files, 10 engines, 20 ontology domains with 28 relationship edges, Intelligence with SSE + DuckDB + RAG + web search + Skillbook + DOGE quarantine + FL Medicaid context, 28 standalone modules (15 core + 13 research), CPRA regulatory-correct both modes. 115+ ETL scripts. Export pipeline: DOCX/PDF/Excel/CSV + chart PNG/SVG. Demo mode with 27 pre-cached Intelligence responses. @safe_route on all 336 endpoints.
+**Now (March 2026):** 750+ views, 400M+ rows, 4.9 GB, 336+ endpoints across 39+ route files, 10 engines, 20 ontology domains with 28 relationship edges, Intelligence with SSE + DuckDB + RAG + web search + Skillbook v2 (CRUSP lifecycle, score decay, graph expansion, trace storage) + programmatic DOGE/IL/territory enforcement + FL Medicaid context (rule corrected), 28 standalone modules (15 core + 13 research), CPRA regulatory-correct both modes. 115+ ETL scripts. Export pipeline: DOCX/PDF/Excel/CSV + chart PNG/SVG. Demo mode with 27 pre-cached Intelligence responses. @safe_route on all 336+ endpoints. 7-agent adversarial suite (all built) with adversarial-to-Skillbook closed feedback loop. GitHub Actions weekly adversarial workflow.
 
 **Session 34 (2026-03-18) — Intelligence hardening + adversarial completion + FL rule correction:**
 - Intelligence fixes: programmatic DOGE quarantine injection (code-level, not just prompt), IL T-MSIS caveat injection, territory-aware fallback (Guam/PR/VI), em-dash post-processing, DuckDB 30s statement_timeout, Anthropic API 120s timeout.

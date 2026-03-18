@@ -1,7 +1,7 @@
 # Aradune: Complete Build Document
 
 > **The operating system for Medicaid intelligence.**
-> Last updated: 2026-03-17 (Session 31)
+> Last updated: 2026-03-18 (Session 34)
 > Live: https://www.aradune.co | API: https://aradune-api.fly.dev
 > Florida LLC filed. Federal trademark pending (Class 42, Section 1(b)).
 
@@ -16,8 +16,8 @@
 5. [Intelligence Engine](#5-intelligence-engine)
 6. [Backend (FastAPI + DuckDB)](#6-backend)
 7. [Frontend (React + TypeScript)](#7-frontend)
-8. [Structured Modules (27 Total)](#8-structured-modules)
-9. [Research Modules (12 Academic Briefs)](#9-research-modules)
+8. [Structured Modules (28 Total)](#8-structured-modules)
+9. [Research Modules (13 Academic Briefs)](#9-research-modules)
 10. [ETL Pipeline & Data Ingestion](#10-etl-pipeline)
 11. [CPRA Compliance System](#11-cpra-compliance-system)
 12. [Forecasting Engines](#12-forecasting-engines)
@@ -93,11 +93,15 @@ Aradune has three layers. Intelligence connects everything.
                     |                    +------+--------+
                     |                           |
 +-------------------+---------------------------+-----------------------+
-|                      ENTITY REGISTRY + SKILLBOOK                      |
+|                      ENTITY REGISTRY + SKILLBOOK v2                   |
 |                                                                       |
 |  Ontology: 16 entities, 20 domains, 28 edges, 19 named metrics      |
-|  Skillbook: 24+ validated domain insights (strategies, caveats,      |
-|    failure modes, rules, query patterns). Self-curating, scored.     |
+|  Skillbook v2: CRUSP lifecycle, score decay (half-life 30 days),     |
+|    graph expansion (1-hop related_skills), prune automation.         |
+|    24+ validated domain insights (strategies, caveats, failure       |
+|    modes, rules, query patterns). Self-curating, scored.             |
+|  Reflector v2: Async Haiku, proposes links + split candidates.       |
+|  fact_intelligence_trace: Audit trail with trace_id per query.       |
 |  Auto-generates: Intelligence system prompt + DuckPGQ property graph |
 +-------------------------------+---------------------------------------+
                                 |
@@ -122,16 +126,26 @@ Data store:     DuckDB-WASM (browser-side client queries)
 Data lake:      Hive-partitioned Parquet (data/lake/) -- 400M+ rows, 750+ views
                 DuckDB in-memory views over Parquet files, 4.9 GB on disk
                 S3/R2 sync (scripts/sync_lake_wrangler.py --remote)
-Backend:        Python FastAPI (server/) -- 336 endpoints across 39 route files
+Backend:        Python FastAPI (server/) -- ~340 endpoints across 39+ route files
 AI:             Claude Sonnet 4.6 + extended thinking + DuckDB tools + RAG + web search
                 Haiku for routing, Sonnet for analysis, Opus for complex reasoning
+                Programmatic caveat injection (DOGE, IL T-MSIS, territory fallback)
+                DuckDB 30s statement_timeout + Anthropic API 120s timeout
+                _postprocess_response em-dash/en-dash stripping on all output
+Skillbook:      Self-improving Intelligence layer (server/engines/skillbook.py + reflector.py)
+                CRUSP lifecycle, score decay (half-life 30 days), graph expansion (1-hop)
+                fact_intelligence_trace audit trail with trace_id in SSE metadata
+Adversarial:    7-agent adversarial testing suite (scripts/adversarial/)
+                28 ground-truth anchor facts (known_facts.json)
+                Adversarial-to-Skillbook pipeline (skillbook_import.py)
+                GitHub Actions weekly run + auto-import + issue creation
 RAG:            DuckDB FTS over policy corpus (1,039 docs, 6,058 chunks)
                 BM25 full-text search with ILIKE fallback
 Search:         Platform-wide Cmd+K search (PlatformSearch.tsx + /api/search)
 Auth:           Clerk (JWT validation, test keys active -- switch to production before demo)
 Pipeline:       115+ Python ETL scripts (scripts/build_*.py)
 Orchestration:  Dagster (13 assets, 3 checks, 3 jobs, 2 schedules)
-CI/CD:          GitHub Actions (TypeScript check + Vercel + Fly.io deploy)
+CI/CD:          GitHub Actions (TypeScript check + Vercel + Fly.io deploy + weekly adversarial)
 Deployment:     Vercel (frontend) + Fly.io (FastAPI backend)
 Design:         #0A2540 ink, #2E6B4A brand, #C4590A accent, #F5F7F5 surface
                 SF Mono for numbers, Helvetica Neue for body, no Google Fonts
@@ -724,9 +738,21 @@ event: done\ndata: {}
 
 **Minimum cell size:** n >= 11 for utilization counts.
 
-**DOGE quarantine:** Three-layer controls flag DOGE tables as OT-only, provider state distortion, MC states misleadingly low.
+**DuckDB query timeout:** `SET statement_timeout=30000` executed before every `_run_query()` call. Prevents runaway queries from consuming resources.
+
+**Anthropic API timeout:** `httpx.Timeout(120.0, connect=10.0)` -- 120 seconds total, 10 seconds connect.
+
+**DOGE quarantine (Session 34 -- code-level enforcement):** `_detect_doge_tables()` checks SQL for any of the 5 DOGE table names. When detected, `MANDATORY_CAVEATS` array is injected into the tool result JSON, ensuring Claude sees the caveats as part of the data response (not just the system prompt). All 5 caveats included: OT-only, provider state, MC distortion, Nov/Dec incomplete, dataset offline.
+
+**IL T-MSIS caveat (Session 34 -- code-level enforcement):** `_detect_il_claims()` checks for IL state code + claims/tmsis table references in SQL. Injects the incremental credits/debits dedup warning into tool results.
+
+**Territory-aware fallback (Session 34):** When Intelligence generates an empty response and the query mentions a territory (GU/PR/VI/AS/MP), returns a helpful message about territory data limitations instead of a generic 74-char fallback.
+
+**Response post-processing (Session 34):** `_postprocess_response()` strips em-dashes (U+2014), en-dashes (U+2013), and double-hyphen dashes from all responses. Also cleans up double commas from replacements.
 
 **Repetition guard:** Detects looping model output (same token repeated 10+ times) and truncates.
+
+**Trace storage:** `fact_intelligence_trace` table stores every query with trace_id, query_text, domain, tier, skill_ids_retrieved, sql_queries, model_used, response_length, response_time_ms, feedback. Trace_id included in SSE metadata events so frontend can reference specific queries for feedback.
 
 ### Model Costs
 
@@ -752,9 +778,9 @@ event: done\ndata: {}
 12. Clean markdown tables. Cite sources with vintage and caveats.
 13. When finding implies action, state it.
 
-### Skillbook (Self-Corrective Intelligence Layer)
+### Skillbook v2 (Self-Corrective Intelligence Layer)
 
-The Skillbook is a persistent, self-curating layer of Medicaid domain intelligence that sits between the ontology and Claude. It learns from every query: what reasoning worked, what failed, what domain rules matter.
+The Skillbook is a persistent, self-curating layer of Medicaid domain intelligence that sits between the ontology and Claude. It learns from every query: what reasoning worked, what failed, what domain rules matter. Session 34 upgraded it to v2 with CRUSP lifecycle, score decay, graph expansion, and automated pruning.
 
 **Table:** `fact_skillbook` in DuckDB (same lake, same query access)
 
@@ -764,24 +790,118 @@ The Skillbook is a persistent, self-curating layer of Medicaid domain intelligen
 - `failure_mode` -- reasoning paths that produced wrong answers
 - `domain_rule` -- regulatory/policy rules that must always be applied
 - `query_pattern` -- SQL patterns that work for common questions
+- `factual_accuracy` -- ground-truth facts that must be correct
+- `caveat_enforcement` -- quarantine and data quality rules that must trigger
 
-**Current state:** 24 seed skills from existing build rules and audit findings. Auto-learning active via async Reflector (Haiku, ~$0.004/reflection, non-blocking).
+**Current state:** 24+ seed skills from existing build rules, audit findings, and adversarial test anchors (28 known_facts.json entries importable via `--anchors`). Auto-learning active via async Reflector v2 (Haiku, ~$0.004/reflection, non-blocking).
 
-**Retrieval:** Domain-filtered by net_score + BM25 text match against query. Injected into Intelligence system prompt between ontology and user query.
+**Schema (v2 additions):**
+- `last_validated_at` -- reset on any feedback (refreshes decay clock)
+- `decay_half_life_days` -- default 30 days
+- `related_skills` -- VARCHAR array for graph edges (bidirectional linking)
+- `prune_reason` -- why a skill was retired (stored for audit)
 
-**Scoring:** Each skill has helpful_count, harmful_count, net_score. Skills with sustained negative scores are retired. Skills validated 3+ times are marked as high-confidence.
+**Score decay:** `effective_score = net_score * pow(2, -(days_elapsed / half_life_days))`. Default half-life 30 days. Negative scores do not get decay benefit. All retrieval now sorted by effective_score descending.
+
+**Graph expansion:** After initial retrieval (domain rules + keyword match), reads `related_skills` arrays and does 1-hop fetch for linked skills. Linked skills flagged with `via_link=True` so Intelligence knows they are contextually related, not directly matched.
+
+**Retrieval:** Domain-filtered by effective_score + BM25 text match against query. Injected into Intelligence system prompt between ontology and user query. Graph-expanded skills included with provenance flag.
+
+**Scoring:** Each skill has helpful_count, harmful_count, net_score. `update_score` resets `last_validated_at` (refreshes decay clock). Skills with sustained negative scores are retired. Skills validated 3+ times are marked as high-confidence.
+
+**CRUSP Lifecycle (Create, Retrieve, Update, Score, Prune):**
+- **Create:** Manual add, adversarial import (skillbook_import.py), or reflector extraction
+- **Retrieve:** Domain + keyword + graph expansion, sorted by effective_score
+- **Update:** Feedback (thumbs up/down), score adjustment, link management
+- **Score:** Decay-adjusted scoring with half-life, feedback resets clock
+- **Prune:** `scripts/prune_skillbook.py` implements automated cleanup:
+  - Harmful: net_score < -2 for 14+ days
+  - Decayed+unused: effective_score < 0.5, times_retrieved == 0, 60+ days old
+  - Oversized: >500 chars, logged for split consideration
+  - Dry-run by default, `--apply` to execute
+
+**Skill linking:** `link_skills(a, b)` creates bidirectional edges via JSON arrays in `related_skills` column. Used by graph expansion during retrieval.
+
+**Reflector v2:** Async Haiku post-response analysis now proposes `proposed_links` between related skills and flags `split_candidates` (oversized skills >500 chars that should be decomposed).
+
+**Feedback endpoint enhanced (Session 34):** Now accepts trace_id, looks up the trace from `fact_intelligence_trace`, passes recovered context (query, SQL, response) to reflector for targeted re-reflection.
 
 **Pattern:** ACE framework (ICLR 2026) adapted for domain-specific regulatory analytics.
 
 **Engines:**
-- `server/engines/skillbook.py` (278 lines) -- retrieval, injection, CRUD
-- `server/engines/reflector.py` (133 lines) -- async post-response analysis, skill extraction
+- `server/engines/skillbook.py` (278+ lines) -- retrieval with graph expansion, injection, CRUD, decay scoring, skill linking
+- `server/engines/reflector.py` (133+ lines) -- async post-response analysis, skill extraction, link proposals, split candidates
 
-**API endpoints:**
+**API endpoints (6 total):**
 - GET /api/skillbook -- list skills, optional domain filter
 - GET /api/skillbook/stats -- health metrics (total, active, validated, suspect)
+- GET /api/skillbook/recent -- most recent skills, ordered by created_at DESC
 - POST /api/skillbook/manual -- manually add a skill
-- DELETE /api/skillbook/{skill_id} -- retire a skill
+- POST /api/skillbook/add -- add a skill (JSON body, used by adversarial pipeline)
+- DELETE /api/skillbook/{skill_id} -- retire a skill with optional prune_reason
+
+### Adversarial Testing Suite (7 Agents)
+
+Aradune's adversarial testing framework validates Intelligence quality, API reliability, data consistency, and UI behavior through 7 specialized agents. All agents are in `scripts/adversarial/`. Run the full suite with `python -m scripts.adversarial.runner`.
+
+**Agent 1: Intelligence Agent** (existing from Session 32)
+Scripted + LLM-generated queries testing Intelligence response quality: style checks (no em-dashes, proper citations, data vintage), factual accuracy against known_facts.json, caveat enforcement (DOGE quarantine, IL dedup, territory warnings), and edge case handling.
+
+**Agent 2: API Fuzzer Agent** (existing from Session 32)
+Tests all ~340 endpoints for 500 errors with invalid inputs, missing parameters, malformed requests, boundary values, and injection attempts. Session 32 result: 100% pass rate across all endpoints.
+
+**Agent 3: Consistency Agent** (existing from Session 32)
+Cross-checks data consistency across related tables and endpoints. Loads ground-truth facts from `known_facts.json` (28 facts across 11 domains) and validates that Intelligence and API responses match. Session 32 result: 85.7% pass rate.
+
+**Agent 4: Persona Agent** (existing from Session 32)
+Tests Intelligence from different user personas (state Medicaid analyst, consulting actuary, investigative journalist, legislative staffer) to verify responses are appropriately contextualized and persona-appropriate.
+
+**Agent 5: Florida Rate Agent** (new in Session 34)
+4 SQL data-layer tests validating FL rate structure directly against the lake, plus 7 Intelligence endpoint tests validating that Intelligence correctly handles FL rate questions. Key validation: 99.96% of codes have either facility OR PC/TC rates, but 3 codes (46924, 91124, 91125) legitimately carry both facility and PC/TC rates as published by AHCA. Cost: ~$0.50 per run.
+
+**Agent 6: Skillbook Agent** (new in Session 34)
+5 poisoning resistance tests (false facts injected as skills should not contaminate Intelligence responses), 2 compounding tests (valid skills should measurably improve response quality), 4 integrity checks (schema validation, score range enforcement, contamination scan for known-bad patterns, domain distribution balance).
+
+**Agent 7: Browser Agent** (new in Session 34)
+8 Playwright end-to-end UI tests: homepage load, JS error-free navigation across 7 routes, mobile viewport (390x844), rapid state switching in State Profiles, Intelligence SSE rendering, Cmd+K search functionality, export during active data load. Cost: $0 (no LLM calls).
+
+**Ground truth:** `scripts/adversarial/fixtures/known_facts.json` contains 28 anchor facts across 11 domains (rates, enrollment, claims, hospitals, nursing, pharmacy, quality, expenditure, workforce, behavioral health, program integrity). These are verified against actual data and serve as the consistency baseline.
+
+**Runner:** `python -m scripts.adversarial.runner` with flags:
+- `--agent <name>` -- run specific agent only
+- `--quick` -- skip expensive LLM-based tests
+- `--export <path>` -- save results to JSON file
+- `--json` -- output results as JSON to stdout
+
+**Cost per run:**
+| Suite | Cost |
+|-------|------|
+| Full (all 7 agents) | $7-13 |
+| Quick (--quick flag) | $5-9 |
+| Florida Rate only | ~$0.50 |
+| Browser only | $0 (no LLM) |
+
+### Adversarial-to-Skillbook Pipeline
+
+The adversarial testing suite is connected to the Skillbook via `scripts/adversarial/skillbook_import.py`, creating a closed feedback loop: adversarial tests find weaknesses, failures are converted to learnable skills, and Intelligence improves automatically.
+
+**How it works:**
+1. Adversarial runner produces JSON report with test results
+2. `skillbook_import.py` reads the report and extracts lessons from failures
+3. Each failure is converted to a Skillbook entry with:
+   - Domain inferred from query keywords (17 domain keyword sets covering rates, enrollment, claims, hospitals, nursing, workforce, pharmacy, behavioral health, quality, expenditure, economic, medicare, policy, ltss_hcbs, public_health, maternal_child, program_integrity)
+   - Category mapped from failure type (hallucination -> factual_accuracy, quarantine_bypass -> caveat_enforcement, style_violation -> strategy, etc.)
+   - Content derived from the test assertion and expected behavior
+4. Deduplication: checks existing skills before adding (substring match on first 80 chars)
+5. Skills are inserted with initial score of 1.0 and source="adversarial"
+
+**Anchor import:** `--anchors` flag imports all 28 known_facts.json entries as baseline Skillbook skills with category `factual_accuracy` and domain derived from each fact's domain field.
+
+**GitHub Actions workflow:** `.github/workflows/adversarial.yml` runs weekly (Sunday 2AM UTC):
+1. Runs full adversarial suite against deployed Fly.io instance
+2. Auto-imports lessons from failures to Skillbook via skillbook_import.py
+3. Creates a GitHub issue on critical failure (any agent with >20% failure rate)
+4. Uploads JSON report as workflow artifact for audit trail
 
 ---
 
@@ -791,7 +911,7 @@ The Skillbook is a persistent, self-curating layer of Medicaid domain intelligen
 
 **Entry point:** `server/main.py`
 **Framework:** Python FastAPI with uvicorn
-**Total:** 333+ endpoints across 39 route files (26 top-level + 13 research modules). All endpoints protected by @safe_route error handler (except SSE streaming and file import validation endpoints which have their own error handling).
+**Total:** ~340 endpoints across 39+ route files (26 top-level + 13 research modules). All endpoints protected by @safe_route error handler (except SSE streaming and file import validation endpoints which have their own error handling).
 
 ### Server Startup Sequence
 
@@ -821,8 +941,8 @@ The Skillbook is a persistent, self-curating layer of Medicaid domain intelligen
 | Caseload Forecast | engines/caseload_forecast.py | ~650 | SARIMAX + ETS model competition |
 | Expenditure Model | engines/expenditure_model.py | ~430 | Enrollment -> expenditure projection |
 | CPRA Upload | engines/cpra_upload.py | 821 | 42 CFR 447.203 compliant CPRA from file upload |
-| Skillbook | engines/skillbook.py | 278 | Domain skill retrieval, injection, CRUD, scoring |
-| Reflector | engines/reflector.py | 133 | Async post-response skill extraction via Haiku |
+| Skillbook v2 | engines/skillbook.py | 278+ | Domain skill retrieval with graph expansion, injection, CRUD, decay scoring, skill linking, CRUSP lifecycle |
+| Reflector v2 | engines/reflector.py | 133+ | Async post-response skill extraction via Haiku, link proposals, split candidates |
 | Validator | engines/validator.py | 98 | 15+ data quality checks (row count, range, RI) |
 
 ### Route Files (39 total: 26 top-level + 13 research)
@@ -845,7 +965,7 @@ The Skillbook is a persistent, self-curating layer of Medicaid domain intelligen
 | policy.py | 5 | SPAs, waivers, managed care, FMAP, DSH |
 | pharmacy.py | 5 | SDUD state summary, top drugs, NADAC |
 | enrollment.py | 4 | Monthly, unwinding, managed care |
-| skillbook.py | 4 | Skillbook CRUD, stats, manual add |
+| skillbook.py | 6 | Skillbook CRUD, stats, manual add, recent, add (JSON body) |
 | validation.py | 3 | Validation latest, results, domains |
 | meta.py | 3 | Table schema, catalog, stats |
 | rate_explorer.py | 2 | Rate search across jurisdictions |
@@ -977,7 +1097,7 @@ All tools communicate via `apiFetch<T>(path, fallbackPath?)`:
 
 ---
 
-## 8. Structured Modules (27 Total)
+## 8. Structured Modules (28 Total)
 
 ### 15 Core Modules
 
@@ -1062,7 +1182,7 @@ All tools communicate via `apiFetch<T>(path, fallbackPath?)`:
 
 ---
 
-## 9. Research Modules (12 Academic Briefs)
+## 9. Research Modules (13 Academic Briefs)
 
 Research modules are findings-forward briefs with collapsible methods and replication sections. They are NOT interactive dashboards. Each runs statistical analysis against the data lake and presents results in academic paper format.
 
@@ -1215,6 +1335,14 @@ Implemented in `scripts/research_advanced_methods.py` (~650 lines):
 **Finding:** 22,431 MEPS respondents analyzed. Medicaid vs private vs uninsured spending and utilization patterns.
 
 **Data:** fact_meps_hc243 (22,431 respondents from MEPS HC-243)
+
+### Module 13: Network Adequacy (New Session 30)
+
+**Question:** Where do provider supply gaps create access barriers for Medicaid enrollees?
+
+**Finding:** Provider network analysis combining NPPES supply data, HPSA designations, enrollment demand, and geographic access metrics.
+
+**Data:** fact_nppes_provider (9.37M), fact_hpsa (69K), fact_enrollment, fact_fqhc_sites (19K)
 
 ### Research Audit
 
@@ -1595,14 +1723,24 @@ size_gb = 10
 
 ### CI/CD (GitHub Actions)
 
-**File:** .github/workflows/ci.yml
+**Files:**
+- `.github/workflows/ci.yml` -- build, lint, deploy
+- `.github/workflows/adversarial.yml` -- weekly adversarial testing + Skillbook import
 
-Pipeline:
+**CI Pipeline (ci.yml):**
 1. TypeScript type check
 2. Vercel frontend deploy
 3. Fly.io backend deploy
 
-Both Vercel and Fly.io deploying successfully as of 2026-03-17.
+Both Vercel and Fly.io deploying successfully as of 2026-03-18. All 6 GitHub CI secrets confirmed set (VERCEL_TOKEN, FLY_API_TOKEN, CLERK_SECRET_KEY, VITE_CLERK_PUBLISHABLE_KEY, VERCEL_ORG_ID, VERCEL_PROJECT_ID).
+
+**Adversarial Pipeline (adversarial.yml -- Session 34):**
+1. Runs weekly, Sunday 2AM UTC
+2. Executes full 7-agent adversarial suite against deployed Fly.io instance
+3. Auto-imports lessons from failures to Skillbook via `skillbook_import.py`
+4. Creates GitHub issue on critical failure (any agent with >20% failure rate)
+5. Uploads JSON report as workflow artifact for audit trail
+6. Cost: $7-13 per full run
 
 ### Self-Healing View Registration
 
@@ -1764,7 +1902,7 @@ The operational validation layer covers the critical path. The formal framework 
 
 ## 17. Build History & Current State
 
-### Session Timeline (30 Sessions, Feb-Mar 2026)
+### Session Timeline (34 Sessions, Feb-Mar 2026)
 
 **Sessions 1-8 (Feb 2026): Foundation**
 Initial build. CPRA engine. T-MSIS pipeline. State fee schedule ingestion (47 states). Forecasting engines. AHEAD readiness. Provider/workforce tools.
@@ -1796,7 +1934,61 @@ Behavioral Health, Pharmacy, Nursing Facility, Spending Efficiency, Hospital Rat
 **Session 30: Research Audit V2 + Fee Schedule Completion + Data Ingestion**
 Full 8-prompt research audit (V1 + V2): 25 bugs fixed, all 46 endpoints pass. Rate-Quality p-value corrected: 0.044 (was 0.178, SVI multicollinearity fixed). All 51 jurisdictions fee schedules complete (17 new state tables scraped). rate_comparison_v2: 483K rows, 54 states. 2 new research modules (T-MSIS Calibration, MEPS Expenditure). Data ingestion: ADI (240K), AHRQ SDOH (44K), FMAP FY2011-2023, MCPAR (300 PDFs), MEPS HC-243, expansion dates, dental/MH HPSAs, MUA/MUP, food access atlas, FDA Orange Book, NHE 30-year series. Ontology: 722 tables across 20 domains. Nav consolidated 10 groups -> 5. About page rewritten. R2 synced (49 new parquets). ~45 commits.
 
-### Current State (March 17, 2026)
+**Session 32 (2026-03-17): Post-Review Fixes + Adversarial Testing Framework**
+@safe_route on all 336/336 endpoints (was 176). safe_route updated to re-raise HTTPException. Created validation API (server/routes/validation.py: 3 endpoints) + CLI runner (scripts/run_validation.py). Build doc (ARADUNE_FULL_BUILD.md) fully reconciled. Adversarial testing framework built: 4 agents (Intelligence, API Fuzzer, Consistency, Persona) in scripts/adversarial/. API fuzzer: 100% pass. Consistency: 85.7%. Intelligence system prompt overhauled: dash elimination, data vintage enforcement, per-state mandatory caveats, strengthened DOGE quarantine. 3 more agents designed (Florida Rate, Skillbook, Browser). Implementation guide: docs/ADVERSARIAL_TESTING_IMPL.md.
+
+**Session 34 (2026-03-18): Intelligence Hardening + Adversarial Completion + Skillbook v2 + FL Rule Correction**
+
+This was the most significant Intelligence and quality assurance session. Four major workstreams:
+
+*Intelligence Hardening:*
+- Programmatic DOGE quarantine: `_detect_doge_tables()` checks SQL for any of the 5 DOGE table names. When detected, `MANDATORY_CAVEATS` array is injected into the tool result JSON, ensuring Claude sees the caveats as part of the data response, not just the system prompt. All 5 caveats: OT-only, provider state, MC distortion, Nov/Dec incomplete, dataset offline.
+- Programmatic IL T-MSIS caveat: `_detect_il_claims()` checks for IL state code + claims/tmsis table references in SQL. Injects the incremental credits/debits dedup warning.
+- Territory-aware fallback: When Intelligence generates an empty response and the query mentions a territory (GU/PR/VI/AS/MP), returns a helpful message about territory data limitations instead of a generic 74-char fallback.
+- Response post-processing: `_postprocess_response()` strips em-dashes (U+2014), en-dashes (U+2013), and double-hyphen dashes from all responses. Also cleans up double commas from replacements.
+- DuckDB statement_timeout: 30 seconds per query via `SET statement_timeout=30000` before each `_run_query()` execution.
+- Anthropic API timeout: 120 seconds total, 10 seconds connect, via `httpx.Timeout(120.0, connect=10.0)`.
+- Trace storage: `fact_intelligence_trace` table stores every query with trace_id, query_text, domain, tier, skill_ids_retrieved, sql_queries, model_used, response_length, response_time_ms, feedback. Trace_id included in SSE metadata events so frontend can reference specific queries for feedback.
+
+*Adversarial Testing Completion (7/7 agents):*
+- Florida Rate Agent: 4 SQL data-layer tests + 7 Intelligence endpoint tests validating FL rate structure. Confirms 99.96% codes have either facility OR PC/TC, and 3 codes (46924, 91124, 91125) legitimately have both. Cost: ~$0.50.
+- Skillbook Agent: 5 poisoning resistance tests (false facts should not contaminate skills), 2 compounding tests (skills should improve responses), 4 integrity checks (schema, score range, contamination scan, domain distribution).
+- Browser Agent: 8 Playwright end-to-end tests (homepage load, JS error-free navigation across 7 routes, mobile viewport 390x844, rapid state switching, Intelligence SSE rendering, Cmd+K search, export during load). Cost: $0 (no LLM).
+- known_facts.json: 28 ground-truth anchor facts across 11 domains.
+- Runner: `python -m scripts.adversarial.runner` with --agent, --quick, --export, --json flags.
+- Cost: Full suite $7-13, Quick $5-9, Florida Rate ~$0.50, Browser $0.
+
+*Adversarial-to-Skillbook Pipeline:*
+- `skillbook_import.py`: Reads adversarial JSON reports, extracts lessons from failures, converts to Skillbook entries.
+- Failure-to-skill conversion: domain inference from query keywords (17 domain keyword sets), category mapping (hallucination -> factual_accuracy, quarantine_bypass -> caveat_enforcement, etc.).
+- Anchor import: `--anchors` flag imports all 28 known_facts.json entries as baseline skills.
+- Deduplication: Checks existing skills before adding (substring match on first 80 chars).
+- GitHub Actions workflow (`.github/workflows/adversarial.yml`): Weekly Sunday 2AM UTC run, tests against deployed Fly.io, auto-imports lessons to Skillbook, creates GitHub issue on critical failure.
+
+*Skillbook v2 Upgrades:*
+- Score decay: `effective_score = net_score * pow(2, -(days_elapsed / half_life_days))`. Default half-life 30 days. Negative scores don't get decay benefit. All retrieval now sorted by effective_score.
+- Schema additions: `last_validated_at` (reset on any feedback), `decay_half_life_days` (default 30), `related_skills` (VARCHAR array for graph edges), `prune_reason` (why retired).
+- Graph expansion: After initial retrieval (domain rules + keyword match), reads `related_skills` arrays and does 1-hop fetch for linked skills. Linked skills flagged with `via_link=True`.
+- `link_skills(a, b)`: Bidirectional linking via JSON arrays.
+- `update_score` now resets `last_validated_at` (refreshes decay clock).
+- `retire_skill` accepts `reason` parameter stored in `prune_reason`.
+- Reflector v2: Now proposes `proposed_links` between related skills and flags `split_candidates` (oversized skills >500 chars).
+- CRUSP Prune: `scripts/prune_skillbook.py` implements automated cleanup. Rules: harmful (net_score < -2 for 14+ days), decayed+unused (effective_score < 0.5, times_retrieved == 0, 60+ days), oversized (>500 chars, logged for split). Dry-run by default, `--apply` to execute.
+- New API endpoints: `/api/skillbook/recent` (most recent skills), `/api/skillbook/add` (POST with JSON body).
+- Feedback endpoint enhanced: Now accepts trace_id, looks up the trace from fact_intelligence_trace, passes recovered context to reflector for targeted re-reflection.
+
+*FL "Mutual Exclusion Rule" Correction:*
+- The rule was fabricated by a prior Claude session in the very first CLAUDE.md commit. It claimed FL Medicaid rates were "mutually exclusive" -- a code could only have facility OR PC/TC, never both.
+- AHCA-published Practitioner Fee Schedule shows 3 codes (46924, 91124, 91125) legitimately carry both facility AND PC/TC rates.
+- Corrected across 13+ files: CLAUDE.md, intelligence.py system prompt, ARADUNE_BUILD_GUIDE.md, ONTOLOGY_SPEC.md, fl_methodology_addendum.md, adversarial agents, known_facts.json, etc.
+- Adversarial agents updated to test FOR the correct behavior (3 codes should have both).
+
+*Infrastructure:*
+- GitHub CI secrets confirmed set: VERCEL_TOKEN, FLY_API_TOKEN, CLERK_SECRET_KEY, VITE_CLERK_PUBLISHABLE_KEY, VERCEL_ORG_ID, VERCEL_PROJECT_ID.
+- Known issues audit: 8 issues resolved, 2 new (cache seeds stale, ANTHROPIC_API_KEY not in GitHub).
+- Deploy guide: docs/SESSION-34-DEPLOY-GUIDE.md with step-by-step for remaining manual steps.
+
+### Current State (March 18, 2026)
 
 | Metric | Value |
 |--------|-------|
@@ -1806,18 +1998,22 @@ Full 8-prompt research audit (V1 + V2): 25 bugs fixed, all 46 endpoints pass. Ra
 | Ontology domains | 20 (722 tables mapped) |
 | Entity types | 16 |
 | Relationship edges | 28 |
+| Named metrics | 19 (deterministic, defined in ontology/metrics/) |
 | ETL scripts | 115+ |
-| Backend endpoints | 333+ across 39 route files (26 top-level + 13 research) |
-| Engines | 10 (Intelligence, Query Router, RAG, Caseload, Expenditure, CPRA Upload, CPRA Engine, Skillbook, Reflector, Validator) |
+| Backend endpoints | ~340 across 39+ route files (26 top-level + 13 research) |
+| Engines | 10 (Intelligence, Query Router, RAG, Caseload, Expenditure, CPRA Upload, CPRA Engine, Skillbook v2, Reflector v2, Validator) |
 | Frontend modules | 28 standalone (15 core + 13 research) |
 | Export formats | 6 (CSV, Excel, DOCX, PDF, PNG, SVG) |
 | R2 parquet files | 890+ |
 | Demo responses | 27 pre-cached |
-| CI/CD | Both Vercel + Fly.io deploying |
+| CI/CD | Vercel + Fly.io deploying + weekly adversarial testing workflow |
 | Auth | Clerk (JWT, test keys active -- switch to production before demo) |
 | Fee schedule coverage | All 54 jurisdictions (50 states + DC + PR/GU/VI; 51 published, 3 T-MSIS) |
 | Rate comparison rows | 483,154 across 54 jurisdictions |
-| Skillbook | 24 seed skills, auto-learning from every query |
+| Skillbook | v2: CRUSP lifecycle, score decay (30-day half-life), graph expansion (1-hop), 24+ seed skills, auto-learning from every query |
+| Adversarial agents | 7/7 built (Intelligence, API Fuzzer, Consistency, Persona, Florida Rate, Skillbook, Browser) |
+| Known facts | 28 ground-truth anchor facts across 11 domains (known_facts.json) |
+| Intelligence trace | fact_intelligence_trace audit trail with trace_id in SSE metadata |
 | Research modules | 13 (Rate-Quality, MC Value, Treatment Gap, Safety Net, Integrity, Fiscal Cliff, Maternal Health, Pharmacy Spread, Nursing Ownership, Waiver Impact, T-MSIS Calibration, MEPS Expenditure, Network Adequacy) |
 
 ---
@@ -1910,4 +2106,4 @@ Full 8-prompt research audit (V1 + V2): 25 bugs fixed, all 46 endpoints pass. Ra
 
 ---
 
-*The data is the moat. Intelligence is the interface. The Skillbook is the compounding advantage. Build in that order.*
+*The data is the moat. Intelligence is the interface. The Skillbook is the compounding advantage. Adversarial testing keeps it honest. Build in that order.*

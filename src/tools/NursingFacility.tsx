@@ -6,6 +6,7 @@ import { LoadingBar } from "../components/LoadingBar";
 import { useAradune } from "../context/AraduneContext";
 import ChartActions from "../components/ChartActions";
 import { useIsMobile } from "../design";
+import StateContextBar from "../components/StateContextBar";
 
 // ── Design System (matches Aradune v14) ─────────────────────────────────
 const A = "#0A2540";
@@ -538,6 +539,8 @@ export default function NursingFacility() {
             </select>
           </div>
         </div>
+
+        <StateContextBar stateCode={detailState} mode="compact" />
 
         {detailLoading && <LoadingBar text={`Loading ${STATE_NAMES[detailState]||detailState} facilities`} detail="Five-Star + PBJ staffing" />}
 

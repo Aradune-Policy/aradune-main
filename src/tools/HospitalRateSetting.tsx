@@ -4,6 +4,7 @@ import { API_BASE } from "../lib/api";
 import { LoadingBar } from "../components/LoadingBar";
 import { useAradune } from "../context/AraduneContext";
 import ChartActions from "../components/ChartActions";
+import StateContextBar from "../components/StateContextBar";
 
 // ── Design System ─────────────────────────────────────────────────────
 const A = "#0A2540";
@@ -81,6 +82,7 @@ type Tab = typeof TABS[number];
 export default function HospitalRateSetting() {
   const { openIntelligence } = useAradune();
   const [tab, setTab] = useState<Tab>("Hospital Financials");
+  const [selectedState, setSelectedState] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const isMobile = typeof window !== "undefined" && window.innerWidth < 768;
@@ -171,9 +173,19 @@ export default function HospitalRateSetting() {
         </p>
       </div>
 
-      <div style={{ display:"flex",gap:6,marginBottom:16,flexWrap:"wrap" }}>
+      <div style={{ display:"flex",gap:6,marginBottom:12,flexWrap:"wrap",alignItems:"center" }}>
         {TABS.map(t => <Pill key={t} label={t} active={tab===t} onClick={() => setTab(t)} />)}
+        <select value={selectedState || ""} onChange={e => setSelectedState(e.target.value || null)}
+          style={{ fontSize:12,padding:"4px 8px",borderRadius:4,border:`1px solid ${BD}`,fontFamily:FM,marginLeft:"auto" }}>
+          <option value="">All States</option>
+          {Object.entries(STATE_NAMES).sort((a, b) => a[1].localeCompare(b[1])).map(([code, name]) =>
+            <option key={code} value={code}>{name}</option>
+          )}
+        </select>
+        {selectedState && <Pill label="Clear" active={false} onClick={() => setSelectedState(null)} />}
       </div>
+
+      {selectedState && <StateContextBar stateCode={selectedState} mode="expanded" />}
 
       {loading && <LoadingBar />}
       {error && <div style={{ padding:12,background:"#FFF5F5",border:`1px solid ${NEG}30`,borderRadius:8,fontSize:11,color:NEG,marginBottom:12 }}>{error}</div>}
@@ -209,7 +221,8 @@ export default function HospitalRateSetting() {
                       <XAxis type="number" tick={{ fontSize:9,fill:AL }} tickFormatter={v => fmtD(v)} />
                       <YAxis type="category" dataKey="name" tick={{ fontSize:9,fill:AL }} width={isMobile?36:66} />
                       <Tooltip content={<SafeTip formatter={v => fmtD(v)} />} />
-                      <Bar dataKey="rev" fill={cB} radius={[0,3,3,0]} maxBarSize={14}>
+                      <Bar dataKey="rev" fill={cB} radius={[0,3,3,0]} maxBarSize={14} cursor="pointer"
+                        onClick={(_: unknown, idx: number) => { if (hospChart[idx]) setSelectedState(hospChart[idx].state); }}>
                         {hospChart.map((_, i) => <Cell key={i} fill={i < 5 ? "#C4590A" : cB} fillOpacity={0.8} />)}
                       </Bar>
                     </BarChart>
@@ -232,8 +245,8 @@ export default function HospitalRateSetting() {
                 </thead>
                 <tbody>
                   {hospSummary.map(r => (
-                    <tr key={r.state_code} style={{ borderBottom:`1px solid ${BD}20` }}>
-                      <td style={{ padding:"5px 10px",fontWeight:600,color:A }}>{STATE_NAMES[r.state_code] || r.state_code}</td>
+                    <tr key={r.state_code} onClick={() => setSelectedState(r.state_code)} style={{ borderBottom:`1px solid ${BD}20`,cursor:"pointer" }}>
+                      <td style={{ padding:"5px 10px",fontWeight:600,color:cB }}>{STATE_NAMES[r.state_code] || r.state_code}</td>
                       <td style={{ padding:"5px 10px",textAlign:"right",color:AL }}>{r.hospital_count}</td>
                       <td style={{ padding:"5px 10px",textAlign:"right",color:AL }}>{fmtK(r.total_beds)}</td>
                       <td style={{ padding:"5px 10px",textAlign:"right",color:AL }}>{fmtK(r.total_medicaid_days)}</td>
@@ -282,7 +295,8 @@ export default function HospitalRateSetting() {
                       <XAxis type="number" tick={{ fontSize:9,fill:AL }} tickFormatter={v => `$${v}M`} />
                       <YAxis type="category" dataKey="name" tick={{ fontSize:9,fill:AL }} width={isMobile?36:66} />
                       <Tooltip content={<SafeTip formatter={v => `$${v.toFixed(1)}M`} />} />
-                      <Bar dataKey="dsh" fill="#C4590A" radius={[0,3,3,0]} maxBarSize={14} />
+                      <Bar dataKey="dsh" fill="#C4590A" radius={[0,3,3,0]} maxBarSize={14} cursor="pointer"
+                        onClick={(_: unknown, idx: number) => { if (dshChart[idx]) setSelectedState(dshChart[idx].state); }} />
                     </BarChart>
                   </ResponsiveContainer>
                 </div>
@@ -305,8 +319,8 @@ export default function HospitalRateSetting() {
                   </thead>
                   <tbody>
                     {suppSummary.map(r => (
-                      <tr key={r.state} style={{ borderBottom:`1px solid ${BD}20` }}>
-                        <td style={{ padding:"5px 10px",fontWeight:600,color:A }}>{STATE_NAMES[r.state] || r.state}</td>
+                      <tr key={r.state} onClick={() => setSelectedState(r.state)} style={{ borderBottom:`1px solid ${BD}20`,cursor:"pointer" }}>
+                        <td style={{ padding:"5px 10px",fontWeight:600,color:cB }}>{STATE_NAMES[r.state] || r.state}</td>
                         <td style={{ padding:"5px 10px",textAlign:"right",color:A,fontWeight:500 }}>{fmtD((r.total_hospital_payments_m || 0) * 1e6)}</td>
                         <td style={{ padding:"5px 10px",textAlign:"right",color:AL }}>{fmtD((r.dsh_payments_m || 0) * 1e6)}</td>
                         <td style={{ padding:"5px 10px",textAlign:"right",color:AL }}>{fmtD((r.non_dsh_supplemental_m || 0) * 1e6)}</td>
@@ -334,8 +348,8 @@ export default function HospitalRateSetting() {
                 </thead>
                 <tbody>
                   {dshSummary.map(r => (
-                    <tr key={r.state} style={{ borderBottom:`1px solid ${BD}20` }}>
-                      <td style={{ padding:"5px 10px",fontWeight:600,color:A }}>{STATE_NAMES[r.state] || r.state}</td>
+                    <tr key={r.state} onClick={() => setSelectedState(r.state)} style={{ borderBottom:`1px solid ${BD}20`,cursor:"pointer" }}>
+                      <td style={{ padding:"5px 10px",fontWeight:600,color:cB }}>{STATE_NAMES[r.state] || r.state}</td>
                       <td style={{ padding:"5px 10px",textAlign:"right",color:AL }}>{r.total_hospitals}</td>
                       <td style={{ padding:"5px 10px",textAlign:"right",color:AL }}>{r.dsh_recipients}</td>
                       <td style={{ padding:"5px 10px",textAlign:"right",color:A,fontWeight:500 }}>${fmt(r.total_dsh_m)}</td>
@@ -377,12 +391,13 @@ export default function HospitalRateSetting() {
                 <ChartActions filename="hosp-sdp-by-state">
                   <div style={{ width:"100%",height:Math.max(300, Math.min(sdpByState.length, 25) * 20) }}>
                     <ResponsiveContainer>
-                      <BarChart data={sdpByState.slice(0, 25).map(([st, ct]) => ({ name: STATE_NAMES[st] || st, count: ct }))} layout="vertical" margin={{ left:isMobile?40:70,right:20,top:4,bottom:4 }}>
+                      <BarChart data={sdpByState.slice(0, 25).map(([st, ct]) => ({ state: st, name: STATE_NAMES[st] || st, count: ct }))} layout="vertical" margin={{ left:isMobile?40:70,right:20,top:4,bottom:4 }}>
                         <CartesianGrid strokeDasharray="3 3" stroke={BD} horizontal={false} />
                         <XAxis type="number" tick={{ fontSize:9,fill:AL }} />
                         <YAxis type="category" dataKey="name" tick={{ fontSize:9,fill:AL }} width={isMobile?36:66} />
                         <Tooltip content={<SafeTip formatter={v => `${v} programs`} />} />
-                        <Bar dataKey="count" fill="#6366F1" radius={[0,3,3,0]} maxBarSize={14} />
+                        <Bar dataKey="count" fill="#6366F1" radius={[0,3,3,0]} maxBarSize={14} cursor="pointer"
+                          onClick={(_: unknown, idx: number) => { const d = sdpByState[idx]; if (d) setSelectedState(d[0]); }} />
                       </BarChart>
                     </ResponsiveContainer>
                   </div>
@@ -405,8 +420,8 @@ export default function HospitalRateSetting() {
                 </thead>
                 <tbody>
                   {sdpData.map((r, i) => (
-                    <tr key={`${r.state}-${i}`} style={{ borderBottom:`1px solid ${BD}20` }}>
-                      <td style={{ padding:"5px 10px",fontWeight:600,color:A }}>{STATE_NAMES[r.state] || r.state}</td>
+                    <tr key={`${r.state}-${i}`} onClick={() => setSelectedState(r.state)} style={{ borderBottom:`1px solid ${BD}20`,cursor:"pointer" }}>
+                      <td style={{ padding:"5px 10px",fontWeight:600,color:cB }}>{STATE_NAMES[r.state] || r.state}</td>
                       <td style={{ padding:"5px 10px",color:A,maxWidth:220,overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap" }}>{r.program_name}</td>
                       <td style={{ padding:"5px 10px",color:AL }}>{r.service_category}</td>
                       <td style={{ padding:"5px 10px",color:AL }}>{r.payment_type}</td>

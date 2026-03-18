@@ -4,6 +4,7 @@ import { API_BASE } from "../lib/api";
 import { LoadingBar } from "../components/LoadingBar";
 import { useAradune } from "../context/AraduneContext";
 import ChartActions from "../components/ChartActions";
+import StateContextBar from "../components/StateContextBar";
 
 // ── Design System ─────────────────────────────────────────────────────
 const A = "#0A2540";
@@ -271,6 +272,8 @@ export default function PharmacyIntelligence() {
               {selectedState && <Pill label="Clear" active={false} onClick={() => setSelectedState("")} />}
             </div>
           </Card>
+
+          {selectedState && <StateContextBar stateCode={selectedState} mode="compact" />}
 
           {/* Top drugs chart */}
           {topDrugs.length > 0 && (

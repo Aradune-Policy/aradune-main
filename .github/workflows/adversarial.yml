@@ -16,7 +16,7 @@ jobs:
       ARADUNE_TEST_URL: ${{ secrets.ARADUNE_API_BASE != '' && secrets.ARADUNE_API_BASE || 'https://aradune-api.fly.dev' }}
 
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v6
 
       - uses: actions/setup-python@v5
         with:

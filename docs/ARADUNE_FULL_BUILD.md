@@ -44,7 +44,7 @@ Medicaid is an $880B system run on Excel, SAS, and fragmented legacy databases. 
 
 - **The data layer is the moat.** 750+ tables, 400M+ rows, 4.9 GB. Curated, normalized, cross-referenced public Medicaid data no one else has assembled.
 - **Intelligence is the interface.** Claude is the primary interaction model. Natural language in, compliance-ready analysis out.
-- **Structured tools are on-ramps.** 27 purpose-built modules build trust, demonstrate data quality, and pull users into Intelligence naturally.
+- **Structured tools are on-ramps.** Fifteen purpose-built modules build trust, demonstrate data quality, and pull users into Intelligence naturally.
 - **Compliance automation is the adoption wedge.** Auto-generate CPRAs, rate transparency filings, MCPARs, Core Set submissions. The July 2026 CPRA deadline is less than 4 months away.
 - **Bring your own data.** Users upload files and cross-reference them against the national data layer within their session.
 - **Closed-loop operations.** Every analysis connects to an action: a rate gap finding generates a SPA template, a network gap produces a corrective action plan, a spending anomaly creates a program integrity referral.
@@ -126,7 +126,7 @@ Data store:     DuckDB-WASM (browser-side client queries)
 Data lake:      Hive-partitioned Parquet (data/lake/) -- 400M+ rows, 750+ views
                 DuckDB in-memory views over Parquet files, 4.9 GB on disk
                 S3/R2 sync (scripts/sync_lake_wrangler.py --remote)
-Backend:        Python FastAPI (server/) -- ~340 endpoints across 39+ route files
+Backend:        Python FastAPI (server/) -- ~345 endpoints across 40+ route files
 AI:             Claude Sonnet 4.6 + extended thinking + DuckDB tools + RAG + web search
                 Haiku for routing, Sonnet for analysis, Opus for complex reasoning
                 Programmatic caveat injection (DOGE, IL T-MSIS, territory fallback)
@@ -848,7 +848,7 @@ Aradune's adversarial testing framework validates Intelligence quality, API reli
 Scripted + LLM-generated queries testing Intelligence response quality: style checks (no em-dashes, proper citations, data vintage), factual accuracy against known_facts.json, caveat enforcement (DOGE quarantine, IL dedup, territory warnings), and edge case handling.
 
 **Agent 2: API Fuzzer Agent** (existing from Session 32)
-Tests all ~340 endpoints for 500 errors with invalid inputs, missing parameters, malformed requests, boundary values, and injection attempts. Session 32 result: 100% pass rate across all endpoints.
+Tests all ~345 endpoints for 500 errors with invalid inputs, missing parameters, malformed requests, boundary values, and injection attempts. Session 32 result: 100% pass rate across all endpoints.
 
 **Agent 3: Consistency Agent** (existing from Session 32)
 Cross-checks data consistency across related tables and endpoints. Loads ground-truth facts from `known_facts.json` (28 facts across 11 domains) and validates that Intelligence and API responses match. Session 32 result: 85.7% pass rate.
@@ -911,7 +911,7 @@ The adversarial testing suite is connected to the Skillbook via `scripts/adversa
 
 **Entry point:** `server/main.py`
 **Framework:** Python FastAPI with uvicorn
-**Total:** ~340 endpoints across 39+ route files (26 top-level + 13 research modules). All endpoints protected by @safe_route error handler (except SSE streaming and file import validation endpoints which have their own error handling).
+**Total:** ~345 endpoints across 40+ route files (27 top-level + 13 research modules). All endpoints protected by @safe_route error handler (except SSE streaming and file import validation endpoints which have their own error handling).
 
 ### Server Startup Sequence
 
@@ -944,8 +944,9 @@ The adversarial testing suite is connected to the Skillbook via `scripts/adversa
 | Skillbook v2 | engines/skillbook.py | 278+ | Domain skill retrieval with graph expansion, injection, CRUD, decay scoring, skill linking, CRUSP lifecycle |
 | Reflector v2 | engines/reflector.py | 133+ | Async post-response skill extraction via Haiku, link proposals, split candidates |
 | Validator | engines/validator.py | 98 | 15+ data quality checks (row count, range, RI) |
+| System Dynamics | engines/system_dynamics.py | ~512 | Stock-flow ODE modeling (enrollment, provider, workforce, HCBS, integrated) |
 
-### Route Files (39 total: 26 top-level + 13 research)
+### Route Files (40+ total: 27 top-level + 13 research)
 
 | File | Endpoints | Purpose |
 |------|-----------|---------|
@@ -976,6 +977,8 @@ The adversarial testing suite is connected to the Skillbook via `scripts/adversa
 | query.py | 1 | Generic DuckDB query builder |
 | presets.py | 1 | Saved query presets |
 | pipeline.py | 1 | Data pipeline triggers |
+| dynamics.py | 5 | System dynamics API (enrollment, provider, workforce, HCBS, policy-simulator) |
+| state_context.py | 1 | Universal state context (12 queries, 1hr cache) |
 | research/ (13 files) | 55 | 13 research module endpoints |
 
 ### Authentication
@@ -1030,9 +1033,9 @@ Platform (top-level with auth)
 |-------|-------|
 | States | State Profiles (comparison mode supported) |
 | Rates & Compliance | Rate Comparison, CPRA, Rate Lookup, Compliance Center |
-| Finance | Caseload/Fiscal Impact, Spending Efficiency, Hospital Rates, AHEAD |
+| Finance | Caseload/Fiscal Impact, Spending Efficiency, Hospital Rates, AHEAD, Policy Simulator |
 | Clinical | Pharmacy, Behavioral Health, Nursing, Program Integrity |
-| Research | 12 research briefs |
+| Research | 13 research briefs |
 
 Desktop: horizontal dropdown nav. Mobile (<768px): hamburger menu.
 
@@ -1131,49 +1134,50 @@ All tools communicate via `apiFetch<T>(path, fallbackPath?)`:
 - **File:** CaseloadForecaster.tsx (~830 lines)
 - **Function:** SARIMAX + ETS model competition. Dual-mode: public data or user upload. 3 tabs: Caseload, Expenditure, Scenario Builder (4 sliders). See Section 12 for full detail.
 
-#### 7. Fiscal Impact
-- **Route:** `/#/fiscal-impact`
-- **Function:** Rate increase % -> federal match at FMAP -> UPL headroom -> SDP cap under OBBBA -> budget impact across biennium.
-
-#### 8. Spending Efficiency
+#### 7. Spending Efficiency
 - **Route:** `/#/spending`
 - **File:** SpendingEfficiency.tsx (752 lines)
 - **Function:** 3 tabs: Per-Enrollee Spending (MACPAC), Total Expenditure (CMS-64 FY2018-2024), Efficiency Metrics (scatter: spending vs MC penetration). Data: 118K rows CMS-64, $5.7T total computable.
 
-#### 9. AHEAD Readiness
+#### 8. AHEAD Readiness
 - **Route:** `/#/ahead`
 - **Files:** AheadReadiness.tsx + AheadCalculator.tsx
 - **Function:** Hospital readiness scoring for CMS AHEAD model. 3-year 10/30/60 CMS baseline, +/-2% volume corridor, commercial payer engine (PY2+), TIA PY1/PY2 limited, TCOC PY4 upside-only. HCRIS financials, payer mix, peer benchmarks. 6 states: MD (live), CT/HI/VT (2028), RI/NY (2028).
 
-#### 10. Hospital Rate Setting
+#### 9. Hospital Rate Setting
 - **Route:** `/#/hospital-rates`
 - **File:** HospitalRateSetting.tsx (436 lines)
 - **Function:** 3 tabs: Hospital Financials (HCRIS cost reports, 18K rows), DSH & Supplemental (MACPAC Exhibit 24, 6K rows), State Directed Payments (34 states).
 
-#### 11. Nursing Facility
+#### 10. Nursing Facility
 - **Route:** `/#/nursing`
 - **File:** NursingFacility.tsx (662 lines)
 - **Function:** 3 tabs: Quality Ratings (Five-Star summary, 14.7K facilities), Staffing (PBJ nurse staffing, 1.3M rows), State Detail (facility-level drilldown).
 
-#### 12. Behavioral Health & SUD
+#### 11. Behavioral Health & SUD
 - **Route:** `/#/behavioral-health`
 - **File:** BehavioralHealth.tsx (627 lines)
 - **Function:** 4 tabs: Prevalence (NSDUH 26 measures), Treatment Network (facilities/beds, IPF quality, block grants), Opioid Crisis (prescribing rates, 539K rows), Conditions & Services.
 
-#### 13. Pharmacy Intelligence
+#### 12. Pharmacy Intelligence
 - **Route:** `/#/pharmacy`
 - **File:** PharmacyIntelligence.tsx (408 lines)
 - **Function:** 3 tabs: Spending Overview (SDUD 2025 state summary), Top Drugs (by spending, filterable by state), NADAC Pricing (drug name search, 1.9M rows).
 
-#### 14. Program Integrity
+#### 13. Program Integrity
 - **Route:** `/#/integrity`
 - **File:** ProgramIntegrity.tsx (654 lines)
 - **Function:** 3 tabs: Exclusions (LEIE 82K), Open Payments ($13.18B, all 3 CMS categories), MFCU & PERM (error rates 2020-2025).
 
-#### 15. Workforce & HCBS
+#### 14. Workforce & HCBS
 - **Route:** `/#/workforce`
 - **Files:** WageAdequacy.tsx (546), QualityLinkage.tsx (445), HcbsCompTracker.tsx (414)
 - **Function:** 4 tabs: Wage Adequacy (BLS market wages vs Medicaid), Quality Linkage (spending vs outcomes), HCBS Waitlists & Compensation (607K waiting, 80% pass-through tracking for July 2028 deadline), Shortage Areas (HPSA 69K + MUA map).
+
+#### 15. Policy Simulator
+- **Route:** `/#/policy-simulator`
+- **File:** PolicySimulator.tsx (~500 lines)
+- **Function:** System dynamics: model downstream effects of rate changes, wage increases, HCBS funding, economic shocks through interconnected feedback loops. Stock-flow ODE modeling (scipy.integrate.solve_ivp), 12 stocks, 6 cross-domain feedback loops, lake-calibrated parameters. 5 presets. Baseline vs scenario comparison. 4 embedded DynamicsWidget instances in CaseloadForecaster, WageAdequacy, HcbsTracker, RateBrowse.
 
 ### Additional Modules
 
@@ -2074,14 +2078,14 @@ Stock-flow ODE modeling for Medicaid policy analysis. No other Medicaid analytic
 |--------|-------|
 | Lake views | 750+ |
 | Total rows | 400M+ |
-| Parquet size | 5.1 GB |
+| Parquet size | 4.9 GB |
 | Ontology domains | 20 (722 tables mapped) |
 | Entity types | 16 |
 | Relationship edges | 28 |
 | Named metrics | 19 (deterministic, defined in ontology/metrics/) |
 | ETL scripts | 115+ |
-| Backend endpoints | ~340 across 39+ route files (26 top-level + 13 research) |
-| Engines | 10 (Intelligence, Query Router, RAG, Caseload, Expenditure, CPRA Upload, CPRA Engine, Skillbook v2, Reflector v2, Validator) |
+| Backend endpoints | ~345 across 40+ route files (27 top-level + 13 research) |
+| Engines | 11 (Intelligence, Query Router, RAG, Caseload, Expenditure, CPRA Upload, CPRA Engine, Skillbook v2, Reflector v2, Validator, System Dynamics) |
 | Frontend modules | 28 standalone (15 core + 13 research) |
 | Export formats | 6 (CSV, Excel, DOCX, PDF, PNG, SVG) |
 | R2 parquet files | 890+ |

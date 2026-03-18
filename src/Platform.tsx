@@ -571,12 +571,13 @@ function Landing() {
             {/* Header */}
             <div style={{ display: "flex", alignItems: "center", gap: 12, marginBottom: 20 }}>
               <div style={{
-                width: 36, height: 36, borderRadius: 10,
-                background: "rgba(255,255,255,0.95)",
+                width: 40, height: 40, borderRadius: 10,
+                background: C.white,
                 display: "flex", alignItems: "center", justifyContent: "center",
+                boxShadow: "0 1px 4px rgba(0,0,0,0.15)",
+                flexShrink: 0,
               }}>
-                <img src="/assets/logo-mark.png" alt="A" style={{ width: 22, height: 22 }}
-                  onError={e => { (e.target as HTMLImageElement).style.display = "none"; }} />
+                <span style={{ fontSize: 22, fontWeight: 800, color: C.brand, fontFamily: FONT.body, lineHeight: 1 }}>A</span>
               </div>
               <div>
                 <div style={{ fontSize: 18, fontWeight: 700, color: C.white, letterSpacing: -0.3 }}>Ask Aradune anything</div>

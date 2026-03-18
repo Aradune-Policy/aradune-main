@@ -294,7 +294,7 @@ function transformTrends(raw: RawTrend[] | null): NatlTrend[] {
     const s = safe(t.total_spend) / 1e9;
     const bene = safe(t.total_bene);
     // Pipeline total_bene may be beneficiary-service records (~1.8B), not unique enrollees (~83M).
-    // Only trust it if it falls in a plausible Medicaid enrollment range (50M–200M).
+    // Only trust it if it falls in a plausible Medicaid enrollment range (50M-200M).
     const beneM = bene / 1e6;
     const e = (beneM >= 50 && beneM <= 200) ? beneM : (ENROLL[y] || 83);
     return { y, s, e, pe: e > 0 ? (s * 1e9) / (e * 1e6) : 0 };
@@ -1045,7 +1045,7 @@ export default function TmsisExplorer() {
         <div style={{ display:"flex",alignItems:"center",gap:6 }}>
           {!isLive && <span style={{ fontSize:8,padding:"1px 6px",borderRadius:8,background:"rgba(184,134,11,0.12)",color:WARN,fontWeight:600 }}>PROTOTYPE</span>}
           {isLive && <span style={{ fontSize:8,padding:"1px 6px",borderRadius:8,background:"rgba(14,98,69,0.1)",color:POS,fontWeight:600 }}>LIVE DATA</span>}
-          {isLive && Array.isArray(meta?.years) && <span style={{ fontSize:9,color:AL,fontFamily:FM }}>{(meta.years as number[])[0]}–{(meta.years as number[])[(meta.years as number[]).length-1]}</span>}
+          {isLive && Array.isArray(meta?.years) && <span style={{ fontSize:9,color:AL,fontFamily:FM }}>{(meta.years as number[])[0]}-{(meta.years as number[])[(meta.years as number[]).length-1]}</span>}
         </div>
         <div style={{ display:"flex",gap:1,flexWrap:"wrap" }}>
           {TABS.map(t => <button key={t.k} onClick={()=>setTab(t.k)} style={{ padding:"4px 8px",fontSize:10,fontWeight:tab===t.k?700:400,color:tab===t.k?cB:AL,background:tab===t.k?"rgba(46,107,74,0.05)":"transparent",border:"none",borderRadius:6,cursor:"pointer",borderBottom:tab===t.k?`2px solid ${cB}`:"2px solid transparent",whiteSpace:"nowrap",display:"inline-flex",alignItems:"center" }}>{t.l}</button>)}
@@ -1689,7 +1689,7 @@ export default function TmsisExplorer() {
                 </div>
                 <div style={{ display:"flex",justifyContent:"space-between",marginTop:4,fontSize:8,color:AL }}>
                   <span>$0</span>
-                  <span style={{ color:WARN }}>Milliman: {f$$(MILLIMAN_ESTIMATES.status_quo_low)}–{f$$(MILLIMAN_ESTIMATES.status_quo_high)}</span>
+                  <span style={{ color:WARN }}>Milliman: {f$$(MILLIMAN_ESTIMATES.status_quo_low)}-{f$$(MILLIMAN_ESTIMATES.status_quo_high)}</span>
                   <span style={{ color:cB }}>T-MSIS: {f$$(r.status_quo.grand_total_paid)}</span>
                   <span>{f$$(MILLIMAN_ESTIMATES.lbr_appropriation)}</span>
                 </div>
@@ -1699,7 +1699,7 @@ export default function TmsisExplorer() {
                   <strong>Finding:</strong> T-MSIS actual is {f$$(r.status_quo.grand_total_paid)}, which is {
                     r.status_quo.grand_total_paid >= MILLIMAN_ESTIMATES.status_quo_low && r.status_quo.grand_total_paid <= MILLIMAN_ESTIMATES.status_quo_high
                       ? "within" : r.status_quo.grand_total_paid < MILLIMAN_ESTIMATES.status_quo_low ? "below" : "above"
-                  } Milliman's {f$$(MILLIMAN_ESTIMATES.status_quo_low)}–{f$$(MILLIMAN_ESTIMATES.status_quo_high)} range.
+                  } Milliman's {f$$(MILLIMAN_ESTIMATES.status_quo_low)}-{f$$(MILLIMAN_ESTIMATES.status_quo_high)} range.
                 </div>
                 <div style={{ fontSize:10,color:A,lineHeight:1.5,padding:"6px 10px",background:`${cB}06`,borderRadius:6,borderLeft:`3px solid ${cB}` }}>
                   <strong>Net new spending:</strong> ${MILLIMAN_ESTIMATES.lbr_appropriation.toLocaleString()} appropriation minus {f$$(r.status_quo.grand_total_paid)} status quo = <strong>{f$$(r.status_quo.net_new_spending)}</strong> net new Medicaid spending.
@@ -3301,12 +3301,11 @@ export default function TmsisExplorer() {
       {/* ABOUT */}
       {tab==="about" && <div style={{ maxWidth:640,display:"grid",gap:10 }}>
         <Card><CH t="About This Tool"/><div style={{ padding:"4px 16px 12px",fontSize:11,color:A,lineHeight:1.8 }}>
-          {isLive ? <span>This dashboard is built from <b>HHS Medicaid Provider Spending data</b> published on opendata.hhs.gov. It covers {safe(meta?.source_rows as number | null | undefined).toLocaleString()} rows, {safe(meta?.n_codes as number | null | undefined).toLocaleString()} HCPCS codes across {safe(meta?.n_states as number | null | undefined)} jurisdictions{meta?.years?`, ${(meta.years as number[])[0]}–${(meta.years as number[])[(meta.years as number[]).length-1]}`:""}.
-          Every number comes from actual Medicaid claims: NPI × HCPCS × month, aggregated through a DuckDB pipeline that runs locally. Nothing is estimated except per-enrollee figures, which use CMS enrollment data (Nov 2024, Medicaid only).</span>
-          : <span>This prototype uses <b>simulated data</b> modeled on real HHS dataset structure. The numbers are directionally plausible but not from actual claims. Run the DuckDB pipeline with real HHS data to replace everything you see here with actuals.</span>}
+          {isLive ? <span>This tool combines <b>published state Medicaid fee schedules</b> (51 jurisdictions), <b>T-MSIS claims data</b> (aggregated per code per state), and <b>CMS Medicare Physician Fee Schedule</b> rates into a unified rate comparison engine.{meta?.source_rows ? ` Covers ${safe(meta.source_rows as number).toLocaleString()} rows, ${safe(meta.n_codes as number).toLocaleString()} HCPCS codes across ${safe(meta.n_states as number)} jurisdictions.` : ""} Per-enrollee figures use CMS enrollment data (Medicaid only).</span>
+          : <span>This prototype uses <b>simulated data</b> modeled on real dataset structure. Connect to the Aradune data lake to replace with actuals.</span>}
         </div></Card>
         {/* Reference Data Status */}
-        <Card><CH t="Reference Data" b="loaded alongside T-MSIS claims"/><div style={{ padding:"4px 16px 12px",fontSize:11,color:A,lineHeight:1.8 }}>
+        <Card><CH t="Reference Data" b="loaded alongside rate data"/><div style={{ padding:"4px 16px 12px",fontSize:11,color:A,lineHeight:1.8 }}>
           {mcRates ? <div style={{marginBottom:4}}><span style={{color:POS,fontWeight:600}}>✓ Medicare PFS</span>: CY{mcRates.year} Physician Fee Schedule ({Object.keys(mcRates.rates).length.toLocaleString()} codes, CF=${mcRates.cf}). Shows Medicare non-facility rates in Rate Engine and Code Profile for direct Medicaid-to-Medicare comparisons.</div>
           : <div style={{color:AL,marginBottom:4}}>○ Medicare PFS: not loaded. Place medicare_rates.json in /data to enable.</div>}
           {feeScheds ? <div style={{marginBottom:4}}><span style={{color:POS,fontWeight:600}}>✓ State Fee Schedules</span>: {Object.keys(feeScheds.states).map(k=>{ const st = feeScheds.states[k] as FeeScheduleState & {name?:string;n?:number;source?:string}; return `${st.name ?? k} (${st.n?.toLocaleString() ?? "?"} codes, ${st.source ?? "unknown"})`; }).join("; ")}. Shows official Medicaid fee schedule rates alongside T-MSIS actual-paid rates.</div>
@@ -3321,7 +3320,7 @@ export default function TmsisExplorer() {
           <b>Fee schedule rates:</b> Official Medicaid fee schedule rates as published by state agencies. For FL: the AHCA Practitioner Fee Schedule (FSI = non-facility rate). The gap between fee schedule and T-MSIS actual-paid reflects modifier mix, place-of-service distribution, managed care encounter pricing, and claims processing rules.<br/>
           <b>Medicare rates:</b> CMS Physician Fee Schedule non-facility rates (total RVU × conversion factor). Useful as a benchmark. Most state Medicaid rates are set as a percentage of Medicare or derived from the same RBRVS methodology.<br/>
           <b>Risk adjustment:</b> Eligibility-mix adjustment using MACPAC data. For each state, expected per-enrollee spending is computed using national per-enrollee rates by eligibility group (child, new adult, other adult, disabled, aged) applied to the state's enrollment shares. The adjustment factor = expected ÷ national average. States with older/sicker populations (factor &gt; 1.0) will see lower adjusted per-enrollee spending, revealing the portion driven by demographics vs. price/utilization choices.<br/>
-          <b>Fiscal impact:</b> (national avg − state rate) × estimated state claims. State claims estimated from national claims × state spending share.<br/>
+          <b>Fiscal impact:</b> (national avg minus state rate) times estimated state claims. State claims estimated from national claims times state spending share.<br/>
           <b>Case mix:</b> Laspeyres decomposition. Price index holds utilization constant; mix index holds prices constant.<br/>
           <b>Concentration:</b> Gini coefficient and top-1%/5%/10% spending share by provider, per code.<br/>
           <b>Simulator:</b> FFS-adjusted figure uses approximate FFS/managed care splits by state (KFF/CMS 2023).
@@ -3334,7 +3333,7 @@ export default function TmsisExplorer() {
           <b>Risk adjustment limitations:</b> Eligibility-mix adjustment accounts for broad demographic differences but does not capture within-group severity, chronic disease burden, or social determinants. Full risk adjustment requires beneficiary-level diagnosis data (e.g., CDPS scores) available only through restricted-use T-MSIS TAF files.<br/>
           <b>Data quality:</b> T-MSIS data quality varies by state. State Medicaid agencies remain the authoritative source for their own claims data.
         </div></Card>
-        <div style={{ fontSize:10,color:AL }}>Aradune T-MSIS Explorer v0.7.5 · Built by <a href="https://aradune.co" style={{ color:cB,textDecoration:"none",fontWeight:600 }}>Aradune</a></div>
+        <div style={{ fontSize:10,color:AL }}>Aradune Rate Comparison · Built by <a href="https://aradune.co" style={{ color:cB,textDecoration:"none",fontWeight:600 }}>Aradune</a></div>
       </div>}
 
     </div>

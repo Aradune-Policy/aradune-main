@@ -984,6 +984,15 @@ function ComparisonView({ states, dataMap, loading, onChangeStates }: {
   );
 }
 
+// ── Hex tile map positions (same as RateBrowse/TmsisExplorer) ─────────
+const HEX_POS: Record<string, [number, number]> = {
+  ME:[10,0],VT:[9,1],NH:[10,1],WA:[1,2],MT:[2,2],ND:[3,2],MN:[4,2],WI:[5,2],MI:[7,2],NY:[8,2],MA:[9,2],CT:[10,2],
+  OR:[1,3],ID:[2,3],SD:[3,3],IA:[4,3],IL:[5,3],IN:[6,3],OH:[7,3],PA:[8,3],NJ:[9,3],RI:[10,3],
+  CA:[0,4],NV:[1,4],WY:[2,4],NE:[3,4],MO:[4,4],KY:[5,4],WV:[6,4],VA:[7,4],MD:[8,4],DE:[9,4],DC:[10,4],
+  AZ:[1,5],UT:[2,5],CO:[3,5],KS:[4,5],AR:[5,5],TN:[6,5],NC:[7,5],SC:[8,5],
+  NM:[2,6],OK:[4,6],LA:[5,6],MS:[6,6],AL:[7,6],GA:[8,6],HI:[1,7],TX:[4,7],FL:[8,7],AK:[0,7],
+};
+
 // ═══════════════════════════════════════════════════════════════════════
 // Main component
 // ═══════════════════════════════════════════════════════════════════════
@@ -1066,16 +1075,51 @@ export default function StateProfile() {
   return (
     <div style={{ maxWidth: 1080, margin: "0 auto", padding: isMobile ? "0 12px 32px" : "0 20px 48px", fontFamily: FB }}>
       {/* Header */}
-      <div style={{ padding: isMobile ? "20px 0 12px" : "28px 0 20px", display: "flex", justifyContent: "space-between", alignItems: isMobile ? "flex-start" : "flex-end", flexWrap: "wrap", gap: 8 }}>
-        <div>
-          <h2 style={{ margin: 0, fontSize: 22, fontWeight: 700, color: A, letterSpacing: -0.3 }}>
-            State Profile
-          </h2>
-          <p style={{ margin: "4px 0 0", fontSize: 12, color: AL }}>
-            Everything Aradune knows about a state: enrollment, rates, quality, workforce, and economy.
-          </p>
+      <div style={{ padding: isMobile ? "20px 0 12px" : "28px 0 20px" }}>
+        <div style={{ display: "flex", justifyContent: "space-between", alignItems: isMobile ? "flex-start" : "flex-end", flexWrap: "wrap", gap: 8 }}>
+          <div>
+            <h2 style={{ margin: 0, fontSize: 22, fontWeight: 700, color: A, letterSpacing: -0.3 }}>
+              State Profile
+            </h2>
+            <p style={{ margin: "4px 0 0", fontSize: 12, color: AL }}>
+              Everything Aradune knows about a state: enrollment, rates, quality, workforce, and economy.
+            </p>
+          </div>
         </div>
-        <div style={{ display: "flex", gap: 8, alignItems: "center" }}>
+
+        {/* State tile picker */}
+        <div style={{ maxWidth: 500, margin: "16px auto" }}>
+          <svg viewBox="0 0 346 244" style={{ width: "100%" }}>
+            {Object.entries(HEX_POS).map(([k, pos]) => {
+              const x = pos[0] * 30 + ((pos[1] % 2) ? 15 : 0);
+              const y = pos[1] * 28;
+              const isSel = k === state;
+              return (
+                <g key={k} onClick={() => setStateCodes([k])} style={{ cursor: "pointer" }}>
+                  <rect x={x} y={y} width={26} height={24} rx={4}
+                    fill={isSel ? cB : "rgba(46,107,74,0.25)"}
+                    stroke={isSel ? ACC : "none"} strokeWidth={isSel ? 2 : 0} />
+                  <text x={x + 13} y={y + 13} textAnchor="middle" dominantBaseline="middle"
+                    fill={isSel ? WH : A} fontSize={8} fontWeight={700} fontFamily={FM}>{k}</text>
+                </g>
+              );
+            })}
+          </svg>
+          {/* Territories */}
+          <div style={{ display: "flex", gap: 4, justifyContent: "center", marginTop: 4 }}>
+            {["PR", "GU", "VI", "AS", "MP"].map(t => (
+              <div key={t} onClick={() => setStateCodes([t])} style={{
+                cursor: "pointer", padding: "2px 8px", borderRadius: 4, fontSize: 9,
+                fontFamily: FM, fontWeight: 600,
+                background: t === state ? cB : "rgba(46,107,74,0.1)",
+                color: t === state ? WH : A,
+                border: `1px solid ${t === state ? cB : BD}`,
+              }}>{t}</div>
+            ))}
+          </div>
+        </div>
+
+        <div style={{ display: "flex", gap: 8, alignItems: "center", justifyContent: "center", flexWrap: "wrap" }}>
           <select value={state} onChange={e => setStateCodes([e.target.value])} style={{
             padding: "8px 14px", borderRadius: 8, border: `1px solid ${BD}`,
             fontSize: 13, fontFamily: FB, color: A, background: WH, fontWeight: 600, minWidth: 220,

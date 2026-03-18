@@ -105,6 +105,8 @@ Deployment:     Vercel (frontend) · Fly.io (FastAPI, server/fly.toml + Dockerfi
                 Pre-baked lake in Docker image for fast cold starts
 Design:         #0A2540 ink · #2E6B4A brand · #C4590A accent · #F5F7F5 surface
                 SF Mono for numbers · Helvetica Neue for body · No Google Fonts
+Context:        Universal state context (server/routes/state_context.py) — 12-query endpoint, 1hr cache
+                StateContextBar component (compact + expanded) deployed across all 12 modules
 Access:         Clerk auth (when configured) OR password gate ("mediquiad")
 ```
 
@@ -151,6 +153,12 @@ On screens < 768px (`BP.mobile`): hamburger menu, reduced container padding (12p
 On screens >= 768px: full horizontal nav with dropdowns, standard 20px padding, multi-column grids.
 Shared `useIsMobile()` hook exported from `design.ts` — used by Platform, StateProfile, CaseloadForecaster, CpraGenerator, AheadReadiness. AheadCalculator has its own `wW`-based breakpoint at 900px.
 All `<table>` elements wrapped with `overflowX: "auto"` containers. Recharts charts use `ResponsiveContainer`.
+
+### Cross-Dataset Context
+
+Every module shows cross-dataset context when a state is selected. The `StateContextBar` component fetches from `/api/state-context/{state_code}` and displays: FMAP, enrollment (total + MC%), HPSA counts, quality measures below median, rate adequacy (median % Medicare), CMS-64 expenditure, workforce wages (CNA/HHA/RN), HCBS waitlist, LTSS rebalancing, T-MSIS claims-based rates, and supplemental payments (DSH + SDP). Compact mode shows a single-row summary; expanded mode shows a grid with named sections.
+
+Intelligence integration: every "Ask Aradune" button passes the full cross-dataset context summary, enriching Intelligence queries automatically.
 
 ### Key tool API endpoints
 
@@ -917,9 +925,14 @@ Aradune/
 │   │   ├── ProgramIntegrity.tsx     ← 654 lines. → Integrity (3 tabs: LEIE, Open Payments, MFCU/PERM)
 │   │   ├── PolicyAnalyst.tsx        ← 378 lines. DEPRECATED → Intelligence
 │   │   └── DataExplorer.tsx         ← DEPRECATED → Intelligence
+│   ├── components/
+│   │   ├── StateContextBar.tsx    ← Reusable cross-dataset context panel (compact + expanded)
+│   ├── hooks/
+│   │   └── useStateContext.ts     ← Shared state context fetch hook with client cache
 │   ├── engine/
 │   │   └── StateRateEngine.js       ← 1,153 lines. 42/42 tests. → Rates: Rate Builder
 │   ├── utils/                       ← 16 files: reportDocx/Pdf/Xlsx/Markdown, chartExport, cpraPdf/Xlsx, aheadPdf/Xlsx/Scoring, pdfReport, exportCsv, compliancePdf, ccbhcPdf, rateBuilderPdf/Xlsx
+│   │   ├── formatContext.ts       ← Shared format helpers (fmtB, fmtPct, fmtDollar, SYM)
 │   ├── lib/                         ← api.ts, duckdb.ts, queryEngine.ts
 │   └── data/states.ts               ← STATE_NAMES, STATES_LIST
 │
@@ -1143,6 +1156,9 @@ fly deploy --remote-only --config server/fly.toml --dockerfile server/Dockerfile
 - Skillbook API: added /api/skillbook/recent and /api/skillbook/add endpoints.
 - **FL "mutual exclusion rule" corrected.** The rule was fabricated by a prior Claude session. AHCA-published data shows 3 codes (46924, 91124, 91125) legitimately carry both facility and PC/TC rates. Fixed across 13+ files.
 - Known issues audit: 8 issues resolved (CI secrets, Clerk keys, fee schedules, error handling, Intelligence bugs). 2 new open (cache seeds stale, ANTHROPIC_API_KEY not in GitHub).
+- Cross-dataset enrichment: universal state context endpoint (/api/state-context/{state_code}, 12 queries, 1hr cache) + StateContextBar component deployed across all 12 modules. Every module shows FMAP, enrollment, HPSAs, quality, rates, workforce, HCBS, CMS-64, T-MSIS alongside its domain data.
+- Rates & Compliance redesign: new Rate Browse & Compare tool (RateBrowse.tsx, 1,230 lines) with Dashboard, Code Lookup, State Compare views. Replaced 5 overlapping tools. Backend: /api/rates/state-summary + /api/rates/compare-states + /api/rates/context/{state}.
+- Shared frontend infrastructure: formatContext.ts (format helpers), StateContextData type, useStateContext hook.
 
 **Session 32 (2026-03-17) — Post-review fixes + adversarial testing framework:**
 - @safe_route on all 336/336 endpoints (was 176). safe_route updated to re-raise HTTPException.

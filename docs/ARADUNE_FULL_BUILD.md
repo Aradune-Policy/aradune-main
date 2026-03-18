@@ -1988,6 +1988,52 @@ This was the most significant Intelligence and quality assurance session. Four m
 - Known issues audit: 8 issues resolved, 2 new (cache seeds stale, ANTHROPIC_API_KEY not in GitHub).
 - Deploy guide: docs/SESSION-34-DEPLOY-GUIDE.md with step-by-step for remaining manual steps.
 
+### Cross-Dataset Enrichment Architecture (Session 34 continued)
+
+Two-tier context system deployed across all 12 core modules:
+
+**Tier 1: Universal State Context**
+- Backend: `GET /api/state-context/{state_code}` (server/routes/state_context.py)
+- 12 independent try/except queries: fiscal (FMAP + CMS-64), enrollment, access (HPSA), quality (Core Set), demographics, rate adequacy (fact_rate_comparison_v2), workforce (BLS CNA/HHA/RN), HCBS waitlist, LTSS rebalancing, T-MSIS effective rates, supplemental (DSH + SDP)
+- 1-hour in-process cache per state. ~20-30ms uncached.
+
+**Tier 2: Module-Specific Enrichment**
+- Rate Browse: inline StateContext with T-MSIS gap analysis
+- Hospital Rate Setting: ownership, GME, MSSP ACO, VBP (planned)
+- Behavioral Health: TEDS detail, NSDUH age-stratified, overdose (planned)
+
+**Shared Frontend Infrastructure:**
+- `src/components/StateContextBar.tsx`: compact (single-row metrics) + expanded (grid with sections)
+- `src/hooks/useStateContext.ts`: shared fetch hook, 10-min client cache
+- `src/utils/formatContext.ts`: fmtB, fmtPct, fmtDollar, fmtNum, SYM constants
+- `src/types.ts`: StateContextData interface (11 domain sections)
+
+**Module Deployment:**
+| Module | Mode | State Source |
+|--------|------|-------------|
+| StateProfile | compact | URL hash |
+| RateBrowse | expanded (inline) | row click |
+| SpendingEfficiency | expanded | dropdown |
+| BehavioralHealth | compact | NEW dropdown + chart click |
+| NursingFacility | compact | existing dropdown |
+| HospitalRateSetting | expanded | NEW dropdown + table/chart click |
+| PharmacyIntelligence | compact | existing filter |
+| ProgramIntegrity | compact | NEW dropdown + table click |
+| WageAdequacy | expanded | existing dropdown |
+| QualityLinkage | compact | existing dropdown |
+| HcbsTracker | compact | existing dropdown |
+| CaseloadForecaster | compact | existing dropdown |
+
+**Extensibility:** Any future module gets cross-dataset context with:
+  import StateContextBar from "../components/StateContextBar";
+  <StateContextBar stateCode={selectedState} />
+
+### Rates & Compliance Redesign (Session 34 continued)
+
+- New Rate Browse & Compare tool (RateBrowse.tsx, 1,230 lines) with Dashboard, Code Lookup, State Compare views.
+- Replaced 5 overlapping tools.
+- Backend: /api/rates/state-summary + /api/rates/compare-states + /api/rates/context/{state}.
+
 ### Current State (March 18, 2026)
 
 | Metric | Value |

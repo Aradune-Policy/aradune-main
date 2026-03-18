@@ -6,6 +6,7 @@ import { LoadingBar } from "../components/LoadingBar";
 import { useAradune } from "../context/AraduneContext";
 import ChartActions from "../components/ChartActions";
 import { useIsMobile } from "../design";
+import StateContextBar from "../components/StateContextBar";
 
 // ── Design System (matches Aradune v14) ─────────────────────────────────
 const A = "#0A2540";
@@ -161,6 +162,7 @@ export default function ProgramIntegrity() {
   const isMobile = useIsMobile();
   const { openIntelligence } = useAradune();
   const [tab, setTab] = useState<TabKey>("leie");
+  const [selectedState, setSelectedState] = useState<string | null>(null);
   const [leieData, setLeieData] = useState<LeieData | null>(null);
   const [openPayData, setOpenPayData] = useState<OpenPayData | null>(null);
   const [mfcuData, setMfcuData] = useState<MfcuData | null>(null);
@@ -307,12 +309,22 @@ export default function ProgramIntegrity() {
         <span style={{ fontWeight:700,color:A }}>Program Integrity.</span> OIG List of Excluded Individuals/Entities (LEIE), CMS Open Payments (industry payments to physicians), Medicaid Fraud Control Unit (MFCU) statistics, and Payment Error Rate Measurement (PERM) improper payment rates. These datasets support fraud/waste/abuse monitoring and compliance oversight.
       </div></Card>
 
-      {/* Tab pills */}
-      <div style={{ display:"flex",gap:4,margin:"10px 0",flexWrap:"wrap" }}>
+      {/* Tab pills + state selector */}
+      <div style={{ display:"flex",gap:4,margin:"10px 0",flexWrap:"wrap",alignItems:"center" }}>
         <Pill on={tab==="leie"} onClick={()=>setTab("leie")}>Exclusions (LEIE)</Pill>
         <Pill on={tab==="open-payments"} onClick={()=>setTab("open-payments")}>Open Payments</Pill>
         <Pill on={tab==="mfcu-perm"} onClick={()=>setTab("mfcu-perm")}>MFCU & PERM</Pill>
+        <select value={selectedState || ""} onChange={e => setSelectedState(e.target.value || null)}
+          style={{ fontSize:12,padding:"4px 8px",borderRadius:4,border:`1px solid ${BD}`,fontFamily:FM,marginLeft:"auto" }}>
+          <option value="">All States</option>
+          {Object.entries(STATE_NAMES).sort((a, b) => a[1].localeCompare(b[1])).map(([code, name]) =>
+            <option key={code} value={code}>{name}</option>
+          )}
+        </select>
+        {selectedState && <Pill on={false} onClick={() => setSelectedState(null)}>Clear</Pill>}
       </div>
+
+      {selectedState && <StateContextBar stateCode={selectedState} mode="compact" />}
 
       {/* ═══════════════════════════════════════════════════════════════
            TAB 1: LEIE Exclusions
@@ -382,7 +394,7 @@ export default function ProgramIntegrity() {
               <tbody>
                 {leieData.by_state.filter(r => STATE_NAMES[r.state_code]).map(r => (
                   <tr key={r.state_code} style={{ borderBottom:`1px solid ${SF}` }}>
-                    <td style={{ padding:"4px",fontWeight:600,color:A }}>{STATE_NAMES[r.state_code]||r.state_code}</td>
+                    <td style={{ padding:"4px",fontWeight:600,color:cB,cursor:"pointer",textDecoration:"underline",textDecorationColor:`${cB}40` }} onClick={() => setSelectedState(r.state_code)}>{STATE_NAMES[r.state_code]||r.state_code}</td>
                     <td style={{ padding:"4px",fontFamily:FM,color:NEG,fontWeight:600 }}>{r.total_exclusions.toLocaleString()}</td>
                     <td style={{ padding:"4px",fontFamily:FM }}>{r.individual_count.toLocaleString()}</td>
                     <td style={{ padding:"4px",fontFamily:FM }}>{r.entity_count.toLocaleString()}</td>
@@ -544,7 +556,7 @@ export default function ProgramIntegrity() {
               <tbody>
                 {mfcuData.rows.filter(r => STATE_NAMES[r.state_code]).sort((a, b) => b.total_recoveries - a.total_recoveries).map(r => (
                   <tr key={r.state_code} style={{ borderBottom:`1px solid ${SF}` }}>
-                    <td style={{ padding:"4px",fontWeight:600,color:A }}>{STATE_NAMES[r.state_code]||r.state_code}</td>
+                    <td style={{ padding:"4px",fontWeight:600,color:cB,cursor:"pointer",textDecoration:"underline",textDecorationColor:`${cB}40` }} onClick={() => setSelectedState(r.state_code)}>{STATE_NAMES[r.state_code]||r.state_code}</td>
                     <td style={{ padding:"4px",fontFamily:FM }}>{r.total_investigations.toLocaleString()}</td>
                     <td style={{ padding:"4px",fontFamily:FM }}>{r.total_convictions.toLocaleString()}</td>
                     <td style={{ padding:"4px",fontFamily:FM,fontWeight:600,color:POS }}>{f$(r.total_recoveries)}</td>

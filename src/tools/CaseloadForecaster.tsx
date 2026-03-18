@@ -12,6 +12,7 @@ import { STATE_NAMES } from "../data/states";
 import { API_BASE } from "../lib/api";
 import { useAradune } from "../context/AraduneContext";
 import ChartActions from "../components/ChartActions";
+import StateContextBar from "../components/StateContextBar";
 import { useIsMobile } from "../design";
 
 // ── Design tokens ───────────────────────────────────────────────────────
@@ -500,6 +501,8 @@ export default function CaseloadForecaster() {
           <div style={{ marginTop: 8, padding: "8px 12px", background: "#FEE2E2", borderRadius: 6, fontSize: 12, color: NEG }}>{expError}</div>
         )}
       </Card>
+
+      <StateContextBar stateCode={state} mode="compact" />
 
       {/* ─── Results ──────────────────────────────────────────────────── */}
       {result && (() => {

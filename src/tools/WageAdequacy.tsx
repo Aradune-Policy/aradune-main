@@ -5,6 +5,7 @@ import { API_BASE } from "../lib/api";
 import { LoadingBar } from "../components/LoadingBar";
 import { useAradune } from "../context/AraduneContext";
 import ChartActions from "../components/ChartActions";
+import StateContextBar from "../components/StateContextBar";
 
 // ── Design System (matches Aradune v14) ─────────────────────────────────
 const A = "#0A2540";
@@ -443,6 +444,9 @@ export default function WageAdequacy() {
           </div>
         </div>
       </div>
+
+      {/* State Context */}
+      <StateContextBar stateCode={s1} mode="expanded" />
 
       {/* Primary Analysis Card */}
       {analysis && analysis.primary && <div style={{ display:"grid",gridTemplateColumns:"repeat(auto-fit,minmax(280px,1fr))",gap:10 }}>

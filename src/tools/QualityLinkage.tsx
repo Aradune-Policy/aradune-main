@@ -4,6 +4,7 @@ import type { QualData, LinkedMeasure, MeasureHcpcsInfo, MeasureMeta, SafeTipPro
 import { API_BASE } from "../lib/api";
 import { LoadingBar } from "../components/LoadingBar";
 import ChartActions from "../components/ChartActions";
+import StateContextBar from "../components/StateContextBar";
 
 // ── Design System (matches Aradune) ─────────────────────────────────────
 const A = "#0A2540";
@@ -281,6 +282,9 @@ export default function QualityLinkage() {
           </div>
         </div>
       </div>
+
+      {/* State Context */}
+      <StateContextBar stateCode={highlightState} mode="compact" />
 
       {/* Measure selector */}
       <Card>

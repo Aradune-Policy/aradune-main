@@ -11,6 +11,7 @@ import { STATES_LIST, STATE_NAMES } from "../data/states";
 import { API_BASE } from "../lib/api";
 import { useAradune } from "../context/AraduneContext";
 import ChartActions from "../components/ChartActions";
+import StateContextBar from "../components/StateContextBar";
 
 // ── Design tokens ───────────────────────────────────────────────────────
 const A = "#0A2540", AL = "#425A70", POS = "#2E6B4A", NEG = "#A4262C", WARN = "#B8860B";
@@ -288,6 +289,8 @@ export default function HcbsTracker() {
               <p style={{ fontSize: 11, color: AL, margin: "8px 0 0", fontStyle: "italic" }}>{curCat.overhead_note}</p>
             )}
           </Card>
+
+          <StateContextBar stateCode={st} mode="compact" />
 
           {/* 80/20 Gauge + KPIs */}
           <Card accent={overhead <= 20 ? POS : WARN}>

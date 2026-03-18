@@ -1074,6 +1074,7 @@ Aradune/
 23. **Never trust a single source.** Expenditures: triangulate TAF + CMS-64 + supplemental. Providers: cross-reference NPPES + PECOS + HCRIS. Drugs: link SDUD + FDA NDC + RxNorm + NADAC. Build validation checks that compare sources against each other.
 24. **State-level variation is the dominant quality dimension.** Illinois needs custom dedup. Arkansas may be missing. MC encounter completeness ranges from excellent to absent. Every pipeline starts with DQ Atlas lookup and carries state-quality metadata through.
 25. **Test adversarially, not just defensively.** Soda Core/dbt catch known issues. Hypothesis + chaos engineering catch unknown ones. Generate realistic test data with SDV. Test at 10x volume. See `COMPLETE-DATA-REFERENCE-FOR-ARADUNE.md` Part 2.
+26. **Update Sections 1-16 in place, not just the changelog.** When you change a count (endpoints, tables, modules), a capability (new engine, new tool), or a status (fixed issue, new known issue), update the relevant summary section AND the changelog. The summary sections are what the next session reads first. Stale summaries cause compounding errors across sessions. Also reconcile ARADUNE_FULL_BUILD.md if the change affects architecture, engines, modules, or routes.
 
 ---
 

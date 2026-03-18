@@ -577,7 +577,7 @@ function Landing() {
                 boxShadow: "0 1px 4px rgba(0,0,0,0.15)",
                 flexShrink: 0,
               }}>
-                <span style={{ fontSize: 22, fontWeight: 800, color: C.brand, fontFamily: FONT.body, lineHeight: 1 }}>A</span>
+                <img src="/assets/logo-mark.png" alt="A" style={{ width: 26, height: 26 }} />
               </div>
               <div>
                 <div style={{ fontSize: 18, fontWeight: 700, color: C.white, letterSpacing: -0.3 }}>Ask Aradune anything</div>

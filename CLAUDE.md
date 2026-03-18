@@ -16,9 +16,9 @@ Aradune is a **Medicaid intelligence operating system**. It ingests, normalizes,
 Aradune is not a dashboard with AI bolted on. It is **the platform where Medicaid data becomes decisions** — for state agencies, consulting firms, MCOs, hospitals, providers, researchers, journalists, advocates, and legislators.
 
 **Core identity:**
-- **The data layer is the moat.** 667+ tables, 400M+ rows, 4.9 GB. Curated, normalized, cross-referenced public Medicaid data no one else has assembled.
+- **The data layer is the moat.** 750+ tables, 400M+ rows, 4.9 GB. Curated, normalized, cross-referenced public Medicaid data no one else has assembled.
 - **Intelligence is the interface.** Claude is the primary interaction model for complex work. Natural language in, compliance-ready analysis out.
-- **Structured tools are on-ramps.** Eight purpose-built workflows build trust, demonstrate data quality, and pull users into Intelligence naturally.
+- **Structured tools are on-ramps.** Fifteen purpose-built modules build trust, demonstrate data quality, and pull users into Intelligence naturally.
 - **Compliance automation is the adoption wedge.** Auto-generate CPRAs, rate transparency filings, MCPARs, Core Set submissions. The July 2026 CPRA deadline is less than 4 months away.
 - **Bring your own data.** Users upload files and cross-reference them against the national data layer within their session.
 - **Closed-loop operations.** Every analysis connects to an action: a rate gap finding generates a SPA template, a network gap produces a corrective action plan, a spending anomaly creates a program integrity referral.
@@ -43,7 +43,7 @@ Aradune has three layers. Intelligence connects everything.
 │  tool, "Ask about this" buttons, State Profile questions.               │
 │  Produces: narrative, tables, charts, exportable compliance documents.  │
 │                                                                         │
-│  8 STRUCTURED TOOLS (on-ramps to Intelligence):                         │
+│  15 CORE MODULES + 13 RESEARCH BRIEFS (on-ramps to Intelligence):       │
 │  State Profiles · Rate Analysis · CPRA Compliance · Forecasting         │
 │  AHEAD Readiness · Providers · Workforce & HCBS · Rate Lookup           │
 │  Every tool has: Intelligence sidebar, export, data import              │
@@ -62,13 +62,13 @@ Aradune has three layers. Intelligence connects everything.
 ┌────────────────────────────┴────────────────────────────────────────────┐
 │                        THE DATA LAKE                                    │
 │                                                                         │
-│  667+ tables · 400M+ rows · Hive-partitioned Parquet · DuckDB          │
+│  750+ tables · 400M+ rows · Hive-partitioned Parquet · DuckDB          │
 │  Medallion architecture: Bronze (raw) → Silver (normalized) → Gold     │
 │  + DuckPGQ property graph (SQL/PGQ queries over same tables)           │
 │  + User session data (uploaded files, parsed and queryable)            │
 │  + Policy corpus (1,039+ CMS docs, 6,058+ searchable chunks)          │
 │  R2 sync · Dagster orchestration · Source-provenant · Versioned        │
-│  Validated: Soda Core + dbt-expectations + Pandera + datacontract-cli  │
+│  Validated: 15-check engine (row count, range, referential integrity) + validator API  │
 │  See COMPLETE-DATA-REFERENCE-FOR-ARADUNE.md for per-dataset quality    │
 └─────────────────────────────────────────────────────────────────────────┘
 ```
@@ -82,10 +82,10 @@ Frontend:       React 18 + TypeScript + Vite (Vercel Pro, aradune.co)
 Visualization:  Recharts
 Routing:        Hash-based in Platform.tsx
 Data store:     DuckDB-WASM (browser-side client queries)
-Data lake:      Hive-partitioned Parquet (data/lake/) — 400M+ rows, 698 views
+Data lake:      Hive-partitioned Parquet (data/lake/) — 400M+ rows, 750+ views
                 DuckDB in-memory views over Parquet files, 4.9 GB on disk
                 S3/R2 sync (scripts/sync_lake_wrangler.py --remote, Cloudflare R2 bucket: aradune-datalake)
-Backend:        Python FastAPI (server/) — 336+ endpoints across 39+ route files, DuckDB-backed
+Backend:        Python FastAPI (server/) — ~345 endpoints across 40+ route files, DuckDB-backed
 AI:             Intelligence (server/routes/intelligence.py) — Claude Sonnet 4.6 + SSE streaming
                 + extended thinking + DuckDB tools + RAG policy corpus + web search
                 Haiku for routing · Sonnet for analysis · Opus for complex reasoning
@@ -298,8 +298,8 @@ policy and regulatory context.
 
 ## What you have access to
 
-**The Aradune Data Lake:** 667 fact tables, 9 dimension tables, 22 reference tables —
-400M+ rows of public Medicaid data across 18 domains:
+**The Aradune Data Lake:** 750+ tables (fact + dimension + reference) —
+400M+ rows of public Medicaid data across 20 domains:
 
 - Rates & Fee Schedules: Medicaid rates (47 states, 597K rows), Medicare PFS (16,978
   codes, 858K locality rates), Medicaid-to-Medicare comparisons (45 states, 302K rows)
@@ -403,7 +403,7 @@ User drags file or clicks [↑ Import]
 │  IMPORT PANEL                                     │
 │  Drop a file here or click to browse              │
 │  CSV, Excel, JSON — up to 50MB                    │
-│  Or start without data — 667+ tables ready         │
+│  Or start without data — 750+ tables ready         │
 └──────────────────────────────────────────────────┘
          │ (after upload)
          ▼
@@ -615,25 +615,27 @@ Bronze (raw, append-only)       Silver (normalized/cleaned)       Gold (analytic
 │   _source_state, _batch_id    ├── Void/replacement logic        ├── Medical Care CPI adjusted
 ├── union_by_name=true          ├── Temporal: FFY/SFY/CY cols     └── State-level adj factors
 ├── Never modify (audit trail)  ├── DQ Atlas metadata carried     
-└── ZSTD, 500K-1M row groups   └── Iceberg for schema evolution  
+└── ZSTD, 500K-1M row groups   └── DuckDB union_by_name for schema evolution  
 ```
 
 ### Core Ingestion Pattern
 ```python
 def fetch_raw(source_config) -> bytes | Path:    # HTTP HEAD + ETag
 def parse(raw) -> list[dict]:                     # Per-source; PDF → pdfplumber → Claude
-def validate(parsed) -> ValidationResult:         # Soda Core + Pandera checks
+def validate(parsed) -> ValidationResult:         # validator.py (15 checks)
 def normalize(validated) -> list[dict]:            # Unified schema + URL + date
 def load(normalized, db_conn) -> LoadResult:       # Upsert + version + S3 snapshot
 ```
 **Hard stops:** Rate changed >90% · Code count dropped >20% · Schema mismatch
 **Soft flags:** Rate unchanged >24 months · New codes without description · Rate >3 SDs
 
-### Validation Stack (see COMPLETE-DATA-REFERENCE for full detail)
-- **Soda Core v4** — best native DuckDB support, 50+ SodaCL checks, ML anomaly detection
-- **dbt-duckdb + dbt-expectations** — 60+ SQL-first validation macros (regex, range, cross-column)
-- **Pandera** — DataFrame validation with statistical hypothesis testing (distribution shifts)
-- **datacontract-cli** — CI/CD contract testing, `datacontract diff` for breaking changes
+### Validation Stack
+**Deployed:** `server/engines/validator.py` — 15 operational checks across 3 types (row count, range, referential integrity). API: /api/validation/latest, /results, /domains.
+**Future (not yet implemented):**
+- Soda Core v4 — native DuckDB support, ML anomaly detection
+- dbt-duckdb + dbt-expectations — SQL-first validation macros
+- Pandera — DataFrame validation with hypothesis testing
+- datacontract-cli — CI/CD contract testing
 
 ### Adversarial Testing Layers
 ```
@@ -664,8 +666,11 @@ All reference tables (ICD-10, CPT, NDC, RxNorm, NUCC Taxonomy, FMAP, GPCIs, CFs)
 | Quarterly | T-MSIS/SDUD/MBES-CBES, MCO MLR |
 | Annual | Medicare PFS RVU, state fee schedules, HCRIS, BLS OEWS, ACS, AHRF, SVI |
 
-### DuckDB Extensions Required
-`httpfs` (S3/R2), `cache_httpfs` (local caching, 60%+ S3 cost reduction), `iceberg` (table format), `icu` (Unicode for healthcare text), `json`, `excel` (state uploads), `spatial` (geographic adjustments), `duckpgq` (property graph)
+### DuckDB Extensions
+**Loaded at startup:** `json` (built-in), `fts` (full-text search for RAG), `vss` (vector similarity, loaded if available)
+**Used by sync scripts:** `httpfs` (R2/S3 access, used by sync_lake.py)
+**Available but not loaded:** `icu` (Unicode), `excel` (state uploads), `spatial` (geographic)
+**Not implemented:** `iceberg` (table format), `duckpgq` (property graph — referenced in ontology spec, not loaded at runtime), `cache_httpfs`
 
 ---
 
@@ -740,7 +745,7 @@ CREATE TABLE forecast_enrollment (
 | **KFF Medicaid** | fact_kff_total_spending, fact_kff_spending_per_enrollee, ... (28 tables) | 28 KFF Medicaid policy/spending tables |
 | **Medicaid.gov** | fact_drug_amp, fact_mlr_summary, fact_mc_programs, ... (17 tables) | Drug AMP (5.5M), MLR, MC programs, DSH annual |
 
-**Total:** 698 registered views (667 fact + 9 dim + 22 ref), 400M+ rows, 4.9 GB Parquet. 18 ontology domains, 16 entities, 19 named metrics.
+**Total:** 750+ registered views, 400M+ rows, 4.9 GB Parquet. 20 ontology domains, 16 entities, 19 named metrics.
 
 ### Category Completion Summary
 
@@ -908,12 +913,12 @@ Aradune/
 │
 ├── ontology/                        ← ENTITY REGISTRY (auto-generates system prompt + DuckPGQ)
 │   ├── schema.yaml                  ← Master schema definition
-│   ├── generated_prompt.md          ← Auto-generated system prompt (28KB, 569 tables)
+│   ├── generated_prompt.md          ← Auto-generated system prompt (33.7KB, 722 tables)
 │   ├── entities/                    ← One YAML per entity type (16 files)
 │   │   ├── state.yaml, procedure.yaml, provider.yaml, hospital.yaml,
 │   │   ├── mco.yaml, rate_cell.yaml, drug.yaml, quality_measure.yaml,
 │   │   └── nursing_facility.yaml, workforce.yaml, hcbs_program.yaml, ...
-│   ├── domains/                     ← One YAML per data domain (18 files)
+│   ├── domains/                     ← One YAML per data domain (20 files)
 │   │   ├── rates.yaml, enrollment.yaml, hospitals.yaml, quality.yaml,
 │   │   ├── state_fiscal.yaml, insurance_market.yaml, program_integrity.yaml, ...
 │   └── metrics/                     ← Named deterministic metric definitions (5 files)
@@ -979,7 +984,7 @@ Aradune/
 │   │   ├── system_dynamics.py       ← Stock-flow ODE models (enrollment, provider, workforce, HCBS, integrated)
 │   │   ├── rag_engine.py            ← ~460 lines. BM25 + FTS policy search
 │   │   └── query_router.py          ← Tier 1-4 classification + resource allocation
-│   └── routes/                      ← 39 files (26 top-level + 13 research), 336 endpoints
+│   └── routes/                      ← 40+ files (27 top-level + 13 research), ~345 endpoints
 │       ├── intelligence.py          ← Claude + SSE + DuckDB + RAG
 │       ├── cpra.py                  ← Pre-computed + upload CPRA
 │       ├── lake.py                  ← /api/states, enrollment, quality, expenditure
@@ -999,7 +1004,7 @@ Aradune/
 │   └── tmsis_pipeline_duckdb.R      ← 71KB. T-MSIS (227M rows).
 │
 ├── data/
-│   ├── lake/                        ← 400M+ rows, 698 views, 4.9 GB
+│   ├── lake/                        ← 400M+ rows, 750+ views, 4.9 GB
 │   ├── ontology/                    ← Entity registry (auto-generates system prompt + DuckPGQ)
 │   │   ├── entities/                ← One YAML per entity type (state, procedure, hospital, etc.)
 │   │   ├── domains/                 ← One YAML per data domain (rates, enrollment, hospitals, etc.)
@@ -1038,7 +1043,7 @@ Aradune/
 └── ...
 ```
 
-**db.py critical note:** Only facts in `fact_names` (currently 667 entries) are registered as views. Always update when adding lake tables. `_latest_snapshot()` supports both `data.parquet` and `snapshot=*/data.parquet` formats.
+**db.py critical note:** Only facts in `fact_names` (currently 750+ entries) are registered as views. Always update when adding lake tables. `_latest_snapshot()` supports both `data.parquet` and `snapshot=*/data.parquet` formats.
 
 ---
 
@@ -1143,7 +1148,7 @@ fly deploy --remote-only --config server/fly.toml --dockerfile server/Dockerfile
 | # | Issue | Status |
 |---|-------|--------|
 | 1 | R2 credentials need rotation | Open |
-| 2 | db.py fact_names must match filesystem (667 entries synced) | Synced |
+| 2 | db.py fact_names must match filesystem (750+ entries synced) | Synced |
 | 3 | api/chat.js is legacy | Deprecate after Intelligence verified |
 | 4 | Password gate is client-side only | Not a security boundary |
 | 5 | GitHub CI secrets (VERCEL_TOKEN, FLY_API_TOKEN) not set | **Fixed** -- Session 34. All 6 secrets set. |
@@ -1154,7 +1159,7 @@ fly deploy --remote-only --config server/fly.toml --dockerfile server/Dockerfile
 | 10 | 17 empty/broken raw files in data/raw/ (header-only stubs, WAF failures) | Cleanup candidate |
 | 11 | Duplicate raw files in data/raw/ (_v2 pairs, dme26a=dmepos) | Cleanup candidate |
 | 12 | HPSA count shows row count not unique HPSA count | Minor -- cosmetic |
-| 13 | pharmacy/enrollment/wages routes lack error handling | **Fixed** -- Session 30. @safe_route on all 336 endpoints. |
+| 13 | pharmacy/enrollment/wages routes lack error handling | **Fixed** -- Session 30. @safe_route on all ~345 endpoints. |
 | 14 | AHEAD module hardcoded to 6 states/12 hospitals | Save for last per Scott |
 | 15 | R2 has ~253/760 parquet files | Need full `sync_lake_wrangler.py` run (865 files, 4.8 GB) |
 | 16 | "Ask Aradune" homepage button was broken in dev (StrictMode) | **Fixed** -- Session 27 |
@@ -1176,7 +1181,7 @@ fly deploy --remote-only --config server/fly.toml --dockerfile server/Dockerfile
 
 ## 21. What Success Looks Like
 
-**Now (March 2026):** 750+ views, 400M+ rows, 4.9 GB, 336+ endpoints across 39+ route files, 10 engines, 20 ontology domains with 28 relationship edges, Intelligence with SSE + DuckDB + RAG + web search + Skillbook v2 (CRUSP lifecycle, score decay, graph expansion, trace storage) + programmatic DOGE/IL/territory enforcement + FL Medicaid context (rule corrected), 28 standalone modules (15 core + 13 research), CPRA regulatory-correct both modes. 115+ ETL scripts. Export pipeline: DOCX/PDF/Excel/CSV + chart PNG/SVG. Demo mode with 27 pre-cached Intelligence responses. @safe_route on all 336+ endpoints. 7-agent adversarial suite (all built) with adversarial-to-Skillbook closed feedback loop. GitHub Actions weekly adversarial workflow.
+**Now (March 2026):** 750+ views, 400M+ rows, 4.9 GB, ~345 endpoints across 40+ route files, 10 engines, 20 ontology domains with 28 relationship edges, Intelligence with SSE + DuckDB + RAG + web search + Skillbook v2 (CRUSP lifecycle, score decay, graph expansion, trace storage) + programmatic DOGE/IL/territory enforcement + FL Medicaid context (rule corrected), 28 standalone modules (15 core + 13 research), CPRA regulatory-correct both modes. 115+ ETL scripts. Export pipeline: DOCX/PDF/Excel/CSV + chart PNG/SVG. Demo mode with 27 pre-cached Intelligence responses. @safe_route on all ~345 endpoints. 7-agent adversarial suite (all built) with adversarial-to-Skillbook closed feedback loop. GitHub Actions weekly adversarial workflow.
 
 **Session 34 (2026-03-18) — Intelligence hardening + adversarial completion + FL rule correction:**
 - Intelligence fixes: programmatic DOGE quarantine injection (code-level, not just prompt), IL T-MSIS caveat injection, territory-aware fallback (Guam/PR/VI), em-dash post-processing, DuckDB 30s statement_timeout, Anthropic API 120s timeout.

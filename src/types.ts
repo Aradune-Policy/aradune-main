@@ -415,3 +415,72 @@ export interface NavGroup {
   label: string;
   tools: ToolDef[];
 }
+
+// Cross-dataset state context (returned by /api/state-context/{state_code})
+export interface StateContextData {
+  state_code: string;
+  state_name: string;
+  fiscal?: {
+    fmap: number | null;
+    methodology: string | null;
+    conversion_factor: string | null;
+    cms64_total: number | null;
+    cms64_federal: number | null;
+    cms64_fy: number | null;
+  };
+  enrollment?: {
+    total: number | null;
+    managed_care: number | null;
+    ffs: number | null;
+    mc_pct: number | null;
+    year: number | null;
+    month: number | null;
+  };
+  access?: {
+    hpsa_total: number;
+    hpsa_primary_care: number;
+    hpsa_dental: number;
+    hpsa_mental_health: number;
+  };
+  quality?: {
+    total_measures: number;
+    below_median: number;
+    pct_below: number;
+  };
+  demographics?: {
+    population: number | null;
+    pct_poverty: number | null;
+    pct_uninsured: number | null;
+  };
+  rate_adequacy?: {
+    median_pct_medicare: number;
+    codes_below_60: number;
+    codes_below_80: number;
+    code_count: number;
+    primary_rate_source: string;
+  };
+  workforce?: {
+    cna_median_wage: number | null;
+    hha_median_wage: number | null;
+    rn_median_wage: number | null;
+  };
+  hcbs_waitlist?: {
+    total_waiting: number | null;
+    idd_waiting: number | null;
+  };
+  ltss?: {
+    hcbs_pct: number | null;
+    institutional_pct: number | null;
+  };
+  tmsis_claims?: {
+    total_codes: number;
+    median_pct_medicare: number;
+    avg_paid_rate: number;
+    caveat: string;
+  };
+  supplemental?: {
+    dsh_total: number | null;
+    sdp_count: number | null;
+    sdp_total: number | null;
+  };
+}

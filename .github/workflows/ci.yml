@@ -22,6 +22,8 @@ jobs:
         run: npx tsc --noEmit
       - name: Production build
         run: npm run build
+      - name: npm audit (supply chain)
+        run: npm audit --audit-level=high || true
 
   api:
     name: API Lint & Test
@@ -31,7 +33,9 @@ jobs:
       - uses: actions/setup-python@v5
         with:
           python-version: "3.12"
-      - run: pip install -r server/requirements.txt pytest hypothesis pandera
+      - run: pip install -r server/requirements.txt pytest hypothesis pandera pip-audit
+      - name: pip-audit (supply chain)
+        run: pip-audit --fix --dry-run || true
       - name: Import check
         run: python -c "from server.main import app; print('FastAPI app loads OK')"
       - name: Config check

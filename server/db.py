@@ -579,6 +579,17 @@ def init_db() -> None:
     global _conn
     _conn = duckdb.connect()
 
+    # DuckDB memory + performance config (critical for 2GB Fly.io instance)
+    try:
+        _conn.execute("SET memory_limit = '900MB'")
+        _conn.execute("SET threads = 2")
+        _conn.execute("SET temp_directory = '/tmp/duckdb_swap'")
+        _conn.execute("SET max_temp_directory_size = '4GB'")
+        _conn.execute("SET enable_object_cache = true")
+        _conn.execute("SET preserve_insertion_order = false")
+    except Exception as e:
+        print(f"DuckDB config warning (non-fatal): {e}", flush=True)
+
     # Register views in a background thread to avoid blocking startup
     t = threading.Thread(target=_register_all_views, daemon=True, name="lake-init")
     t.start()

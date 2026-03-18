@@ -2034,6 +2034,40 @@ Two-tier context system deployed across all 12 core modules:
 - Replaced 5 overlapping tools.
 - Backend: /api/rates/state-summary + /api/rates/compare-states + /api/rates/context/{state}.
 
+### System Dynamics Engine (Session 34 continued)
+
+Stock-flow ODE modeling for Medicaid policy analysis. No other Medicaid analytics platform offers causal feedback loop modeling.
+
+**Backend Engine** (`server/engines/system_dynamics.py`, 512 lines):
+- Core: Stock, Flow, Parameter, Intervention, SDModel, SDResult dataclasses
+- Solver: scipy.integrate.solve_ivp (RK45, fallback Radau for stiff systems)
+- 4 individual models calibrated from lake data:
+  1. Enrollment: eligible_pool → processing → enrolled → disenrolled (unemployment elasticity, policy shocks)
+  2. Provider Participation: rate_attractiveness → provider entry/exit → access score (logistic curve, 12-month lag)
+  3. Workforce Pipeline: wage_ratio → recruitment → retention → staffing HPRD (turnover dynamics)
+  4. HCBS Rebalancing: funding_ratio → transition_rate → institutional/community/waitlist stocks
+- 1 integrated model: 12 stocks in single ODE system, 6 cross-domain feedback loops
+- Calibration: state data from lake → national average → literature default. Source logged in results.
+
+**API** (`server/routes/dynamics.py`, 290 lines):
+- POST /api/dynamics/enrollment, /provider, /workforce, /hcbs, /policy-simulator
+- Policy simulator runs baseline + scenario, returns impact deltas and active feedback loops
+- In-process cache (1hr TTL, 100 entries)
+
+**Policy Simulator** (`src/tools/PolicySimulator.tsx`, ~500 lines):
+- Intervention builder: rate changes, wage increases, HCBS funding, unemployment shocks
+- 5 presets: Rate Parity, Recession, HCBS Expansion, Austerity, Workforce Investment
+- 4 impact cards, 5 chart tabs, feedback loops panel
+- StateContextBar + "Ask Aradune" + CSV export
+- Registered at /#/policy-simulator under Finance nav
+
+**Embedded Widgets** (4 modules):
+- CaseloadForecaster: Enrollment Dynamics (unemployment slider)
+- WageAdequacy: Workforce Pipeline (wage slider)
+- HcbsTracker: Rebalancing Trajectory (funding slider)
+- RateBrowse: Provider Participation (rate change slider)
+- All collapsible, 400ms debounce, Recharts charts, calibration sources
+
 ### Current State (March 18, 2026)
 
 | Metric | Value |

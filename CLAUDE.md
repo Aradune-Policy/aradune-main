@@ -92,6 +92,9 @@ AI:             Intelligence (server/routes/intelligence.py) — Claude Sonnet 4
 Skillbook:      Skillbook (self-improving): server/engines/skillbook.py + reflector.py, CRUSP lifecycle, score decay, graph expansion
 Adversarial:    Adversarial testing: 7-agent suite (scripts/adversarial/)
 Production:     DuckDB memory_limit=900MB, 2 threads, object cache, disk spill
+Dynamics:       System dynamics engine (server/engines/system_dynamics.py) — stock-flow ODE modeling
+                scipy.integrate.solve_ivp, 12 stocks, 6 feedback loops, lake-calibrated parameters
+                Policy Simulator module (/#/policy-simulator) + 4 embedded widgets in modules
                 Security headers (HSTS, nosniff, DENY, referrer, permissions)
                 Gunicorn 2 workers + preload + max-requests recycling
                 Rate limiting: 15 Intelligence queries/min/user
@@ -147,6 +150,7 @@ Purpose-built workflows for recurring work. Each has "Ask Intelligence" (opens s
 | **Pharmacy Intelligence** | `/#/pharmacy` | 3 tabs: Spending Overview (SDUD 2025 state summary), Top Drugs (by spending, filterable by state), NADAC Pricing (drug name search). | fact_sdud_2025 (2.6M), fact_nadac (1.9M) |
 | **Program Integrity** | `/#/integrity` | 3 tabs: Exclusions (LEIE 82K), Open Payments ($13B), MFCU & PERM (error rates 2020-2025). | fact_leie (83K), fact_open_payments (36K), fact_mfcu_stats, fact_perm_rates |
 | **Workforce & HCBS** | `/#/workforce` | 4 tabs: Wage Adequacy, Quality Linkage, HCBS Waitlists & Compensation (80% pass-through tracking), Shortage Areas (HPSA + MUA map). | fact_bls_wage, fact_hpsa (69K), fact_hcbs_waitlist (607K), quality |
+| **Policy Simulator** | `/#/policy-simulator` | System dynamics: model downstream effects of rate changes, wage increases, HCBS funding, economic shocks through interconnected feedback loops. 5 presets. Baseline vs scenario comparison. | fact_enrollment, fact_rate_comparison_v2, fact_bls_wage, fact_hcbs_waitlist, fact_hpsa |
 | **Rate Lookup & Directory** | `/#/lookup` | Code-level Medicaid rate lookup across 47 states. State fee schedule directory with download links. Quick trust-building tool. | fact_medicaid_rate, fee schedule files |
 
 **Data Catalog** remains standalone at `/#/catalog` for power users browsing table schemas.
@@ -840,6 +844,13 @@ Discharges, bed count    → total_discharges, bed_count (Worksheet S-3)
 ### Phase 4 — Target: Fiscal Impact Engine
 Adjust rate increase % → federal match at FMAP → UPL headroom → SDP cap under OBBBA → budget impact across biennium. Connects fee schedule, FMAP, CMS-64, actuarial trends.
 
+### Phase 5 — DONE: System Dynamics
+**Engine:** `server/engines/system_dynamics.py` (~512 lines). Stock-flow ODE modeling via scipy.integrate.solve_ivp. 12 stocks in integrated model, 6 cross-domain feedback loops, lake-calibrated parameters with fallback chain.
+**Models:** Enrollment (eligible→processing→enrolled→disenrolled), Provider Participation (rate→providers→access), Workforce Pipeline (wage→recruitment→retention→staffing), HCBS Rebalancing (funding→transition→community vs institutional).
+**Integrated model:** Connects all 4 through coupling: rate→providers→access→enrollment, wages→workforce→capacity, HCBS funding→spending shift, enrollment→spending→budget pressure.
+**Frontend:** PolicySimulator.tsx (~500 lines) at `/#/policy-simulator`. Intervention builder, 5 presets, baseline vs scenario charts, feedback loops panel. 4 embedded DynamicsWidget instances in CaseloadForecaster, WageAdequacy, HcbsTracker, RateBrowse.
+**API:** 5 POST endpoints at /api/dynamics/ (enrollment, provider, workforce, hcbs, policy-simulator).
+
 ---
 
 ## 15. Security & HIPAA
@@ -922,6 +933,7 @@ Aradune/
 │   │   ├── WageAdequacy.tsx         ← 546 lines. → Workforce: Wages
 │   │   ├── QualityLinkage.tsx       ← 445 lines. → Workforce: Quality
 │   │   ├── HcbsCompTracker.tsx      ← 414 lines. → Workforce: HCBS
+│   │   ├── PolicySimulator.tsx      ← ~500 lines. → Policy Simulator (system dynamics)
 │   │   ├── FeeScheduleDir.tsx       ← 535 lines. → Rate Lookup: Directory
 │   │   ├── RateLookup.tsx           ← → Rate Lookup
 │   │   ├── RateReductionAnalyzer.tsx ← 411 lines. → Rates (integrate)
@@ -964,6 +976,7 @@ Aradune/
 │   │   ├── cpra_upload.py           ← 821 lines. CPRA upload engine
 │   │   ├── caseload_forecast.py     ← ~650 lines. SARIMAX+ETS
 │   │   ├── expenditure_model.py     ← ~430 lines. Expenditure projection
+│   │   ├── system_dynamics.py       ← Stock-flow ODE models (enrollment, provider, workforce, HCBS, integrated)
 │   │   ├── rag_engine.py            ← ~460 lines. BM25 + FTS policy search
 │   │   └── query_router.py          ← Tier 1-4 classification + resource allocation
 │   └── routes/                      ← 39 files (26 top-level + 13 research), 336 endpoints
@@ -972,6 +985,7 @@ Aradune/
 │       ├── lake.py                  ← /api/states, enrollment, quality, expenditure
 │       ├── nl2sql.py                ← NL2SQL for Data Explorer
 │       ├── forecast.py              ← 10 caseload + expenditure endpoints
+│       ├── dynamics.py              ← 5 system dynamics API endpoints
 │       └── [17 more: query, meta, presets, pharmacy, policy, wages, hospitals,
 │            enrollment, staffing, quality, context, bulk, supplemental,
 │            behavioral_health, round9, insights, corpus]
@@ -1177,6 +1191,7 @@ fly deploy --remote-only --config server/fly.toml --dockerfile server/Dockerfile
 - Rates & Compliance redesign: new Rate Browse & Compare tool (RateBrowse.tsx, 1,230 lines) with Dashboard, Code Lookup, State Compare views. Replaced 5 overlapping tools. Backend: /api/rates/state-summary + /api/rates/compare-states + /api/rates/context/{state}.
 - Shared frontend infrastructure: formatContext.ts (format helpers), StateContextData type, useStateContext hook.
 - Production hardening: DuckDB memory config (900MB limit, 2 threads, object cache), security headers (5 OWASP headers on all responses), Gunicorn (2 workers, preload, max-requests), rate limiting (15 queries/min/user), health probes (/healthz, /ready, /startup), JSON structured logging, request timing middleware.
+- System dynamics engine: stock-flow ODE modeling (scipy.integrate.solve_ivp). 4 individual models (enrollment, provider participation, workforce, HCBS) + 1 integrated model with 12 stocks and 6 cross-domain feedback loops. Lake-calibrated parameters. Policy Simulator standalone module at /#/policy-simulator with intervention builder, 5 presets, baseline vs scenario comparison. 4 embedded DynamicsWidget instances in CaseloadForecaster, WageAdequacy, HcbsTracker, RateBrowse.
 - Supply chain security: Dependabot for npm/pip/GitHub Actions, pip-audit + npm audit in CI, Schemathesis API contract testing.
 - 5 Architecture Decision Records: DuckDB, Parquet, Skillbook, partitioning, auth.
 - Legacy cleanup: api/chat.js deprecated. Raw file audit: 31 broken files + 11 duplicate pairs identified.

@@ -9,7 +9,7 @@ from starlette.middleware.base import BaseHTTPMiddleware
 
 from server.config import settings
 from server.db import init_db, close_db, is_lake_ready, reload_lake
-from server.routes import query, meta, presets, cpra, lake, pipeline, pharmacy, policy, wages, hospitals, enrollment, staffing, quality, context, bulk, supplemental, behavioral_health, round9, forecast, nl2sql, intelligence, import_data, search, insights, rate_explorer, skillbook, validation, state_context
+from server.routes import query, meta, presets, cpra, lake, pipeline, pharmacy, policy, wages, hospitals, enrollment, staffing, quality, context, bulk, supplemental, behavioral_health, round9, forecast, nl2sql, intelligence, import_data, search, insights, rate_explorer, skillbook, validation, state_context, dynamics
 from server.routes.research import (
     rate_quality, mc_value, treatment_gap, safety_net,
     integrity_risk, fiscal_cliff, maternal_health,
@@ -147,6 +147,7 @@ app.include_router(rate_explorer.router)
 app.include_router(skillbook.router)
 app.include_router(validation.router)
 app.include_router(state_context.router)
+app.include_router(dynamics.router)
 app.include_router(rate_quality.router)
 app.include_router(mc_value.router)
 app.include_router(treatment_gap.router)

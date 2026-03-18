@@ -90,6 +90,7 @@ const TmsisCalibration = lazy(() => import("./tools/research/TmsisCalibration"))
 const MepsAnalysis = lazy(() => import("./tools/research/MepsAnalysis"));
 const NetworkAdequacy = lazy(() => import("./tools/research/NetworkAdequacy"));
 const ComplianceCountdown = lazy(() => import("./components/ComplianceCountdown"));
+const PolicySimulator = lazy(() => import("./tools/PolicySimulator"));
 
 // ── Hash Router ──────────────────────────────────────────────────────────
 function useRoute() {
@@ -148,6 +149,12 @@ const TOOLS: ToolDef[] = [
     tagline: "Per-enrollee spending, CMS-64 expenditure, and efficiency metrics",
     desc: "Compare Medicaid spending across states: per-enrollee costs by eligibility group, CMS-64 federal/state split, and spending efficiency vs managed care penetration.",
     status: "live", icon: "◑", color: C.teal,
+  },
+  {
+    id: "policy-simulator", group: "forecast", name: "Policy Simulator",
+    tagline: "Model downstream effects of Medicaid policy changes",
+    desc: "System dynamics engine with feedback loops, stocks and flows. Simulate rate changes, workforce investments, HCBS expansion, and economic shocks across enrollment, spending, and access.",
+    status: "live", icon: "\u25C9", color: C.teal,
   },
   // ── PROVIDERS ─────────────────────────────────────────────────────────
   {
@@ -1436,6 +1443,7 @@ function PlatformInner() {
       "/forecast": <CaseloadForecaster />,
       "/fiscal-impact": <FiscalImpact />,
       "/spending": <SpendingEfficiency />,
+      "/policy-simulator": <PolicySimulator />,
       "/hospitals": <AheadReadiness />,
       "/ahead": <AheadCalculator />,
       "/wages": <WageAdequacy />,

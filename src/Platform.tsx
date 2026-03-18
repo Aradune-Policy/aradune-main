@@ -49,6 +49,7 @@ class ToolErrorBoundary extends Component<{ children: ReactNode }, { error: stri
 
 // ── Lazy-loaded tools (code-split per route) ────────────────────────────
 const TmsisExplorer = lazy(() => import("./tools/TmsisExplorer"));
+const RateBrowse = lazy(() => import("./tools/RateBrowse"));
 const WageAdequacy = lazy(() => import("./tools/WageAdequacy"));
 const QualityLinkage = lazy(() => import("./tools/QualityLinkage"));
 const RateDecay = lazy(() => import("./tools/RateDecay"));
@@ -112,9 +113,9 @@ const TOOLS: ToolDef[] = [
   },
   // ── RATES ─────────────────────────────────────────────────────────────
   {
-    id: "rates", group: "rates", name: "Rate Comparison",
-    tagline: "Medicaid-to-Medicare rate parity across all states",
-    desc: "16,000+ HCPCS codes across 47 states compared against the Medicare PFS. Cross-state rankings, rate erosion tracking, and impact analysis.",
+    id: "rates", group: "rates", name: "Rate Browse & Compare",
+    tagline: "Medicaid rates across 54 jurisdictions with source transparency",
+    desc: "Published fee schedules, CF x RVU, and T-MSIS claims rates for 54 jurisdictions. State rankings, code lookup, side-by-side comparison.",
     status: "live", icon: "◧", color: C.brand,
   },
   {
@@ -124,15 +125,9 @@ const TOOLS: ToolDef[] = [
     status: "live", icon: "◆", color: C.brand,
   },
   {
-    id: "lookup", group: "rates", name: "Rate Lookup",
-    tagline: "Search any HCPCS code across all states",
-    desc: "Look up Medicaid reimbursement rates for any procedure code across all 47 states with fee schedule data.",
-    status: "live", icon: "⌗", color: C.brand,
-  },
-  {
-    id: "rate-explorer", group: "rates", name: "Rate Explorer",
-    tagline: "Procedure code rates ranked by % of Medicare",
-    desc: "Search any HCPCS/CPT code and see Medicaid rates for all 54 jurisdictions in a ranked bar chart with sortable table. Uses fact_rate_comparison_v2.",
+    id: "rate-builder", group: "rates", name: "Rate Builder",
+    tagline: "Model fee schedule changes and fiscal impact",
+    desc: "RBRVS calculator, rate modeling, and fiscal impact analysis. What-if scenarios for rate increases and methodology changes.",
     status: "live", icon: "⊞", color: C.brand,
   },
   // ── FORECAST (direct link, no dropdown) ───────────────────────────────
@@ -453,10 +448,10 @@ function Landing() {
       title: "Rates & Compliance",
       color: C.brand,
       modules: [
-        { id: "rates", name: "Rate Comparison", desc: "Medicaid-to-Medicare parity across 47 states, 16,000+ procedure codes", route: "#/rates" },
-        { id: "cpra", name: "CPRA Generator", desc: "42 CFR 447.203 Comparative Payment Rate Analysis for July 2026 deadline", route: "#/cpra" },
-        { id: "lookup", name: "Rate Lookup", desc: "Search any HCPCS code across all states instantly", route: "#/lookup" },
-        { id: "compliance", name: "Compliance Center", desc: "Ensuring Access requirements, rate transparency, HCBS pass-through, rate reduction analysis", route: "#/compliance" },
+        { id: "rates", name: "Rate Browse & Compare", desc: "Medicaid rates across 54 jurisdictions with published fee schedules, CF x RVU, and T-MSIS data", route: "#/rates" },
+        { id: "cpra", name: "CPRA Compliance", desc: "42 CFR 447.203 Comparative Payment Rate Analysis for July 2026 deadline", route: "#/cpra" },
+        { id: "rate-builder", name: "Rate Builder", desc: "RBRVS calculator, rate modeling, and fiscal impact analysis", route: "#/rate-builder" },
+        { id: "compliance", name: "Compliance Center", desc: "Ensuring Access requirements, rate transparency, HCBS pass-through tracking", route: "#/compliance" },
       ],
     },
     {
@@ -1432,10 +1427,12 @@ function PlatformInner() {
     const toolMap: Record<string, ReactElement> = {
       // ── Standalone modules (each does one thing) ─────────────
       "/state": <StateProfile />,
-      "/rates": <TmsisExplorer />,
+      "/rates": <RateBrowse />,
       "/cpra": <CpraGenerator />,
-      "/lookup": <RateLookup />,
-      "/rate-explorer": <RateExplorer />,
+      "/rate-builder": <RateBuilder />,
+      // Legacy redirects (absorbed into RateBrowse)
+      "/lookup": <RateBrowse />,
+      "/rate-explorer": <RateBrowse />,
       "/forecast": <CaseloadForecaster />,
       "/fiscal-impact": <FiscalImpact />,
       "/spending": <SpendingEfficiency />,

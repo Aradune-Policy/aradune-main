@@ -106,7 +106,7 @@ RAG:            DuckDB FTS over policy corpus (1,039 docs, 6,058 chunks from med
                 BM25 full-text search with ILIKE fallback (server/engines/rag_engine.py)
 Search:         Platform-wide Cmd+K search (PlatformSearch.tsx + /api/search)
 Auth:           Clerk integration (ClerkProvider.tsx + server/middleware/auth.py)
-                Falls back to password gate ("mediquiad") when Clerk not configured
+                Falls back to password gate (see server config) when Clerk not configured
 Pipeline:       Python build scripts (scripts/build_*.py) — 115+ ETL scripts
                 Python (cpra_engine.py) — CPRA/DuckDB analytical layer
                 R (tmsis_pipeline_duckdb.R) — T-MSIS processing
@@ -118,7 +118,7 @@ Design:         #0A2540 ink · #2E6B4A brand · #C4590A accent · #F5F7F5 surfac
                 SF Mono for numbers · Helvetica Neue for body · No Google Fonts
 Context:        Universal state context (server/routes/state_context.py) — 12-query endpoint, 1hr cache
                 StateContextBar component (compact + expanded) deployed across all 12 modules
-Access:         Clerk auth (when configured) OR password gate ("mediquiad")
+Access:         Clerk auth (when configured) OR password gate (see server config)
 ```
 
 ---
@@ -131,7 +131,7 @@ ARADUNE  [⌕ Intelligence]  States  Rates  Forecast  Providers  Workforce  [↑
 
 **Intelligence** is the home page (`/#/`). Full-page Claude-powered chat. Every question starts here. Structured tools are accessible from the nav and linked from Intelligence responses.
 
-### Structured Tools (14 on-ramps)
+### Structured Tools (15 on-ramps)
 
 Purpose-built workflows for recurring work. Each has "Ask Intelligence" (opens sidebar with full context), export (CSV, Excel, PDF, DOCX), and accepts imported user data.
 

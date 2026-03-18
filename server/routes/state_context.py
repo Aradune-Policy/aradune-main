@@ -136,12 +136,12 @@ async def state_context(state_code: str):
             row = cur.execute("""
                 SELECT
                     COUNT(*) AS total_codes,
-                    ROUND(MEDIAN(pct_of_medicare) * 100, 1) AS median_pct,
-                    COUNT(*) FILTER (WHERE pct_of_medicare < 0.6) AS below_60,
-                    COUNT(*) FILTER (WHERE pct_of_medicare < 0.8) AS below_80,
+                    ROUND(MEDIAN(pct_of_medicare), 1) AS median_pct,
+                    COUNT(*) FILTER (WHERE pct_of_medicare < 60) AS below_60,
+                    COUNT(*) FILTER (WHERE pct_of_medicare < 80) AS below_80,
                     MODE(rate_source) AS primary_source
                 FROM fact_rate_comparison_v2
-                WHERE state_code = $1 AND pct_of_medicare > 0 AND pct_of_medicare < 10
+                WHERE state_code = $1 AND pct_of_medicare > 0 AND pct_of_medicare < 1000
             """, [sc]).fetchone()
             if row and row[0]:
                 result["rate_adequacy"] = {
@@ -199,10 +199,10 @@ async def state_context(state_code: str):
         try:
             row = cur.execute("""
                 SELECT COUNT(*) AS codes,
-                    ROUND(MEDIAN(pct_of_medicare) * 100, 1) AS median_pct,
+                    ROUND(MEDIAN(pct_of_medicare), 1) AS median_pct,
                     ROUND(AVG(effective_paid_rate), 2) AS avg_rate
                 FROM fact_tmsis_effective_rates
-                WHERE state_code = $1 AND pct_of_medicare > 0 AND pct_of_medicare < 10
+                WHERE state_code = $1 AND pct_of_medicare > 0 AND pct_of_medicare < 1000
             """, [sc]).fetchone()
             if row and row[0] and int(row[0]) > 0:
                 result["tmsis_claims"] = {

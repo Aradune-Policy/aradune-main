@@ -156,6 +156,15 @@ const Btn = ({ children, onClick, primary, small, style }: {
   }}>{children}</button>
 );
 
+// ── State tile map positions ─────────────────────────────────────────
+const HEX_POS: Record<string, [number, number]> = {
+  ME:[10,0],VT:[9,1],NH:[10,1],WA:[1,2],MT:[2,2],ND:[3,2],MN:[4,2],WI:[5,2],MI:[7,2],NY:[8,2],MA:[9,2],CT:[10,2],
+  OR:[1,3],ID:[2,3],SD:[3,3],IA:[4,3],IL:[5,3],IN:[6,3],OH:[7,3],PA:[8,3],NJ:[9,3],RI:[10,3],
+  CA:[0,4],NV:[1,4],WY:[2,4],NE:[3,4],MO:[4,4],KY:[5,4],WV:[6,4],VA:[7,4],MD:[8,4],DE:[9,4],DC:[10,4],
+  AZ:[1,5],UT:[2,5],CO:[3,5],KS:[4,5],AR:[5,5],TN:[6,5],NC:[7,5],SC:[8,5],
+  NM:[2,6],OK:[4,6],LA:[5,6],MS:[6,6],AL:[7,6],GA:[8,6],HI:[1,7],TX:[4,7],FL:[8,7],AK:[0,7],
+};
+
 // ── Amber background for claims-based data ───────────────────────────
 const TMSIS_BG = "rgba(184,134,11,0.07)";
 const TMSIS_BD = "rgba(184,134,11,0.22)";
@@ -601,8 +610,201 @@ export default function RateBrowse() {
             <Card><CardBody><p style={{ color: AL, fontSize: 13, textAlign: "center", padding: 40 }}>Loading state summaries...</p></CardBody></Card>
           )}
 
-          {!dashLoading && dashStats && (
+          {!dashLoading && dashStats && (() => {
+            // Build lookup from stateSummary for the tile map
+            const stateMap: Record<string, StateSummary> = {};
+            for (const s of stateSummary) stateMap[s.state_code] = s;
+
+            // Derive the national average % MCR
+            const allMedians = stateSummary.map(s => s.median_pct_medicare).filter(Boolean);
+            const nationalAvg = allMedians.length ? allMedians.reduce((a, b) => a + b, 0) / allMedians.length : 0;
+
+            // Selected state data
+            const selData = selectedState ? stateMap[selectedState] : null;
+
+            // Derive extra metrics for state detail card
+            const selAvgPct = selData ? selData.median_pct_medicare : 0;
+            const selCodesAtParity = selData
+              ? Math.max(0, (selData.code_count || 0) - (selData.codes_below_80 || 0) - ((selData.codes_below_60 || 0)))
+              : 0;
+
+            // Tile fill color based on median_pct_medicare
+            const tileFill = (pct: number): string => {
+              if (pct <= 0) return "rgba(148,163,184,0.3)";
+              if (pct < 60) return "rgba(164,38,44,0.6)";
+              if (pct < 80) return "rgba(184,134,11,0.5)";
+              if (pct <= 100) return "rgba(46,107,74,0.5)";
+              return "rgba(26,82,118,0.5)";
+            };
+
+            // Text color contrast
+            const tileText = (pct: number): string => {
+              if (pct <= 0) return A;
+              if (pct < 60) return WH;
+              return WH;
+            };
+
+            // States on the map vs territories
+            const mapStates = stateSummary.filter(s => HEX_POS[s.state_code]);
+            const territories = stateSummary.filter(s => !HEX_POS[s.state_code] && ["PR", "GU", "VI", "AS", "MP"].includes(s.state_code));
+
+            return (
             <>
+              {/* ── Tile Map + State Detail Card ───────────────────────── */}
+              <div style={{
+                display: "grid",
+                gridTemplateColumns: mobile ? "1fr" : "repeat(auto-fit, minmax(340px, 1fr))",
+                gap: 16, marginBottom: 16,
+              }}>
+                {/* Tile Map */}
+                <Card>
+                  <CardBody style={{ padding: "14px 16px" }}>
+                    <div style={{ display: "flex", justifyContent: "space-between", alignItems: "baseline", marginBottom: 10 }}>
+                      <h3 style={{ margin: 0, fontSize: 14, fontWeight: 700, color: A }}>Rate Adequacy by State</h3>
+                      <span style={{ fontSize: 10, color: AL }}>Median % of Medicare</span>
+                    </div>
+                    <svg viewBox="0 0 346 244" style={{ width: "100%" }}>
+                      {mapStates.map(s => {
+                        const pos = HEX_POS[s.state_code];
+                        if (!pos) return null;
+                        const x = pos[0] * 30 + ((pos[1] % 2) ? 15 : 0);
+                        const y = pos[1] * 28;
+                        const pct = s.median_pct_medicare || 0;
+                        const isSel = s.state_code === selectedState;
+                        return (
+                          <g key={s.state_code} onClick={() => setSelectedState(selectedState === s.state_code ? null : s.state_code)} style={{ cursor: "pointer" }}>
+                            <rect x={x} y={y} width={26} height={24} rx={4}
+                              fill={tileFill(pct)}
+                              stroke={isSel ? cB : "none"} strokeWidth={isSel ? 2 : 0} />
+                            <text x={x + 13} y={y + 10} textAnchor="middle"
+                              fill={tileText(pct)} fontSize={7} fontWeight={700} fontFamily={FM}>{s.state_code}</text>
+                            <text x={x + 13} y={y + 20} textAnchor="middle"
+                              fill={pct <= 0 ? AL : "rgba(255,255,255,0.75)"} fontSize={5} fontFamily={FM}>
+                              {pct > 0 ? `${Math.round(pct)}%` : "--"}
+                            </text>
+                          </g>
+                        );
+                      })}
+                    </svg>
+                    {/* Territory pills */}
+                    {territories.length > 0 && (
+                      <div style={{ display: "flex", gap: 4, flexWrap: "wrap", marginTop: 6 }}>
+                        {territories.map(s => {
+                          const pct = s.median_pct_medicare || 0;
+                          const isSel = s.state_code === selectedState;
+                          return (
+                            <div key={s.state_code}
+                              onClick={() => setSelectedState(selectedState === s.state_code ? null : s.state_code)}
+                              style={{
+                                cursor: "pointer", padding: "2px 8px", borderRadius: 4,
+                                background: isSel ? A : "rgba(46,107,74,0.08)",
+                                border: isSel ? `1px solid ${cB}` : `1px solid ${BD}`,
+                                fontSize: 9, fontFamily: FM, display: "flex", gap: 4, alignItems: "center",
+                              }}>
+                              <span style={{ fontWeight: 700, color: isSel ? WH : A }}>{s.state_code}</span>
+                              <span style={{ color: isSel ? "rgba(255,255,255,0.7)" : AL }}>
+                                {pct > 0 ? `${Math.round(pct)}%` : "--"}
+                              </span>
+                            </div>
+                          );
+                        })}
+                      </div>
+                    )}
+                    {/* Legend */}
+                    <div style={{ display: "flex", gap: 10, marginTop: 10, fontSize: 9, color: AL, flexWrap: "wrap" }}>
+                      <span><span style={{ display: "inline-block", width: 8, height: 8, borderRadius: 2, background: "rgba(164,38,44,0.6)", marginRight: 3 }} />Below 60%</span>
+                      <span><span style={{ display: "inline-block", width: 8, height: 8, borderRadius: 2, background: "rgba(184,134,11,0.5)", marginRight: 3 }} />60 - 80%</span>
+                      <span><span style={{ display: "inline-block", width: 8, height: 8, borderRadius: 2, background: "rgba(46,107,74,0.5)", marginRight: 3 }} />80 - 100%</span>
+                      <span><span style={{ display: "inline-block", width: 8, height: 8, borderRadius: 2, background: "rgba(26,82,118,0.5)", marginRight: 3 }} />Above 100%</span>
+                    </div>
+                  </CardBody>
+                </Card>
+
+                {/* State Detail Card */}
+                {selData ? (
+                  <Card>
+                    <CardBody style={{ padding: "18px 20px" }}>
+                      <div style={{ marginBottom: 14 }}>
+                        <h3 style={{ margin: 0, fontSize: 18, fontWeight: 800, color: A }}>
+                          {selData.state_name || STATE_NAMES[selData.state_code] || selData.state_code}
+                        </h3>
+                        <div style={{ fontSize: 12, marginTop: 4 }}>
+                          <span style={{ color: AL }}>vs national avg: </span>
+                          <span style={{
+                            fontWeight: 700, fontFamily: FM,
+                            color: selAvgPct >= nationalAvg ? POS : NEG,
+                          }}>
+                            {selAvgPct >= nationalAvg ? "+" : ""}{(selAvgPct - nationalAvg).toFixed(1)} pp
+                          </span>
+                          <span style={{ fontSize: 10, color: AL, marginLeft: 4 }}>
+                            ({selAvgPct.toFixed(0)}% vs {nationalAvg.toFixed(0)}%)
+                          </span>
+                        </div>
+                      </div>
+                      {/* 3x2 metric grid */}
+                      <div style={{ display: "grid", gridTemplateColumns: "repeat(3, 1fr)", gap: 10 }}>
+                        <div style={{ background: SF, borderRadius: 8, padding: "10px 8px", textAlign: "center" }}>
+                          <div style={{ fontSize: 18, fontWeight: 700, fontFamily: FM, color: pctColor(selData.median_pct_medicare || 0) }}>
+                            {selData.median_pct_medicare ? `${selData.median_pct_medicare.toFixed(0)}%` : "--"}
+                          </div>
+                          <div style={{ fontSize: 10, color: AL, marginTop: 2 }}>Median % MCR</div>
+                        </div>
+                        <div style={{ background: SF, borderRadius: 8, padding: "10px 8px", textAlign: "center" }}>
+                          <div style={{ fontSize: 18, fontWeight: 700, fontFamily: FM, color: A }}>
+                            {(selData.code_count || 0).toLocaleString()}
+                          </div>
+                          <div style={{ fontSize: 10, color: AL, marginTop: 2 }}>Total Codes</div>
+                        </div>
+                        <div style={{ background: SF, borderRadius: 8, padding: "10px 8px", textAlign: "center" }}>
+                          <div style={{ fontSize: 18, fontWeight: 700, fontFamily: FM, color: (selData.codes_below_80 || 0) > 0 ? WARN : POS }}>
+                            {selData.codes_below_80 ?? "--"}
+                          </div>
+                          <div style={{ fontSize: 10, color: AL, marginTop: 2 }}>Codes Below 80%</div>
+                        </div>
+                        <div style={{ background: SF, borderRadius: 8, padding: "10px 8px", textAlign: "center" }}>
+                          <div style={{ fontSize: 12, fontWeight: 600, fontFamily: FM, color: AL, lineHeight: 1.6 }}>
+                            {selData.rate_source || "--"}
+                          </div>
+                          <div style={{ fontSize: 10, color: AL, marginTop: 2 }}>Rate Source</div>
+                        </div>
+                        <div style={{ background: SF, borderRadius: 8, padding: "10px 8px", textAlign: "center" }}>
+                          <div style={{ fontSize: 18, fontWeight: 700, fontFamily: FM, color: pctColor(selAvgPct) }}>
+                            {selAvgPct ? `${selAvgPct.toFixed(0)}%` : "--"}
+                          </div>
+                          <div style={{ fontSize: 10, color: AL, marginTop: 2 }}>Avg % MCR</div>
+                        </div>
+                        <div style={{ background: SF, borderRadius: 8, padding: "10px 8px", textAlign: "center" }}>
+                          <div style={{ fontSize: 18, fontWeight: 700, fontFamily: FM, color: POS }}>
+                            {selCodesAtParity.toLocaleString()}
+                          </div>
+                          <div style={{ fontSize: 10, color: AL, marginTop: 2 }}>Codes at Parity</div>
+                        </div>
+                      </div>
+                      {/* View in Code Lookup button */}
+                      <div style={{ marginTop: 16 }}>
+                        <Btn primary onClick={() => {
+                          setView("lookup");
+                          setSelectedState(selData.state_code);
+                        }} style={{ width: "100%" }}>
+                          View in Code Lookup
+                        </Btn>
+                      </div>
+                    </CardBody>
+                  </Card>
+                ) : (
+                  <Card>
+                    <CardBody style={{ display: "flex", alignItems: "center", justifyContent: "center", minHeight: 200 }}>
+                      <p style={{ color: AL, fontSize: 13, textAlign: "center" }}>
+                        Click a state on the map to see details
+                      </p>
+                    </CardBody>
+                  </Card>
+                )}
+              </div>
+
+              {/* Cross-dataset context for selected state */}
+              {selectedState && <StateContext stateCode={selectedState} />}
+
               {/* Summary cards */}
               <div style={{ display: "grid", gridTemplateColumns: mobile ? "1fr 1fr" : "repeat(4, 1fr)", gap: 12, marginBottom: 16 }}>
                 <Card><Met label="Jurisdictions" value={`${dashStats.jurisdictions}`} color={cB} /></Card>
@@ -726,11 +928,9 @@ export default function RateBrowse() {
                   </div>
                 </CardBody>
               </Card>
-
-              {/* Cross-dataset context for selected state */}
-              {selectedState && <StateContext stateCode={selectedState} />}
             </>
-          )}
+            );
+          })()}
 
           {!dashLoading && !dashStats && stateSummary.length === 0 && (
             <Card><CardBody><p style={{ color: AL, fontSize: 13, textAlign: "center", padding: 40 }}>No state summary data available. Ensure /api/rates/state-summary is configured.</p></CardBody></Card>

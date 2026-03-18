@@ -58,15 +58,15 @@ async def rate_state_summary():
                     rc.state_code,
                     ds.state_name,
                     COUNT(*) AS total_codes,
-                    ROUND(MEDIAN(rc.pct_of_medicare) * 100, 1) AS median_pct_medicare,
-                    ROUND(AVG(rc.pct_of_medicare) * 100, 1) AS avg_pct_medicare,
-                    COUNT(*) FILTER (WHERE rc.pct_of_medicare < 0.6) AS codes_below_60,
-                    COUNT(*) FILTER (WHERE rc.pct_of_medicare < 0.8) AS codes_below_80,
-                    COUNT(*) FILTER (WHERE rc.pct_of_medicare >= 1.0) AS codes_at_parity,
+                    ROUND(MEDIAN(rc.pct_of_medicare), 1) AS median_pct_medicare,
+                    ROUND(AVG(rc.pct_of_medicare), 1) AS avg_pct_medicare,
+                    COUNT(*) FILTER (WHERE rc.pct_of_medicare < 60) AS codes_below_60,
+                    COUNT(*) FILTER (WHERE rc.pct_of_medicare < 80) AS codes_below_80,
+                    COUNT(*) FILTER (WHERE rc.pct_of_medicare >= 100) AS codes_at_parity,
                     MODE(rc.rate_source) AS primary_rate_source
                 FROM fact_rate_comparison_v2 rc
                 LEFT JOIN dim_state ds ON rc.state_code = ds.state_code
-                WHERE rc.pct_of_medicare > 0 AND rc.pct_of_medicare < 10
+                WHERE rc.pct_of_medicare > 0 AND rc.pct_of_medicare < 1000
                 GROUP BY rc.state_code, ds.state_name
                 ORDER BY median_pct_medicare DESC
             """).fetchall()

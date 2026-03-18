@@ -156,6 +156,111 @@ const Btn = ({ children, onClick, primary, small, style }: {
   }}>{children}</button>
 );
 
+// ── Amber background for claims-based data ───────────────────────────
+const TMSIS_BG = "rgba(184,134,11,0.07)";
+const TMSIS_BD = "rgba(184,134,11,0.22)";
+
+// ── Format helpers & symbols ─────────────────────────────────────────
+const fmtB = (n: number | null | undefined) => n == null ? "--" : Math.abs(n) >= 1e9 ? `$${(n/1e9).toFixed(1)}B` : Math.abs(n) >= 1e6 ? `$${(n/1e6).toFixed(1)}M` : `$${n.toLocaleString()}`;
+const fmtPct = (n: number | null | undefined) => n == null ? "--" : `${(n*100).toFixed(1)}%`;
+const fmtDollar = (n: number | null | undefined) => n == null ? "--" : `$${n.toFixed(2)}`;
+const SYM = { fiscal: "\u25C6", access: "\u25B2", workforce: "\u25CF", enrollment: "\u25A0", tmsis: "\u25C8", supplemental: "\u25CA" };
+
+// ── StateContext: cross-dataset panel for a selected state ───────────
+function StateContext({ stateCode, compact }: { stateCode: string; compact?: boolean }) {
+  const [ctx, setCtx] = useState<any>(null);
+  const mobile = useIsMobile();
+
+  useEffect(() => {
+    if (!stateCode) return;
+    (async () => {
+      try {
+        const hdrs = await getAuthHeaders();
+        const res = await fetch(`${API_BASE}/api/rates/context/${stateCode}`, { headers: hdrs });
+        if (res.ok) setCtx(await res.json());
+      } catch { /* ignore */ }
+    })();
+  }, [stateCode]);
+
+  if (!ctx || Object.keys(ctx).length === 0) return null;
+
+  const fmap = ctx.fmap?.rate;
+  const expTotal = ctx.expenditure?.total_computable;
+  const costPer1Pct = (expTotal && fmap) ? (expTotal * 0.01 * (1 - fmap)) : null;
+  const cols = mobile ? "1fr" : compact ? "repeat(2, 1fr)" : "repeat(3, 1fr)";
+
+  const isTmsisTitle = (t: string) => t === "Claims-Based Rates (T-MSIS)";
+  const Section = ({ sym, title, children }: { sym: string; title: string; children: React.ReactNode }) => (
+    <div style={{ border: `1px solid ${isTmsisTitle(title) ? TMSIS_BD : BD}`, borderRadius: 8, padding: "10px 12px", background: isTmsisTitle(title) ? TMSIS_BG : WH }}>
+      <div style={{ fontSize: 11, fontWeight: 700, color: AL, marginBottom: 6, letterSpacing: 0.3 }}><span style={{ marginRight: 5 }}>{sym}</span>{title}</div>
+      {children}
+    </div>
+  );
+  const V = ({ label, value, sub }: { label: string; value: string; sub?: string }) => (
+    <div style={{ marginBottom: 4 }}>
+      <span style={{ fontSize: 11, color: AL }}>{label}: </span>
+      <span style={{ fontSize: 12, fontWeight: 600, fontFamily: FM, color: A }}>{value}</span>
+      {sub && <div style={{ fontSize: 10, color: AL, marginTop: 1 }}>{sub}</div>}
+    </div>
+  );
+
+  return (
+    <Card>
+      <CardBody style={{ padding: "14px 16px" }}>
+        <div style={{ display: "flex", justifyContent: "space-between", alignItems: "baseline", marginBottom: 10 }}>
+          <h4 style={{ margin: 0, fontSize: 14, fontWeight: 700, color: A }}>Rate Setting Context: {stateCode} {STATE_NAMES[stateCode] || ""}</h4>
+          <span style={{ fontSize: 10, color: AL }}>Cross-dataset signals</span>
+        </div>
+        <div style={{ display: "grid", gridTemplateColumns: cols, gap: 10 }}>
+          {(fmap != null || expTotal != null) && (
+            <Section sym={SYM.fiscal} title="Fiscal">
+              {fmap != null && <V label="FMAP rate" value={fmtPct(fmap)} />}
+              {expTotal != null && <V label="CMS-64 spending" value={fmtB(expTotal)} />}
+              {costPer1Pct != null && <div style={{ fontSize: 10, color: AL, marginTop: 4, lineHeight: 1.4, borderTop: `1px solid ${BD}`, paddingTop: 4 }}>A 1% rate increase costs the state ~{fmtB(costPer1Pct)}</div>}
+            </Section>
+          )}
+          {ctx.hpsa && (
+            <Section sym={SYM.access} title="Access">
+              <V label="HPSA designations" value={`${ctx.hpsa.total || 0}`}
+                sub={[ctx.hpsa.primary_care && `PC: ${ctx.hpsa.primary_care}`, ctx.hpsa.dental && `Dental: ${ctx.hpsa.dental}`, ctx.hpsa.mental_health && `MH: ${ctx.hpsa.mental_health}`].filter(Boolean).join(" / ") || undefined} />
+              {ctx.quality && <V label="Quality" value={`${ctx.quality.below_median || 0} of ${ctx.quality.total_measures || 0} below median`} />}
+            </Section>
+          )}
+          {ctx.workforce && (
+            <Section sym={SYM.workforce} title="Workforce">
+              {ctx.workforce.cna_median_wage != null && <V label="CNA/HHA median wage" value={fmtDollar(ctx.workforce.cna_median_wage)}
+                sub={ctx.workforce.cna_median_wage < 16 ? "Below $16/hr retail benchmark" : "At or above $16/hr retail benchmark"} />}
+            </Section>
+          )}
+          {ctx.enrollment && (
+            <Section sym={SYM.enrollment} title="Enrollment">
+              <V label="Total" value={(ctx.enrollment.total || 0).toLocaleString()}
+                sub={ctx.enrollment.mc_pct != null ? `MC: ${(ctx.enrollment.mc_pct * 100).toFixed(0)}%` : undefined} />
+              {ctx.enrollment.vintage && <div style={{ fontSize: 10, color: AL }}>{ctx.enrollment.vintage}</div>}
+            </Section>
+          )}
+
+          {ctx.tmsis && (
+            <Section sym={SYM.tmsis} title="Claims-Based Rates (T-MSIS)">
+              {ctx.tmsis.median_pct_medicare != null && <V label="Median % of Medicare" value={`${ctx.tmsis.median_pct_medicare.toFixed(0)}%`} sub="From actual paid claims, not fee schedule maximums" />}
+              {ctx.tmsis.avg_paid_rate != null && <V label="Avg paid rate" value={fmtDollar(ctx.tmsis.avg_paid_rate)} />}
+              {ctx.tmsis.gap_note && <div style={{ fontSize: 10, color: WARN, marginTop: 4, lineHeight: 1.4, fontStyle: "italic" }}>{ctx.tmsis.gap_note}</div>}
+              <div style={{ fontSize: 9, color: AL, marginTop: 4, borderTop: `1px dashed ${TMSIS_BD}`, paddingTop: 3 }}>Claims-based: reflects actual payments, not fee schedule maximums</div>
+            </Section>
+          )}
+          {ctx.supplemental && (
+            <Section sym={SYM.supplemental} title="Supplemental Payments">
+              {ctx.supplemental.dsh_total != null && <V label="DSH allotment" value={fmtB(ctx.supplemental.dsh_total)} />}
+              {ctx.supplemental.sdp_count != null && <V label="State directed payments" value={`${ctx.supplemental.sdp_count} programs`}
+                sub={ctx.supplemental.sdp_total != null ? `Total: ${fmtB(ctx.supplemental.sdp_total)}` : undefined} />}
+            </Section>
+          )}
+        </div>
+      </CardBody>
+    </Card>
+  );
+}
+
 // ═════════════════════════════════════════════════════════════════════════
 export default function RateBrowse() {
   const { openIntelligence } = useAradune();
@@ -181,6 +286,9 @@ export default function RateBrowse() {
   const [lookupSort, setLookupSort] = useState<LookupSortKey>("pct");
   const [lookupAsc, setLookupAsc] = useState(false);
   const debounceRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+  // ── Cross-dataset context state ────────────────────────────────────
+  const [selectedState, setSelectedState] = useState<string | null>(null);
 
   // ── Compare state ───────────────────────────────────────────────────
   const [cmpStates, setCmpStates] = useState<(string | "")[]>(["", "", ""]);
@@ -471,7 +579,7 @@ export default function RateBrowse() {
           { key: "lookup" as View, label: "Code Lookup", icon: "\u25C7" },
           { key: "compare" as View, label: "State Compare", icon: "\u25B3" },
         ]).map(v => (
-          <button key={v.key} onClick={() => setView(v.key)} style={{
+          <button key={v.key} onClick={() => { setView(v.key); setSelectedState(null); }} style={{
             padding: mobile ? "8px 14px" : "9px 22px", border: "none", cursor: "pointer",
             fontSize: 12, fontWeight: 600, fontFamily: FB,
             background: view === v.key ? WH : "transparent",
@@ -583,13 +691,14 @@ export default function RateBrowse() {
                       <tbody>
                         {dashSorted.map(r => (
                           <tr key={r.state_code}
-                            onClick={() => {
-                              setCmpStates([r.state_code, "", ""]);
-                              setView("compare");
+                            onClick={() => setSelectedState(selectedState === r.state_code ? null : r.state_code)}
+                            onDoubleClick={() => { setCmpStates([r.state_code, "", ""]); setView("compare"); }}
+                            style={{
+                              borderBottom: `1px solid ${BD}`, cursor: "pointer",
+                              background: selectedState === r.state_code ? SF : "transparent",
                             }}
-                            style={{ borderBottom: `1px solid ${BD}`, cursor: "pointer" }}
-                            onMouseEnter={e => (e.currentTarget.style.background = SF)}
-                            onMouseLeave={e => (e.currentTarget.style.background = WH)}
+                            onMouseEnter={e => { if (selectedState !== r.state_code) e.currentTarget.style.background = SF; }}
+                            onMouseLeave={e => { if (selectedState !== r.state_code) e.currentTarget.style.background = "transparent"; }}
                           >
                             <td style={{ padding: "8px 6px", fontWeight: 700, color: cB }}>{r.state_code}</td>
                             <td style={{ padding: "8px 6px", color: A }}>{r.state_name || STATE_NAMES[r.state_code] || ""}</td>
@@ -617,6 +726,9 @@ export default function RateBrowse() {
                   </div>
                 </CardBody>
               </Card>
+
+              {/* Cross-dataset context for selected state */}
+              {selectedState && <StateContext stateCode={selectedState} />}
             </>
           )}
 
@@ -799,29 +911,66 @@ export default function RateBrowse() {
                         </tr>
                       </thead>
                       <tbody>
-                        {lookupSorted.map(r => (
-                          <tr key={r.state_code} style={{ borderBottom: `1px solid ${BD}` }}>
-                            <td style={{ padding: "8px 6px", fontWeight: 600, color: A }}>
-                              {r.state_code} <span style={{ fontWeight: 400, color: AL, fontSize: 11 }}>{STATE_NAMES[r.state_code] || ""}</span>
-                            </td>
-                            <td style={{ padding: "8px 6px", textAlign: "right", fontWeight: 600 }}>${r.medicaid_rate.toFixed(2)}</td>
-                            <td style={{ padding: "8px 6px", textAlign: "right", fontWeight: 700, color: pctColor(r.pct_of_medicare) }}>
-                              {r.pct_of_medicare.toFixed(1)}%
-                            </td>
-                            <td style={{ padding: "8px 6px", fontSize: 10, color: AL }}>
-                              <span style={{
-                                display: "inline-block", width: 6, height: 6, borderRadius: "50%",
-                                background: sourceColor(r.rate_source || ""), marginRight: 4, verticalAlign: "middle",
-                              }} />
-                              {r.rate_source || "--"}
-                            </td>
-                          </tr>
-                        ))}
+                        {lookupSorted.map(r => {
+                          const isTmsis = (r.rate_source || "").toLowerCase().includes("tmsis");
+                          const isPublished = !isTmsis;
+                          // Find T-MSIS companion for published rates (or vice versa)
+                          const companion = isTmsis
+                            ? codeRates.find(c => c.state_code === r.state_code && !(c.rate_source || "").toLowerCase().includes("tmsis"))
+                            : codeRates.find(c => c.state_code === r.state_code && (c.rate_source || "").toLowerCase().includes("tmsis"));
+                          // Skip tmsis rows if a published row already exists (we'll show tmsis inline)
+                          if (isTmsis && codeRates.some(c => c.state_code === r.state_code && !(c.rate_source || "").toLowerCase().includes("tmsis"))) return null;
+                          return (
+                            <tr key={r.state_code + (isTmsis ? "_t" : "")}
+                              onClick={() => setSelectedState(selectedState === r.state_code ? null : r.state_code)}
+                              style={{
+                                borderBottom: `1px solid ${BD}`, cursor: "pointer",
+                                background: selectedState === r.state_code ? SF : "transparent",
+                              }}
+                              onMouseEnter={e => { if (selectedState !== r.state_code) e.currentTarget.style.background = SF; }}
+                              onMouseLeave={e => { if (selectedState !== r.state_code) e.currentTarget.style.background = "transparent"; }}
+                            >
+                              <td style={{ padding: "8px 6px", fontWeight: 600, color: A }}>
+                                {r.state_code} <span style={{ fontWeight: 400, color: AL, fontSize: 11 }}>{STATE_NAMES[r.state_code] || ""}</span>
+                              </td>
+                              <td style={{ padding: "8px 6px", textAlign: "right" }}>
+                                <div style={{ fontWeight: 600 }}>
+                                  {isPublished ? "Published" : "Claims-based"}: ${r.medicaid_rate.toFixed(2)}
+                                  {selectedCode?.medicare_rate_nonfac ? ` (${r.pct_of_medicare.toFixed(0)}% MCR)` : ""}
+                                </div>
+                                {companion && (
+                                  <div style={{ fontSize: 10, color: AL, marginTop: 2, background: TMSIS_BG, borderRadius: 3, padding: "1px 4px", display: "inline-block" }}>
+                                    {isTmsis ? "Published" : "Claims-based"}: ${companion.medicaid_rate.toFixed(2)}
+                                    {selectedCode?.medicare_rate_nonfac ? ` (${companion.pct_of_medicare.toFixed(0)}% MCR)` : ""}
+                                  </div>
+                                )}
+                              </td>
+                              <td style={{ padding: "8px 6px", textAlign: "right", fontWeight: 700, color: pctColor(r.pct_of_medicare) }}>
+                                {r.pct_of_medicare.toFixed(1)}%
+                              </td>
+                              <td style={{ padding: "8px 6px", fontSize: 10, color: AL }}>
+                                <span style={{
+                                  display: "inline-block", width: 6, height: 6, borderRadius: "50%",
+                                  background: sourceColor(r.rate_source || ""), marginRight: 4, verticalAlign: "middle",
+                                }} />
+                                {r.rate_source || "--"}
+                              </td>
+                            </tr>
+                          );
+                        })}
                       </tbody>
                     </table>
                   </div>
+                  {codeRates.some(r => (r.rate_source || "").toLowerCase().includes("tmsis")) && (
+                    <div style={{ marginTop: 8, fontSize: 10, color: WARN, lineHeight: 1.5, background: TMSIS_BG, borderRadius: 4, padding: "6px 8px" }}>
+                      Claims-based rates (T-MSIS) reflect actual paid amounts, not fee schedule maximums. The gap between published and claims-based rates reflects discounts, MCO negotiation, and payment adjustments.
+                    </div>
+                  )}
                 </CardBody>
               </Card>
+
+              {/* Cross-dataset context for selected state */}
+              {selectedState && <StateContext stateCode={selectedState} />}
 
               {/* Ask Aradune about this code */}
               <div style={{ display: "flex", gap: 12, justifyContent: "flex-end", marginBottom: 16 }}>
@@ -959,6 +1108,13 @@ export default function RateBrowse() {
                       <div style={{ fontSize: 11, color: AL }}>Avg % of Medicare</div>
                     </CardBody>
                   </Card>
+                ))}
+              </div>
+
+              {/* Cross-dataset context for compared states */}
+              <div style={{ display: "grid", gridTemplateColumns: mobile ? "1fr" : `repeat(${Math.min(activeCompareStates.length, 2)}, 1fr)`, gap: 12, marginBottom: 16 }}>
+                {activeCompareStates.map(sc => (
+                  <StateContext key={sc} stateCode={sc} compact />
                 ))}
               </div>
 

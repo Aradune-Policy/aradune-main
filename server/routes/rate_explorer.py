@@ -168,3 +168,158 @@ async def rate_compare_states(
         raise
     except Exception as exc:
         raise HTTPException(status_code=500, detail=f"rate compare-states failed: {exc}")
+
+
+@router.get("/api/rates/context/{state_code}")
+@safe_route(default_response={})
+async def rate_context(state_code: str):
+    """Cross-dataset context for rate analysis: workforce, access, quality, fiscal, claims."""
+    state_code = state_code.upper()
+    result = {}
+
+    with get_cursor() as cur:
+        # 1. FMAP (federal match rate)
+        try:
+            row = cur.execute("""
+                SELECT fmap, methodology, conversion_factor
+                FROM dim_state WHERE state_code = $1
+            """, [state_code]).fetchone()
+            if row:
+                result["fmap"] = {"rate": row[0], "methodology": row[1], "conversion_factor": row[2]}
+        except:
+            pass
+
+        # 2. Enrollment (latest)
+        try:
+            row = cur.execute("""
+                SELECT total_enrollment, mc_enrollment, ffs_enrollment, year, month
+                FROM fact_enrollment
+                WHERE state_code = $1
+                ORDER BY year DESC, month DESC LIMIT 1
+            """, [state_code]).fetchone()
+            if row:
+                mc_pct = round(row[1] / row[0] * 100, 1) if row[0] and row[1] else None
+                result["enrollment"] = {
+                    "total": row[0], "managed_care": row[1], "ffs": row[2],
+                    "mc_pct": mc_pct, "year": row[3], "month": row[4]
+                }
+        except:
+            pass
+
+        # 3. HPSA counts (primary care, dental, mental health)
+        try:
+            rows = cur.execute("""
+                SELECT
+                    COUNT(*) AS total_hpsas,
+                    COUNT(*) FILTER (WHERE LOWER(hpsa_discipline_class) LIKE '%primary%'
+                        OR LOWER(discipline_type) LIKE '%primary%') AS primary_care,
+                    COUNT(*) FILTER (WHERE LOWER(hpsa_discipline_class) LIKE '%dental%'
+                        OR LOWER(discipline_type) LIKE '%dental%') AS dental,
+                    COUNT(*) FILTER (WHERE LOWER(hpsa_discipline_class) LIKE '%mental%'
+                        OR LOWER(discipline_type) LIKE '%mental%') AS mental_health
+                FROM fact_hpsa WHERE state_code = $1
+            """, [state_code]).fetchone()
+            if rows:
+                result["hpsa"] = {
+                    "total": rows[0], "primary_care": rows[1],
+                    "dental": rows[2], "mental_health": rows[3]
+                }
+        except:
+            pass
+
+        # 4. Workforce (CNA/HHA median wage)
+        try:
+            row = cur.execute("""
+                SELECT occupation_title, hourly_mean, hourly_median, annual_mean
+                FROM fact_bls_wage
+                WHERE state_code = $1
+                AND (LOWER(occupation_title) LIKE '%nursing assist%'
+                     OR LOWER(occupation_title) LIKE '%home health aide%'
+                     OR soc_code IN ('31-1131', '31-1121'))
+                LIMIT 1
+            """, [state_code]).fetchone()
+            if row:
+                result["workforce"] = {
+                    "occupation": row[0], "hourly_mean": row[1],
+                    "hourly_median": row[2], "annual_mean": row[3]
+                }
+        except:
+            pass
+
+        # 5. Quality (core set summary - count of measures below median)
+        try:
+            rows = cur.execute("""
+                SELECT COUNT(*) AS total_measures,
+                    COUNT(*) FILTER (WHERE state_rate < median_rate) AS below_median
+                FROM fact_quality_core_set_2024
+                WHERE state_code = $1 AND state_rate IS NOT NULL AND median_rate IS NOT NULL
+            """, [state_code]).fetchone()
+            if rows:
+                result["quality"] = {
+                    "total_measures": rows[0], "below_median": rows[1],
+                    "pct_below_median": round(rows[1] / max(rows[0], 1) * 100, 1)
+                }
+        except:
+            pass
+
+        # 6. CMS-64 expenditure (latest fiscal year)
+        try:
+            row = cur.execute("""
+                SELECT fiscal_year, SUM(total_computable) AS total_spending,
+                    SUM(federal_share) AS federal_spending
+                FROM fact_cms64_multiyear
+                WHERE state_code = $1 AND LOWER(category) = 'total'
+                GROUP BY fiscal_year
+                ORDER BY fiscal_year DESC LIMIT 1
+            """, [state_code]).fetchone()
+            if row:
+                result["expenditure"] = {
+                    "fiscal_year": row[0], "total_computable": row[1],
+                    "federal_share": row[2]
+                }
+        except:
+            pass
+
+        # 7. T-MSIS claims-based effective rates (labeled clearly)
+        try:
+            row = cur.execute("""
+                SELECT COUNT(*) AS total_codes,
+                    ROUND(MEDIAN(pct_of_medicare) * 100, 1) AS median_pct_medicare,
+                    ROUND(AVG(effective_paid_rate), 2) AS avg_paid_rate
+                FROM fact_tmsis_effective_rates
+                WHERE state_code = $1 AND pct_of_medicare > 0 AND pct_of_medicare < 10
+            """, [state_code]).fetchone()
+            if row and row[0] > 0:
+                result["tmsis_claims"] = {
+                    "total_codes": row[0], "median_pct_medicare": row[1],
+                    "avg_paid_rate": row[2],
+                    "caveat": "Claims-based: reflects actual paid amounts across all modifiers and settings, not fee schedule maximums. Expect lower than published rates."
+                }
+        except:
+            pass
+
+        # 8. Supplemental payments (DSH + SDP)
+        try:
+            dsh = cur.execute("""
+                SELECT SUM(dsh_allotment) AS dsh_total
+                FROM fact_dsh_hospital WHERE state_code = $1
+            """, [state_code]).fetchone()
+            if dsh and dsh[0]:
+                result["supplemental"] = {"dsh_total": dsh[0]}
+        except:
+            pass
+
+        try:
+            sdp = cur.execute("""
+                SELECT COUNT(*) AS sdp_count, SUM(total_expenditure) AS sdp_total
+                FROM fact_sdp_preprint WHERE state_code = $1
+            """, [state_code]).fetchone()
+            if sdp and sdp[0] > 0:
+                if "supplemental" not in result:
+                    result["supplemental"] = {}
+                result["supplemental"]["sdp_count"] = sdp[0]
+                result["supplemental"]["sdp_total"] = sdp[1]
+        except:
+            pass
+
+    return result

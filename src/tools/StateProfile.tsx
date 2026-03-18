@@ -90,14 +90,19 @@ const SEVERITY_COLORS: Record<InsightSeverity, { bg: string; border: string; ico
 };
 
 const DOMAIN_ICONS: Record<string, string> = {
-  rates: "\u26A0", workforce: "\uD83D\uDC69\u200D\u2695\uFE0F", enrollment: "\uD83D\uDCC8",
-  hospitals: "\uD83C\uDFE5", quality: "\u2B50", pharmacy: "\uD83D\uDC8A", economic: "\uD83D\uDCCB",
+  rates: "\u25C7",      // ◇ diamond outline
+  workforce: "\u25B3",  // △ triangle
+  enrollment: "\u25CE", // ◎ bullseye
+  hospitals: "\u25A1",  // □ square
+  quality: "\u25C9",    // ◉ filled circle
+  pharmacy: "\u2295",   // ⊕ circled plus
+  economic: "\u25CA",   // ◊ lozenge
 };
 
 /** Normalize server-side insights ({type, title, text, domains}) into client Insight format. */
 function normalizeServerInsights(serverInsights: any[]): Insight[] {
   return (serverInsights || []).map((si: any) => ({
-    icon: DOMAIN_ICONS[si.domains?.[0]] || "\uD83D\uDD0D",
+    icon: DOMAIN_ICONS[si.domains?.[0]] || "\u25CB",
     title: si.title,
     description: si.text,
     severity: (si.type === "warning" ? "warning" : "info") as InsightSeverity,

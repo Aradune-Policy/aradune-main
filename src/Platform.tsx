@@ -9,24 +9,23 @@ import PlatformSearch from "./components/PlatformSearch";
 import { AraduneProvider, useAradune } from "./context/AraduneContext";
 import IntelligencePanel from "./components/IntelligencePanel";
 import ReportBuilder from "./components/ReportBuilder";
-import Lottie from "lottie-react";
+// Lottie removed — sword animation replaced with logo-mark + progress bar
 import { ClerkAuthProvider, RequireAuth, UserNav, isClerkEnabled } from "./components/ClerkProvider";
 
-// ── Sword Loading Animation ──────────────────────────────────────────────
+// ── Page Loader (replaces sword animation) ──────────────────────────────
 function SwordLoader({ text = "Loading..." }: { text?: string }) {
-  const [animData, setAnimData] = useState<object | null>(null);
-  useEffect(() => {
-    fetch("/assets/sword-animation.json")
-      .then(r => r.json())
-      .then(setAnimData)
-      .catch(() => {});
-  }, []);
   return (
     <div style={{ maxWidth: 600, margin: "0 auto", padding: "60px 20px", textAlign: "center", display: "flex", flexDirection: "column", alignItems: "center" }}>
-      {animData ? (
-        <Lottie animationData={animData} loop style={{ width: 80, height: 140 }} />
-      ) : null}
-      <div style={{ fontSize: 12, color: C.inkLight, marginTop: 8, fontFamily: FONT.body }}>{text}</div>
+      <img src="/assets/logo-mark.svg" alt="" style={{ width: 40, height: 40, opacity: 0.6, marginBottom: 16 }}
+        onError={e => { (e.target as HTMLImageElement).style.display = "none"; }} />
+      <div style={{ width: 200, height: 3, background: C.border, borderRadius: 2, overflow: "hidden" }}>
+        <div style={{
+          height: "100%", background: C.brand, borderRadius: 2,
+          width: "60%", animation: "loadFill 1.5s ease-in-out infinite alternate",
+        }} />
+      </div>
+      <div style={{ fontSize: 12, color: C.inkLight, marginTop: 10, fontFamily: FONT.body }}>{text}</div>
+      <style>{`@keyframes loadFill { from { width: 20%; } to { width: 80%; } }`}</style>
     </div>
   );
 }
@@ -340,7 +339,9 @@ function PlatformNav({ route }: { route: string }) {
         gap: 4,
       }}>
         <div style={{ display: "flex", alignItems: "center", gap: 8, flexShrink: 0 }}>
-          <a href="#/" style={{ textDecoration: "none", display: "flex", alignItems: "center" }}>
+          <a href="#/" style={{ textDecoration: "none", display: "flex", alignItems: "center", gap: 7 }}>
+            <img src="/assets/logo-mark.svg" alt="" style={{ width: 22, height: 22 }}
+              onError={e => { (e.target as HTMLImageElement).style.display = "none"; }} />
             <span style={{ fontSize: 16, fontWeight: 800, color: C.brand, letterSpacing: 2, fontFamily: FONT.body }}>ARADUNE</span>
           </a>
           {demoMode && (

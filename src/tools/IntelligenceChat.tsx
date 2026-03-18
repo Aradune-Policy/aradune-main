@@ -664,14 +664,16 @@ export default function IntelligenceChat() {
             justifyContent: "center", minHeight: "50vh", textAlign: "center",
             padding: "0 20px",
           }}>
-            <img src="/assets/icon-bot.png" alt="" style={{ width: 36, height: 36, borderRadius: 8, marginBottom: 16, opacity: 0.8 }}
-              onError={e => { (e.target as HTMLImageElement).style.display = "none"; }} />
-            <h1 style={{
-              fontSize: 22, fontWeight: 700, color: C.ink, margin: "0 0 6px",
-              fontFamily: FONT.body,
-            }}>
-              Aradune
-            </h1>
+            <div style={{ display: "flex", alignItems: "center", gap: 10, marginBottom: 10 }}>
+              <img src="/assets/logo-mark.svg" alt="" style={{ width: 32, height: 32 }}
+                onError={e => { (e.target as HTMLImageElement).style.display = "none"; }} />
+              <h1 style={{
+                fontSize: 22, fontWeight: 700, color: C.ink, margin: 0,
+                fontFamily: FONT.body,
+              }}>
+                Aradune
+              </h1>
+            </div>
             <p style={{
               fontSize: 13, color: C.inkLight, margin: "0 0 32px", lineHeight: 1.5,
               maxWidth: 440,
@@ -879,13 +881,18 @@ export default function IntelligenceChat() {
               </div>
             ) : (
               <div style={{ maxWidth: "100%", width: "100%" }}>
-                {/* Progress bar (during streaming) */}
+                {/* Helmet icon + progress bar (during streaming) */}
                 {msg.streaming && msg.progress && msg.progress.pct < 100 && (
                   <div style={{
                     background: C.white, border: `1px solid ${C.border}`, borderRadius: 8,
                     marginBottom: msg.content ? 8 : 0,
                     overflow: "hidden",
                   }}>
+                    <div style={{ display: "flex", alignItems: "center", gap: 10, padding: "12px 18px 0" }}>
+                      <img src="/assets/helmet.svg" alt="" style={{ width: 22, height: 22, opacity: 0.7 }}
+                        onError={e => { (e.target as HTMLImageElement).style.display = "none"; }} />
+                      <span style={{ fontSize: 12, fontWeight: 600, color: C.ink, fontFamily: FONT.body }}>Aradune</span>
+                    </div>
                     <ProgressBar pct={msg.progress.pct} label={msg.progress.label} />
                   </div>
                 )}
@@ -920,6 +927,12 @@ export default function IntelligenceChat() {
                     background: C.white, border: `1px solid ${C.border}`, borderRadius: 8,
                     padding: "14px 18px",
                   }}>
+                    <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 10, paddingBottom: 8, borderBottom: `1px solid ${C.border}` }}>
+                      <img src="/assets/helmet.svg" alt="" style={{ width: 18, height: 18, opacity: 0.6 }}
+                        onError={e => { (e.target as HTMLImageElement).style.display = "none"; }} />
+                      <span style={{ fontSize: 11, fontWeight: 600, color: C.inkLight, fontFamily: FONT.body }}>Aradune</span>
+                      {msg.meta?.cached && <span style={{ fontSize: 9, color: C.inkLight, fontFamily: FONT.mono, opacity: 0.6 }}>cached</span>}
+                    </div>
                     {renderMarkdown(msg.content)}
 
                     {/* Actions + query trace (after streaming completes) */}

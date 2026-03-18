@@ -29,6 +29,29 @@ from server.utils.error_handler import safe_route
 router = APIRouter(prefix="/api/intelligence", tags=["intelligence"])
 
 # ---------------------------------------------------------------------------
+# Simple in-memory rate limiter (no external dependency)
+# ---------------------------------------------------------------------------
+
+_rate_limits: dict[str, list[float]] = {}
+_RATE_WINDOW = 60  # seconds
+_RATE_MAX_INTELLIGENCE = 15  # max Intelligence queries per minute per user
+
+
+def _check_rate_limit(user_id: str) -> bool:
+    """Return True if request is allowed, False if rate-limited."""
+    now = time.time()
+    key = f"intelligence:{user_id}"
+    if key not in _rate_limits:
+        _rate_limits[key] = []
+    # Clean old entries
+    _rate_limits[key] = [t for t in _rate_limits[key] if now - t < _RATE_WINDOW]
+    if len(_rate_limits[key]) >= _RATE_MAX_INTELLIGENCE:
+        return False
+    _rate_limits[key].append(now)
+    return True
+
+
+# ---------------------------------------------------------------------------
 # SQL safety
 # ---------------------------------------------------------------------------
 
@@ -571,6 +594,11 @@ Always mention when you're using the user's uploaded data vs. Aradune's public d
 async def intelligence(req: IntelligenceRequest, user: dict = Depends(require_clerk_auth)):
     """AI analysis grounded in the Aradune data lake."""
 
+    # Rate limit check
+    user_id = user.get("sub", "anonymous")
+    if not _check_rate_limit(user_id):
+        raise HTTPException(status_code=429, detail="Rate limit exceeded. Maximum 15 Intelligence queries per minute.")
+
     # Check cache (skip if user has imported files or conversation history)
     if not req.imported_files and len(req.history) == 0:
         ckey = _cache_key(req.message)
@@ -811,6 +839,11 @@ def _sse_event(event: str, data: dict) -> str:
 @safe_route(default_response={})
 async def intelligence_stream(req: IntelligenceRequest, user: dict = Depends(require_clerk_auth)):
     """Streaming AI analysis via Server-Sent Events with progress tracking."""
+
+    # Rate limit check
+    user_id = user.get("sub", "anonymous")
+    if not _check_rate_limit(user_id):
+        raise HTTPException(status_code=429, detail="Rate limit exceeded. Maximum 15 Intelligence queries per minute.")
 
     api_key = os.environ.get("ANTHROPIC_API_KEY")
     if not api_key:

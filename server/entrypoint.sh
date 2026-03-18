@@ -31,7 +31,16 @@ except: exit(1)
         ) &
     fi
 
-    exec uvicorn server.main:app --host 0.0.0.0 --port 8000
+    exec gunicorn server.main:app \
+      --worker-class uvicorn.workers.UvicornWorker \
+      --workers 2 \
+      --bind 0.0.0.0:8000 \
+      --timeout 120 \
+      --max-requests 1000 \
+      --max-requests-jitter 100 \
+      --preload \
+      --access-logfile - \
+      --error-logfile -
 fi
 
 # First run on empty volume — download everything, then start
@@ -44,4 +53,13 @@ else
     echo "WARNING: No S3 bucket configured."
 fi
 
-exec uvicorn server.main:app --host 0.0.0.0 --port 8000
+exec gunicorn server.main:app \
+  --worker-class uvicorn.workers.UvicornWorker \
+  --workers 2 \
+  --bind 0.0.0.0:8000 \
+  --timeout 120 \
+  --max-requests 1000 \
+  --max-requests-jitter 100 \
+  --preload \
+  --access-logfile - \
+  --error-logfile -

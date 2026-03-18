@@ -1,8 +1,23 @@
+import json
+import logging
+import time
 from contextlib import asynccontextmanager
+
 from fastapi import FastAPI, Request, Response
 from fastapi.middleware.cors import CORSMiddleware
 from starlette.middleware.base import BaseHTTPMiddleware
+
 from server.config import settings
+from server.db import init_db, close_db, is_lake_ready, reload_lake
+from server.routes import query, meta, presets, cpra, lake, pipeline, pharmacy, policy, wages, hospitals, enrollment, staffing, quality, context, bulk, supplemental, behavioral_health, round9, forecast, nl2sql, intelligence, import_data, search, insights, rate_explorer, skillbook, validation, state_context
+from server.routes.research import (
+    rate_quality, mc_value, treatment_gap, safety_net,
+    integrity_risk, fiscal_cliff, maternal_health,
+    pharmacy_spread, nursing_ownership, waiver_impact,
+    tmsis_calibration,
+    meps_analysis,
+    network_adequacy,
+)
 
 
 class SecurityHeadersMiddleware(BaseHTTPMiddleware):
@@ -15,16 +30,39 @@ class SecurityHeadersMiddleware(BaseHTTPMiddleware):
         response.headers["Referrer-Policy"] = "strict-origin-when-cross-origin"
         response.headers["Permissions-Policy"] = "camera=(), microphone=(), geolocation=()"
         return response
-from server.db import init_db, close_db, is_lake_ready, reload_lake
-from server.routes import query, meta, presets, cpra, lake, pipeline, pharmacy, policy, wages, hospitals, enrollment, staffing, quality, context, bulk, supplemental, behavioral_health, round9, forecast, nl2sql, intelligence, import_data, search, insights, rate_explorer, skillbook, validation, state_context
-from server.routes.research import (
-    rate_quality, mc_value, treatment_gap, safety_net,
-    integrity_risk, fiscal_cliff, maternal_health,
-    pharmacy_spread, nursing_ownership, waiver_impact,
-    tmsis_calibration,
-    meps_analysis,
-    network_adequacy,
-)
+
+
+class JSONFormatter(logging.Formatter):
+    """JSON log formatter for production observability."""
+    def format(self, record):
+        log = {
+            "ts": time.strftime("%Y-%m-%dT%H:%M:%S", time.gmtime(record.created)),
+            "level": record.levelname,
+            "logger": record.name,
+            "msg": record.getMessage(),
+        }
+        if record.exc_info and record.exc_info[0]:
+            log["error"] = self.formatException(record.exc_info)
+        return json.dumps(log)
+
+# Configure root logger for JSON output in production
+_handler = logging.StreamHandler()
+_handler.setFormatter(JSONFormatter())
+logging.root.handlers = [_handler]
+logging.root.setLevel(logging.INFO)
+
+
+class RequestTimingMiddleware(BaseHTTPMiddleware):
+    """Log request method, path, status, and duration."""
+    async def dispatch(self, request: Request, call_next):
+        t0 = time.time()
+        response = await call_next(request)
+        ms = int((time.time() - t0) * 1000)
+        if request.url.path not in ("/healthz", "/ready"):
+            logging.getLogger("aradune.http").info(
+                f"{request.method} {request.url.path} {response.status_code} {ms}ms"
+            )
+        return response
 
 
 @asynccontextmanager
@@ -49,6 +87,37 @@ app.add_middleware(
     allow_headers=["*"],
 )
 app.add_middleware(SecurityHeadersMiddleware)
+app.add_middleware(RequestTimingMiddleware)
+
+
+@app.get("/healthz")
+async def healthz():
+    """Liveness probe. Pure function, no I/O."""
+    return {"status": "ok"}
+
+
+@app.get("/ready")
+async def ready():
+    """Readiness probe. Checks DuckDB connectivity."""
+    from server.db import is_lake_ready, get_cursor
+    try:
+        with get_cursor() as cur:
+            cur.execute("SELECT 1").fetchone()
+        return {"status": "ready", "lake": is_lake_ready()}
+    except Exception as e:
+        from fastapi import Response
+        return Response(content='{"status":"not_ready"}', status_code=503, media_type="application/json")
+
+
+@app.get("/startup")
+async def startup():
+    """Startup probe. Confirms views registered."""
+    from server.db import is_lake_ready
+    if is_lake_ready():
+        return {"status": "started", "lake": True}
+    from fastapi import Response
+    return Response(content='{"status":"starting"}', status_code=503, media_type="application/json")
+
 
 app.include_router(query.router)
 app.include_router(meta.router)
@@ -101,14 +170,6 @@ async def health():
     respond fast so the machine isn't killed during view registration.
     """
     return {"status": "ok", "lake_ready": is_lake_ready()}
-
-
-@app.get("/ready")
-async def ready():
-    """Readiness probe — returns 200 only when all lake views are registered."""
-    if is_lake_ready():
-        return {"status": "ready"}
-    return {"status": "initializing"}
 
 
 @app.post("/internal/reload-lake")

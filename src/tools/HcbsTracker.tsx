@@ -3,12 +3,13 @@
  * How much of Medicaid HCBS spending reaches direct care workers?
  * The 80/20 pass-through standard is the benchmark.
  */
-import { useState, useEffect, useMemo } from "react";
+import { useState, useEffect, useMemo, useRef } from "react";
 import {
   BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer, Cell, ReferenceLine,
+  ComposedChart, Line, CartesianGrid,
 } from "recharts";
 import { STATES_LIST, STATE_NAMES } from "../data/states";
-import { API_BASE } from "../lib/api";
+import { getAuthHeaders, API_BASE } from "../lib/api";
 import { useAradune } from "../context/AraduneContext";
 import ChartActions from "../components/ChartActions";
 import StateContextBar from "../components/StateContextBar";
@@ -96,6 +97,83 @@ const SafeTip = ({ active, payload }: { active?: boolean; payload?: TipPayload[]
     </div>
   );
 };
+
+// ── Dynamics Widget ──────────────────────────────────────────────────
+function DynamicsWidget({ stateCode, endpoint, paramName, paramLabel, paramUnit, paramRange, stockKeys, chartTitle }: {
+  stateCode: string;
+  endpoint: string;
+  paramName: string;
+  paramLabel: string;
+  paramUnit: string;
+  paramRange: [number, number];
+  stockKeys: {key: string; label: string; color: string}[];
+  chartTitle: string;
+}) {
+  const [value, setValue] = useState(0);
+  const [data, setData] = useState<any>(null);
+  const [loading, setLoading] = useState(false);
+  const [expanded, setExpanded] = useState(false);
+  const debounceRef = useRef<NodeJS.Timeout>(undefined);
+
+  useEffect(() => {
+    if (!expanded || !stateCode) return;
+    if (debounceRef.current) clearTimeout(debounceRef.current);
+    debounceRef.current = setTimeout(async () => {
+      setLoading(true);
+      try {
+        const headers = await getAuthHeaders();
+        const res = await fetch(`${API_BASE}/api/dynamics/${endpoint}`, {
+          method: "POST",
+          headers: { "Content-Type": "application/json", ...headers },
+          body: JSON.stringify({ state_code: stateCode, horizon_months: 36, [paramName]: value }),
+        });
+        if (res.ok) setData(await res.json());
+      } catch { /* ignore */ }
+      setLoading(false);
+    }, 400);
+  }, [stateCode, value, expanded, endpoint, paramName]);
+
+  return (
+    <Card>
+      <div onClick={() => setExpanded(!expanded)} style={{ cursor: "pointer", padding: "10px 16px", display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+        <span style={{ fontSize: 12, fontWeight: 600, color: A }}>{chartTitle}</span>
+        <span style={{ fontSize: 10, color: AL }}>{expanded ? "Collapse" : "Expand"}</span>
+      </div>
+      {expanded && (
+        <div style={{ padding: "0 16px 16px" }}>
+          <div style={{ display: "flex", alignItems: "center", gap: 12, marginBottom: 12 }}>
+            <label style={{ fontSize: 11, color: AL, minWidth: 80 }}>{paramLabel}</label>
+            <input type="range" min={paramRange[0]} max={paramRange[1]} step={paramRange[1] > 10 ? 1 : 0.5}
+              value={value} onChange={e => setValue(Number(e.target.value))}
+              style={{ flex: 1, accentColor: cB }} />
+            <span style={{ fontSize: 12, fontWeight: 600, fontFamily: FM, minWidth: 50, textAlign: "right" }}>
+              {value > 0 ? "+" : ""}{value}{paramUnit}
+            </span>
+          </div>
+          {loading && <div style={{ fontSize: 11, color: AL, padding: 8 }}>Running model...</div>}
+          {data?.months && (
+            <ResponsiveContainer width="100%" height={200}>
+              <ComposedChart data={data.months}>
+                <CartesianGrid strokeDasharray="3 3" stroke={BD} />
+                <XAxis dataKey="t" tick={{ fontSize: 9 }} label={{ value: "Months", fontSize: 9, position: "bottom" }} />
+                <YAxis tick={{ fontSize: 9 }} />
+                <Tooltip contentStyle={{ fontSize: 10 }} />
+                {stockKeys.map(sk => (
+                  <Line key={sk.key} type="monotone" dataKey={sk.key} stroke={sk.color} name={sk.label} dot={false} strokeWidth={2} />
+                ))}
+              </ComposedChart>
+            </ResponsiveContainer>
+          )}
+          {data?.calibration_sources?.length > 0 && (
+            <div style={{ fontSize: 9, color: AL, marginTop: 6 }}>
+              Sources: {data.calibration_sources.join(", ")}
+            </div>
+          )}
+        </div>
+      )}
+    </Card>
+  );
+}
 
 // ═════════════════════════════════════════════════════════════════════════
 export default function HcbsTracker() {
@@ -330,6 +408,22 @@ export default function HcbsTracker() {
                 : `⚠ At ${overhead}% overhead, only ${summary.workerPct}% reaches workers. Below the 80% pass-through target.`}
             </div>
           </Card>
+
+          {/* ─── HCBS Rebalancing Trajectory (System Model) ─────────────── */}
+          <DynamicsWidget
+            stateCode={st}
+            endpoint="hcbs"
+            paramName="funding_increase_pct"
+            paramLabel="HCBS Funding"
+            paramUnit="%"
+            paramRange={[0, 30]}
+            stockKeys={[
+              {key: "community_pop", label: "Community", color: cB},
+              {key: "institutional_pop", label: "Institutional", color: NEG},
+              {key: "waitlist", label: "Waitlist", color: "#C4590A"},
+            ]}
+            chartTitle="HCBS Rebalancing Trajectory (System Model)"
+          />
 
           {/* Code-Level Table */}
           {codeAnalysis.length === 0 && !loading && (

@@ -1,7 +1,7 @@
-import React, { useState, useMemo, useEffect, useCallback } from "react";
-import { BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer, Cell, CartesianGrid, ReferenceLine, ScatterChart, Scatter, ZAxis } from "recharts";
+import React, { useState, useMemo, useEffect, useCallback, useRef } from "react";
+import { BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer, Cell, CartesianGrid, ReferenceLine, ScatterChart, Scatter, ZAxis, ComposedChart, Line } from "recharts";
 import type { SafeTipProps, TooltipEntry, WageCategory } from "../types";
-import { API_BASE } from "../lib/api";
+import { getAuthHeaders, API_BASE } from "../lib/api";
 import { LoadingBar } from "../components/LoadingBar";
 import { useAradune } from "../context/AraduneContext";
 import ChartActions from "../components/ChartActions";
@@ -160,6 +160,83 @@ function downloadCSV(name: string, headers: string[], rows: (string | number | n
 const ExportBtn = ({ onClick, label }: { onClick: () => void; label?: string }) => (
   <button onClick={onClick} style={{ fontSize:9,color:AL,background:SF,border:`1px solid ${BD}`,borderRadius:5,padding:"3px 8px",cursor:"pointer",fontFamily:FM }}>{label||"Export CSV"}</button>
 );
+
+// ── Dynamics Widget ──────────────────────────────────────────────────
+function DynamicsWidget({ stateCode, endpoint, paramName, paramLabel, paramUnit, paramRange, stockKeys, chartTitle }: {
+  stateCode: string;
+  endpoint: string;
+  paramName: string;
+  paramLabel: string;
+  paramUnit: string;
+  paramRange: [number, number];
+  stockKeys: {key: string; label: string; color: string}[];
+  chartTitle: string;
+}) {
+  const [value, setValue] = useState(0);
+  const [data, setData] = useState<any>(null);
+  const [loading, setLoading] = useState(false);
+  const [expanded, setExpanded] = useState(false);
+  const debounceRef = useRef<NodeJS.Timeout>(undefined);
+
+  useEffect(() => {
+    if (!expanded || !stateCode) return;
+    if (debounceRef.current) clearTimeout(debounceRef.current);
+    debounceRef.current = setTimeout(async () => {
+      setLoading(true);
+      try {
+        const headers = await getAuthHeaders();
+        const res = await fetch(`${API_BASE}/api/dynamics/${endpoint}`, {
+          method: "POST",
+          headers: { "Content-Type": "application/json", ...headers },
+          body: JSON.stringify({ state_code: stateCode, horizon_months: 36, [paramName]: value }),
+        });
+        if (res.ok) setData(await res.json());
+      } catch { /* ignore */ }
+      setLoading(false);
+    }, 400);
+  }, [stateCode, value, expanded, endpoint, paramName]);
+
+  return (
+    <Card>
+      <div onClick={() => setExpanded(!expanded)} style={{ cursor: "pointer", padding: "10px 16px", display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+        <span style={{ fontSize: 12, fontWeight: 600, color: A }}>{chartTitle}</span>
+        <span style={{ fontSize: 10, color: AL }}>{expanded ? "Collapse" : "Expand"}</span>
+      </div>
+      {expanded && (
+        <div style={{ padding: "0 16px 16px" }}>
+          <div style={{ display: "flex", alignItems: "center", gap: 12, marginBottom: 12 }}>
+            <label style={{ fontSize: 11, color: AL, minWidth: 80 }}>{paramLabel}</label>
+            <input type="range" min={paramRange[0]} max={paramRange[1]} step={paramRange[1] > 10 ? 1 : 0.5}
+              value={value} onChange={e => setValue(Number(e.target.value))}
+              style={{ flex: 1, accentColor: cB }} />
+            <span style={{ fontSize: 12, fontWeight: 600, fontFamily: FM, minWidth: 50, textAlign: "right" }}>
+              {value > 0 ? "+" : ""}{value}{paramUnit}
+            </span>
+          </div>
+          {loading && <div style={{ fontSize: 11, color: AL, padding: 8 }}>Running model...</div>}
+          {data?.months && (
+            <ResponsiveContainer width="100%" height={200}>
+              <ComposedChart data={data.months}>
+                <CartesianGrid strokeDasharray="3 3" stroke={BD} />
+                <XAxis dataKey="t" tick={{ fontSize: 9 }} label={{ value: "Months", fontSize: 9, position: "bottom" }} />
+                <YAxis tick={{ fontSize: 9 }} />
+                <Tooltip contentStyle={{ fontSize: 10 }} />
+                {stockKeys.map(sk => (
+                  <Line key={sk.key} type="monotone" dataKey={sk.key} stroke={sk.color} name={sk.label} dot={false} strokeWidth={2} />
+                ))}
+              </ComposedChart>
+            </ResponsiveContainer>
+          )}
+          {data?.calibration_sources?.length > 0 && (
+            <div style={{ fontSize: 9, color: AL, marginTop: 6 }}>
+              Sources: {data.calibration_sources.join(", ")}
+            </div>
+          )}
+        </div>
+      )}
+    </Card>
+  );
+}
 
 // ── Main Component ──────────────────────────────────────────────────────
 export default function WageAdequacy() {
@@ -590,6 +667,22 @@ export default function WageAdequacy() {
           <Met l="Best Gap" v={allStates.length>0?`${allStates[allStates.length-1].name}: +$${safe(allStates[allStates.length-1].gap).toFixed(2)}`:"—"} cl={POS}/>
         </div>
       </Card>}
+
+      {/* ─── Workforce Pipeline (System Model) ─────────────── */}
+      <DynamicsWidget
+        stateCode={s1}
+        endpoint="workforce"
+        paramName="wage_change_dollars"
+        paramLabel="Wage Change"
+        paramUnit="$/hr"
+        paramRange={[0, 5]}
+        stockKeys={[
+          {key: "active_workers", label: "Active Workers", color: cB},
+          {key: "experienced_workers", label: "Experienced", color: "#3A7D5C"},
+          {key: "applicant_pool", label: "Applicants", color: "#C4590A"},
+        ]}
+        chartTitle="Workforce Pipeline (System Model)"
+      />
 
       {/* About */}
       <Card><CH t="Data Sources & Methodology"/><div style={{ padding:"4px 16px 12px",fontSize:11,color:A,lineHeight:1.8 }}>

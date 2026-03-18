@@ -11,7 +11,7 @@
 import { useState, useEffect, useMemo, useCallback, useRef } from "react";
 import {
   BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip,
-  ResponsiveContainer, ReferenceLine, Cell,
+  ResponsiveContainer, ReferenceLine, Cell, ComposedChart, Line,
 } from "recharts";
 import { C, FONT, SHADOW, useIsMobile } from "../design";
 import { useAradune } from "../context/AraduneContext";
@@ -266,6 +266,83 @@ function StateContext({ stateCode, compact }: { stateCode: string; compact?: boo
           )}
         </div>
       </CardBody>
+    </Card>
+  );
+}
+
+// ── Dynamics Widget ──────────────────────────────────────────────────
+function DynamicsWidget({ stateCode, endpoint, paramName, paramLabel, paramUnit, paramRange, stockKeys, chartTitle }: {
+  stateCode: string;
+  endpoint: string;
+  paramName: string;
+  paramLabel: string;
+  paramUnit: string;
+  paramRange: [number, number];
+  stockKeys: {key: string; label: string; color: string}[];
+  chartTitle: string;
+}) {
+  const [value, setValue] = useState(0);
+  const [data, setData] = useState<any>(null);
+  const [loading, setLoading] = useState(false);
+  const [expanded, setExpanded] = useState(false);
+  const debounceRef = useRef<NodeJS.Timeout>(undefined);
+
+  useEffect(() => {
+    if (!expanded || !stateCode) return;
+    if (debounceRef.current) clearTimeout(debounceRef.current);
+    debounceRef.current = setTimeout(async () => {
+      setLoading(true);
+      try {
+        const headers = await getAuthHeaders();
+        const res = await fetch(`${API_BASE}/api/dynamics/${endpoint}`, {
+          method: "POST",
+          headers: { "Content-Type": "application/json", ...headers },
+          body: JSON.stringify({ state_code: stateCode, horizon_months: 36, [paramName]: value }),
+        });
+        if (res.ok) setData(await res.json());
+      } catch { /* ignore */ }
+      setLoading(false);
+    }, 400);
+  }, [stateCode, value, expanded, endpoint, paramName]);
+
+  return (
+    <Card>
+      <div onClick={() => setExpanded(!expanded)} style={{ cursor: "pointer", padding: "10px 16px", display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+        <span style={{ fontSize: 12, fontWeight: 600, color: A }}>{chartTitle}</span>
+        <span style={{ fontSize: 10, color: AL }}>{expanded ? "Collapse" : "Expand"}</span>
+      </div>
+      {expanded && (
+        <div style={{ padding: "0 16px 16px" }}>
+          <div style={{ display: "flex", alignItems: "center", gap: 12, marginBottom: 12 }}>
+            <label style={{ fontSize: 11, color: AL, minWidth: 80 }}>{paramLabel}</label>
+            <input type="range" min={paramRange[0]} max={paramRange[1]} step={paramRange[1] > 10 ? 1 : 0.5}
+              value={value} onChange={e => setValue(Number(e.target.value))}
+              style={{ flex: 1, accentColor: cB }} />
+            <span style={{ fontSize: 12, fontWeight: 600, fontFamily: FM, minWidth: 50, textAlign: "right" }}>
+              {value > 0 ? "+" : ""}{value}{paramUnit}
+            </span>
+          </div>
+          {loading && <div style={{ fontSize: 11, color: AL, padding: 8 }}>Running model...</div>}
+          {data?.months && (
+            <ResponsiveContainer width="100%" height={200}>
+              <ComposedChart data={data.months}>
+                <CartesianGrid strokeDasharray="3 3" stroke={BD} />
+                <XAxis dataKey="t" tick={{ fontSize: 9 }} label={{ value: "Months", fontSize: 9, position: "bottom" }} />
+                <YAxis tick={{ fontSize: 9 }} />
+                <Tooltip contentStyle={{ fontSize: 10 }} />
+                {stockKeys.map(sk => (
+                  <Line key={sk.key} type="monotone" dataKey={sk.key} stroke={sk.color} name={sk.label} dot={false} strokeWidth={2} />
+                ))}
+              </ComposedChart>
+            </ResponsiveContainer>
+          )}
+          {data?.calibration_sources?.length > 0 && (
+            <div style={{ fontSize: 9, color: AL, marginTop: 6 }}>
+              Sources: {data.calibration_sources.join(", ")}
+            </div>
+          )}
+        </div>
+      )}
     </Card>
   );
 }
@@ -1171,6 +1248,23 @@ export default function RateBrowse() {
 
               {/* Cross-dataset context for selected state */}
               {selectedState && <StateContext stateCode={selectedState} />}
+
+              {/* ─── Provider Participation Impact (System Model) ─────────────── */}
+              {selectedState && (
+                <DynamicsWidget
+                  stateCode={selectedState}
+                  endpoint="provider"
+                  paramName="rate_change_pct"
+                  paramLabel="Rate Change"
+                  paramUnit="%"
+                  paramRange={[-20, 30]}
+                  stockKeys={[
+                    {key: "provider_count", label: "Providers", color: cB},
+                    {key: "access_score", label: "Access Score", color: "#C4590A"},
+                  ]}
+                  chartTitle="Provider Participation Impact (System Model)"
+                />
+              )}
 
               {/* Ask Aradune about this code */}
               <div style={{ display: "flex", gap: 12, justifyContent: "flex-end", marginBottom: 16 }}>

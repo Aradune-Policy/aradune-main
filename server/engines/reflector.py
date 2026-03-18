@@ -39,6 +39,19 @@ For each insight, output JSON:
       "skill_id": "existing skill ID",
       "helpful": true
     }
+  ],
+  "proposed_links": [
+    {
+      "skill_id_a": "existing skill ID",
+      "skill_id_b": "existing skill ID",
+      "reason": "why these skills are related"
+    }
+  ],
+  "split_candidates": [
+    {
+      "skill_id": "existing skill ID with overly broad content",
+      "reason": "why this skill should be split into more focused pieces"
+    }
   ]
 }
 
@@ -48,8 +61,10 @@ Rules:
 - "T-MSIS encounter amounts for managed care states undercount actual rates by 15-40%" IS a skill
 - If the response was wrong and you know why, that's a failure_mode
 - If the response used a clever join or calculation pattern, that's a query_pattern
-- If there's no generalizable insight, return {"skills": [], "skill_updates": []}
+- If there's no generalizable insight, return {"skills": [], "skill_updates": [], "proposed_links": [], "split_candidates": []}
 - Be conservative. 0 skills is better than a bad skill.
+- proposed_links: suggest linking two skills that are thematically related or commonly co-retrieved
+- split_candidates: flag skills whose content is too broad (>500 chars) or covers multiple distinct concepts
 """
 
 
@@ -67,7 +82,7 @@ async def reflect_on_response(
     """
     try:
         from anthropic import AsyncAnthropic
-        from server.engines.skillbook import add_skill, update_score
+        from server.engines.skillbook import add_skill, update_score, link_skills
 
         client = AsyncAnthropic()
 
@@ -119,6 +134,18 @@ Retrieved skill IDs: {retrieved_skill_ids or 'none'}"""
         # Process score updates
         for update in result.get("skill_updates", []):
             update_score(update["skill_id"], update.get("helpful", True))
+
+        # Process proposed links
+        for link in result.get("proposed_links", []):
+            sid_a = link.get("skill_id_a")
+            sid_b = link.get("skill_id_b")
+            if sid_a and sid_b:
+                link_skills(sid_a, sid_b)
+                logger.info(f"Reflector linked {sid_a} <-> {sid_b}: {link.get('reason', '')}")
+
+        # Log split candidates (no auto-action, flagged for review)
+        for sc in result.get("split_candidates", []):
+            logger.info(f"Reflector split candidate: skill_id={sc.get('skill_id')}, reason={sc.get('reason', '')}")
 
         # Bulk feedback processing
         if feedback == "negative" and retrieved_skill_ids:

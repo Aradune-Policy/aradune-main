@@ -2,11 +2,13 @@
 
 from fastapi import APIRouter, HTTPException, Query
 from server.db import get_cursor
+from server.utils.error_handler import safe_route
 
 router = APIRouter()
 
 
 @router.get("/api/research/safety-net/hospital-stress")
+@safe_route(default_response={})
 async def hospital_stress(state: str = Query(None)):
     """Hospital financial stress by state: negative margins, uncompensated care, DSH, Medicaid days."""
     try:
@@ -41,6 +43,7 @@ async def hospital_stress(state: str = Query(None)):
 
 
 @router.get("/api/research/safety-net/ltss-pressure")
+@safe_route(default_response={})
 async def ltss_pressure(state: str = Query(None)):
     """LTSS pressure: HCBS waitlists combined with nursing facility quality ratings."""
     try:
@@ -103,6 +106,7 @@ async def ltss_pressure(state: str = Query(None)):
 
 
 @router.get("/api/research/safety-net/staffing-crisis")
+@safe_route(default_response={})
 async def staffing_crisis(state: str = Query(None)):
     """PBJ staffing analysis by state: hours per resident day, contract nurse %, below-minimum facilities."""
     try:
@@ -139,6 +143,7 @@ async def staffing_crisis(state: str = Query(None)):
 
 
 @router.get("/api/research/safety-net/composite")
+@safe_route(default_response={})
 async def safety_net_composite(state: str = Query(None)):
     """Combined safety net stress index: hospital margins, HCBS waitlists, nursing quality deficit, FMAP."""
     try:

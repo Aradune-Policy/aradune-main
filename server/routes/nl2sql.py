@@ -16,6 +16,7 @@ import anthropic
 
 from server.db import get_cursor
 from server.config import settings
+from server.utils.error_handler import safe_route
 
 router = APIRouter(prefix="/api/nl2sql", tags=["nl2sql"])
 
@@ -284,6 +285,7 @@ def validate_sql(sql: str) -> str:
 # ---------------------------------------------------------------------------
 
 @router.post("", response_model=NL2SQLResponse)
+@safe_route(default_response={"sql": "", "explanation": "", "rows": [], "total_rows": 0, "query_ms": 0, "model": ""})
 async def nl2sql(req: NL2SQLRequest):
     """Translate natural language to SQL, execute against DuckDB, return results."""
 
@@ -386,6 +388,7 @@ EXAMPLES = [
 
 
 @router.get("/examples")
+@safe_route(default_response={"examples": []})
 async def get_examples():
     """Return example queries for the frontend."""
     return {"examples": EXAMPLES}

@@ -8,6 +8,7 @@ loading with graceful fallback to static JSON when the API is unavailable.
 from fastapi import APIRouter
 
 from server.db import get_cursor
+from server.utils.error_handler import safe_route
 
 router = APIRouter()
 
@@ -22,6 +23,7 @@ def _cached(key: str, fn):
 
 
 @router.get("/api/bulk/medicare-rates")
+@safe_route(default_response={})
 async def bulk_medicare_rates():
     """Medicare PFS rates + RVUs keyed by code. Matches medicare_rates.json shape."""
     def compute():
@@ -58,6 +60,7 @@ async def bulk_medicare_rates():
 
 
 @router.get("/api/bulk/medicaid-rates")
+@safe_route(default_response={})
 async def bulk_medicaid_rates():
     """Medicaid fee schedule rates by state/code. Matches medicaid_rates.json shape.
 
@@ -82,6 +85,7 @@ async def bulk_medicaid_rates():
 
 
 @router.get("/api/bulk/hcpcs-rates")
+@safe_route(default_response={})
 async def bulk_hcpcs_rates():
     """T-MSIS actual-paid rates by code/state. Matches hcpcs.json shape.
 
@@ -104,6 +108,7 @@ async def bulk_hcpcs_rates():
 
 
 @router.get("/api/bulk/gpci")
+@safe_route(default_response={})
 async def bulk_gpci():
     """GPCI values by locality. Matches gpci.json shape."""
     def compute():
@@ -128,6 +133,7 @@ async def bulk_gpci():
 
 
 @router.get("/api/bulk/quality-measures")
+@safe_route(default_response={})
 async def bulk_quality_measures():
     """Quality measures with rates and metadata. Matches quality_measures.json shape.
 
@@ -191,6 +197,7 @@ async def bulk_quality_measures():
 
 
 @router.get("/api/bulk/states")
+@safe_route(default_response={})
 async def bulk_states():
     """State-level aggregates. Matches states.json shape."""
     def compute():
@@ -230,6 +237,7 @@ async def bulk_states():
 
 
 @router.get("/api/bulk/fee-schedule-rates")
+@safe_route(default_response={})
 async def bulk_fee_schedule_rates():
     """Rate comparison data keyed by code. Matches fee_schedule_rates.json shape.
 

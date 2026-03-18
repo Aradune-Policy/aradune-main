@@ -2,11 +2,13 @@
 
 from fastapi import APIRouter, HTTPException, Query
 from server.db import get_cursor
+from server.utils.error_handler import safe_route
 
 router = APIRouter()
 
 
 @router.get("/api/research/network-adequacy/composite")
+@safe_route(default_response={})
 async def network_adequacy_composite():
     """State-level network adequacy composite: primary care + dental + MH HPSAs, MUA/MUP, FQHCs, enrollment."""
     try:
@@ -82,6 +84,7 @@ async def network_adequacy_composite():
 
 
 @router.get("/api/research/network-adequacy/fqhc-coverage")
+@safe_route(default_response={})
 async def fqhc_coverage():
     """FQHC site coverage relative to shortage areas by state."""
     try:

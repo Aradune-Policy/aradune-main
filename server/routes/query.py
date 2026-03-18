@@ -3,11 +3,13 @@ from fastapi import APIRouter, HTTPException
 from server.models import QueryRequest, QueryResponse
 from server.query_builder import build_query
 from server.db import get_cursor
+from server.utils.error_handler import safe_route
 
 router = APIRouter()
 
 
 @router.post("/api/query", response_model=QueryResponse)
+@safe_route(default_response={"rows": [], "total_rows": 0, "query_ms": 0, "sql_preview": ""})
 async def query(req: QueryRequest):
     try:
         sql, params = build_query(req)

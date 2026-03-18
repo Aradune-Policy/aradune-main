@@ -953,7 +953,7 @@ locality_code → dim_medicare_locality (GPCI); soc_code → dim_bls_occupation.
 2. Flag data quality issues when relevant.
 3. Minimum cell size: n ≥ 11 for published utilization counts.
 4. T-MSIS encounter amounts are unreliable for MCO-to-provider payment rates.
-5. FL Medicaid: no facility + PC/TC split (codes: 46924, 91124, 91125).
+5. FL Medicaid: Facility and PC/TC rates are typically mutually exclusive (99.96% of codes). Three codes (46924, 91124, 91125) legitimately carry both as published by AHCA.
 6. CPRA: $32.3465 CF (CY2025). General Medicare comparison: $33.4009 (CY2026).
 7. Census sentinel values (-888888888) = suppressed → treat as NULL.
 8. SELECT-only queries. Never modify data.

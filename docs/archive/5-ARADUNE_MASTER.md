@@ -529,7 +529,7 @@ states:
     last_changed: "2025-10-15"
     paused: false
     tier: 1
-    notes: "Rates cannot have both facility AND PC/TC split. Special: 46924, 91124, 91125."
+    notes: "Facility and PC/TC rates typically mutually exclusive (99.96% of codes). 46924, 91124, 91125 legitimately carry both per AHCA."
   TX:
     url: "https://public.tmhp.com/FeeSchedules"
     format: "excel"
@@ -740,7 +740,7 @@ CREATE TABLE pipeline_alerts (
 
 ## 14. Known Policy Rules (Always Enforce)
 
-- **FL Medicaid: rates cannot have both a facility rate AND a PC/TC split.** Codes requiring special handling: **46924, 91124, 91125.**
+- **FL Medicaid: Facility and PC/TC rates are typically mutually exclusive (99.96% of codes).** Three codes (**46924, 91124, 91125**) legitimately carry both facility and PC/TC rates as published by AHCA.
 - **FL production CFs:** Regular `$24.9779582769` · Lab `$26.1689186096`. The $24.9876 ad hoc CF is stale — never use for CY2026.
 - **FL has 8 schedule types** in the fee schedule.
 - **Medicare comparison baseline:** Always use the non-facility rate (not facility), per 42 CFR 447.203.
@@ -930,7 +930,7 @@ No existing platform combines: (1) comprehensive public Medicaid data aggregatio
 5. **Federal data first.** Federal sources cover all states at once.
 6. **Florida pipeline is the template.** Abstract, parameterize, replicate.
 7. **PDF parsing prompts are versioned.** Build test suite with known-correct outputs.
-8. **FL rate rule always enforced.** No facility + PC/TC split. Special: 46924, 91124, 91125.
+8. **FL Medicaid: Facility and PC/TC rates typically mutually exclusive (99.96% of codes).** Three codes (46924, 91124, 91125) legitimately carry both per AHCA.
 9. **Forecasting models are never deleted.** Always append; track performance over time.
 10. **User data is never mixed with Aradune's public layer** without explicit opt-in.
 11. **Don't be CPRA-forward.** CPRA is the wedge, not the product. Build for the platform.

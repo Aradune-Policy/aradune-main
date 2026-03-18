@@ -2,11 +2,13 @@
 
 from fastapi import APIRouter, HTTPException, Query
 from server.db import get_cursor
+from server.utils.error_handler import safe_route
 
 router = APIRouter()
 
 
 @router.get("/api/research/maternal-health/mortality")
+@safe_route(default_response={})
 async def maternal_mortality(state: str = Query(None), year: int = Query(None)):
     """Maternal mortality / SMM rates by state and year.
 
@@ -47,6 +49,7 @@ async def maternal_mortality(state: str = Query(None), year: int = Query(None)):
 
 
 @router.get("/api/research/maternal-health/national-trend")
+@safe_route(default_response={})
 async def maternal_national_trend():
     """National maternal mortality monthly trend from CDC provisional data."""
     try:
@@ -66,6 +69,7 @@ async def maternal_national_trend():
 
 
 @router.get("/api/research/maternal-health/access")
+@safe_route(default_response={})
 async def maternal_access(state: str = Query(None)):
     """Maternal health access: HPSA shortage areas and social vulnerability index by state."""
     try:
@@ -108,6 +112,7 @@ async def maternal_access(state: str = Query(None)):
 
 
 @router.get("/api/research/maternal-health/quality")
+@safe_route(default_response={})
 async def maternal_quality(state: str = Query(None)):
     """Prenatal, postpartum, and maternal quality measures from Core Set 2024."""
     try:
@@ -141,6 +146,7 @@ async def maternal_quality(state: str = Query(None)):
 
 
 @router.get("/api/research/maternal-health/infant-mortality")
+@safe_route(default_response={})
 async def infant_mortality(state: str = Query(None)):
     """Infant mortality rates by state from CDC NCHS data."""
     try:
@@ -183,6 +189,7 @@ async def infant_mortality(state: str = Query(None)):
 
 
 @router.get("/api/research/maternal-health/composite")
+@safe_route(default_response={})
 async def maternal_composite(state: str = Query(None)):
     """Composite maternal health risk: SMM rates, HPSAs, SVI, quality measures."""
     try:

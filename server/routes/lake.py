@@ -2,11 +2,13 @@
 
 from fastapi import APIRouter, HTTPException, Query
 from server.db import get_cursor
+from server.utils.error_handler import safe_route
 
 router = APIRouter()
 
 
 @router.get("/api/states")
+@safe_route(default_response={})
 async def states():
     """Get all states with metadata from dim_state, backfilling MC penetration."""
     with get_cursor() as cur:
@@ -40,6 +42,7 @@ async def states():
 
 
 @router.get("/api/enrollment/{state_code}")
+@safe_route(default_response={})
 async def enrollment(state_code: str):
     """Get enrollment history for a state."""
     state_code = state_code.upper()
@@ -61,6 +64,7 @@ async def enrollment(state_code: str):
 
 
 @router.get("/api/quality/{state_code}")
+@safe_route(default_response={})
 async def quality_measures(state_code: str, year: int = Query(None)):
     """Get quality measures for a state."""
     state_code = state_code.upper()
@@ -81,6 +85,7 @@ async def quality_measures(state_code: str, year: int = Query(None)):
 
 
 @router.get("/api/expenditure/{state_code}")
+@safe_route(default_response={})
 async def expenditure(state_code: str):
     """Get CMS-64 expenditure data for a state."""
     state_code = state_code.upper()
@@ -98,6 +103,7 @@ async def expenditure(state_code: str):
 
 
 @router.get("/api/lake/stats")
+@safe_route(default_response={})
 async def lake_stats():
     """Get data lake statistics — row counts, data freshness, etc."""
     with get_cursor() as cur:
@@ -193,6 +199,7 @@ async def lake_stats():
 
 
 @router.get("/api/spending/by-state")
+@safe_route(default_response={})
 async def spending_by_state():
     """CMS-64 total expenditure by state for latest FY (from cms64_multiyear, FY2018-2024)."""
     with get_cursor() as cur:
@@ -216,6 +223,7 @@ async def spending_by_state():
 
 
 @router.get("/api/spending/per-enrollee")
+@safe_route(default_response={})
 async def spending_per_enrollee():
     """MACPAC per-enrollee spending by state and eligibility group."""
     with get_cursor() as cur:

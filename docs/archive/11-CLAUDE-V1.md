@@ -374,7 +374,7 @@ All transparent PNGs — green on transparent. `logo-full.png` (navbar), `logo-m
 
 ## 10. Known Policy Rules (Always Enforce)
 
-- **FL Medicaid: rates cannot have both a facility rate AND a PC/TC split.** Codes requiring special handling: **46924, 91124, 91125.**
+- **FL Medicaid: Facility and PC/TC rates are typically mutually exclusive (99.96% of codes).** Three codes (**46924, 91124, 91125**) legitimately carry both facility and PC/TC rates as published by AHCA.
 - **FL production conversion factors:** Regular `$24.9779582769` · Lab `$26.1689186096`. The ad hoc CF of $24.9876 is stale — do not use for CY2026.
 - **FL has 8 schedule types** in the fee schedule.
 - **Medicare comparison baseline:** Always use the non-facility rate (not facility), per 42 CFR 447.203.
@@ -637,7 +637,7 @@ Gradient boosting / random forest with public performance tracking. Model leader
 6. **Federal data first.** Federal sources cover all states at once.
 7. **Florida pipeline is the template.** Abstract, parameterize, replicate.
 8. **PDF parsing prompts are versioned.** Build test suite with known-correct outputs.
-9. **FL rate rule always enforced.** No facility + PC/TC split. Special: 46924, 91124, 91125.
+9. **FL Medicaid: Facility and PC/TC rates typically mutually exclusive (99.96% of codes).** Three codes (46924, 91124, 91125) legitimately carry both per AHCA.
 10. **Data layer is the moat.** Every session: add data, improve quality, or make adding data easier.
 11. **Don't be CPRA-forward.** CPRA is one use case. Build for the platform.
 12. **Economic/contextual data matters.** Ingest data that informs Medicaid, not just from Medicaid.

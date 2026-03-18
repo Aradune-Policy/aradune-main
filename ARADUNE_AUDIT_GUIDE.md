@@ -41,7 +41,7 @@ The following verified facts are used as ground truth throughout the audit. Sour
 - MPIP enhanced rate for pediatric E&M (SFY 2025-26): **106.3%** of CY2025 Medicare rate
 - APRNs/PAs billing independently (physician not in building): reimbursed at **80%** of physician allowable
 - Multiple procedure reduction (modifier 51): 1st at 100%, 2nd at 50%, 3rd+ at 25%
-- **Structural constraint:** No code may simultaneously carry both a Facility rate AND a PC/TC split. Flagged codes requiring special handling: **46924, 91124, 91125**
+- **Structural pattern:** Facility and PC/TC rates are typically mutually exclusive (99.96% of codes). Three codes (**46924, 91124, 91125**) legitimately carry both facility and PC/TC rates as published by AHCA.
 
 ### Fiscal / FMAP
 

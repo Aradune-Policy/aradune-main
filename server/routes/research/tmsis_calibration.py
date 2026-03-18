@@ -2,11 +2,13 @@
 
 from fastapi import APIRouter, HTTPException, Query
 from server.db import get_cursor
+from server.utils.error_handler import safe_route
 
 router = APIRouter()
 
 
 @router.get("/api/research/tmsis-calibration/state-summary")
+@safe_route(default_response={})
 async def tmsis_state_summary():
     """State-level T-MSIS claims vs fee schedule calibration factors."""
     try:
@@ -33,6 +35,7 @@ async def tmsis_state_summary():
 
 
 @router.get("/api/research/tmsis-calibration/tn-simulation")
+@safe_route(default_response={})
 async def tn_simulation(category: str = Query(default=None)):
     """Tennessee simulated fee schedule from T-MSIS claims calibrated via SE states."""
     try:
@@ -64,6 +67,7 @@ async def tn_simulation(category: str = Query(default=None)):
 
 
 @router.get("/api/research/tmsis-calibration/effective-rates")
+@safe_route(default_response={})
 async def effective_rates(state: str = Query(default="TN"), limit: int = Query(default=100, le=500)):
     """T-MSIS effective paid rates for any state. Clearly labeled as claims-based, not fee schedule."""
     try:

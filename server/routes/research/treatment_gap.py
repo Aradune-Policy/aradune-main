@@ -2,11 +2,13 @@
 
 from fastapi import APIRouter, HTTPException, Query
 from server.db import get_cursor
+from server.utils.error_handler import safe_route
 
 router = APIRouter()
 
 
 @router.get("/api/research/treatment-gap/demand-supply")
+@safe_route(default_response={})
 async def treatment_gap_demand_supply():
     """OUD prevalence vs SUD treatment facility capacity by state."""
     try:
@@ -118,6 +120,7 @@ async def treatment_gap_demand_supply():
 
 
 @router.get("/api/research/treatment-gap/mat-utilization")
+@safe_route(default_response={})
 async def treatment_gap_mat_utilization():
     """Medication-Assisted Treatment (MAT) drug spending and prescriptions from SDUD by state."""
     try:
@@ -147,6 +150,7 @@ async def treatment_gap_mat_utilization():
 
 
 @router.get("/api/research/treatment-gap/prescribing")
+@safe_route(default_response={})
 async def treatment_gap_prescribing():
     """Opioid prescribing rates by state and year, with FIPS-to-state resolution."""
     try:
@@ -168,6 +172,7 @@ async def treatment_gap_prescribing():
 
 
 @router.get("/api/research/treatment-gap/funding")
+@safe_route(default_response={})
 async def treatment_gap_funding():
     """SUD prevalence vs block grant funding and per-enrollee grant amounts by state."""
     try:

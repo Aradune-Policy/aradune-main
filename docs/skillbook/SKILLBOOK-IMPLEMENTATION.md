@@ -96,7 +96,7 @@ If you later want semantic/vector retrieval, you already have the `VOYAGE_API_KE
 | `strategy` | Effective reasoning patterns | "For novel CDT codes without FL precedent, use Section 1834A residual pricing methodology with CY2025 CF ($32.3465) as federal anchor" |
 | `caveat` | Data quality warnings learned from experience | "T-MSIS encounter amounts for TN are simulated from claims averages, not actual FFS rates -- always flag this" |
 | `failure_mode` | Reasoning paths that produced wrong answers | "Do NOT use fact_doge tables for state-level spending comparison -- OT-only, provider-state distortion makes MC states look artificially low" |
-| `domain_rule` | Regulatory/policy rules that must be applied | "FL Medicaid rates cannot have both facility rate AND PC/TC split. Codes 46924, 91124, 91125 require special handling" |
+| `domain_rule` | Regulatory/policy rules that must be applied | "FL Medicaid: Facility and PC/TC rates typically mutually exclusive (99.96% of codes). Codes 46924, 91124, 91125 legitimately carry both per AHCA" |
 | `query_pattern` | SQL patterns that work for common questions | "For per-enrollee spending by state: JOIN fact_cms64_multiyear ON state_code, filter service_category='total', divide by fact_enrollment excluding CHIP" |
 
 ### Seed Skills (Day 1)
@@ -118,7 +118,7 @@ You already have implicit skills scattered across your build. These become the i
 8. "MAT spending calculation: use full NDC product names, not truncated. Truncation caused $0 match initially" -> `failure_mode`
 
 **From your FL rate-setting rule:**
-9. "FL Medicaid: no facility + PC/TC split on same code. Codes 46924, 91124, 91125 flagged." -> `domain_rule`
+9. "FL Medicaid: Facility and PC/TC rates typically mutually exclusive (99.96% of codes). Codes 46924, 91124, 91125 legitimately carry both per AHCA." -> `domain_rule`
 
 **From your Build Principles:**
 10. "Never trust a single source. Triangulate: TAF + CMS-64 + supplemental for expenditure figures." -> `strategy`

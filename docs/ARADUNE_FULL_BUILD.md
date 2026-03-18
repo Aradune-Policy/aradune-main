@@ -79,32 +79,35 @@ Aradune has three layers. Intelligence connects everything.
 |                       ARADUNE INTELLIGENCE                            |
 |                                                                       |
 |  Claude Sonnet/Opus + extended thinking + DuckDB query access         |
-|  + RAG over policy corpus + web search for current regulatory context |
+|  + RAG over policy corpus + web search + Skillbook injection          |
 |  + user-uploaded data cross-reference + structured output format      |
 |                                                                       |
-|  Available everywhere: home page chat, sidebar from any structured    |
-|  tool, "Ask about this" buttons, State Profile questions.             |
 |  Produces: narrative, tables, charts, exportable compliance docs.     |
-+-------------------------------+---------------------------------------+
-                                |
-+-------------------------------+---------------------------------------+
-|                      ENTITY REGISTRY (Ontology)                       |
++-------------------+---------------------------+-----------------------+
+                    |                           |
+                    |                    +------+--------+
+                    |                    |   REFLECTOR   |
+                    |                    | Async Haiku   |
+                    |                    | ~$0.004/query |
+                    |                    | Skills + score|
+                    |                    +------+--------+
+                    |                           |
++-------------------+---------------------------+-----------------------+
+|                      ENTITY REGISTRY + SKILLBOOK                      |
 |                                                                       |
-|  YAML-defined entities: State, Procedure, Provider, Hospital, MCO,   |
-|  Rate Cell, Drug, Quality Measure, Policy Document, Geographic Area  |
-|  Properties, Relationships, Named metrics, Domain groupings          |
+|  Ontology: 16 entities, 20 domains, 28 edges, 19 named metrics      |
+|  Skillbook: 24+ validated domain insights (strategies, caveats,      |
+|    failure modes, rules, query patterns). Self-curating, scored.     |
 |  Auto-generates: Intelligence system prompt + DuckPGQ property graph |
-|  Add a dataset = add a YAML file + run a script                      |
 +-------------------------------+---------------------------------------+
                                 |
 +-------------------------------+---------------------------------------+
 |                        THE DATA LAKE                                  |
 |                                                                       |
 |  750+ tables, 400M+ rows, Hive-partitioned Parquet, DuckDB           |
-|  Medallion architecture: Bronze (raw) -> Silver (normalized) -> Gold |
-|  + DuckPGQ property graph (SQL/PGQ queries over same tables)         |
-|  + User session data (uploaded files, parsed and queryable)          |
-|  + Policy corpus (1,039+ CMS docs, 6,058+ searchable chunks)        |
+|  Medallion architecture: Bronze -> Silver -> Gold                     |
+|  + Policy corpus (1,039 docs, 6,058 chunks)                         |
+|  + Validation engine (15+ checks, 3 types, stored results)          |
 |  R2 sync, Dagster orchestration, source-provenant, versioned         |
 +-----------------------------------------------------------------------+
 ```
@@ -119,13 +122,13 @@ Data store:     DuckDB-WASM (browser-side client queries)
 Data lake:      Hive-partitioned Parquet (data/lake/) -- 400M+ rows, 750+ views
                 DuckDB in-memory views over Parquet files, 4.9 GB on disk
                 S3/R2 sync (scripts/sync_lake_wrangler.py --remote)
-Backend:        Python FastAPI (server/) -- 325+ endpoints across 35 route files
+Backend:        Python FastAPI (server/) -- 336 endpoints across 39 route files
 AI:             Claude Sonnet 4.6 + extended thinking + DuckDB tools + RAG + web search
                 Haiku for routing, Sonnet for analysis, Opus for complex reasoning
 RAG:            DuckDB FTS over policy corpus (1,039 docs, 6,058 chunks)
                 BM25 full-text search with ILIKE fallback
 Search:         Platform-wide Cmd+K search (PlatformSearch.tsx + /api/search)
-Auth:           Clerk integration (falls back to password gate "mediquiad")
+Auth:           Clerk (JWT validation, test keys active -- switch to production before demo)
 Pipeline:       115+ Python ETL scripts (scripts/build_*.py)
 Orchestration:  Dagster (13 assets, 3 checks, 3 jobs, 2 schedules)
 CI/CD:          GitHub Actions (TypeScript check + Vercel + Fly.io deploy)
@@ -251,7 +254,7 @@ After R2 background sync completes, the server receives `POST /internal/reload-l
 | dim_procedure | 17,081 | HCPCS/CPT codes with CY2026 Medicare PFS RVUs |
 | dim_medicare_locality | 109 | Medicare GPCI locality definitions |
 
-**Coverage:** All 51 jurisdictions (50 states + DC). TN excluded from rate comparison (94% managed care, no FFS). 17 new fee schedule tables scraped in Session 30.
+**Coverage:** All 54 jurisdictions (50 states + DC + PR + GU + VI). 51 have published fee schedules; 3 territories use T-MSIS claims-based rates. TN excluded from FFS rate comparison (94% managed care, no published FFS schedule; simulated rates from T-MSIS claims available). 17 new fee schedule tables scraped in Session 30.
 
 #### Enrollment & Managed Care
 | Table | Rows | Source |
@@ -739,7 +742,7 @@ event: done\ndata: {}
 2. Flag data quality issues (DQ Atlas for any state)
 3. Minimum cell size n >= 11
 4. T-MSIS encounter amounts unreliable for MCO-to-provider rates
-5. FL Medicaid: no facility + PC/TC split (codes 46924, 91124, 91125)
+5. FL Medicaid: Facility and PC/TC rates are typically mutually exclusive (99.96% of codes). Three codes (46924, 91124, 91125) legitimately carry both as published by AHCA.
 6. CPRA: $32.3465 CF (CY2025). General: $33.4009 (CY2026)
 7. Census sentinels (-888888888) = NULL
 8. SELECT-only. Never modify data.
@@ -749,6 +752,37 @@ event: done\ndata: {}
 12. Clean markdown tables. Cite sources with vintage and caveats.
 13. When finding implies action, state it.
 
+### Skillbook (Self-Corrective Intelligence Layer)
+
+The Skillbook is a persistent, self-curating layer of Medicaid domain intelligence that sits between the ontology and Claude. It learns from every query: what reasoning worked, what failed, what domain rules matter.
+
+**Table:** `fact_skillbook` in DuckDB (same lake, same query access)
+
+**Skill categories:**
+- `strategy` -- effective reasoning patterns for common query types
+- `caveat` -- data quality warnings learned from experience
+- `failure_mode` -- reasoning paths that produced wrong answers
+- `domain_rule` -- regulatory/policy rules that must always be applied
+- `query_pattern` -- SQL patterns that work for common questions
+
+**Current state:** 24 seed skills from existing build rules and audit findings. Auto-learning active via async Reflector (Haiku, ~$0.004/reflection, non-blocking).
+
+**Retrieval:** Domain-filtered by net_score + BM25 text match against query. Injected into Intelligence system prompt between ontology and user query.
+
+**Scoring:** Each skill has helpful_count, harmful_count, net_score. Skills with sustained negative scores are retired. Skills validated 3+ times are marked as high-confidence.
+
+**Pattern:** ACE framework (ICLR 2026) adapted for domain-specific regulatory analytics.
+
+**Engines:**
+- `server/engines/skillbook.py` (278 lines) -- retrieval, injection, CRUD
+- `server/engines/reflector.py` (133 lines) -- async post-response analysis, skill extraction
+
+**API endpoints:**
+- GET /api/skillbook -- list skills, optional domain filter
+- GET /api/skillbook/stats -- health metrics (total, active, validated, suspect)
+- POST /api/skillbook/manual -- manually add a skill
+- DELETE /api/skillbook/{skill_id} -- retire a skill
+
 ---
 
 ## 6. Backend
@@ -757,7 +791,7 @@ event: done\ndata: {}
 
 **Entry point:** `server/main.py`
 **Framework:** Python FastAPI with uvicorn
-**Total:** 325+ endpoints across 35 route files. 176 endpoints protected by @safe_route error handler.
+**Total:** 333+ endpoints across 39 route files (26 top-level + 13 research modules). All endpoints protected by @safe_route error handler (except SSE streaming and file import validation endpoints which have their own error handling).
 
 ### Server Startup Sequence
 
@@ -775,7 +809,7 @@ event: done\ndata: {}
 | server/db.py | ~400 | DuckDB connection, view registration (667 FACT_NAMES) |
 | server/config.py | ~50 | Settings (lake_dir, CORS, max_rows, port) |
 | server/query_builder.py | ~150 | Safe SQL construction |
-| server/middleware/auth.py | ~100 | Clerk auth + password gate fallback |
+| server/middleware/auth.py | 214 | Clerk JWT validation (RS256 via JWKS) |
 
 ### Engines
 
@@ -787,40 +821,48 @@ event: done\ndata: {}
 | Caseload Forecast | engines/caseload_forecast.py | ~650 | SARIMAX + ETS model competition |
 | Expenditure Model | engines/expenditure_model.py | ~430 | Enrollment -> expenditure projection |
 | CPRA Upload | engines/cpra_upload.py | 821 | 42 CFR 447.203 compliant CPRA from file upload |
+| Skillbook | engines/skillbook.py | 278 | Domain skill retrieval, injection, CRUD, scoring |
+| Reflector | engines/reflector.py | 133 | Async post-response skill extraction via Haiku |
+| Validator | engines/validator.py | 98 | 15+ data quality checks (row count, range, RI) |
 
-### Route Files (25 total)
+### Route Files (39 total: 26 top-level + 13 research)
 
 | File | Endpoints | Purpose |
 |------|-----------|---------|
-| intelligence.py | 1 | SSE chat (POST /api/intelligence) |
-| lake.py | 8+ | State data, enrollment, quality, rates, hospitals, pharmacy, economic |
-| cpra.py | 7 | CPRA states, rates, DQ, compare, upload generate |
-| forecast.py | 10 | Caseload + expenditure + fiscal impact |
-| pharmacy.py | 4 | SDUD state summary, top drugs, NADAC |
-| behavioral_health.py | 18 | NSDUH, TEDS, facilities, block grants, opioid |
-| hospitals.py | 12 | Summary, state list, CCN detail, peers, hospital rates |
-| enrollment.py | 6 | Monthly, unwinding, managed care |
-| wages.py | 6 | BLS wages, HPSAs, MUAs |
-| quality.py | 6 | Core Set measures, state detail |
-| staffing.py | 4 | PBJ summary and state |
-| supplemental.py | 3 | DSH, SDP payments |
-| search.py | 1 | Platform-wide Cmd+K search |
-| nl2sql.py | 2 | Natural language to SQL (Haiku) |
-| research/ | 20+ | 12 research module endpoints (44 total) |
+| intelligence.py | 5 | SSE chat, status, feedback (POST /api/intelligence) |
+| behavioral_health.py | 109 | NSDUH, TEDS, facilities, block grants, opioid, conditions, services |
+| round9.py | 29 | Medicare enrollment, opioid prescribing, CHIP, SDUD 2024/2025, integrity |
+| context.py | 24 | Demographics, economic, housing, SNAP, TANF, eligibility, LTSS, maternal |
+| forecast.py | 12 | Caseload + expenditure + fiscal impact + scenario |
+| cpra.py | 11 | CPRA states, rates, DQ, compare, upload generate |
+| wages.py | 10 | BLS wages, HPSAs, MUAs, shortage areas |
+| quality.py | 13 | Core Set measures, state detail, HAC |
+| lake.py | 7 | State data, enrollment, quality, expenditure, spending |
+| bulk.py | 7 | Pre-computed Medicare/Medicaid rates, GPCI, quality, states |
+| supplemental.py | 7 | DSH, SDP, FMR supplemental payments |
+| hospitals.py | 6 | Summary, state list, CCN detail, peers, hospital rates |
+| import_data.py | 5 | User file upload, parse, sessions, quarantine, hydrate |
+| policy.py | 5 | SPAs, waivers, managed care, FMAP, DSH |
+| pharmacy.py | 5 | SDUD state summary, top drugs, NADAC |
+| enrollment.py | 4 | Monthly, unwinding, managed care |
+| skillbook.py | 4 | Skillbook CRUD, stats, manual add |
+| validation.py | 3 | Validation latest, results, domains |
 | meta.py | 3 | Table schema, catalog, stats |
-| import_data.py | 1 | User file upload + parse |
-| policy.py | 4 | Policy corpus, search |
-| context.py | 2 | Context-aware data suggestions |
-| bulk.py | 2 | Bulk operations |
-| insights.py | 3 | Pre-computed insights |
+| rate_explorer.py | 2 | Rate search across jurisdictions |
+| nl2sql.py | 2 | Natural language to SQL (Haiku) |
+| insights.py | 2 | Pre-computed insights |
+| staffing.py | 2 | PBJ summary and state |
+| search.py | 1 | Platform-wide Cmd+K search |
 | query.py | 1 | Generic DuckDB query builder |
-| pipeline.py | 4 | Data pipeline triggers |
+| presets.py | 1 | Saved query presets |
+| pipeline.py | 1 | Data pipeline triggers |
+| research/ (13 files) | 55 | 13 research module endpoints |
 
 ### Authentication
 
 Two modes:
-1. **Clerk** (when `CLERK_SECRET_KEY` set): JWT validation from header, returns user metadata
-2. **Password gate** (fallback): Hardcoded "mediquiad", checked in middleware via `X-Password` header
+1. **Clerk** (when `CLERK_SECRET_KEY` set): RS256 JWT validation from `Authorization: Bearer` header or `__session` cookie, returns user metadata via JWKS
+2. **Open mode** (fallback when Clerk not configured): Anonymous stub user returned, all endpoints accessible. Frontend shows client-side PasswordGate component (not a security boundary)
 
 ### Configuration
 
@@ -853,7 +895,7 @@ port = 8000
 
 ```
 Platform (top-level with auth)
-  +-- PasswordGate (fallback, "mediquiad") OR Clerk auth
+  +-- ClerkAuthProvider (when configured) OR PasswordGate (client-side fallback)
   +-- PlatformInner (the app shell)
       +-- PlatformNav (sticky, 48px, 5 nav groups)
       +-- renderRoute() (switch on window.location.hash)
@@ -1603,35 +1645,47 @@ fly ssh console --app aradune-api --command "python3 -c \"import urllib.request;
 
 ## 15. Data Quality & Validation
 
-### Validation Stack (4 Tools)
+### Operational Validation Layer
+
+Aradune runs a centralized validation engine (`server/engines/validator.py`) with 3 check types across major data domains. Results are surfaced via API.
+
+| Check Type | What It Validates | Count |
+|-----------|-------------------|-------|
+| Row Count | Table has minimum expected rows (fact_rate_comparison >= 300K, etc.) | 10 |
+| Range | Numeric values within plausible bounds (FMAP 0.5-0.83, pct_of_medicare 1-1000, MC penetration 0-100) | 3 |
+| Referential Integrity | Foreign keys resolve to dim_state (rate_comparison, enrollment) | 2 |
+
+**API endpoints:**
+- GET /api/validation/latest -- run checks and return summary with pass rate
+- GET /api/validation/results -- detailed check results (filterable by domain, failures only)
+- GET /api/validation/domains -- pass rates grouped by data domain
+
+**Runner:**
+```
+python3 scripts/run_validation.py                    # Full suite
+python3 scripts/run_validation.py --domain fact_rate # Single domain prefix
+python3 scripts/run_validation.py --export report.md # Markdown report
+python3 scripts/run_validation.py --failures-only    # Show only failures
+```
+
+### ETL Inline Validation (Layer 0)
+
+All 115+ ETL scripts include inline validation with hard stops and soft flags:
+
+**Hard stops (fail immediately):** Rate changed >90% from prior snapshot. Code count dropped >20%. Schema mismatch. NULL or invalid state_code.
+
+**Soft flags (warn, continue):** Rate unchanged >24 months. New codes without description. Rate >3 standard deviations from national mean. Cell size n < 11.
+
+### Future Validation Stack (Phase 2)
 
 | Tool | Purpose | Status |
 |------|---------|--------|
-| Soda Core v4 | DuckDB-native, 50+ SodaCL checks, ML anomaly detection | Planned |
-| dbt-duckdb + dbt-expectations | 60+ SQL-first validation macros | Planned |
-| Pandera | DataFrame validation with statistical hypothesis testing | Planned |
-| datacontract-cli | CI/CD contract testing, breaking change detection | Planned |
+| Soda Core v4 | SodaCL check language, ML anomaly detection | Phase 2 |
+| dbt-duckdb + dbt-expectations | SQL-first validation macros | Phase 2 |
+| Pandera | DataFrame validation with statistical hypothesis testing | Phase 2 |
+| datacontract-cli | CI/CD contract testing, breaking change detection | Phase 2 |
 
-**Note:** The validation stack is architecturally defined but not yet fully implemented. ETL scripts include inline validation (schema checks, range validation, null handling).
-
-### Adversarial Testing Layers
-
-```
-tests/unit/          Hypothesis property tests, code validators
-tests/integration/   Schema contracts, referential integrity, dbt-expectations
-tests/chaos/         Schema drift, null injection, encoding, duplicates, volume spikes
-tests/adversarial/   Invalid codes, outlier values, boundary conditions
-```
-
-**Key patterns tested:**
-- Null injection at 1/5/10/25/50% rates
-- Encoding chaos (smart quotes, null bytes, BOM markers)
-- Date format mixing across sources
-- 10x volume spike handling
-- Near-duplicate injection (off-by-one fields)
-- Invalid code injection (ICD-10, NDC, NPI)
-
-**Synthetic data tools:** SDV (realistic synthetic data, 83.1% CI overlap validated), Mimesis (12-15x faster than Faker for volume testing), Synthea (complete patient histories), CMS SynPUF (2.33M synthetic Medicare beneficiaries).
+The operational validation layer covers the critical path. The formal framework tools are planned for implementation with engineering resources and will extend, not replace, the existing checks.
 
 ### Per-Source Quality Gates
 
@@ -1753,15 +1807,15 @@ Full 8-prompt research audit (V1 + V2): 25 bugs fixed, all 46 endpoints pass. Ra
 | Entity types | 16 |
 | Relationship edges | 28 |
 | ETL scripts | 115+ |
-| Backend endpoints | 325+ across 35 route files |
+| Backend endpoints | 333+ across 39 route files (26 top-level + 13 research) |
 | Engines | 10 (Intelligence, Query Router, RAG, Caseload, Expenditure, CPRA Upload, CPRA Engine, Skillbook, Reflector, Validator) |
 | Frontend modules | 28 standalone (15 core + 13 research) |
 | Export formats | 6 (CSV, Excel, DOCX, PDF, PNG, SVG) |
 | R2 parquet files | 890+ |
 | Demo responses | 27 pre-cached |
 | CI/CD | Both Vercel + Fly.io deploying |
-| Auth | Clerk (JWT, test keys active) |
-| Fee schedule coverage | All 54 jurisdictions (official published rates) |
+| Auth | Clerk (JWT, test keys active -- switch to production before demo) |
+| Fee schedule coverage | All 54 jurisdictions (50 states + DC + PR/GU/VI; 51 published, 3 T-MSIS) |
 | Rate comparison rows | 483,154 across 54 jurisdictions |
 | Skillbook | 24 seed skills, auto-learning from every query |
 | Research modules | 13 (Rate-Quality, MC Value, Treatment Gap, Safety Net, Integrity, Fiscal Cliff, Maternal Health, Pharmacy Spread, Nursing Ownership, Waiver Impact, T-MSIS Calibration, MEPS Expenditure, Network Adequacy) |
@@ -1774,14 +1828,13 @@ Full 8-prompt research audit (V1 + V2): 25 bugs fixed, all 46 endpoints pass. Ra
 
 | # | Item | Status |
 |---|------|--------|
-| 1 | Clerk auth -- create app, set keys (VITE_CLERK_PUBLISHABLE_KEY on Vercel, CLERK_SECRET_KEY on Fly.io) | Needs Clerk app creation |
+| 1 | Clerk auth -- switch to production keys | Test keys active. Create Clerk production instance, deploy pk_live/sk_live to Vercel + Fly.io. |
 | 2 | R2 credentials rotation | James needs new Cloudflare token |
-| 3 | AHRQ SDOH + CDC SVI blocked by WAF | Cannot automate download |
-| 4 | Validation stack (Soda Core, dbt, Pandera) not implemented | Aspirational in CLAUDE.md |
-| 5 | ETL re-runs needed for some audit fixes | FMAP dynamic headers, eligibility pagination, SDUD schema |
-| 6 | AHEAD hardcoded to 6 states / 12 hospitals | Deferred per James |
-| 7 | Pharmacy/enrollment/wages routes return 500 on edge cases | Error handling gaps |
-| 8 | Some duplicate raw files in data/raw/ | Cleanup candidate |
+| 3 | AHRQ SDOH + CDC SVI blocked by WAF | Cannot automate download (manual refresh only) |
+| 4 | Formal validation stack (Soda Core, dbt, Pandera) | Phase 2. Operational validation layer deployed with 15 checks across all domains. |
+| 5 | ETL re-runs for audit fixes | FMAP dynamic headers, eligibility pagination, SDUD schema |
+| 6 | AHEAD hardcoded to 6 states / 12 hospitals | Deferred |
+| 7 | Duplicate raw files in data/raw/ | Cleanup candidate |
 
 ### Phase 6 (Post-Demo / Future)
 
@@ -1834,7 +1887,7 @@ Full 8-prompt research audit (V1 + V2): 25 bugs fixed, all 46 endpoints pass. Ra
 6. Federal data first (covers all states)
 7. Florida pipeline is the template
 8. PDF parsing prompts are versioned
-9. FL rate rule always enforced (no facility + PC/TC; codes 46924, 91124, 91125)
+9. FL Medicaid: Facility and PC/TC rates are typically mutually exclusive (99.96% of codes). Three codes (46924, 91124, 91125) legitimately carry both as published by AHCA.
 10. Data layer is the moat -- every session adds data, improves quality, or makes adding easier
 11. Don't be CPRA-forward -- build for the platform
 12. Economic/contextual data matters

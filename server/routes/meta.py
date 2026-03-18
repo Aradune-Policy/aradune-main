@@ -2,6 +2,7 @@ from fastapi import APIRouter, HTTPException
 from server.models import QueryMeta
 from server.db import get_cursor
 from server.presets import PRESETS
+from server.utils.error_handler import safe_route
 
 router = APIRouter()
 
@@ -119,6 +120,7 @@ TABLE_DESCRIPTIONS = {
 
 
 @router.get("/api/meta", response_model=QueryMeta)
+@safe_route(default_response={})
 async def meta():
     try:
         with get_cursor() as cur:
@@ -154,6 +156,7 @@ async def meta():
 
 
 @router.get("/api/catalog")
+@safe_route(default_response={"tables": [], "total_tables": 0, "total_rows": 0})
 async def catalog():
     """Return metadata about all available tables — name, row count, columns, description."""
     try:
@@ -194,6 +197,7 @@ async def catalog():
 
 
 @router.get("/api/validation")
+@safe_route(default_response={"total": 0, "passed": 0, "failed": 0, "results": []})
 async def run_validation():
     """Run core data validation checks and return results."""
     try:

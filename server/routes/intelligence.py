@@ -11,6 +11,7 @@ import hashlib
 import os
 import re
 import time
+import uuid
 from collections import OrderedDict
 from typing import Any
 
@@ -19,9 +20,11 @@ from fastapi.responses import StreamingResponse
 from pydantic import BaseModel, Field
 
 import anthropic
+from httpx import Timeout
 
 from server.db import get_cursor
 from server.middleware.auth import require_clerk_auth
+from server.utils.error_handler import safe_route
 
 router = APIRouter(prefix="/api/intelligence", tags=["intelligence"])
 
@@ -47,11 +50,51 @@ def _validate_sql(sql: str) -> str:
     return sql
 
 
+_DOGE_TABLES = {"doge_state_hcpcs", "doge_state_taxonomy", "doge_state_monthly", "doge_state_category", "doge_top_providers"}
+
+_DOGE_CAVEAT = (
+    "**DOGE T-MSIS Data Quarantine:** "
+    "(1) OT claims only (excludes IP, Pharmacy, LTC). "
+    "(2) Provider state, not beneficiary state. "
+    "(3) Managed care distortion (high-MC states show misleadingly low amounts). "
+    "(4) Nov/Dec 2024 incomplete. "
+    "(5) Dataset taken offline (Feb 2026 point-in-time snapshot). "
+    "Consider using CMS-64 (fact_cms64_multiyear) for expenditure questions instead."
+)
+
+_IL_CLAIMS_CAVEAT = (
+    "**Illinois T-MSIS caveat:** IL captures claim adjustments as incremental credits/debits, "
+    "not void/replace. Standard claim counts may be unreliable for IL."
+)
+
+_TERRITORIES = {"GU", "VI", "AS", "MP", "PR"}
+
+_DUCKDB_TIMEOUT_MS = 30000  # 30 seconds per query
+
+
+def _detect_doge_tables(sql: str) -> bool:
+    """Check if SQL references any DOGE quarantined table."""
+    sql_lower = sql.lower()
+    return any(t in sql_lower for t in _DOGE_TABLES)
+
+
+def _detect_il_claims(sql: str) -> bool:
+    """Check if SQL references Illinois + claims tables."""
+    sql_lower = sql.lower()
+    has_il = "'il'" in sql_lower or "= 'il'" in sql_lower or "('il'" in sql_lower
+    has_claims = "fact_claims" in sql_lower or "fact_tmsis" in sql_lower
+    return has_il and has_claims
+
+
 def _run_query(sql: str) -> dict:
     """Execute validated SQL, return {columns, rows, row_count, ms}."""
     sql = _validate_sql(sql)
     t0 = time.time()
     with get_cursor() as cur:
+        try:
+            cur.execute(f"SET statement_timeout={_DUCKDB_TIMEOUT_MS}")
+        except Exception:
+            pass  # older DuckDB versions may not support this
         result = cur.execute(sql).fetchall()
         columns = [desc[0] for desc in cur.description]
     ms = int((time.time() - t0) * 1000)
@@ -161,11 +204,20 @@ def _execute_tool(name: str, inp: dict) -> str:
     """Execute a tool call and return JSON string result."""
     try:
         if name == "query_database":
-            result = _run_query(inp["sql"])
+            sql = inp["sql"]
+            result = _run_query(sql)
             if result["row_count"] > 50:
                 result["rows"] = result["rows"][:50]
                 result["truncated"] = True
                 result["note"] = f"Showing first 50 of {result['row_count']} rows"
+            # Programmatic caveat injection
+            caveats = []
+            if _detect_doge_tables(sql):
+                caveats.append(_DOGE_CAVEAT)
+            if _detect_il_claims(sql):
+                caveats.append(_IL_CLAIMS_CAVEAT)
+            if caveats:
+                result["MANDATORY_CAVEATS"] = caveats
             return json.dumps(result, default=str)
 
         elif name == "list_tables":
@@ -275,6 +327,22 @@ def _cache_set(key: str, response: str, tool_calls: list, queries: list):
 
 
 # ---------------------------------------------------------------------------
+# Response post-processing
+# ---------------------------------------------------------------------------
+
+
+def _postprocess_response(text: str) -> str:
+    """Clean up common LLM output issues: em-dashes, en-dashes, double-hyphen dashes."""
+    # Replace em-dash and en-dash used as clause connectors with comma or period
+    text = text.replace("\u2014", ", ").replace("\u2013", ", ")
+    # Replace double-hyphen dashes used as clause connectors (but not in code/SQL)
+    text = re.sub(r"(?<!\-)\-\-(?!\-)", ", ", text)
+    # Clean up double commas or comma-space-comma from replacements
+    text = re.sub(r",\s*,", ",", text)
+    return text
+
+
+# ---------------------------------------------------------------------------
 # System prompt
 # ---------------------------------------------------------------------------
 
@@ -335,7 +403,7 @@ Use `list_tables` with a keyword filter to find other tables not listed here.
 - FL uses RBRVS fee schedule with conversion factor ~$24.98 (regular) and ~$26.17 (lab).
 - MPIP = Medicaid Provider Incentive Program (FL-specific pediatric E&M enhancement, 106.3% of Medicare rate).
 - Rate stacking: FSI base × 1.04 × 1.24 × 1.164 × 1.102 for applicable provider types.
-- FL structural constraint: no code may simultaneously carry both a Facility rate AND a PC/TC split. Codes 46924, 91124, 91125 require special handling.
+- FL rate structure: Facility and PC/TC rates are typically mutually exclusive (99.96% of codes). Three codes (46924, 91124, 91125) legitimately carry both facility and PC/TC rates as published by AHCA.
 
 ## Data Quality Rules
 - Filter: medicaid_rate > 0, pct_of_medicare > 0 AND < 10 for rate comparisons
@@ -346,26 +414,68 @@ Use `list_tables` with a keyword filter to find other tables not listed here.
 - ROUND() dollars to 2 decimals, percentages to 1.
 - HAVING COUNT(*) >= 11 for aggregates with utilization counts (minimum cell size).
 
-## DOGE T-MSIS Data Quarantine
-The lake contains 5 tables prefixed `doge_` (doge_state_hcpcs, doge_state_taxonomy, doge_state_monthly, doge_state_category, doge_top_providers). These come from the HHS/DOGE Medicaid Provider Spending dataset. **You MUST caveat any response that uses DOGE data with ALL of the following limitations:**
-1. **OT claims only** -- This dataset contains ONLY Other Therapy (outpatient/professional) claims. It does NOT include Inpatient (IP), Pharmacy (RX), or Long-Term Care (LT) claims. If a user asks about IP, RX, or LT spending, do NOT use DOGE tables as a substitute. Say the data is not available.
-2. **Provider state, not beneficiary state** -- The `state` column is the billing/servicing provider's state, NOT the beneficiary's state of residence. Do not describe DOGE state-level data as "Medicaid spending in [state]" -- it is "Medicaid spending billed by providers in [state]."
-3. **Managed care distortion** -- States with high managed care penetration (FL, TN, KS, etc.) show misleadingly low paid amounts because capitation payments are not reflected in claim-level paid fields. Always note this.
-4. **Nov/Dec 2024 incomplete** -- Data for November and December 2024 is truncated/incomplete. Do not use those months for trend analysis or totals.
-5. **Dataset provenance** -- This dataset was briefly published by HHS/DOGE in February 2026 and subsequently taken offline. Treat it as a point-in-time snapshot with known quality limitations.
+## Per-State Mandatory Caveats
+When your response includes data from ANY of these sources, you MUST include the corresponding caveat. No exceptions.
 
-When a user asks a question that you answer using DOGE data, add a clearly visible caveat block at the end of your response noting which of these limitations apply. Never silently blend DOGE data with production T-MSIS or CMS-64 data without explicitly noting the different sources and their limitations.
+**Illinois T-MSIS claims:** Illinois captures claim adjustments as incremental credits and debits, not void/replace. The standard TAF final-action dedup algorithm fails for IL. If you query fact_claims for Illinois, note: "Illinois T-MSIS claims require custom dedup logic (incremental credits/debits). Standard claim counts may be unreliable for IL."
+
+**HCRIS hospital cost reports:** HCRIS data is self-reported, unaudited, and not GAAP-compliant. Outlier values should be winsorized. If you cite hospital financials from fact_hospital_cost, note: "HCRIS cost reports are unaudited, self-reported, and not GAAP. Outlier values may skew state-level aggregates."
+
+**Tennessee rates:** TN has ~94% managed care and no published FFS fee schedule. Any TN rates in the platform are simulated from T-MSIS claims. Always label TN rates as "claims-based simulated rates, not a published fee schedule."
+
+**Territories (PR, GU, VI, AS, MP):** These have very sparse data. Show whatever is available and note: "Territory data is limited. [GU/PR/VI] has sparse coverage in the data lake." Never refuse to answer for a territory; show what exists.
+
+## DOGE T-MSIS Data Quarantine (CRITICAL)
+The lake contains 5 tables prefixed `doge_` (doge_state_hcpcs, doge_state_taxonomy, doge_state_monthly, doge_state_category, doge_top_providers). These are QUARANTINED. Before presenting ANY data from these tables, you MUST include a clearly labeled caveat block with ALL FIVE of these warnings:
+
+1. **OT claims only.** Excludes Inpatient, Pharmacy, and Long-Term Care. Not representative of total Medicaid spending.
+2. **Provider state, not beneficiary state.** The state column is where the provider bills from, not where the patient lives. Cannot be used for state-level spending comparisons.
+3. **Managed care distortion.** High-MC states (FL, TN, KS, etc.) show misleadingly low paid amounts because capitation payments are not in claim-level paid fields.
+4. **Nov/Dec 2024 incomplete.** Do not use those months for trends or totals.
+5. **Dataset taken offline.** Published briefly by HHS/DOGE in Feb 2026, then removed. Point-in-time snapshot with known quality limitations.
+
+If ANY of these 5 caveats is missing from a response that uses DOGE data, the response is non-compliant. When in doubt, recommend using CMS-64 (fact_cms64_multiyear) instead for expenditure questions.
 
 ## Response Rules
-- Never use emojis or emoticons in your responses
-- Never start with filler phrases like "Great question!", "Absolutely!", "Sure!", "Of course!", or "Let me help you with that!"
+
+### Style (STRICTLY ENFORCED)
+- NEVER use em-dashes (\u2014), en-dashes (\u2013), or double hyphens (--) as punctuation in your prose. They are a hallmark of AI-generated text. Instead, use commas, colons, semicolons, periods, or parentheses to connect clauses. Rewrite sentences to avoid needing dashes at all.
+  BAD: "Florida pays below Medicare -- significantly in primary care"
+  BAD: "Florida pays below Medicare \u2014 significantly in primary care"
+  GOOD: "Florida pays below Medicare, significantly so in primary care."
+  GOOD: "Florida pays below Medicare (significantly in primary care)."
+- NEVER use the phrase "plain English" or "in plain English." Say "natural language" or omit.
+- NEVER use emojis or emoticons.
+- NEVER start with filler phrases like "Great question!", "Absolutely!", "Sure!", "Of course!", or "Let me help you with that!"
+- Write like a senior policy analyst, not like a chatbot. No hedging, no filler, no "It's worth noting that..."
+
+### Data Vintage (STRICTLY ENFORCED)
+- EVERY number you cite MUST include a data vintage: the fiscal year, calendar year, or date range. Never say "current" or "as of today" or present a number without a time reference.
+- Example: "Florida's FMAP is **57.22%** (FY2025-26)" -- not "Florida's FMAP is 57.22%"
+- If you don't know the vintage of a number, say so.
+
+### Data Integrity
+- NEVER fabricate data. If a table doesn't exist or doesn't have the requested time range, say so. Do NOT invent table names or extrapolate beyond available data.
+- CMS-64 data (fact_cms64_multiyear) covers FY2018-2024 ONLY. Do not invent earlier years.
+- CHIP must be EXCLUDED from per-enrollee spending denominators.
+- CPRA calculations use $32.3465 conversion factor (CY2025 non-QPP). General comparisons use $33.4009 (CY2026). Always state which CF you used.
+- For Illinois T-MSIS claims, ALWAYS note that IL requires custom dedup logic (incremental credits/debits, not void/replace).
+- HCRIS cost reports are unaudited and not GAAP. Always note this when citing hospital financial data.
+
+### Territories and Edge Cases
+- Territories (PR, GU, VI, AS, MP) have sparse data. Show whatever is available and note the limitations. Do not refuse to answer -- show what you can.
+- Tennessee has ~94% managed care and no published FFS fee schedule. TN rates in the platform are simulated from T-MSIS claims. Always note this.
+- Wyoming has no Medicaid managed care program. If asked about WY managed care, state this fact.
+- Vermont uses RBRVS conversion factors ($35.99 PC / $28.71 standard), not per-code rates. Explain this when asked about VT rates.
+
+### Format
 - Lead with the finding or answer, then show supporting evidence
-- Use **bold** for key numbers: "Florida pays **62.3%** of Medicare for primary care"
+- Use **bold** for key numbers: "Florida pays **62.3%** of Medicare for primary care (CY2024 fact_rate_comparison)"
 - For multi-state comparisons, include a ranked markdown table
 - Note data limitations briefly -- don't let caveats overshadow the answer
 - If you can proactively cross-reference another table to add insight, do it
 - Be direct and analytical, like a senior policy analyst writing a briefing memo
-- For data queries, cite the source table name
+- For data queries, cite the source table name and data vintage
 """
 
 # Build system prompt: static intro + ontology-generated data section + rules
@@ -457,6 +567,7 @@ Always mention when you're using the user's uploaded data vs. Aradune's public d
 # ---------------------------------------------------------------------------
 
 @router.post("", response_model=IntelligenceResponse)
+@safe_route(default_response={})
 async def intelligence(req: IntelligenceRequest, user: dict = Depends(require_clerk_auth)):
     """AI analysis grounded in the Aradune data lake."""
 
@@ -483,7 +594,7 @@ async def intelligence(req: IntelligenceRequest, user: dict = Depends(require_cl
         use_haiku=True,
     )
 
-    client = anthropic.Anthropic(api_key=api_key)
+    client = anthropic.Anthropic(api_key=api_key, timeout=Timeout(120.0, connect=10.0))
     _hydrate_imported_data(req.session_id)
     system_prompt = _build_system_prompt(req.imported_files)
 
@@ -650,7 +761,25 @@ async def intelligence(req: IntelligenceRequest, user: dict = Depends(require_cl
             final_text += block.text
 
     if not final_text:
-        final_text = "I wasn't able to generate a response. Please try rephrasing your question."
+        # Territory-aware fallback
+        mentioned_territory = None
+        msg_upper = req.message.upper()
+        for t in _TERRITORIES:
+            if t in msg_upper or t in (req.context or {}).get("state", "").upper():
+                mentioned_territory = t
+                break
+        if mentioned_territory:
+            final_text = (
+                f"Territory data for {mentioned_territory} is limited in the Aradune data lake. "
+                f"Most federal datasets have sparse or no coverage for territories. "
+                f"Try querying specific tables with `list_tables` to see what is available, "
+                f"or ask about a specific metric (enrollment, expenditure) for {mentioned_territory}."
+            )
+        else:
+            final_text = "I wasn't able to generate a response. Please try rephrasing your question."
+
+    # Post-process: strip em-dashes from response
+    final_text = _postprocess_response(final_text)
 
     # Cache the response
     if final_text and not req.imported_files and len(req.history) == 0:
@@ -679,6 +808,7 @@ def _sse_event(event: str, data: dict) -> str:
 
 
 @router.post("/stream")
+@safe_route(default_response={})
 async def intelligence_stream(req: IntelligenceRequest, user: dict = Depends(require_clerk_auth)):
     """Streaming AI analysis via Server-Sent Events with progress tracking."""
 
@@ -985,25 +1115,45 @@ async def intelligence_stream(req: IntelligenceRequest, user: dict = Depends(req
                     for check_pos in range(200, min(len(text), 2000), 50):
                         snippet = text[check_pos:check_pos + window]
                         if snippet and text.count(snippet) > 5:
-                            # Found a repeating pattern — truncate before the repetition starts
                             first_occurrence = text.index(snippet)
-                            # Find where the repetition block begins
                             repeat_start = first_occurrence + len(snippet)
                             for scan in range(repeat_start, min(repeat_start + 500, len(text))):
                                 if text[scan:scan + window] == snippet:
-                                    text = text[:scan].rstrip() + "\n\n*[Response truncated — repetition detected]*"
+                                    text = text[:scan].rstrip() + "\n\n*[Response truncated, repetition detected]*"
                                     break
                             break
                 final_text += text
-                text_len = len(text)
-                chunk_size = 20
-                chunks_emitted = 0
-                for i in range(0, text_len, chunk_size):
-                    yield _sse_event("token", {"text": text[i:i + chunk_size]})
-                    chunks_emitted += 1
-                    if chunks_emitted % 10 == 0:
-                        stream_pct = min(75 + int((i + chunk_size) / max(text_len, 1) * 20), 95)
-                        yield _sse_event("progress", {"pct": stream_pct, "label": "Writing analysis..."})
+
+        # Post-process: strip em-dashes, apply territory fallback
+        if not final_text:
+            mentioned_territory = None
+            msg_upper = req.message.upper()
+            for t in _TERRITORIES:
+                if t in msg_upper or t in (req.context or {}).get("state", "").upper():
+                    mentioned_territory = t
+                    break
+            if mentioned_territory:
+                final_text = (
+                    f"Territory data for {mentioned_territory} is limited in the Aradune data lake. "
+                    f"Most federal datasets have sparse or no coverage for territories. "
+                    f"Try querying specific tables with `list_tables` to see what is available, "
+                    f"or ask about a specific metric (enrollment, expenditure) for {mentioned_territory}."
+                )
+            else:
+                final_text = "I wasn't able to generate a response. Please try rephrasing your question."
+
+        final_text = _postprocess_response(final_text)
+
+        # Stream the processed text
+        text_len = len(final_text)
+        chunk_size = 20
+        chunks_emitted = 0
+        for i in range(0, text_len, chunk_size):
+            yield _sse_event("token", {"text": final_text[i:i + chunk_size]})
+            chunks_emitted += 1
+            if chunks_emitted % 10 == 0:
+                stream_pct = min(75 + int((i + chunk_size) / max(text_len, 1) * 20), 95)
+                yield _sse_event("progress", {"pct": stream_pct, "label": "Writing analysis..."})
 
         # Cache the response
         if final_text and not req.imported_files and len(req.history) == 0:
@@ -1014,7 +1164,10 @@ async def intelligence_stream(req: IntelligenceRequest, user: dict = Depends(req
                 queries_executed,
             )
 
+        trace_id = str(uuid.uuid4())[:12]
+
         yield _sse_event("metadata", {
+            "trace_id": trace_id,
             "tool_calls": tool_call_log,
             "queries": queries_executed,
             "model": current_model,
@@ -1026,6 +1179,38 @@ async def intelligence_stream(req: IntelligenceRequest, user: dict = Depends(req
 
         yield _sse_event("progress", {"pct": 100, "label": "Complete"})
         yield _sse_event("done", {})
+
+        # ── Store Intelligence trace ──
+        try:
+            from server.engines.skillbook import ensure_table
+            with get_cursor() as cur:
+                cur.execute("""
+                    CREATE TABLE IF NOT EXISTS fact_intelligence_trace (
+                        trace_id            VARCHAR PRIMARY KEY,
+                        query_text          VARCHAR,
+                        domain              VARCHAR,
+                        tier                INTEGER,
+                        skill_ids_retrieved VARCHAR,
+                        sql_queries         VARCHAR,
+                        model_used          VARCHAR,
+                        response_length     INTEGER,
+                        response_time_ms    INTEGER,
+                        feedback            VARCHAR,
+                        created_at          VARCHAR DEFAULT (strftime(current_timestamp, '%Y-%m-%d %H:%M:%S'))
+                    )
+                """)
+                cur.execute("""
+                    INSERT INTO fact_intelligence_trace
+                    (trace_id, query_text, domain, tier, skill_ids_retrieved,
+                     sql_queries, model_used, response_length, response_time_ms)
+                    VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
+                """, [trace_id, req.message[:500],
+                      classified_domain if 'classified_domain' in dir() else 'general',
+                      current_tier, json.dumps(retrieved_skill_ids if 'retrieved_skill_ids' in dir() else []),
+                      json.dumps(queries_executed[:10]),
+                      current_model, len(final_text), 0])
+        except Exception:
+            pass
 
         # ── Async reflection (non-blocking) ──
         try:
@@ -1054,6 +1239,7 @@ async def intelligence_stream(req: IntelligenceRequest, user: dict = Depends(req
 
 
 @router.get("/corpus/stats")
+@safe_route(default_response={})
 async def corpus_stats():
     """Return statistics about the policy corpus."""
     from server.engines.rag_engine import corpus_stats as _stats
@@ -1061,6 +1247,7 @@ async def corpus_stats():
 
 
 @router.get("/corpus/search")
+@safe_route(default_response={})
 async def corpus_search(q: str, doc_type: str = None, state: str = None, top_k: int = 10):
     """Direct search endpoint for the policy corpus (non-AI)."""
     from server.engines.rag_engine import hybrid_search
@@ -1070,28 +1257,57 @@ async def corpus_search(q: str, doc_type: str = None, state: str = None, top_k: 
 
 
 @router.post("/feedback")
+@safe_route(default_response={})
 async def intelligence_feedback(req: dict):
     """Process user feedback (thumbs up/down) on Intelligence responses."""
     feedback = req.get("feedback", "")
     conversation_id = req.get("conversation_id", "")
+    trace_id = req.get("trace_id", "")
     skill_ids = req.get("skill_ids", [])
 
     if feedback not in ("positive", "negative"):
         return {"status": "invalid_feedback"}
 
-    # Fire async reflection with feedback signal
+    # Look up trace for targeted re-reflection
+    trace_data = {}
+    if trace_id:
+        try:
+            with get_cursor() as cur:
+                rows = cur.execute(
+                    "SELECT query_text, domain, tier, skill_ids_retrieved, sql_queries, model_used "
+                    "FROM fact_intelligence_trace WHERE trace_id = ?",
+                    [trace_id],
+                ).fetchall()
+                if rows:
+                    cols = ["query_text", "domain", "tier", "skill_ids_retrieved", "sql_queries", "model_used"]
+                    trace_data = dict(zip(cols, rows[0]))
+                # Update feedback column on the trace
+                cur.execute(
+                    "UPDATE fact_intelligence_trace SET feedback = ? WHERE trace_id = ?",
+                    [feedback, trace_id],
+                )
+        except Exception:
+            pass
+
+    # Fire async reflection with feedback signal + trace context
     try:
         import asyncio
         from server.engines.reflector import reflect_on_response
+
+        query = trace_data.get("query_text") or req.get("query", "")
+        domain = trace_data.get("domain") or req.get("domain", "rates")
+        sql_traces = json.loads(trace_data["sql_queries"]) if trace_data.get("sql_queries") else []
+        skill_id_list = json.loads(trace_data["skill_ids_retrieved"]) if trace_data.get("skill_ids_retrieved") else skill_ids
+
         asyncio.create_task(reflect_on_response(
-            query=req.get("query", ""),
-            domain=req.get("domain", "rates"),
-            sql_traces=[],
+            query=query,
+            domain=domain,
+            sql_traces=sql_traces[:5],
             response_text=req.get("response_text", ""),
             feedback=feedback,
-            retrieved_skill_ids=skill_ids,
+            retrieved_skill_ids=skill_id_list,
         ))
     except Exception:
         pass
 
-    return {"status": "feedback_received"}
+    return {"status": "feedback_received", "trace_id": trace_id}

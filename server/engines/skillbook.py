@@ -8,6 +8,7 @@ and injected into the Intelligence system prompt.
 """
 
 import uuid
+import json
 import logging
 from datetime import datetime
 from typing import Optional
@@ -15,15 +16,38 @@ from server.db import get_cursor
 
 logger = logging.getLogger("aradune.skillbook")
 
-# Table name
+# Table names
 TABLE = "fact_skillbook"
+TRACE_TABLE = "fact_intelligence_trace"
+
+# ---------------------------------------------------------------------------
+# Score Decay
+# ---------------------------------------------------------------------------
+
+def effective_score(net_score: float, last_validated_at: str = None, half_life_days: float = 30) -> float:
+    """
+    Compute decayed score: net_score * 2^(-days_elapsed / half_life_days).
+    Negative scores don't get decay benefit (they stay negative).
+    """
+    if net_score <= 0:
+        return float(net_score)
+    if not last_validated_at:
+        return float(net_score)
+    try:
+        validated = datetime.strptime(last_validated_at, "%Y-%m-%d %H:%M:%S")
+        days_elapsed = (datetime.now() - validated).total_seconds() / 86400.0
+        if days_elapsed < 0:
+            days_elapsed = 0
+        return net_score * pow(2, -(days_elapsed / half_life_days))
+    except Exception:
+        return float(net_score)
 
 # ---------------------------------------------------------------------------
 # Initialization
 # ---------------------------------------------------------------------------
 
 def ensure_table():
-    """Create the skillbook table if it doesn't exist."""
+    """Create the skillbook table and intelligence trace table if they don't exist."""
     try:
         with get_cursor() as cur:
             cur.execute(f"""
@@ -42,10 +66,46 @@ def ensure_table():
                     created_at      VARCHAR DEFAULT (strftime(current_timestamp, '%Y-%m-%d %H:%M:%S')),
                     updated_at      VARCHAR DEFAULT (strftime(current_timestamp, '%Y-%m-%d %H:%M:%S')),
                     superseded_by   VARCHAR,
-                    active          BOOLEAN DEFAULT true
+                    active          BOOLEAN DEFAULT true,
+                    last_validated_at VARCHAR,
+                    decay_half_life_days FLOAT DEFAULT 30,
+                    related_skills  VARCHAR,
+                    prune_reason    VARCHAR
                 )
             """)
-            logger.info("Skillbook table ensured")
+
+            # Migrate existing tables: add new columns if missing
+            for col_def in [
+                ("last_validated_at", "VARCHAR"),
+                ("decay_half_life_days", "FLOAT DEFAULT 30"),
+                ("related_skills", "VARCHAR"),
+                ("prune_reason", "VARCHAR"),
+            ]:
+                try:
+                    cur.execute(f"ALTER TABLE {TABLE} ADD COLUMN {col_def[0]} {col_def[1]}")
+                    logger.info(f"Added column {col_def[0]} to {TABLE}")
+                except Exception:
+                    pass  # Column already exists
+
+            # Intelligence trace table
+            cur.execute(f"""
+                CREATE TABLE IF NOT EXISTS {TRACE_TABLE} (
+                    trace_id          VARCHAR PRIMARY KEY,
+                    query_text        VARCHAR,
+                    domain            VARCHAR,
+                    tier              INTEGER,
+                    skill_ids_retrieved VARCHAR,
+                    sql_queries       VARCHAR,
+                    model_used        VARCHAR,
+                    response_length   INTEGER,
+                    response_time_ms  INTEGER,
+                    feedback          VARCHAR,
+                    feedback_at       VARCHAR,
+                    created_at        VARCHAR DEFAULT (strftime(current_timestamp, '%Y-%m-%d %H:%M:%S'))
+                )
+            """)
+
+            logger.info("Skillbook + trace tables ensured")
     except Exception as e:
         logger.warning(f"Skillbook table creation: {e}")
 
@@ -63,9 +123,12 @@ def retrieve_skills(
     """
     Retrieve relevant skills for injection into the Intelligence prompt.
 
-    Two-stage retrieval:
+    Three-stage retrieval:
     1. Domain-filtered domain_rules (always included for the domain)
     2. Keyword match against query for other skill types
+    3. Graph expansion: 1-hop fetch via related_skills links
+
+    Results sorted by effective_score (decay-adjusted) instead of raw net_score.
     """
     try:
         with get_cursor() as cur:
@@ -81,7 +144,8 @@ def retrieve_skills(
             domain_rules = cur.execute(f"""
                 SELECT skill_id, domain, category, content, provenance,
                        helpful_count, harmful_count,
-                       helpful_count - harmful_count AS net_score
+                       helpful_count - harmful_count AS net_score,
+                       last_validated_at, decay_half_life_days
                 FROM {TABLE}
                 WHERE domain = $1 AND category = 'domain_rule' AND active = true
                       AND helpful_count - harmful_count >= $2
@@ -98,7 +162,8 @@ def retrieve_skills(
                 relevant = cur.execute(f"""
                     SELECT skill_id, domain, category, content, provenance,
                            helpful_count, harmful_count,
-                           helpful_count - harmful_count AS net_score
+                           helpful_count - harmful_count AS net_score,
+                           last_validated_at, decay_half_life_days
                     FROM {TABLE}
                     WHERE active = true
                           AND helpful_count - harmful_count >= $1
@@ -118,7 +183,8 @@ def retrieve_skills(
                     general = cur.execute(f"""
                         SELECT skill_id, domain, category, content, provenance,
                                helpful_count, harmful_count,
-                               helpful_count - harmful_count AS net_score
+                               helpful_count - harmful_count AS net_score,
+                               last_validated_at, decay_half_life_days
                         FROM {TABLE}
                         WHERE active = true
                               AND helpful_count - harmful_count >= $1
@@ -130,7 +196,8 @@ def retrieve_skills(
                     general = cur.execute(f"""
                         SELECT skill_id, domain, category, content, provenance,
                                helpful_count, harmful_count,
-                               helpful_count - harmful_count AS net_score
+                               helpful_count - harmful_count AS net_score,
+                               last_validated_at, decay_half_life_days
                         FROM {TABLE}
                         WHERE active = true AND helpful_count - harmful_count >= $1
                         ORDER BY helpful_count - harmful_count DESC
@@ -139,8 +206,55 @@ def retrieve_skills(
 
             all_skills = list(domain_rules) + list(relevant) + list(general)
 
+            # Sort by effective_score (decay-adjusted) instead of raw net_score
+            def _sort_key(row):
+                net = row[7] if row[7] is not None else 0  # net_score
+                lv = row[8]   # last_validated_at
+                hl = row[9] if row[9] else 30  # decay_half_life_days
+                return effective_score(net, lv, hl)
+            all_skills.sort(key=_sort_key, reverse=True)
+
+            # Convert to dicts (before graph expansion)
+            retrieved_ids = set(s[0] for s in all_skills)
+            result = [_row_to_dict(s) for s in all_skills]
+
+            # Stage 3: Graph expansion - 1-hop via related_skills
+            linked_ids = set()
+            for s in all_skills:
+                sid = s[0]
+                try:
+                    rel_row = cur.execute(f"""
+                        SELECT related_skills FROM {TABLE}
+                        WHERE skill_id = $1 AND related_skills IS NOT NULL
+                    """, [sid]).fetchone()
+                    if rel_row and rel_row[0]:
+                        try:
+                            links = json.loads(rel_row[0])
+                            for link_id in links:
+                                if link_id not in retrieved_ids:
+                                    linked_ids.add(link_id)
+                        except (json.JSONDecodeError, TypeError):
+                            pass
+                except Exception:
+                    pass
+
+            if linked_ids:
+                placeholders = ",".join([f"'{lid}'" for lid in linked_ids])
+                linked_rows = cur.execute(f"""
+                    SELECT skill_id, domain, category, content, provenance,
+                           helpful_count, harmful_count,
+                           helpful_count - harmful_count AS net_score,
+                           last_validated_at, decay_half_life_days
+                    FROM {TABLE}
+                    WHERE active = true AND skill_id IN ({placeholders})
+                """).fetchall()
+                for lr in linked_rows:
+                    d = _row_to_dict(lr)
+                    d["via_link"] = True
+                    result.append(d)
+
             # Increment retrieval counter
-            skill_ids = [s[0] for s in all_skills]
+            skill_ids = [s["skill_id"] for s in result]
             if skill_ids:
                 for sid in skill_ids:
                     try:
@@ -152,7 +266,7 @@ def retrieve_skills(
                     except Exception:
                         pass
 
-            return [_row_to_dict(s) for s in all_skills]
+            return result
     except Exception as e:
         logger.warning(f"Skill retrieval failed: {e}")
         return []
@@ -218,32 +332,61 @@ def add_skill(
 
 
 def update_score(skill_id: str, helpful: bool):
-    """Increment helpful or harmful counter."""
+    """Increment helpful or harmful counter. Resets decay clock on validation."""
     try:
         with get_cursor() as cur:
             col = "helpful_count" if helpful else "harmful_count"
             now = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
             cur.execute(f"""
                 UPDATE {TABLE}
-                SET {col} = {col} + 1, updated_at = '{now}'
+                SET {col} = {col} + 1, updated_at = '{now}', last_validated_at = '{now}'
                 WHERE skill_id = $1
             """, [skill_id])
     except Exception as e:
         logger.warning(f"Failed to update score: {e}")
 
 
-def retire_skill(skill_id: str, superseded_by: str = None):
-    """Retire a skill (soft delete)."""
+def retire_skill(skill_id: str, superseded_by: str = None, reason: str = None):
+    """Retire a skill (soft delete) with optional prune reason."""
     try:
         with get_cursor() as cur:
             now = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
             cur.execute(f"""
                 UPDATE {TABLE}
-                SET active = false, superseded_by = $1, updated_at = '{now}'
-                WHERE skill_id = $2
-            """, [superseded_by, skill_id])
+                SET active = false, superseded_by = $1, updated_at = '{now}',
+                    prune_reason = $2
+                WHERE skill_id = $3
+            """, [superseded_by, reason, skill_id])
     except Exception as e:
         logger.warning(f"Failed to retire skill: {e}")
+
+
+def link_skills(skill_id_a: str, skill_id_b: str):
+    """Bidirectional linking of two skills via their related_skills JSON arrays."""
+    try:
+        with get_cursor() as cur:
+            for src, dst in [(skill_id_a, skill_id_b), (skill_id_b, skill_id_a)]:
+                row = cur.execute(f"""
+                    SELECT related_skills FROM {TABLE} WHERE skill_id = $1
+                """, [src]).fetchone()
+                if row is None:
+                    continue
+                existing = []
+                if row[0]:
+                    try:
+                        existing = json.loads(row[0])
+                    except (json.JSONDecodeError, TypeError):
+                        existing = []
+                if dst not in existing:
+                    existing.append(dst)
+                    cur.execute(f"""
+                        UPDATE {TABLE}
+                        SET related_skills = $1
+                        WHERE skill_id = $2
+                    """, [json.dumps(existing), src])
+            logger.info(f"Linked skills {skill_id_a} <-> {skill_id_b}")
+    except Exception as e:
+        logger.warning(f"Failed to link skills: {e}")
 
 
 def get_all_skills(active_only: bool = True, limit: int = 100) -> list[dict]:
@@ -267,8 +410,15 @@ def get_all_skills(active_only: bool = True, limit: int = 100) -> list[dict]:
 
 def _row_to_dict(row) -> dict:
     cols = ["skill_id", "domain", "category", "content", "provenance",
-            "helpful_count", "harmful_count", "net_score"]
-    return dict(zip(cols, row[:len(cols)]))
+            "helpful_count", "harmful_count", "net_score",
+            "last_validated_at", "decay_half_life_days"]
+    d = dict(zip(cols, row[:len(cols)]))
+    # Compute effective_score for downstream consumers
+    net = d.get("net_score", 0) or 0
+    lv = d.get("last_validated_at")
+    hl = d.get("decay_half_life_days") or 30
+    d["effective_score"] = round(effective_score(net, lv, hl), 3)
+    return d
 
 
 def _row_to_dict_full(row) -> dict:

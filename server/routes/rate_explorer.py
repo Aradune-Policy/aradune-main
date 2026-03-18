@@ -2,11 +2,13 @@
 
 from fastapi import APIRouter, HTTPException, Query
 from server.db import get_cursor
+from server.utils.error_handler import safe_route
 
 router = APIRouter()
 
 
 @router.get("/api/rate-explorer")
+@safe_route(default_response={"rows": [], "count": 0})
 async def rate_explorer(code: str = Query(...), modifier: str = Query(default="")):
     """Return Medicaid rates for a procedure code across all jurisdictions from fact_rate_comparison_v2."""
     try:
@@ -25,6 +27,7 @@ async def rate_explorer(code: str = Query(...), modifier: str = Query(default=""
 
 
 @router.get("/api/rate-explorer/search")
+@safe_route(default_response={"results": []})
 async def rate_explorer_search(q: str = Query(...)):
     """Search dim_procedure for codes matching by code or description."""
     try:

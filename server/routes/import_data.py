@@ -16,6 +16,7 @@ from fastapi import APIRouter, HTTPException, UploadFile, File
 from pydantic import BaseModel
 
 from server.db import get_cursor
+from server.utils.error_handler import safe_route
 
 router = APIRouter(prefix="/api/import", tags=["import"])
 
@@ -411,6 +412,7 @@ def _validate_and_quarantine(
 # ---------------------------------------------------------------------------
 
 @router.post("", response_model=ImportResponse)
+@safe_route(default_response={})
 async def import_file(file: UploadFile = File(...)):
     """
     Upload a CSV, XLSX, or JSON file. Parses it, loads into a DuckDB temp
@@ -521,6 +523,7 @@ async def import_file(file: UploadFile = File(...)):
 
 
 @router.get("/sessions/{session_id}", response_model=SessionInfo)
+@safe_route(default_response={})
 async def get_session(session_id: str):
     """Return metadata for a given import session."""
     _cleanup()
@@ -543,6 +546,7 @@ async def get_session(session_id: str):
 
 
 @router.delete("/sessions/{session_id}")
+@safe_route(default_response={})
 async def delete_session(session_id: str):
     """Delete a session and drop its DuckDB temp table."""
     _cleanup()
@@ -558,6 +562,7 @@ async def delete_session(session_id: str):
 
 
 @router.get("/sessions/{session_id}/quarantine")
+@safe_route(default_response={})
 async def get_quarantine(session_id: str):
     """Return quarantined rows for a session, if any."""
     _cleanup()
@@ -590,6 +595,7 @@ async def get_quarantine(session_id: str):
 
 
 @router.post("/hydrate")
+@safe_route(default_response={})
 async def hydrate_session(req: HydrateRequest):
     """
     Re-hydrate a session's DuckDB temp table from stored bytes.

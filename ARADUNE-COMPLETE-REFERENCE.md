@@ -966,7 +966,7 @@ SQL safety: Only SELECT/WITH allowed. Forbidden keywords: INSERT, UPDATE, DELETE
 
 ## Appendix C: Florida-Specific Rules (Always Enforce)
 
-- **No facility rate + PC/TC split.** Special codes: 46924, 91124, 91125.
+- **Facility and PC/TC rates are typically mutually exclusive (99.96% of codes).** Three codes (46924, 91124, 91125) legitimately carry both facility and PC/TC rates as published by AHCA.
 - **Conversion factors:** Regular $24.9779582769; Lab $26.1689186096
 - **8 schedule types** in the Florida Medicaid fee schedule
 - Ad hoc CF $24.9876 is stale -- do not use

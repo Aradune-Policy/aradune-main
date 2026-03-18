@@ -6,6 +6,7 @@ from pathlib import Path
 
 from fastapi import APIRouter
 from server.config import settings
+from server.utils.error_handler import safe_route
 
 router = APIRouter()
 
@@ -14,6 +15,7 @@ META_DIR = LAKE_DIR / "metadata"
 
 
 @router.get("/api/pipeline/status")
+@safe_route(default_response={})
 async def pipeline_status():
     """Get pipeline status: last run, snapshot dates, data freshness."""
     status = {

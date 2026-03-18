@@ -2,6 +2,7 @@
 
 from fastapi import APIRouter, HTTPException, Query
 from server.db import get_cursor
+from server.utils.error_handler import safe_route
 
 router = APIRouter()
 
@@ -9,6 +10,7 @@ router = APIRouter()
 ACCESS_MEASURES = ('W30-CH','WCV-CH','CIS-CH','IMA-CH','PPC2-AD','CCS-AD','CHL-AD','DEV-CH','BCS-AD','COL-AD')
 
 @router.get("/api/research/rate-quality/correlation")
+@safe_route(default_response={})
 async def rate_quality_correlation(measure_id: str = Query(default="access_composite")):
     """Correlate average Medicaid-to-Medicare rate ratio with a quality measure by state.
 
@@ -71,6 +73,7 @@ async def rate_quality_correlation(measure_id: str = Query(default="access_compo
 
 
 @router.get("/api/research/rate-quality/measures")
+@safe_route(default_response={})
 async def rate_quality_measures():
     """List available quality measures from the Core Set 2024."""
     try:
@@ -87,6 +90,7 @@ async def rate_quality_measures():
 
 
 @router.get("/api/research/rate-quality/access")
+@safe_route(default_response={})
 async def rate_quality_access():
     """HPSA shortage area count per state vs average Medicaid rate level."""
     try:
@@ -115,6 +119,7 @@ async def rate_quality_access():
 
 
 @router.get("/api/research/rate-quality/workforce")
+@safe_route(default_response={})
 async def rate_quality_workforce():
     """BLS healthcare wages vs Medicaid rate levels by state."""
     try:
@@ -145,6 +150,7 @@ async def rate_quality_workforce():
 
 
 @router.get("/api/research/rate-quality/detail")
+@safe_route(default_response={})
 async def rate_quality_detail():
     """Full state detail: rates, quality, HPSAs, and managed care penetration."""
     try:
@@ -197,6 +203,7 @@ async def rate_quality_detail():
 
 
 @router.get("/api/research/rate-quality/spending-trend")
+@safe_route(default_response={})
 async def rate_quality_spending_trend():
     """30-year Medicaid spending trend from NHE state health expenditure data."""
     try:

@@ -2,11 +2,13 @@
 
 from fastapi import APIRouter, HTTPException, Query
 from server.db import get_cursor
+from server.utils.error_handler import safe_route
 
 router = APIRouter()
 
 
 @router.get("/api/research/nursing-ownership/quality-by-type")
+@safe_route(default_response={})
 async def nursing_quality_by_type():
     """Five-Star ratings aggregated by ownership type (For-Profit, Non-Profit, Government)."""
     try:
@@ -39,6 +41,7 @@ async def nursing_quality_by_type():
 
 
 @router.get("/api/research/nursing-ownership/chain-vs-independent")
+@safe_route(default_response={})
 async def nursing_chain_vs_independent():
     """Compare chain-affiliated vs independent facilities by ownership type."""
     try:
@@ -73,6 +76,7 @@ async def nursing_chain_vs_independent():
 
 
 @router.get("/api/research/nursing-ownership/deficiency-patterns")
+@safe_route(default_response={})
 async def nursing_deficiency_patterns():
     """Top deficiency tags by ownership type and chain affiliation."""
     try:
@@ -108,6 +112,7 @@ async def nursing_deficiency_patterns():
 
 
 @router.get("/api/research/nursing-ownership/chain-scoreboard")
+@safe_route(default_response={})
 async def nursing_chain_scoreboard(limit: int = Query(default=50, ge=1, le=500)):
     """Top chains ranked by quality (ascending -- worst first). Requires >= 5 facilities."""
     try:
@@ -140,6 +145,7 @@ async def nursing_chain_scoreboard(limit: int = Query(default=50, ge=1, le=500))
 
 
 @router.get("/api/research/nursing-ownership/state-breakdown")
+@safe_route(default_response={})
 async def nursing_state_breakdown():
     """Facility count, rating, staffing, and deficiencies by state and ownership type."""
     try:

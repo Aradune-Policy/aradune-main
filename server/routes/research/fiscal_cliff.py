@@ -2,11 +2,13 @@
 
 from fastapi import APIRouter, HTTPException, Query
 from server.db import get_cursor
+from server.utils.error_handler import safe_route
 
 router = APIRouter()
 
 
 @router.get("/api/research/fiscal-cliff/spending-vs-revenue")
+@safe_route(default_response={})
 async def spending_vs_revenue(state: str = Query(None), fiscal_year: int = Query(None)):
     """Medicaid state share as percentage of state tax revenue, by state and fiscal year."""
     try:
@@ -60,6 +62,7 @@ async def spending_vs_revenue(state: str = Query(None), fiscal_year: int = Query
 
 
 @router.get("/api/research/fiscal-cliff/fmap-impact")
+@safe_route(default_response={})
 async def fmap_impact(state: str = Query(None)):
     """FMAP rates over time including enhanced FMAP where available."""
     try:
@@ -92,6 +95,7 @@ async def fmap_impact(state: str = Query(None)):
 
 
 @router.get("/api/research/fiscal-cliff/budget-pressure")
+@safe_route(default_response={})
 async def budget_pressure(state: str = Query(None)):
     """Latest-year budget pressure: Medicaid state share vs tax revenue and GDP."""
     try:
@@ -155,6 +159,7 @@ async def budget_pressure(state: str = Query(None)):
 
 
 @router.get("/api/research/fiscal-cliff/vulnerability")
+@safe_route(default_response={})
 async def fiscal_vulnerability(state: str = Query(None)):
     """Composite fiscal vulnerability: budget share, spending growth, state burden."""
     try:

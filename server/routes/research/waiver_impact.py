@@ -2,11 +2,13 @@
 
 from fastapi import APIRouter, HTTPException, Query
 from server.db import get_cursor
+from server.utils.error_handler import safe_route
 
 router = APIRouter()
 
 
 @router.get("/api/research/waiver-impact/catalog")
+@safe_route(default_response={})
 async def waiver_catalog(
     state: str = Query(None),
     status: str = Query(None),
@@ -117,6 +119,7 @@ async def waiver_catalog(
 
 
 @router.get("/api/research/waiver-impact/enrollment/{state_code}")
+@safe_route(default_response={})
 async def waiver_enrollment(state_code: str):
     """Monthly enrollment time series for a specific state."""
     try:
@@ -142,6 +145,7 @@ async def waiver_enrollment(state_code: str):
 
 
 @router.get("/api/research/waiver-impact/spending/{state_code}")
+@safe_route(default_response={})
 async def waiver_spending(state_code: str):
     """CMS-64 spending time series for a state by fiscal year."""
     try:
@@ -164,6 +168,7 @@ async def waiver_spending(state_code: str):
 
 
 @router.get("/api/research/waiver-impact/quality/{state_code}")
+@safe_route(default_response={})
 async def waiver_quality(state_code: str):
     """Quality measures over time for a state from the combined Core Set (2017-2024)."""
     try:
@@ -200,6 +205,7 @@ async def waiver_quality(state_code: str):
 
 
 @router.get("/api/research/waiver-impact/compare")
+@safe_route(default_response={})
 async def waiver_compare(waiver_type: str = Query(default="expansion")):
     """Compare waiver states vs non-waiver states for a given waiver type on enrollment and spending."""
     try:

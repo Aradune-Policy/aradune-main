@@ -265,7 +265,7 @@ Geography: FIPS codes for county-level data.
 2. Flag data quality issues. Check DQ Atlas for any state used.
 3. Minimum cell size: n >= 11 for utilization counts.
 4. T-MSIS encounter amounts are unreliable for MCO-to-provider rates.
-5. FL Medicaid: no facility + PC/TC split (codes: 46924, 91124, 91125).
+5. FL Medicaid: Facility and PC/TC rates are typically mutually exclusive (99.96% of codes). Three codes (46924, 91124, 91125) legitimately carry both as published by AHCA.
 6. CPRA: $32.3465 CF (CY2025). General comparison: $33.4009 (CY2026).
 7. Census sentinels (-888888888) = suppressed → NULL.
 8. SELECT-only queries. Never modify data.

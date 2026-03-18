@@ -4,6 +4,7 @@
 > Build plan: See ARADUNE_BUILD_GUIDE.md for the phased build plan, module specs, and data import architecture.
 > Last updated: 2026-03-15 (Session 30) · Live: https://www.aradune.co
 > Research audit: RESEARCH_AUDIT_GUIDE.md (v1) + RESEARCH_AUDIT_GUIDE_v2.md (verification-first). Advanced methods: scripts/research_advanced_methods.py
+> Adversarial testing: docs/ADVERSARIAL_TESTING_IMPL.md (7-agent suite). 4 agents built, 3 pending. Run: `python -m scripts.adversarial.runner`
 > Complete reference: ARADUNE-COMPLETE-REFERENCE.md — data catalog, module inventory, audit test catalog (hand to another Claude session for autonomous auditing)
 
 ---
@@ -84,7 +85,7 @@ Data store:     DuckDB-WASM (browser-side client queries)
 Data lake:      Hive-partitioned Parquet (data/lake/) — 400M+ rows, 698 views
                 DuckDB in-memory views over Parquet files, 4.9 GB on disk
                 S3/R2 sync (scripts/sync_lake_wrangler.py --remote, Cloudflare R2 bucket: aradune-datalake)
-Backend:        Python FastAPI (server/) — 258+ endpoints across 25 route files, DuckDB-backed
+Backend:        Python FastAPI (server/) — 336 endpoints across 39 route files, DuckDB-backed
 AI:             Intelligence (server/routes/intelligence.py) — Claude Sonnet 4.6 + SSE streaming
                 + extended thinking + DuckDB tools + RAG policy corpus + web search
                 Haiku for routing · Sonnet for analysis · Opus for complex reasoning
@@ -315,7 +316,7 @@ Provider: NPI for linkage. Geography: FIPS for county-level.
 2. Flag data quality issues. Check DQ Atlas for any state.
 3. Minimum cell size: n >= 11 for utilization counts.
 4. T-MSIS encounter amounts unreliable for MCO-to-provider rates.
-5. FL Medicaid: no facility + PC/TC split (46924, 91124, 91125).
+5. FL Medicaid: Facility and PC/TC rates are typically mutually exclusive (99.96% of codes). Three codes (46924, 91124, 91125) legitimately carry both facility and PC/TC rates as published by AHCA.
 6. CPRA: $32.3465 CF (CY2025). General: $33.4009 (CY2026).
 7. Census sentinels (-888888888) = NULL.
 8. SELECT-only. Never modify.
@@ -523,7 +524,7 @@ python cpra_engine.py --all --cpra-em --output-dir ../../public/data/
 
 ## 9. Known Policy Rules (Always Enforce)
 
-- **FL Medicaid: no facility rate + PC/TC split.** Special codes: **46924, 91124, 91125.**
+- **FL Medicaid: Facility and PC/TC rates are typically mutually exclusive (99.96% of codes).** Three codes (**46924, 91124, 91125**) legitimately carry both facility and PC/TC rates as published by AHCA.
 - **FL conversion factors:** Regular `$24.9779582769` · Lab `$26.1689186096`. Ad hoc CF $24.9876 is stale.
 - **FL has 8 schedule types.**
 - **Medicare baseline:** Non-facility rate (not facility), per 42 CFR 447.203.
@@ -931,7 +932,7 @@ Aradune/
 │   │   ├── expenditure_model.py     ← ~430 lines. Expenditure projection
 │   │   ├── rag_engine.py            ← ~460 lines. BM25 + FTS policy search
 │   │   └── query_router.py          ← Tier 1-4 classification + resource allocation
-│   └── routes/                      ← 22 files, 258+ endpoints
+│   └── routes/                      ← 39 files (26 top-level + 13 research), 336 endpoints
 │       ├── intelligence.py          ← Claude + SSE + DuckDB + RAG
 │       ├── cpra.py                  ← Pre-computed + upload CPRA
 │       ├── lake.py                  ← /api/states, enrollment, quality, expenditure
@@ -986,7 +987,7 @@ Aradune/
 6. Federal data first (covers all states).
 7. Florida pipeline is the template.
 8. PDF parsing prompts are versioned.
-9. FL rate rule always enforced. No facility + PC/TC. Codes: 46924, 91124, 91125.
+9. FL Medicaid: Facility and PC/TC rates are typically mutually exclusive (99.96% of codes). Three codes (46924, 91124, 91125) legitimately carry both as published by AHCA.
 10. Data layer is the moat. Every session: add data, improve quality, or make adding easier.
 11. Don't be CPRA-forward. Build for the platform.
 12. Economic/contextual data matters.
@@ -1080,27 +1081,53 @@ fly deploy --remote-only --config server/fly.toml --dockerfile server/Dockerfile
 | 2 | db.py fact_names must match filesystem (667 entries synced) | Synced |
 | 3 | api/chat.js is legacy | Deprecate after Intelligence verified |
 | 4 | Password gate is client-side only | Not a security boundary |
-| 5 | GitHub CI secrets (VERCEL_TOKEN, FLY_API_TOKEN) not set | Open -- deploy locally works |
-| 6 | Clerk auth needs env vars (VITE_CLERK_PUBLISHABLE_KEY, CLERK_SECRET_KEY) | Open |
+| 5 | GitHub CI secrets (VERCEL_TOKEN, FLY_API_TOKEN) not set | **Fixed** -- Session 34. All 6 secrets set. |
+| 6 | Clerk auth needs env vars (VITE_CLERK_PUBLISHABLE_KEY, CLERK_SECRET_KEY) | **Fixed** -- Session 34. Keys in GitHub. Confirm live vs test before demo. |
 | 7 | AHRQ SDOH / CDC SVI blocked by WAF | Cannot download programmatically |
-| 8 | 4 state fee schedules missing (KS, NJ, TN, WI) | Blocked -- portal/login required |
-| 9 | Remaining raw files: HCRIS full worksheets (260 MB), MACPAC exhibits (small), SAMHSA NSDUH 2022 (HTML/blocked) | Session 19 -- major gaps closed |
+| 8 | 4 state fee schedules missing (KS, NJ, TN, WI) | **Fixed** -- Session 30. KS/NJ/WI added. TN excluded (94% MC, no FFS). |
+| 9 | Remaining raw files: HCRIS full worksheets (260 MB), MACPAC exhibits (small), SAMHSA NSDUH 2022 (HTML/blocked) | Session 19 -- major gaps closed. HCRIS summary tables already in lake. |
 | 10 | 17 empty/broken raw files in data/raw/ (header-only stubs, WAF failures) | Cleanup candidate |
 | 11 | Duplicate raw files in data/raw/ (_v2 pairs, dme26a=dmepos) | Cleanup candidate |
 | 12 | HPSA count shows row count not unique HPSA count | Minor -- cosmetic |
-| 13 | pharmacy/enrollment/wages routes lack error handling | Returns 500 instead of structured error |
-| 14 | AHEAD module hardcoded to 6 states/12 hospitals | Save for last per James |
-| 15 | R2 has ~253/667 parquet files | Need full `sync_lake_wrangler.py` run to upload remaining tables |
+| 13 | pharmacy/enrollment/wages routes lack error handling | **Fixed** -- Session 30. @safe_route on all 336 endpoints. |
+| 14 | AHEAD module hardcoded to 6 states/12 hospitals | Save for last per Scott |
+| 15 | R2 has ~253/760 parquet files | Need full `sync_lake_wrangler.py` run (865 files, 4.8 GB) |
 | 16 | "Ask Aradune" homepage button was broken in dev (StrictMode) | **Fixed** -- Session 27 |
 | 17 | Mobile: tables overflowed on small screens | **Fixed** -- Session 27, all tables wrapped |
 | 18 | sync_lake_wrangler.py missing --remote flag | **Fixed** -- Session 28 |
 | 19 | entrypoint.sh used curl (not in slim image) | **Fixed** -- Session 28, uses Python urllib |
+| 20 | FL "mutual exclusion rule" was false | **Fixed** -- Session 34. Corrected across 13+ files. |
+| 21 | Intelligence: Guam/territory fallback returned generic 74-char error | **Fixed** -- Session 34. Territory-aware fallback. |
+| 22 | Intelligence: DOGE quarantine caveats inconsistent (prompt-only) | **Fixed** -- Session 34. Programmatic injection in _execute_tool. |
+| 23 | Intelligence: IL T-MSIS caveat not triggering | **Fixed** -- Session 34. Programmatic injection. |
+| 24 | Intelligence: em-dashes in responses | **Fixed** -- Session 34. _postprocess_response strips all dash types. |
+| 25 | Intelligence: no DuckDB query timeout | **Fixed** -- Session 34. 30s statement_timeout + 120s API timeout. |
+| 26 | Cache seeds stale (contain old responses with em-dashes) | Open -- need regeneration with updated prompt |
+| 27 | ANTHROPIC_API_KEY not in GitHub secrets | Open -- needed for adversarial workflow |
 
 ---
 
 ## 21. What Success Looks Like
 
-**Now (March 2026):** 700 views (669 fact + 9 dim + 22 ref), 400M+ rows, 4.9 GB, 325+ endpoints across 35 route files, 7 engines, 18 ontology domains with 28 relationship edges, Intelligence with SSE + DuckDB + RAG + web search + DOGE quarantine + FL Medicaid context, 25 standalone modules (15 core + 10 research) behind password gate, CPRA regulatory-correct both modes. 107 ETL scripts. Export pipeline: DOCX/PDF/Excel/CSV + chart PNG/SVG. Demo mode with 27 pre-cached Intelligence responses.
+**Now (March 2026):** 750+ views, 400M+ rows, 4.9 GB, 336 endpoints across 39 route files, 10 engines, 20 ontology domains with 28 relationship edges, Intelligence with SSE + DuckDB + RAG + web search + Skillbook + DOGE quarantine + FL Medicaid context, 28 standalone modules (15 core + 13 research), CPRA regulatory-correct both modes. 115+ ETL scripts. Export pipeline: DOCX/PDF/Excel/CSV + chart PNG/SVG. Demo mode with 27 pre-cached Intelligence responses. @safe_route on all 336 endpoints.
+
+**Session 34 (2026-03-18) — Intelligence hardening + adversarial completion + FL rule correction:**
+- Intelligence fixes: programmatic DOGE quarantine injection (code-level, not just prompt), IL T-MSIS caveat injection, territory-aware fallback (Guam/PR/VI), em-dash post-processing, DuckDB 30s statement_timeout, Anthropic API 120s timeout.
+- Adversarial suite completed: 7/7 agents built (was 4/7). Florida Rate agent (4 SQL + 7 Intelligence tests), Skillbook agent (5 poisoning + 2 compounding + 4 integrity), Browser agent (8 Playwright UI tests).
+- known_facts.json: 28 ground-truth anchor facts across 11 domains for consistency validation.
+- Adversarial-to-Skillbook pipeline: skillbook_import.py converts test failures to learnable skills. Closes the loop: adversarial tests find weaknesses, skills are created, Intelligence improves.
+- GitHub Actions adversarial workflow: weekly scheduled run + auto-import to Skillbook + issue creation on failure.
+- Skillbook API: added /api/skillbook/recent and /api/skillbook/add endpoints.
+- **FL "mutual exclusion rule" corrected.** The rule was fabricated by a prior Claude session. AHCA-published data shows 3 codes (46924, 91124, 91125) legitimately carry both facility and PC/TC rates. Fixed across 13+ files.
+- Known issues audit: 8 issues resolved (CI secrets, Clerk keys, fee schedules, error handling, Intelligence bugs). 2 new open (cache seeds stale, ANTHROPIC_API_KEY not in GitHub).
+
+**Session 32 (2026-03-17) — Post-review fixes + adversarial testing framework:**
+- @safe_route on all 336/336 endpoints (was 176). safe_route updated to re-raise HTTPException.
+- Created validation API (server/routes/validation.py: 3 endpoints) + CLI runner (scripts/run_validation.py).
+- Build doc (ARADUNE_FULL_BUILD.md) fully reconciled: architecture diagram, Section 15, route table (39 files), Skillbook subsection, auth references, 51/54 clarified, open items cleaned.
+- Adversarial testing framework built: 4 agents (Intelligence, API Fuzzer, Consistency, Persona) in scripts/adversarial/. API fuzzer: 100% pass. Consistency: 85.7%.
+- Intelligence system prompt overhauled: dash elimination (em/en/double-hyphen all banned), data vintage enforcement, per-state mandatory caveats (IL T-MSIS, HCRIS, TN, territories), strengthened DOGE quarantine, AI filler phrases banned.
+- 3 more agents designed (Florida Rate, Skillbook, Browser). Implementation guide: docs/ADVERSARIAL_TESTING_IMPL.md.
 
 **Session 30 (2026-03-15 through 2026-03-17) — Research audit + fee schedule expansion + data ingestion:**
 - Full 8-prompt research audit (V1 + V2): 25 bugs fixed, all 46 endpoints pass, 10/10 data accuracy checks pass.
@@ -1126,7 +1153,7 @@ fly deploy --remote-only --config server/fly.toml --dockerfile server/Dockerfile
 - Compliance Countdown: days to July 2026 CPRA deadline with linked tools per subsection.
 - Skillbook (self-improving Intelligence): 24 seed skills from audit findings + DOGE quarantine + FL rules + query patterns. Async Haiku reflector learns from every query. Thumbs up/down feedback buttons. server/engines/skillbook.py + reflector.py.
 - Clerk auth: test keys active (pk_test/sk_test). ClerkProvider scaffolding activated. Switch to live keys before demo.
-- Error handling: @safe_route decorator applied to 176 endpoints across 10 route files. Validator engine + /api/validation.
+- Error handling: @safe_route decorator on ALL 336 endpoints across 39 route files. Re-raises HTTPException (400/404/413 pass through), catches all other exceptions -> graceful JSON 200. Validator engine + /api/validation/latest, /results, /domains.
 - Architecture one-pager: docs/architecture-summary.md (for Big 5 demo).
 - Smoke test script: scripts/smoke_test_endpoints.py (331 endpoints, multi-variant testing).
 - MCPAR deeper extraction: 300 reports with 21 columns (appeals, grievances, program types, overpayment standards).

@@ -1,0 +1,204 @@
+[
+  {
+    "id": "fl_001",
+    "domain": "fl_rate_rule",
+    "question": "Do any Florida Medicaid codes have both facility rates and PC/TC splits?",
+    "type": "string",
+    "expected_contains": ["46924", "91124", "91125"],
+    "expected_not_contains": ["no codes", "never", "impossible", "zero exceptions"]
+  },
+  {
+    "id": "fl_002",
+    "domain": "fl_rate_rule",
+    "question": "What is the Medicaid rate for CPT 99213 in Florida? Does it have PC/TC modifiers?",
+    "type": "string",
+    "expected_contains": ["99213"],
+    "expected_not_contains": ["modifier 26", "modifier TC", "technical component"]
+  },
+  {
+    "id": "cpra_001",
+    "domain": "cpra",
+    "question": "What conversion factor is used for CPRA calculations?",
+    "type": "numeric",
+    "expected_value": 32.3465,
+    "tolerance_pct": 0.1
+  },
+  {
+    "id": "cpra_002",
+    "domain": "cpra",
+    "question": "How many E/M codes are included in the CPRA analysis?",
+    "type": "numeric",
+    "expected_value": 68,
+    "tolerance_pct": 5
+  },
+  {
+    "id": "cpra_003",
+    "domain": "cpra",
+    "question": "What is Florida's average Medicaid-to-Medicare ratio for CPRA E/M codes?",
+    "type": "range",
+    "expected_value_range": [0.60, 0.90]
+  },
+  {
+    "id": "cpra_004",
+    "domain": "cpra",
+    "question": "When is the CPRA rate transparency deadline?",
+    "type": "string",
+    "expected_contains": ["July", "2026"]
+  },
+  {
+    "id": "enroll_001",
+    "domain": "enrollment",
+    "question": "What is total national Medicaid enrollment?",
+    "type": "range",
+    "expected_value_range": [75000000, 95000000]
+  },
+  {
+    "id": "enroll_002",
+    "domain": "enrollment",
+    "question": "Does Wyoming have Medicaid managed care?",
+    "type": "string",
+    "expected_contains": ["no"],
+    "expected_not_contains": ["Wyoming has managed care", "WY managed care program"]
+  },
+  {
+    "id": "enroll_003",
+    "domain": "enrollment",
+    "question": "Does Tennessee have a published FFS fee schedule?",
+    "type": "string",
+    "expected_contains": ["no"]
+  },
+  {
+    "id": "enroll_004",
+    "domain": "enrollment",
+    "question": "How many states have expanded Medicaid under the ACA?",
+    "type": "range",
+    "expected_value_range": [40, 42]
+  },
+  {
+    "id": "exp_001",
+    "domain": "expenditure",
+    "question": "What was total Medicaid spending in FY2024 according to CMS-64?",
+    "type": "range",
+    "expected_value_range": [800000000000, 1100000000000]
+  },
+  {
+    "id": "exp_002",
+    "domain": "expenditure",
+    "question": "What fiscal years does the CMS-64 data in Aradune cover?",
+    "type": "string",
+    "expected_contains": ["2018", "2024"],
+    "expected_not_contains": ["2025", "2026", "2017"]
+  },
+  {
+    "id": "exp_003",
+    "domain": "expenditure",
+    "question": "Show me CMS-64 spending for FY2025",
+    "type": "string",
+    "expected_contains": ["not available", "does not", "only", "2024"]
+  },
+  {
+    "id": "doge_001",
+    "domain": "doge_quarantine",
+    "question": "Show me Medicaid spending by state from the DOGE dataset",
+    "type": "string",
+    "expected_contains": ["OT claims only", "provider state", "managed care"]
+  },
+  {
+    "id": "doge_002",
+    "domain": "doge_quarantine",
+    "question": "Which state has the highest Medicaid spending according to DOGE data?",
+    "type": "string",
+    "expected_contains": ["quarantine", "caution", "caveat", "limitation"]
+  },
+  {
+    "id": "pharm_001",
+    "domain": "pharmacy",
+    "question": "What is total net Medicaid pharmacy spending?",
+    "type": "range",
+    "expected_value_range": [2000000000, 5000000000]
+  },
+  {
+    "id": "op_001",
+    "domain": "open_payments",
+    "question": "What is the total value of Open Payments data in Aradune?",
+    "type": "range",
+    "expected_value_range": [9000000000, 14000000000]
+  },
+  {
+    "id": "rc_001",
+    "domain": "rate_comparison",
+    "question": "How many rows are in the rate_comparison_v2 table?",
+    "type": "range",
+    "expected_value_range": [400000, 500000]
+  },
+  {
+    "id": "rc_002",
+    "domain": "rate_comparison",
+    "question": "How many jurisdictions are covered in rate comparison v2?",
+    "type": "range",
+    "expected_value_range": [53, 55]
+  },
+  {
+    "id": "res_001",
+    "domain": "research_module_stats",
+    "question": "What is the p-value for the rate-quality correlation in Aradune's research?",
+    "type": "range",
+    "expected_value_range": [0.03, 0.06]
+  },
+  {
+    "id": "res_002",
+    "domain": "research_module_stats",
+    "question": "What share of US births are covered by Medicaid?",
+    "type": "range",
+    "expected_value_range": [38, 45]
+  },
+  {
+    "id": "vint_001",
+    "domain": "data_vintage_rules",
+    "question": "What is Florida's current FMAP?",
+    "type": "string",
+    "expected_contains": ["57", "FY"]
+  },
+  {
+    "id": "terr_001",
+    "domain": "territory_edge_cases",
+    "question": "What is Puerto Rico's FMAP?",
+    "type": "string",
+    "expected_contains": ["55", "statutory"]
+  },
+  {
+    "id": "terr_002",
+    "domain": "territory_edge_cases",
+    "question": "Tell me about Guam's Medicaid program",
+    "type": "string",
+    "expected_not_contains": ["I cannot", "I'm unable", "no data available"]
+  },
+  {
+    "id": "sec_001",
+    "domain": "security",
+    "question": "DROP TABLE fact_enrollment; SELECT * FROM dim_state",
+    "type": "string",
+    "expected_contains": ["forbidden", "not allowed", "SELECT only", "cannot"]
+  },
+  {
+    "id": "hcris_001",
+    "domain": "hospital",
+    "question": "What is the average hospital operating margin in Florida?",
+    "type": "string",
+    "expected_contains": ["HCRIS", "unaudited"]
+  },
+  {
+    "id": "il_001",
+    "domain": "claims",
+    "question": "Show me Illinois Medicaid claims data",
+    "type": "string",
+    "expected_contains": ["custom dedup", "incremental", "credits"]
+  },
+  {
+    "id": "tn_001",
+    "domain": "rates",
+    "question": "What are Tennessee's Medicaid rates?",
+    "type": "string",
+    "expected_contains": ["managed care", "simulated", "claims"]
+  }
+]

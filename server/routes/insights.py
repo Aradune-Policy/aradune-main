@@ -8,6 +8,7 @@ Pure SQL, no AI needed.
 
 from fastapi import APIRouter
 from server.db import get_cursor
+from server.utils.error_handler import safe_route
 
 router = APIRouter(tags=["insights"])
 
@@ -37,6 +38,7 @@ def _safe_query_all(sql: str, params: list | None = None) -> list[dict]:
 
 
 @router.get("/api/insights/{state_code}")
+@safe_route(default_response={"state_code": "", "insights": [], "count": 0})
 def get_state_insights(state_code: str):
     """Generate cross-dataset insights for a state."""
     sc = state_code.upper()
@@ -332,6 +334,7 @@ def get_state_insights(state_code: str):
 
 
 @router.get("/api/sdoh/{state_code}")
+@safe_route(default_response={"state_code": ""})
 def get_state_sdoh(state_code: str):
     """Social Determinants of Health indicators for a state."""
     sc = state_code.upper()

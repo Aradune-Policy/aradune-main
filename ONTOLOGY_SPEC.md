@@ -421,7 +421,7 @@ primary_tables:
     quality_tier: standard
     known_issues:
       - "4 states outstanding (KS, NJ portal login; TN MC only; WI manual)"
-      - "FL: no facility + PC/TC split (codes 46924, 91124, 91125)"
+      - "FL: Facility and PC/TC rates typically mutually exclusive (99.96% of codes); 46924, 91124, 91125 legitimately carry both per AHCA"
 
   - table: fact_rate_comparison
     description: "Medicaid vs Medicare rate comparison with pct_of_medicare"
@@ -472,7 +472,7 @@ intelligence_context: |
   - The data vintage (T-MSIS service year, Medicare PFS year)
   - Whether the comparison uses facility or non-facility Medicare rates
   - Whether supplemental payments are included (they should NOT be for CPRA)
-  FL-specific: rates cannot have both facility rate AND PC/TC split (codes 46924, 91124, 91125)
+  FL-specific: facility and PC/TC rates typically mutually exclusive (99.96% of codes); 46924, 91124, 91125 legitimately carry both per AHCA
 ```
 
 ---

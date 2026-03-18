@@ -2,11 +2,13 @@
 
 from fastapi import APIRouter, Query
 from server.db import get_cursor
+from server.utils.error_handler import safe_route
 
 router = APIRouter()
 
 
 @router.get("/api/policy/spas/{state_code}")
+@safe_route(default_response={})
 async def state_spas(state_code: str):
     """Get State Plan Amendments for a state."""
     state_code = state_code.upper()
@@ -26,6 +28,7 @@ async def state_spas(state_code: str):
 
 
 @router.get("/api/policy/waivers/{state_code}")
+@safe_route(default_response={})
 async def state_waivers(state_code: str):
     """Get 1115 waivers for a state."""
     state_code = state_code.upper()
@@ -43,6 +46,7 @@ async def state_waivers(state_code: str):
 
 
 @router.get("/api/policy/managed-care/{state_code}")
+@safe_route(default_response={})
 async def managed_care(state_code: str, year: int = Query(None)):
     """Get managed care plan enrollment for a state."""
     state_code = state_code.upper()
@@ -61,6 +65,7 @@ async def managed_care(state_code: str, year: int = Query(None)):
 
 
 @router.get("/api/policy/fmap")
+@safe_route(default_response={})
 async def fmap_rates():
     """Get FMAP for all states from fact_fmap_historical (MACPAC, authoritative)."""
     with get_cursor() as cur:
@@ -87,6 +92,7 @@ async def fmap_rates():
 
 
 @router.get("/api/policy/dsh/{state_code}")
+@safe_route(default_response={})
 async def dsh_payments(state_code: str):
     """Get DSH payment data for a state."""
     state_code = state_code.upper()

@@ -10,6 +10,7 @@ Returns categorized results with relevance scoring across:
 from fastapi import APIRouter, Query
 from server.db import get_cursor
 from server.routes.meta import TABLE_DESCRIPTIONS
+from server.utils.error_handler import safe_route
 
 router = APIRouter()
 
@@ -37,6 +38,7 @@ def _score(query: str, text: str) -> int:
 
 
 @router.get("/api/search")
+@safe_route(default_response={"results": {"tables": [], "columns": [], "codes": []}, "query": "", "total": 0})
 async def search(q: str = Query(..., min_length=1, max_length=200)):
     """Search across table names, column names, table descriptions, and HCPCS codes."""
     query = q.strip()

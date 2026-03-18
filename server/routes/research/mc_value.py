@@ -2,11 +2,13 @@
 
 from fastapi import APIRouter, HTTPException, Query
 from server.db import get_cursor
+from server.utils.error_handler import safe_route
 
 router = APIRouter()
 
 
 @router.get("/api/research/mc-value/penetration-spending")
+@safe_route(default_response={})
 async def mc_penetration_spending():
     """Managed care penetration vs per-enrollee spending by state."""
     try:
@@ -39,6 +41,7 @@ async def mc_penetration_spending():
 
 
 @router.get("/api/research/mc-value/mco-financials")
+@safe_route(default_response={})
 async def mco_financials():
     """MCO MLR financial detail by state and plan."""
     try:
@@ -64,6 +67,7 @@ async def mco_financials():
 
 
 @router.get("/api/research/mc-value/mco-summary")
+@safe_route(default_response={})
 async def mco_summary():
     """Aggregated MCO MLR statistics by state."""
     try:
@@ -90,6 +94,7 @@ async def mco_summary():
 
 
 @router.get("/api/research/mc-value/quality-by-tier")
+@safe_route(default_response={})
 async def mc_quality_by_tier(measure_id: str = Query(default=None)):
     """Average quality measure rates grouped by managed care penetration tier."""
     try:
@@ -133,6 +138,7 @@ async def mc_quality_by_tier(measure_id: str = Query(default=None)):
 
 
 @router.get("/api/research/mc-value/trend")
+@safe_route(default_response={})
 async def mc_trend():
     """Managed care penetration and total spending trends over time by state."""
     try:

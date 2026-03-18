@@ -1,11 +1,13 @@
 """Supplemental payment endpoints — DSH, UPL, State Directed Payments."""
 from fastapi import APIRouter, Query
 from server.db import get_cursor
+from server.utils.error_handler import safe_route
 
 router = APIRouter()
 
 
 @router.get("/api/supplemental/summary")
+@safe_route(default_response={})
 def supplemental_summary(fiscal_year: int = Query(default=2024)):
     """MACPAC Exhibit 24 — state-level hospital supplemental payment summary."""
     with get_cursor() as cur:
@@ -29,6 +31,7 @@ def supplemental_summary(fiscal_year: int = Query(default=2024)):
 
 
 @router.get("/api/supplemental/fmr")
+@safe_route(default_response={})
 def supplemental_fmr(
     fiscal_year: int = Query(default=2024),
     state: str = Query(default=None),
@@ -62,6 +65,7 @@ def supplemental_fmr(
 
 
 @router.get("/api/supplemental/fmr/totals")
+@safe_route(default_response={})
 def supplemental_fmr_totals(fiscal_year: int = Query(default=2024)):
     """Aggregate FMR supplemental payments by state and payment type."""
     with get_cursor() as cur:
@@ -84,6 +88,7 @@ def supplemental_fmr_totals(fiscal_year: int = Query(default=2024)):
 
 
 @router.get("/api/supplemental/dsh/hospitals")
+@safe_route(default_response={})
 def supplemental_dsh_hospitals(
     state: str = Query(default=None),
     min_dsh: float = Query(default=0),
@@ -120,6 +125,7 @@ def supplemental_dsh_hospitals(
 
 
 @router.get("/api/supplemental/dsh/summary")
+@safe_route(default_response={})
 def supplemental_dsh_summary():
     """State-level DSH summary aggregated from hospital-level HCRIS data."""
     with get_cursor() as cur:
@@ -146,6 +152,7 @@ def supplemental_dsh_summary():
 
 
 @router.get("/api/supplemental/sdp")
+@safe_route(default_response={})
 def supplemental_sdp(state: str = Query(default=None)):
     """CMS-approved State Directed Payment programs."""
     with get_cursor() as cur:
@@ -170,6 +177,7 @@ def supplemental_sdp(state: str = Query(default=None)):
 
 
 @router.get("/api/supplemental/trend")
+@safe_route(default_response={})
 def supplemental_trend(state: str = Query(default=None)):
     """FMR supplemental payment trends across fiscal years."""
     with get_cursor() as cur:

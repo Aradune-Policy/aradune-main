@@ -4,6 +4,7 @@ Returns clean JSON error responses instead of 500 crashes.
 """
 
 import asyncio
+from fastapi import HTTPException
 from fastapi.responses import JSONResponse
 from functools import wraps
 import inspect
@@ -40,6 +41,8 @@ def safe_route(default_response=None):
                     if result is None:
                         return default_response or {"data": [], "message": "No data available"}
                     return result
+                except HTTPException:
+                    raise
                 except Exception as e:
                     logger.error(f"{func.__name__} failed: {e}\n{traceback.format_exc()}")
                     return JSONResponse(
@@ -59,6 +62,8 @@ def safe_route(default_response=None):
                     if result is None:
                         return default_response or {"data": [], "message": "No data available"}
                     return result
+                except HTTPException:
+                    raise
                 except Exception as e:
                     logger.error(f"{func.__name__} failed: {e}\n{traceback.format_exc()}")
                     return JSONResponse(

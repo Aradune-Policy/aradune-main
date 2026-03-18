@@ -2,11 +2,13 @@
 
 from fastapi import APIRouter, HTTPException, Query
 from server.db import get_cursor
+from server.utils.error_handler import safe_route
 
 router = APIRouter()
 
 
 @router.get("/api/research/integrity-risk/composite")
+@safe_route(default_response={})
 async def integrity_risk_composite(state: str = Query(None)):
     """Composite integrity risk: open payments per enrollee, exclusions per 100K, by state."""
     try:
@@ -66,6 +68,7 @@ async def integrity_risk_composite(state: str = Query(None)):
 
 
 @router.get("/api/research/integrity-risk/open-payments")
+@safe_route(default_response={})
 async def integrity_open_payments(state: str = Query(None)):
     """Open Payments summary by state: total amount, physician count, avg per physician."""
     try:
@@ -97,6 +100,7 @@ async def integrity_open_payments(state: str = Query(None)):
 
 
 @router.get("/api/research/integrity-risk/enforcement")
+@safe_route(default_response={})
 async def integrity_enforcement(state: str = Query(None), fiscal_year: int = Query(None)):
     """MFCU enforcement stats: cases opened, convictions, recoveries, ROI."""
     try:
@@ -150,6 +154,7 @@ async def integrity_enforcement(state: str = Query(None), fiscal_year: int = Que
 
 
 @router.get("/api/research/integrity-risk/perm")
+@safe_route(default_response={})
 async def integrity_perm(fiscal_year: int = Query(None)):
     """PERM improper payment rates by fiscal year."""
     try:

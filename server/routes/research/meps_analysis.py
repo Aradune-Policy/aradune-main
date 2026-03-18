@@ -2,11 +2,13 @@
 
 from fastapi import APIRouter, HTTPException, Query
 from server.db import get_cursor
+from server.utils.error_handler import safe_route
 
 router = APIRouter()
 
 
 @router.get("/api/research/meps/expenditure-by-insurance")
+@safe_route(default_response={})
 async def meps_expenditure_by_insurance():
     """Mean expenditure by insurance coverage type from MEPS HC-243 (2022)."""
     try:
@@ -49,6 +51,7 @@ async def meps_expenditure_by_insurance():
 
 
 @router.get("/api/research/meps/utilization-by-poverty")
+@safe_route(default_response={})
 async def meps_utilization_by_poverty():
     """Utilization patterns by poverty level from MEPS (relevant to Medicaid eligibility)."""
     try:
@@ -87,6 +90,7 @@ async def meps_utilization_by_poverty():
 
 
 @router.get("/api/research/meps/medicaid-profile")
+@safe_route(default_response={})
 async def meps_medicaid_profile():
     """Profile of Medicaid enrollees vs other coverage types."""
     try:

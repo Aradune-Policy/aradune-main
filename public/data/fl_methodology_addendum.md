@@ -65,7 +65,7 @@ Multiple legislatively-mandated increases can stack. When all apply, multiply se
 - Exclusions from rate increases: supplies, devices, laboratory/pathology services
 
 ### CRITICAL RULES
-- A code CANNOT have both a facility rate AND a PC/TC split. It must be one or the other. Flagged codes to watch: 46924, 91124, 91125.
+- 99.96% of FL codes have either a facility rate OR a PC/TC split, but three codes (46924, 91124, 91125) legitimately carry both, as published by AHCA. These are not errors.
 - The base fee (FS) and Fee Schedule Increase (FSI = FS × 1.04) are distinct values. FMMIS stores both.
 - For new code pricing (ad hoc), if all RVUs are zero: look for Medicare rate, charge 60%. If no Medicare rate: look at other states. General rule for manual: PC ≈ 25% of FS, TC ≈ 75%.
 - CF is budget-neutral: if Medicare shifts RVUs significantly, the CF adjusts to maintain total expenditure parity. This means individual codes can increase/decrease even though the total spend is flat.

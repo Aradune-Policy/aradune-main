@@ -1335,6 +1335,6 @@ Total estimated: 15-27 hours of implementation work.
 - Table names in SQL queries match the Parquet directory names under `data/lake/fact/` and `data/lake/dimension/`. They are registered as views in DuckDB at startup.
 - The frontend uses inline styles exclusively (no CSS files, no Tailwind). Follow the existing `design.ts` tokens: `C.ink`, `C.brand`, `C.accent`, `C.surface`, `C.border`, `C.pos`, `C.neg`, `C.warn`.
 - All route files live in `server/routes/` and are imported in `server/main.py`.
-- The owner's FL Medicaid rule must be preserved: rates cannot have both a facility rate AND a PC/TC split. Codes 46924, 91124, 91125 require special handling.
+- FL Medicaid: Facility and PC/TC rates are typically mutually exclusive (99.96% of codes). Three codes (46924, 91124, 91125) legitimately carry both facility and PC/TC rates as published by AHCA.
 - Never use em-dashes in any generated text. This is a codebase style rule.
 - Test everything against the actual lake data. The DuckDB views should have 750+ tables registered when fully loaded.

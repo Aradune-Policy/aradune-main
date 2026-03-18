@@ -26,7 +26,7 @@ SEEDS = [
      "42 CFR 447.203"),
 
     ("rates", "domain_rule",
-     "FL Medicaid rates cannot have both facility rate AND PC/TC split on the same code. Codes 46924, 91124, 91125 require special handling.",
+     "FL Medicaid: Facility and PC/TC rates typically mutually exclusive (99.96% of codes). Codes 46924, 91124, 91125 legitimately carry both per AHCA.",
      "FL SPA rate methodology"),
 
     ("enrollment", "domain_rule",

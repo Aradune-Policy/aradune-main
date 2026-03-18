@@ -2,11 +2,13 @@
 
 from fastapi import APIRouter, HTTPException, Query
 from server.db import get_cursor
+from server.utils.error_handler import safe_route
 
 router = APIRouter()
 
 
 @router.get("/api/research/pharmacy-spread/overview")
+@safe_route(default_response={})
 async def pharmacy_spread_overview():
     """Join NADAC acquisition cost to SDUD reimbursement by NDC to compute per-drug spread."""
     try:
@@ -55,6 +57,7 @@ async def pharmacy_spread_overview():
 
 
 @router.get("/api/research/pharmacy-spread/by-state")
+@safe_route(default_response={})
 async def pharmacy_spread_by_state():
     """Spread aggregated by state: total reimbursement vs total acquisition cost."""
     try:
@@ -98,6 +101,7 @@ async def pharmacy_spread_by_state():
 
 
 @router.get("/api/research/pharmacy-spread/top-drugs")
+@safe_route(default_response={})
 async def pharmacy_spread_top_drugs(limit: int = Query(default=50, ge=1, le=500)):
     """Top drugs ranked by total overpayment (reimbursement above NADAC acquisition cost)."""
     try:
@@ -146,6 +150,7 @@ async def pharmacy_spread_top_drugs(limit: int = Query(default=50, ge=1, le=500)
 
 
 @router.get("/api/research/pharmacy-spread/stats")
+@safe_route(default_response={})
 async def pharmacy_spread_stats():
     """Summary statistics: average/median/p90 spread, total overpayment/underpayment, drug counts."""
     try:

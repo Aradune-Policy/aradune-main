@@ -6,6 +6,7 @@ CHIP/enrollment data, and more.
 from fastapi import APIRouter, Query
 from typing import Optional
 from server.db import get_cursor
+from server.utils.error_handler import safe_route
 
 router = APIRouter()
 
@@ -14,6 +15,7 @@ router = APIRouter()
 
 
 @router.get("/api/medicare/enrollment")
+@safe_route(default_response={"rows": [], "count": 0})
 async def medicare_enrollment(
     state: Optional[str] = Query(None),
     year: Optional[int] = Query(None),
@@ -42,6 +44,7 @@ async def medicare_enrollment(
 
 
 @router.get("/api/medicare/enrollment/duals")
+@safe_route(default_response={"rows": [], "count": 0})
 async def medicare_duals_summary(
     year: Optional[int] = Query(None),
 ):
@@ -78,6 +81,7 @@ async def medicare_duals_summary(
 
 
 @router.get("/api/cms/ipps-impact")
+@safe_route(default_response={"rows": [], "count": 0})
 async def cms_impact_file(
     state: Optional[str] = Query(None),
     ccn: Optional[str] = Query(None),
@@ -107,6 +111,7 @@ async def cms_impact_file(
 
 
 @router.get("/api/opioid/prescribing")
+@safe_route(default_response={"rows": [], "count": 0})
 async def opioid_prescribing(
     state: Optional[str] = Query(None),
     year: Optional[int] = Query(None),
@@ -135,6 +140,7 @@ async def opioid_prescribing(
 
 
 @router.get("/api/opioid/prescribing/summary")
+@safe_route(default_response={"rows": [], "count": 0})
 async def opioid_prescribing_summary(
     year: Optional[int] = Query(None),
 ):
@@ -166,6 +172,7 @@ async def opioid_prescribing_summary(
 
 
 @router.get("/api/opioid/otp-providers")
+@safe_route(default_response={"rows": [], "count": 0})
 async def otp_providers(
     state: Optional[str] = Query(None),
     limit: int = Query(500, le=2000),
@@ -189,6 +196,7 @@ async def otp_providers(
 
 
 @router.get("/api/financial/ffcra")
+@safe_route(default_response={"rows": [], "count": 0})
 async def cms64_ffcra(
     state: Optional[str] = Query(None),
 ):
@@ -210,6 +218,7 @@ async def cms64_ffcra(
 
 
 @router.get("/api/maternal/contraceptive-care")
+@safe_route(default_response={"rows": [], "count": 0})
 async def contraceptive_care(
     state: Optional[str] = Query(None),
     year: Optional[int] = Query(None),
@@ -235,6 +244,7 @@ async def contraceptive_care(
 
 
 @router.get("/api/health/respiratory")
+@safe_route(default_response={"rows": [], "count": 0})
 async def respiratory_conditions(
     state: Optional[str] = Query(None),
     condition: Optional[str] = Query(None),
@@ -260,6 +270,7 @@ async def respiratory_conditions(
 
 
 @router.get("/api/dialysis/esrd-qip-tps")
+@safe_route(default_response={"rows": [], "count": 0})
 async def esrd_qip_tps(
     state: Optional[str] = Query(None),
     ccn: Optional[str] = Query(None),
@@ -287,6 +298,7 @@ async def esrd_qip_tps(
 
 
 @router.get("/api/enrollment/program-monthly")
+@safe_route(default_response={"rows": [], "count": 0})
 async def program_monthly(
     state: Optional[str] = Query(None),
     program_type: Optional[str] = Query(None),
@@ -309,6 +321,7 @@ async def program_monthly(
 
 
 @router.get("/api/enrollment/mc-annual")
+@safe_route(default_response={"rows": [], "count": 0})
 async def mc_annual(
     state: Optional[str] = Query(None),
 ):
@@ -327,6 +340,7 @@ async def mc_annual(
 
 
 @router.get("/api/enrollment/mc-info-monthly")
+@safe_route(default_response={"rows": [], "count": 0})
 async def mc_info_monthly(
     state: Optional[str] = Query(None),
 ):
@@ -345,6 +359,7 @@ async def mc_info_monthly(
 
 
 @router.get("/api/enrollment/chip-monthly")
+@safe_route(default_response={"rows": [], "count": 0})
 async def chip_monthly(
     state: Optional[str] = Query(None),
 ):
@@ -363,6 +378,7 @@ async def chip_monthly(
 
 
 @router.get("/api/enrollment/chip-app-elig")
+@safe_route(default_response={"rows": [], "count": 0})
 async def chip_app_elig(
     state: Optional[str] = Query(None),
 ):
@@ -381,6 +397,7 @@ async def chip_app_elig(
 
 
 @router.get("/api/enrollment/performance-indicator")
+@safe_route(default_response={"rows": [], "count": 0})
 async def performance_indicator(
     state: Optional[str] = Query(None),
 ):
@@ -399,6 +416,7 @@ async def performance_indicator(
 
 
 @router.get("/api/enrollment/new-adult")
+@safe_route(default_response={"rows": [], "count": 0})
 async def new_adult_enrollment(
     state: Optional[str] = Query(None),
 ):
@@ -420,6 +438,7 @@ async def new_adult_enrollment(
 
 
 @router.get("/api/pharmacy/drug-rebate")
+@safe_route(default_response={"rows": [], "count": 0})
 async def drug_rebate_products(
     ndc: Optional[str] = Query(None),
     drug_name: Optional[str] = Query(None),
@@ -444,6 +463,7 @@ async def drug_rebate_products(
 
 
 @router.get("/api/pharmacy/sdud-2024")
+@safe_route(default_response={"rows": [], "count": 0})
 async def sdud_2024(
     state: Optional[str] = Query(None),
     ndc: Optional[str] = Query(None),
@@ -476,6 +496,7 @@ async def sdud_2024(
 
 
 @router.get("/api/pharmacy/sdud-2024/top-drugs")
+@safe_route(default_response={"rows": [], "count": 0})
 async def sdud_2024_top_drugs(
     state: Optional[str] = Query(None),
     year: Optional[int] = Query(None),
@@ -513,6 +534,7 @@ async def sdud_2024_top_drugs(
 
 
 @router.get("/api/pharmacy/sdud-2025")
+@safe_route(default_response={"rows": [], "count": 0})
 async def sdud_2025(
     state: Optional[str] = Query(None),
     ndc: Optional[str] = Query(None),
@@ -541,6 +563,7 @@ async def sdud_2025(
 
 
 @router.get("/api/pharmacy/sdud-2025/top-drugs")
+@safe_route(default_response={"rows": [], "count": 0})
 async def sdud_2025_top_drugs(
     state: Optional[str] = Query(None),
     quarter: Optional[int] = Query(None),
@@ -576,6 +599,7 @@ async def sdud_2025_top_drugs(
 
 
 @router.get("/api/pharmacy/sdud-2025/state-summary")
+@safe_route(default_response={"rows": [], "count": 0})
 async def sdud_2025_state_summary():
     """SDUD 2025 summary — total spend, Rx count, drug count by state."""
     with get_cursor() as cur:
@@ -599,6 +623,7 @@ async def sdud_2025_state_summary():
 
 
 @router.get("/api/providers/medicare-enrollment")
+@safe_route(default_response={"rows": [], "count": 0})
 async def medicare_provider_enrollment(
     state: Optional[str] = Query(None),
     provider_type: Optional[str] = Query(None),
@@ -627,6 +652,7 @@ async def medicare_provider_enrollment(
 
 
 @router.get("/api/providers/medicare-enrollment/by-type")
+@safe_route(default_response={"rows": [], "count": 0})
 async def medicare_provider_by_type(
     state: Optional[str] = Query(None),
 ):
@@ -656,6 +682,7 @@ async def medicare_provider_by_type(
 
 
 @router.get("/api/integrity/leie-summary")
+@safe_route(default_response={"detail": [], "by_state": [], "count": 0})
 async def leie_summary(
     state: Optional[str] = Query(None),
 ):
@@ -703,6 +730,7 @@ async def leie_summary(
 
 
 @router.get("/api/integrity/open-payments-summary")
+@safe_route(default_response={"by_state": [], "by_payment_type": [], "by_category": [], "count": 0})
 async def open_payments_summary(
     state: Optional[str] = Query(None),
 ):
@@ -768,6 +796,7 @@ async def open_payments_summary(
 
 
 @router.get("/api/integrity/mfcu")
+@safe_route(default_response={"rows": [], "count": 0})
 async def mfcu_stats(
     state: Optional[str] = Query(None),
 ):
@@ -786,6 +815,7 @@ async def mfcu_stats(
 
 
 @router.get("/api/integrity/perm")
+@safe_route(default_response={"rows": [], "count": 0})
 async def perm_rates(
     program: Optional[str] = Query(None),
 ):

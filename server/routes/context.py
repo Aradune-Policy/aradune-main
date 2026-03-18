@@ -2,11 +2,13 @@
 
 from fastapi import APIRouter, Query
 from server.db import get_cursor
+from server.utils.error_handler import safe_route
 
 router = APIRouter()
 
 
 @router.get("/api/demographics/{state_code}")
+@safe_route(default_response={})
 async def demographics(state_code: str):
     """Get Census ACS demographics for a state."""
     state_code = state_code.upper()
@@ -33,6 +35,7 @@ async def demographics(state_code: str):
 
 
 @router.get("/api/demographics")
+@safe_route(default_response={})
 async def all_demographics():
     """Get Census ACS demographics for all states."""
     with get_cursor() as cur:
@@ -48,6 +51,7 @@ async def all_demographics():
 
 
 @router.get("/api/scorecard/{state_code}")
+@safe_route(default_response={})
 async def scorecard_by_state(state_code: str):
     """Get Medicaid Scorecard measures for a state."""
     state_code = state_code.upper()
@@ -69,6 +73,7 @@ async def scorecard_by_state(state_code: str):
 
 
 @router.get("/api/economic/{state_code}")
+@safe_route(default_response={})
 async def economic_indicators(state_code: str):
     """Get economic indicators (GDP, population, unemployment, income) for a state."""
     state_code = state_code.upper()
@@ -116,6 +121,7 @@ async def economic_indicators(state_code: str):
 
 
 @router.get("/api/mortality/{state_code}")
+@safe_route(default_response={})
 async def mortality(state_code: str):
     """Get CDC mortality trends for a state (uses state name matching)."""
     # mortality_trend uses state names not codes — need to map
@@ -135,6 +141,7 @@ async def mortality(state_code: str):
 # ── HUD Fair Market Rents ────────────────────────────────────────────────
 
 @router.get("/api/housing/{state_code}")
+@safe_route(default_response={})
 async def housing_costs(state_code: str):
     """Get HUD Fair Market Rents for a state."""
     state_code = state_code.upper()
@@ -152,6 +159,7 @@ async def housing_costs(state_code: str):
 
 
 @router.get("/api/housing")
+@safe_route(default_response={})
 async def housing_summary():
     """Get state-level average FMR summary."""
     with get_cursor() as cur:
@@ -175,6 +183,7 @@ async def housing_summary():
 # ── SNAP Enrollment ──────────────────────────────────────────────────────
 
 @router.get("/api/snap/{state_code}")
+@safe_route(default_response={})
 async def snap_by_state(state_code: str):
     """Get SNAP monthly participation and benefit cost for a state."""
     state_code = state_code.upper()
@@ -190,6 +199,7 @@ async def snap_by_state(state_code: str):
 
 
 @router.get("/api/snap")
+@safe_route(default_response={})
 async def snap_summary():
     """Get SNAP enrollment summary — latest month totals by state."""
     with get_cursor() as cur:
@@ -209,6 +219,7 @@ async def snap_summary():
 # ── TANF Enrollment ──────────────────────────────────────────────────────
 
 @router.get("/api/tanf/{state_code}")
+@safe_route(default_response={})
 async def tanf_by_state(state_code: str):
     """Get TANF monthly families and recipients for a state."""
     state_code = state_code.upper()
@@ -224,6 +235,7 @@ async def tanf_by_state(state_code: str):
 
 
 @router.get("/api/tanf")
+@safe_route(default_response={})
 async def tanf_summary():
     """Get TANF enrollment summary — latest month families and recipients by state."""
     with get_cursor() as cur:
@@ -242,6 +254,7 @@ async def tanf_summary():
 
 
 @router.get("/api/cross-program/{state_code}")
+@safe_route(default_response={})
 async def cross_program_enrollment(state_code: str):
     """Get Medicaid, SNAP, and TANF enrollment side-by-side for a state."""
     state_code = state_code.upper()
@@ -289,6 +302,7 @@ async def cross_program_enrollment(state_code: str):
 # ── Eligibility Processing (Renewals/Redeterminations) ────────────────
 
 @router.get("/api/eligibility-processing/{state_code}")
+@safe_route(default_response={})
 async def eligibility_processing(state_code: str):
     """Get Medicaid renewal/redetermination outcomes for a state."""
     state_code = state_code.upper()
@@ -314,6 +328,7 @@ async def eligibility_processing(state_code: str):
 
 
 @router.get("/api/eligibility-processing")
+@safe_route(default_response={})
 async def eligibility_processing_summary():
     """Latest renewal outcomes by state — total renewed, disenrolled, pending."""
     with get_cursor() as cur:
@@ -337,6 +352,7 @@ async def eligibility_processing_summary():
 # ── Marketplace Unwinding Transitions ──────────────────────────────────
 
 @router.get("/api/marketplace-unwinding/{state_code}")
+@safe_route(default_response={})
 async def marketplace_unwinding(state_code: str):
     """Get HealthCare.gov marketplace transition data during Medicaid unwinding."""
     with get_cursor() as cur:
@@ -357,6 +373,7 @@ async def marketplace_unwinding(state_code: str):
 # ── HCBS Waiting Lists ────────────────────────────────────────────────
 
 @router.get("/api/hcbs-waitlist")
+@safe_route(default_response={})
 async def hcbs_waitlist():
     """Get HCBS waiting list data for all states (KFF 2025 survey)."""
     with get_cursor() as cur:
@@ -378,6 +395,7 @@ async def hcbs_waitlist():
 
 
 @router.get("/api/hcbs-waitlist/{state_code}")
+@safe_route(default_response={})
 async def hcbs_waitlist_by_state(state_code: str):
     """Get HCBS waiting list data for a specific state."""
     state_code = state_code.upper()
@@ -404,6 +422,7 @@ async def hcbs_waitlist_by_state(state_code: str):
 # ── LTSS Expenditure & Users ───────────────────────────────────────────
 
 @router.get("/api/ltss/{state_code}")
+@safe_route(default_response={})
 async def ltss_by_state(state_code: str):
     """Get LTSS expenditure and users for a state (institutional vs HCBS)."""
     state_code = state_code.upper()
@@ -440,6 +459,7 @@ async def ltss_by_state(state_code: str):
 
 
 @router.get("/api/ltss")
+@safe_route(default_response={})
 async def ltss_summary():
     """Get LTSS summary — latest year expenditure by state with HCBS rebalancing."""
     with get_cursor() as cur:
@@ -460,6 +480,7 @@ async def ltss_summary():
 
 
 @router.get("/api/ltss/rebalancing")
+@safe_route(default_response={})
 async def ltss_rebalancing():
     """Get HCBS rebalancing measures — % HCBS expenditure by state and demographics."""
     with get_cursor() as cur:
@@ -477,6 +498,7 @@ async def ltss_rebalancing():
 # ── CDC Vital Statistics / Maternal Mortality ──────────────────────────
 
 @router.get("/api/vital-stats/{state_code}")
+@safe_route(default_response={})
 async def vital_stats_state(state_code: str):
     """Get CDC VSRR monthly births, deaths, infant deaths for a state."""
     state_code = state_code.upper()
@@ -492,6 +514,7 @@ async def vital_stats_state(state_code: str):
 
 
 @router.get("/api/ltss/spending-by-category/{state_code}")
+@safe_route(default_response={})
 async def ltss_spending_by_category(state_code: str):
     """Get FMR FY 2024 service category spending for a state."""
     state_code = state_code.upper()
@@ -509,6 +532,7 @@ async def ltss_spending_by_category(state_code: str):
 
 
 @router.get("/api/fmr/state-totals")
+@safe_route(default_response={})
 async def fmr_state_totals():
     """Get FY 2024 total Medicaid spending by state (MAP net expenditures)."""
     with get_cursor() as cur:
@@ -526,6 +550,7 @@ async def fmr_state_totals():
 
 
 @router.get("/api/maternal-mortality")
+@safe_route(default_response={})
 async def maternal_mortality_trends():
     """Get national maternal mortality trends by demographics."""
     with get_cursor() as cur:

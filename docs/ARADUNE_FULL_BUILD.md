@@ -1987,6 +1987,13 @@ This was the most significant Intelligence and quality assurance session. Four m
 - Corrected across 13+ files: CLAUDE.md, intelligence.py system prompt, ARADUNE_BUILD_GUIDE.md, ONTOLOGY_SPEC.md, fl_methodology_addendum.md, adversarial agents, known_facts.json, etc.
 - Adversarial agents updated to test FOR the correct behavior (3 codes should have both).
 
+*Data Quality Fix:*
+- fact_rate_comparison_v2 rebuilt from actual published fee schedules. APC/facility rates were contaminating physician-level comparisons, inflating pct_of_medicare for RI (275%→107%) and CT (435%→110%).
+- Corrected dim_state conversion factors for 47 states against CMS published CFs.
+- Repeatable build script: `scripts/build_lake_rate_comparison_v2.py`. Facility rates filtered so they are never compared to non-facility Medicare rates.
+- known_facts.json expanded to 32 facts (added 4 state-level rate quality checks).
+- New build principle #27: validate data against external benchmarks (KFF, MACPAC, CMS).
+
 *Infrastructure:*
 - GitHub CI secrets confirmed set: VERCEL_TOKEN, FLY_API_TOKEN, CLERK_SECRET_KEY, VITE_CLERK_PUBLISHABLE_KEY, VERCEL_ORG_ID, VERCEL_PROJECT_ID.
 - Known issues audit: 8 issues resolved, 2 new (cache seeds stale, ANTHROPIC_API_KEY not in GitHub).

@@ -1075,6 +1075,7 @@ Aradune/
 24. **State-level variation is the dominant quality dimension.** Illinois needs custom dedup. Arkansas may be missing. MC encounter completeness ranges from excellent to absent. Every pipeline starts with DQ Atlas lookup and carries state-quality metadata through.
 25. **Test adversarially, not just defensively.** Soda Core/dbt catch known issues. Hypothesis + chaos engineering catch unknown ones. Generate realistic test data with SDV. Test at 10x volume. See `COMPLETE-DATA-REFERENCE-FOR-ARADUNE.md` Part 2.
 26. **Update Sections 1-16 in place, not just the changelog.** When you change a count (endpoints, tables, modules), a capability (new engine, new tool), or a status (fixed issue, new known issue), update the relevant summary section AND the changelog. The summary sections are what the next session reads first. Stale summaries cause compounding errors across sessions. Also reconcile ARADUNE_FULL_BUILD.md if the change affects architecture, engines, modules, or routes.
+27. **Validate data against external benchmarks.** Every computed metric (pct_of_medicare, per_enrollee_spending) must be cross-checked against published benchmarks (KFF, MACPAC, CMS). If a state shows 287% of Medicare, verify it against KFF's Medicaid-to-Medicare fee index before accepting. Facility rates must never be compared to non-facility Medicare rates.
 
 ---
 
@@ -1177,6 +1178,7 @@ fly deploy --remote-only --config server/fly.toml --dockerfile server/Dockerfile
 | 27 | ANTHROPIC_API_KEY not in GitHub secrets | Open -- needed for adversarial workflow |
 | 28 | 31 broken/empty raw files in data/raw/ (7 empty, 2 HTML/WAF) | Identified, not deleted. Cleanup when ready. |
 | 29 | 11 duplicate _v2 raw file pairs (~51.5MB) | Identified, not deleted. Safe to remove _v2 copies. |
+| 30 | rate_comparison_v2 had APC/facility rates contaminating physician comparison | **Fixed** -- Session 34. Facility rates filtered, CFs corrected, rebuild script created. |
 
 ---
 
@@ -1201,6 +1203,7 @@ fly deploy --remote-only --config server/fly.toml --dockerfile server/Dockerfile
 - Supply chain security: Dependabot for npm/pip/GitHub Actions, pip-audit + npm audit in CI, Schemathesis API contract testing.
 - 5 Architecture Decision Records: DuckDB, Parquet, Skillbook, partitioning, auth.
 - Legacy cleanup: api/chat.js deprecated. Raw file audit: 31 broken files + 11 duplicate pairs identified.
+- Data quality fix: fact_rate_comparison_v2 rebuilt from actual published fee schedules. Filtered APC/facility rates that inflated RI (275%→107%), CT (435%→110%). Corrected dim_state CFs for 47 states. Repeatable build script (scripts/build_lake_rate_comparison_v2.py). 32 adversarial facts (added 4 state-level rate quality checks).
 
 **Session 32 (2026-03-17) — Post-review fixes + adversarial testing framework:**
 - @safe_route on all 336/336 endpoints (was 176). safe_route updated to re-raise HTTPException.

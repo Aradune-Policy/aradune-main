@@ -47,7 +47,7 @@ def run_core_checks() -> list[dict]:
             # Range checks
             range_checks = [
                 ("dim_state", "fmap", 0.5, 0.83),
-                ("fact_rate_comparison", "pct_of_medicare", 1, 1000),
+                ("fact_rate_comparison", "pct_of_medicare", 1, 500),
                 ("fact_mc_enrollment_summary", "mc_penetration_pct", 0, 100),
             ]
             for table, col, min_v, max_v in range_checks:

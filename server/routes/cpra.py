@@ -32,7 +32,7 @@ async def cpra_states():
                 ROUND(MEDIAN(pct_of_medicare), 2) AS median_pct,
                 ROUND(AVG(pct_of_medicare), 2) AS avg_pct
             FROM fact_rate_comparison
-            WHERE pct_of_medicare > 0 AND pct_of_medicare < 1000
+            WHERE pct_of_medicare > 0 AND pct_of_medicare < 500
             GROUP BY state_code
             ORDER BY state_code
         """).fetchall()
@@ -67,7 +67,7 @@ async def cpra_rates(
                 rc.rate_effective_date AS medicaid_rate_date
             FROM fact_rate_comparison rc
             LEFT JOIN dim_procedure dp ON rc.procedure_code = dp.procedure_code
-            WHERE rc.state_code = $1 {em_filter}
+            WHERE rc.state_code = $1 AND rc.pct_of_medicare < 500 {em_filter}
             ORDER BY rc.pct_of_medicare ASC
         """, [state_code]).fetchall()
 
@@ -128,7 +128,7 @@ async def cpra_compare_codes(
             FROM fact_rate_comparison rc
             LEFT JOIN dim_procedure dp ON rc.procedure_code = dp.procedure_code
             LEFT JOIN dim_state ds ON rc.state_code = ds.state_code
-            WHERE rc.procedure_code IN ({placeholders}) {state_filter}
+            WHERE rc.procedure_code IN ({placeholders}) AND rc.pct_of_medicare < 500 {state_filter}
             ORDER BY rc.procedure_code, rc.state_code
         """, params).fetchall()
 

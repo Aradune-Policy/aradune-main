@@ -419,7 +419,7 @@ def check_rate_comparison(context):
     median = con.execute(f"""
         SELECT MEDIAN(pct_of_medicare)
         FROM '{p}'
-        WHERE pct_of_medicare > 0 AND pct_of_medicare < 1000
+        WHERE pct_of_medicare > 0 AND pct_of_medicare < 500
     """).fetchone()[0]
     em_count = con.execute(f"SELECT COUNT(*) FROM '{p}' WHERE em_category IS NOT NULL").fetchone()[0]
     con.close()

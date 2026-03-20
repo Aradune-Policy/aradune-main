@@ -51,7 +51,7 @@ def get_state_insights(state_code: str):
             COUNT(DISTINCT procedure_code) AS code_count
         FROM fact_rate_comparison
         WHERE state_code = $1
-          AND pct_of_medicare > 0 AND pct_of_medicare < 1000
+          AND pct_of_medicare > 0 AND pct_of_medicare < 500
           AND em_category IS NOT NULL
     """, [sc])
     hpsa_data = _safe_query("""

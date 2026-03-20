@@ -31,6 +31,8 @@ async def spending_vs_revenue(state: str = Query(None), fiscal_year: int = Query
                            SUM(total_computable) - SUM(federal_share) AS state_share
                     FROM fact_cms64_multiyear
                     WHERE state_code != 'US'
+                      AND service_category NOT IN ('C-Total Net', 'C-Balance', 'T-Total Net Expenditures')
+                      AND service_category NOT LIKE 'T-%'
                     GROUP BY state_code, fiscal_year
                 ),
                 revenue AS (
@@ -112,6 +114,8 @@ async def budget_pressure(state: str = Query(None)):
                     FROM fact_cms64_multiyear
                     WHERE fiscal_year = (SELECT MAX(fiscal_year) FROM fact_cms64_multiyear)
                       AND state_code != 'US'
+                      AND service_category NOT IN ('C-Total Net', 'C-Balance', 'T-Total Net Expenditures')
+                      AND service_category NOT LIKE 'T-%'
                     GROUP BY state_code
                 ),
                 revenue AS (
@@ -178,6 +182,8 @@ async def fiscal_vulnerability(state: str = Query(None)):
                                THEN total_computable END) AS prior_spending
                     FROM fact_cms64_multiyear
                     WHERE state_code != 'US'
+                      AND service_category NOT IN ('C-Total Net', 'C-Balance', 'T-Total Net Expenditures')
+                      AND service_category NOT LIKE 'T-%'
                     GROUP BY state_code
                 ),
                 budget AS (
@@ -191,6 +197,8 @@ async def fiscal_vulnerability(state: str = Query(None)):
                         AND r.fiscal_year = (SELECT MAX(fiscal_year) FROM fact_census_state_finances WHERE category = 'Total Taxes')
                     WHERE s.fiscal_year = (SELECT MAX(fiscal_year) FROM fact_cms64_multiyear)
                       AND s.state_code != 'US'
+                      AND s.service_category NOT IN ('C-Total Net', 'C-Balance', 'T-Total Net Expenditures')
+                      AND s.service_category NOT LIKE 'T-%'
                     GROUP BY s.state_code
                 ),
                 fmap AS (

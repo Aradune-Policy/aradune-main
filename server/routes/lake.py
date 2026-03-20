@@ -211,6 +211,8 @@ async def spending_by_state():
             FROM fact_cms64_multiyear
             WHERE fiscal_year = (SELECT MAX(fiscal_year) FROM fact_cms64_multiyear)
               AND state_code != 'US'
+              AND service_category NOT IN ('C-Total Net', 'C-Balance', 'T-Total Net Expenditures')
+              AND service_category NOT LIKE 'T-%'
             GROUP BY state_code, fiscal_year
             ORDER BY state_code
         """).fetchall()

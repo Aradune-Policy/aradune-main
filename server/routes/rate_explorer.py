@@ -66,7 +66,7 @@ async def rate_state_summary():
                     MODE(rc.rate_source) AS primary_rate_source
                 FROM fact_rate_comparison_v2 rc
                 LEFT JOIN dim_state ds ON rc.state_code = ds.state_code
-                WHERE rc.pct_of_medicare > 0 AND rc.pct_of_medicare < 1000
+                WHERE rc.pct_of_medicare > 0 AND rc.pct_of_medicare < 500
                 GROUP BY rc.state_code, ds.state_name
                 ORDER BY median_pct_medicare DESC
             """).fetchall()
@@ -268,7 +268,10 @@ async def rate_context(state_code: str):
                 SELECT fiscal_year, SUM(total_computable) AS total_spending,
                     SUM(federal_share) AS federal_spending
                 FROM fact_cms64_multiyear
-                WHERE state_code = $1 AND LOWER(category) = 'total'
+                WHERE state_code = $1
+                  AND program = 'Medical Assistance Program'
+                  AND service_category NOT IN ('C-Total Net', 'C-Balance', 'T-Total Net Expenditures')
+                  AND service_category NOT LIKE 'T-%'
                 GROUP BY fiscal_year
                 ORDER BY fiscal_year DESC LIMIT 1
             """, [state_code]).fetchone()

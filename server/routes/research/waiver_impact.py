@@ -158,6 +158,8 @@ async def waiver_spending(state_code: str):
                        SUM(total_computable) - SUM(federal_share) AS state_share
                 FROM fact_cms64_multiyear
                 WHERE state_code = $1
+                  AND service_category NOT IN ('C-Total Net', 'C-Balance', 'T-Total Net Expenditures')
+                  AND service_category NOT LIKE 'T-%'
                 GROUP BY fiscal_year
                 ORDER BY fiscal_year
             """, [sc]).fetchall()
@@ -259,6 +261,8 @@ async def waiver_compare(waiver_type: str = Query(default="expansion")):
                     FROM fact_cms64_multiyear
                     WHERE fiscal_year = (SELECT MAX(fiscal_year) FROM fact_cms64_multiyear)
                       AND state_code != 'US'
+                      AND service_category NOT IN ('C-Total Net', 'C-Balance', 'T-Total Net Expenditures')
+                      AND service_category NOT LIKE 'T-%'
                     GROUP BY state_code
                 )
                 SELECT d.state_code,

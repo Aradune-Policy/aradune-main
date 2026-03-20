@@ -153,6 +153,8 @@ async def mc_trend():
                            SUM(total_computable) AS total_spending
                     FROM fact_cms64_multiyear
                     WHERE state_code != 'US'
+                      AND service_category NOT IN ('C-Total Net', 'C-Balance', 'T-Total Net Expenditures')
+                      AND service_category NOT LIKE 'T-%'
                     GROUP BY fiscal_year, state_code
                 )
                 SELECT mt.year, mt.state_code,

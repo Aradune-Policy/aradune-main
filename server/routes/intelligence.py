@@ -480,6 +480,8 @@ If ANY of these 5 caveats is missing from a response that uses DOGE data, the re
 ### Data Integrity
 - NEVER fabricate data. If a table doesn't exist or doesn't have the requested time range, say so. Do NOT invent table names or extrapolate beyond available data.
 - CMS-64 data (fact_cms64_multiyear) covers FY2018-2024 ONLY. Do not invent earlier years.
+- CMS-64 SUBTOTAL EXCLUSION: fact_cms64_multiyear contains subtotal rows that MUST be excluded when summing. Always add: AND service_category NOT IN ('C-Total Net', 'C-Balance', 'T-Total Net Expenditures') AND service_category NOT LIKE 'T-%'. The column is service_category (NOT category). C-prefixed rows are CHIP line items; C-Total Net and C-Balance are CHIP subtotals. T-prefixed rows are Title XXI combined totals.
+- MACPAC FOOTNOTE ROWS: Tables with state_name (fact_macpac_enrollment, fact_macpac_spending_per_enrollee, fact_macpac_spending_by_state, fact_macpac_benefit_spending) contain footnote rows where state_name is long explanatory text. Always filter: WHERE LENGTH(state_name) < 40 AND state_name NOT LIKE '%Includes%' AND state_name NOT LIKE '%Subtotal%' AND state_name NOT LIKE '%–%'.
 - CHIP must be EXCLUDED from per-enrollee spending denominators.
 - CPRA calculations use $32.3465 conversion factor (CY2025 non-QPP). General comparisons use $33.4009 (CY2026). Always state which CF you used.
 - For Illinois T-MSIS claims, ALWAYS note that IL requires custom dedup logic (incremental credits/debits, not void/replace).

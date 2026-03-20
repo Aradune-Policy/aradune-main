@@ -220,10 +220,11 @@ class FiscalImpactEngine:
         try:
             rows = self.cur.execute("""
                 SELECT fiscal_year,
-                       SUM(CASE WHEN item_name ILIKE '%total computable%'
-                           THEN amount ELSE 0 END) AS total_computable
+                       SUM(total_computable) AS total_computable
                 FROM fact_cms64_multiyear
                 WHERE state_code = ?
+                  AND service_category NOT IN ('C-Total Net', 'C-Balance', 'T-Total Net Expenditures')
+                  AND service_category NOT LIKE 'T-%'
                 GROUP BY fiscal_year
                 ORDER BY fiscal_year
             """, [self.state_code]).fetchall()

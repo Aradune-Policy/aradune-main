@@ -63,7 +63,7 @@ def validate(con: duckdb.DuckDBPyConnection, paths: dict) -> list[str]:
         median = con.execute(f"""
             SELECT MEDIAN(pct_of_medicare)
             FROM '{rc}'
-            WHERE pct_of_medicare IS NOT NULL AND pct_of_medicare > 0 AND pct_of_medicare < 1000
+            WHERE pct_of_medicare IS NOT NULL AND pct_of_medicare > 0 AND pct_of_medicare < 500
         """).fetchone()[0]
         if median and (median < 50 or median > 200):
             failures.append(f"GATE FAIL: median pct_of_medicare = {median:.1f}% (expected 50-200%)")
@@ -102,7 +102,7 @@ def export_cpra_em(con: duckdb.DuckDBPyConnection, rc_path: Path, dry_run: bool)
                pct_of_medicare, em_category, modifier,
                medicaid_rate_date
         FROM '{rc_path}'
-        WHERE em_category IS NOT NULL
+        WHERE em_category IS NOT NULL AND pct_of_medicare < 500
         ORDER BY state_code, procedure_code
     """).fetchall()
 
@@ -145,7 +145,7 @@ def export_cpra_summary(con: duckdb.DuckDBPyConnection, rc_path: Path, dry_run: 
             AVG(pct_of_medicare) AS avg_pct,
             MEDIAN(pct_of_medicare) AS median_pct
         FROM '{rc_path}'
-        WHERE pct_of_medicare IS NOT NULL AND pct_of_medicare > 0 AND pct_of_medicare < 1000
+        WHERE pct_of_medicare IS NOT NULL AND pct_of_medicare > 0 AND pct_of_medicare < 500
     """).fetchone()
 
     # Per-state summaries
@@ -160,7 +160,7 @@ def export_cpra_summary(con: duckdb.DuckDBPyConnection, rc_path: Path, dry_run: 
             MIN(pct_of_medicare) AS min_pct,
             MAX(pct_of_medicare) AS max_pct
         FROM '{rc_path}'
-        WHERE pct_of_medicare IS NOT NULL AND pct_of_medicare > 0 AND pct_of_medicare < 1000
+        WHERE pct_of_medicare IS NOT NULL AND pct_of_medicare > 0 AND pct_of_medicare < 500
         GROUP BY state_code
         ORDER BY state_code
     """).fetchall()

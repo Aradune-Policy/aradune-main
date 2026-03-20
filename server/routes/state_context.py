@@ -55,7 +55,10 @@ async def state_context(state_code: str):
             row = cur.execute("""
                 SELECT fiscal_year, SUM(total_computable) AS total, SUM(federal_share) AS federal
                 FROM fact_cms64_multiyear
-                WHERE state_code = $1 AND LOWER(COALESCE(category, '')) IN ('total', 'medical assistance payments', '')
+                WHERE state_code = $1
+                  AND program = 'Medical Assistance Program'
+                  AND service_category NOT IN ('C-Total Net', 'C-Balance', 'T-Total Net Expenditures')
+                  AND service_category NOT LIKE 'T-%'
                 GROUP BY fiscal_year
                 ORDER BY fiscal_year DESC LIMIT 1
             """, [sc]).fetchone()
@@ -141,7 +144,7 @@ async def state_context(state_code: str):
                     COUNT(*) FILTER (WHERE pct_of_medicare < 80) AS below_80,
                     MODE(rate_source) AS primary_source
                 FROM fact_rate_comparison_v2
-                WHERE state_code = $1 AND pct_of_medicare > 0 AND pct_of_medicare < 1000
+                WHERE state_code = $1 AND pct_of_medicare > 0 AND pct_of_medicare < 500
             """, [sc]).fetchone()
             if row and row[0]:
                 result["rate_adequacy"] = {
@@ -202,7 +205,7 @@ async def state_context(state_code: str):
                     ROUND(MEDIAN(pct_of_medicare), 1) AS median_pct,
                     ROUND(AVG(effective_paid_rate), 2) AS avg_rate
                 FROM fact_tmsis_effective_rates
-                WHERE state_code = $1 AND pct_of_medicare > 0 AND pct_of_medicare < 1000
+                WHERE state_code = $1 AND pct_of_medicare > 0 AND pct_of_medicare < 500
             """, [sc]).fetchone()
             if row and row[0] and int(row[0]) > 0:
                 result["tmsis_claims"] = {

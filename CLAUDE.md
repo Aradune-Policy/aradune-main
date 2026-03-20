@@ -1278,3 +1278,14 @@ fly deploy --remote-only --config server/fly.toml --dockerfile server/Dockerfile
 ---
 
 *The data is the moat. Intelligence is the interface. Compliance is the wedge. Build in that order.*
+
+### Data Lake Audit (Session 34, 2026-03-20)
+
+Full audit of 722 tables: 689 clean, 33 with issues. Key findings:
+- **4 broken tables** (KFF waivers, food_environment_atlas_v2, nhe_residence_all_tables)
+- **~145M duplicate rows** across 50+ table pairs/triples (~1.4 GB recoverable)
+- **Largest: 35 individual SDUD year tables** duplicate sdud_combined (880 MB wasted)
+- **CMS-64 subtotal double-counting** fixed (CA was over-reported by $10.5B)
+- **PBJ admin hours inconsistency** between daily and staffing table variants
+- **SD rate data** may use raw multipliers instead of dollar amounts
+- All economic, LTSS/HCBS, insurance market, public health tables verified clean

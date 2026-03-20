@@ -2045,6 +2045,22 @@ Two-tier context system deployed across all 12 core modules:
 - Replaced 5 overlapping tools.
 - Backend: /api/rates/state-summary + /api/rates/compare-states + /api/rates/context/{state}.
 
+### Deep Data Lake Audit (Session 34 continued)
+
+Comprehensive audit of 722 fact tables found 6 critical and 8 significant data quality issues:
+
+**Critical (fixed):**
+1. CMS-64 CHIP subtotal double-counting: Subtotal rows ('C-Total Net', 'C-Balance', 'T-%') inflated state spending 3-7%. CA over-reported by $10.5B. Fixed column name (category→service_category) and added exclusion filter to all 10 CMS-64 query locations.
+2. rate_comparison v1 facility rate contamination: 10,772 rows with pct_of_medicare > 500%. Capped at <500% in all API queries.
+3. dim_state CF errors: OK corrected from $103.59 to $27.35. SD set to NULL (pct-of-medicare methodology).
+4. MACPAC footnote contamination: Up to 19.4% of rows are footnotes. Guards added to NL2SQL and Intelligence prompt.
+
+**Significant (known, monitored):**
+5. Published FS rates diverge from actual claims-based rates (AL: FS=151% vs claims=59% of Medicare).
+6. 5 duplicate opioid tables with identical 539K rows.
+7. TEDS coded values (-9 = missing, not negative).
+8. SD rate data uses raw multipliers instead of dollars.
+
 ### System Dynamics Engine (Session 34 continued)
 
 Stock-flow ODE modeling for Medicaid policy analysis. No other Medicaid analytics platform offers causal feedback loop modeling.

@@ -1179,6 +1179,12 @@ fly deploy --remote-only --config server/fly.toml --dockerfile server/Dockerfile
 | 28 | 31 broken/empty raw files in data/raw/ (7 empty, 2 HTML/WAF) | Identified, not deleted. Cleanup when ready. |
 | 29 | 11 duplicate _v2 raw file pairs (~51.5MB) | Identified, not deleted. Safe to remove _v2 copies. |
 | 30 | rate_comparison_v2 had APC/facility rates contaminating physician comparison | **Fixed** -- Session 34. Facility rates filtered, CFs corrected, rebuild script created. |
+| 31 | CMS-64 queries included CHIP subtotals, inflating state spending 3-7% | **Fixed** -- Subtotal exclusion filter added to all 10 CMS-64 query locations. Column name corrected (category→service_category). |
+| 32 | MACPAC tables have footnote rows mixed with data (up to 19.4%) | **Guarded** -- Footnote filtering added to NL2SQL descriptions and Intelligence prompt. |
+| 33 | dim_state: OK CF=$103.59 (should be $27.35), SD CF=$0.40 (N/A) | **Fixed** -- OK corrected to $27.35. SD set to NULL (pct-of-medicare methodology). |
+| 34 | rate_comparison v1 has 10,772 facility rate rows (>500% MCR) | **Guarded** -- All API queries now cap at <500%. Data-level fix requires CPRA engine rebuild. |
+| 35 | 5 duplicate opioid tables (identical 539K rows each) | Open -- cleanup when convenient. |
+| 36 | SD rate data may use raw multipliers instead of dollar amounts | Open -- needs investigation of source PDF parsing. |
 
 ---
 
@@ -1204,6 +1210,7 @@ fly deploy --remote-only --config server/fly.toml --dockerfile server/Dockerfile
 - 5 Architecture Decision Records: DuckDB, Parquet, Skillbook, partitioning, auth.
 - Legacy cleanup: api/chat.js deprecated. Raw file audit: 31 broken files + 11 duplicate pairs identified.
 - Data quality fix: fact_rate_comparison_v2 rebuilt from actual published fee schedules. Filtered APC/facility rates that inflated RI (275%→107%), CT (435%→110%). Corrected dim_state CFs for 47 states. Repeatable build script (scripts/build_lake_rate_comparison_v2.py). 32 adversarial facts (added 4 state-level rate quality checks).
+- Deep data quality audit: 6 critical + 8 significant issues found across 722 tables. Fixed: CMS-64 CHIP subtotal double-counting (CA over-reported by $10.5B), rate_comparison v1 facility contamination (capped at 500%), dim_state CFs (OK, SD corrected), MACPAC footnote guards, NL2SQL table descriptions. 14 files modified across routes, engines, scripts, pipeline.
 
 **Session 32 (2026-03-17) — Post-review fixes + adversarial testing framework:**
 - @safe_route on all 336/336 endpoints (was 176). safe_route updated to re-raise HTTPException.

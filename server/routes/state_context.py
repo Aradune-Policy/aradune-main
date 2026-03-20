@@ -89,9 +89,9 @@ async def state_context(state_code: str):
             row = cur.execute("""
                 SELECT
                     COUNT(*) AS total,
-                    COUNT(*) FILTER (WHERE LOWER(COALESCE(hpsa_discipline_class, discipline_type, '')) LIKE '%primary%') AS pc,
-                    COUNT(*) FILTER (WHERE LOWER(COALESCE(hpsa_discipline_class, discipline_type, '')) LIKE '%dental%') AS dental,
-                    COUNT(*) FILTER (WHERE LOWER(COALESCE(hpsa_discipline_class, discipline_type, '')) LIKE '%mental%') AS mh
+                    COUNT(*) FILTER (WHERE LOWER(COALESCE(discipline, '')) LIKE '%primary%') AS pc,
+                    COUNT(*) FILTER (WHERE LOWER(COALESCE(discipline, '')) LIKE '%dental%') AS dental,
+                    COUNT(*) FILTER (WHERE LOWER(COALESCE(discipline, '')) LIKE '%mental%') AS mh
                 FROM fact_hpsa WHERE state_code = $1
             """, [sc]).fetchone()
             if row and row[0]:
@@ -121,7 +121,7 @@ async def state_context(state_code: str):
             row = cur.execute("""
                 SELECT total_population, pct_poverty, pct_uninsured
                 FROM fact_acs_state WHERE state_code = $1
-                ORDER BY year DESC LIMIT 1
+                ORDER BY data_year DESC LIMIT 1
             """, [sc]).fetchone()
             if row:
                 result["demographics"] = {
@@ -216,7 +216,7 @@ async def state_context(state_code: str):
         # 11. Supplemental payments (DSH + SDP)
         try:
             row = cur.execute("""
-                SELECT SUM(dsh_allotment) FROM fact_dsh_hospital WHERE state_code = $1
+                SELECT SUM(dsh_adjustment) FROM fact_dsh_hospital WHERE state_code = $1
             """, [sc]).fetchone()
             if row and row[0]:
                 result["supplemental"] = {"dsh_total": float(row[0])}

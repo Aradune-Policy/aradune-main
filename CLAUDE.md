@@ -16,7 +16,7 @@ Aradune is a **Medicaid intelligence operating system**. It ingests, normalizes,
 Aradune is not a dashboard with AI bolted on. It is **the platform where Medicaid data becomes decisions** — for state agencies, consulting firms, MCOs, hospitals, providers, researchers, journalists, advocates, and legislators.
 
 **Core identity:**
-- **The data layer is the moat.** 750+ tables, 400M+ rows, 4.9 GB. Curated, normalized, cross-referenced public Medicaid data no one else has assembled.
+- **The data layer is the moat.** 653 tables, 400M+ rows, 3.4 GB. Curated, normalized, cross-referenced public Medicaid data no one else has assembled.
 - **Intelligence is the interface.** Claude is the primary interaction model for complex work. Natural language in, compliance-ready analysis out.
 - **Structured tools are on-ramps.** Fifteen purpose-built modules build trust, demonstrate data quality, and pull users into Intelligence naturally.
 - **Compliance automation is the adoption wedge.** Auto-generate CPRAs, rate transparency filings, MCPARs, Core Set submissions. The July 2026 CPRA deadline is less than 4 months away.
@@ -62,7 +62,7 @@ Aradune has three layers. Intelligence connects everything.
 ┌────────────────────────────┴────────────────────────────────────────────┐
 │                        THE DATA LAKE                                    │
 │                                                                         │
-│  750+ tables · 400M+ rows · Hive-partitioned Parquet · DuckDB          │
+│  653 tables · 400M+ rows · Hive-partitioned Parquet · DuckDB          │
 │  Medallion architecture: Bronze (raw) → Silver (normalized) → Gold     │
 │  + DuckPGQ property graph (SQL/PGQ queries over same tables)           │
 │  + User session data (uploaded files, parsed and queryable)            │
@@ -82,8 +82,8 @@ Frontend:       React 18 + TypeScript + Vite (Vercel Pro, aradune.co)
 Visualization:  Recharts
 Routing:        Hash-based in Platform.tsx
 Data store:     DuckDB-WASM (browser-side client queries)
-Data lake:      Hive-partitioned Parquet (data/lake/) — 400M+ rows, 750+ views
-                DuckDB in-memory views over Parquet files, 4.9 GB on disk
+Data lake:      Hive-partitioned Parquet (data/lake/) — 400M+ rows, 653 views
+                DuckDB in-memory views over Parquet files, 3.4 GB on disk
                 S3/R2 sync (scripts/sync_lake_wrangler.py --remote, Cloudflare R2 bucket: aradune-datalake)
 Backend:        Python FastAPI (server/) — ~345 endpoints across 40+ route files, DuckDB-backed
 AI:             Intelligence (server/routes/intelligence.py) — Claude Sonnet 4.6 + SSE streaming
@@ -298,7 +298,7 @@ policy and regulatory context.
 
 ## What you have access to
 
-**The Aradune Data Lake:** 750+ tables (fact + dimension + reference) —
+**The Aradune Data Lake:** 653 tables (fact + dimension + reference) —
 400M+ rows of public Medicaid data across 20 domains:
 
 - Rates & Fee Schedules: Medicaid rates (47 states, 597K rows), Medicare PFS (16,978
@@ -403,7 +403,7 @@ User drags file or clicks [↑ Import]
 │  IMPORT PANEL                                     │
 │  Drop a file here or click to browse              │
 │  CSV, Excel, JSON — up to 50MB                    │
-│  Or start without data — 750+ tables ready         │
+│  Or start without data — 653 tables ready         │
 └──────────────────────────────────────────────────┘
          │ (after upload)
          ▼
@@ -745,7 +745,7 @@ CREATE TABLE forecast_enrollment (
 | **KFF Medicaid** | fact_kff_total_spending, fact_kff_spending_per_enrollee, ... (28 tables) | 28 KFF Medicaid policy/spending tables |
 | **Medicaid.gov** | fact_drug_amp, fact_mlr_summary, fact_mc_programs, ... (17 tables) | Drug AMP (5.5M), MLR, MC programs, DSH annual |
 
-**Total:** 750+ registered views, 400M+ rows, 4.9 GB Parquet. 20 ontology domains, 16 entities, 19 named metrics.
+**Total:** 653 registered views, 400M+ rows, 3.4 GB Parquet. 20 ontology domains, 16 entities, 19 named metrics.
 
 ### Category Completion Summary
 
@@ -1004,7 +1004,7 @@ Aradune/
 │   └── tmsis_pipeline_duckdb.R      ← 71KB. T-MSIS (227M rows).
 │
 ├── data/
-│   ├── lake/                        ← 400M+ rows, 750+ views, 4.9 GB
+│   ├── lake/                        ← 400M+ rows, 653 views, 3.4 GB
 │   ├── ontology/                    ← Entity registry (auto-generates system prompt + DuckPGQ)
 │   │   ├── entities/                ← One YAML per entity type (state, procedure, hospital, etc.)
 │   │   ├── domains/                 ← One YAML per data domain (rates, enrollment, hospitals, etc.)
@@ -1190,7 +1190,7 @@ fly deploy --remote-only --config server/fly.toml --dockerfile server/Dockerfile
 
 ## 21. What Success Looks Like
 
-**Now (March 2026):** 750+ views, 400M+ rows, 4.9 GB, ~345 endpoints across 40+ route files, 10 engines, 20 ontology domains with 28 relationship edges, Intelligence with SSE + DuckDB + RAG + web search + Skillbook v2 (CRUSP lifecycle, score decay, graph expansion, trace storage) + programmatic DOGE/IL/territory enforcement + FL Medicaid context (rule corrected), 28 standalone modules (15 core + 13 research), CPRA regulatory-correct both modes. 115+ ETL scripts. Export pipeline: DOCX/PDF/Excel/CSV + chart PNG/SVG. Demo mode with 27 pre-cached Intelligence responses. @safe_route on all ~345 endpoints. 7-agent adversarial suite (all built) with adversarial-to-Skillbook closed feedback loop. GitHub Actions weekly adversarial workflow.
+**Now (March 2026):** 653 views, 400M+ rows, 3.4 GB, ~345 endpoints across 40+ route files, 10 engines, 20 ontology domains with 28 relationship edges, Intelligence with SSE + DuckDB + RAG + web search + Skillbook v2 (CRUSP lifecycle, score decay, graph expansion, trace storage) + programmatic DOGE/IL/territory enforcement + FL Medicaid context (rule corrected), 28 standalone modules (15 core + 13 research), CPRA regulatory-correct both modes. 115+ ETL scripts. Export pipeline: DOCX/PDF/Excel/CSV + chart PNG/SVG. Demo mode with 27 pre-cached Intelligence responses. @safe_route on all ~345 endpoints. 7-agent adversarial suite (all built) with adversarial-to-Skillbook closed feedback loop. GitHub Actions weekly adversarial workflow.
 
 **Session 34 (2026-03-18) — Intelligence hardening + adversarial completion + FL rule correction:**
 - Intelligence fixes: programmatic DOGE quarantine injection (code-level, not just prompt), IL T-MSIS caveat injection, territory-aware fallback (Guam/PR/VI), em-dash post-processing, DuckDB 30s statement_timeout, Anthropic API 120s timeout.
@@ -1234,9 +1234,9 @@ fly deploy --remote-only --config server/fly.toml --dockerfile server/Dockerfile
 - State Profile SDOH section: new collapsible section with ADI, food deserts, dental/MH HPSAs, MUA/MUP per state. Backend /api/sdoh/{state_code}.
 - Intelligence: repetition detection guard (truncates looping model output). Chat colors: Aradune=green, You=orange.
 - Ontology updated: 722 tables across 20 domains. Regenerated system prompt (33.7K chars).
-- About page rewritten: origin story, 750+ tables, 90+ sources, research overview, roadmap. No emdashes.
+- About page rewritten: origin story, 653 tables, 90+ sources, research overview, roadmap. No emdashes.
 - UI: nav 10→5, chat box dark green, module grid 3-column flat, architecture visual full-width. Data lake pipeline: Ingest→Normalize→Query. Infrastructure box blue to match.
-- Homepage: "54 jurisdictions" (not "50 states"), official data source names, 750+ tables everywhere, footer links to About + Data Catalog.
+- Homepage: "54 jurisdictions" (not "50 states"), official data source names, 653 tables everywhere, footer links to About + Data Catalog.
 - Doc consolidation: 12 archived, 8 audit reports organized, ARADUNE-COMPLETE-REFERENCE.md (1,030 lines).
 - 13 research modules (was 10): + T-MSIS Calibration + MEPS Expenditure + Network Adequacy.
 - Rate Explorer tool: search any HCPCS code, see rates across all 54 jurisdictions. Registered in Rates & Compliance nav.

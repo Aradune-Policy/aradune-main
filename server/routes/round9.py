@@ -120,7 +120,7 @@ async def opioid_prescribing(
 ):
     """Medicaid opioid prescribing rates by state/year/plan type."""
     with get_cursor() as cur:
-        sql = "SELECT * FROM fact_opioid_prescribing WHERE geo_level = 'State'"
+        sql = "SELECT * FROM fact_medicaid_opioid_prescribing WHERE geo_level = 'State'"
         params = []
         if state:
             sql += " AND geo_code = ?"
@@ -158,7 +158,7 @@ async def opioid_prescribing_summary(
                    o.opioid_prescribing_rate,
                    o.opioid_claims,
                    o.total_claims
-            FROM fact_opioid_prescribing o
+            FROM fact_medicaid_opioid_prescribing o
             LEFT JOIN dim_state d ON d.state_name = o.geo_desc
             WHERE o.geo_level = 'State' AND o.plan_type = 'All' {year_filter}
             ORDER BY o.year DESC, o.opioid_prescribing_rate DESC
@@ -346,7 +346,7 @@ async def mc_info_monthly(
 ):
     """Managed care participation — monthly enrollment."""
     with get_cursor() as cur:
-        sql = "SELECT * FROM fact_mc_info_monthly WHERE 1=1"
+        sql = "SELECT * FROM fact_mc_enrollment_monthly WHERE 1=1"
         params = []
         if state:
             sql += " AND State = ?"
@@ -403,7 +403,7 @@ async def performance_indicator(
 ):
     """Medicaid/CHIP Performance Indicator (applications/determinations)."""
     with get_cursor() as cur:
-        sql = "SELECT * FROM fact_performance_indicator WHERE 1=1"
+        sql = "SELECT * FROM fact_promoting_interoperability WHERE 1=1"
         params = []
         if state:
             sql += " AND State = ?"

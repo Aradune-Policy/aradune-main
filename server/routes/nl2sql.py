@@ -179,7 +179,7 @@ SCHEMA_CONTEXT = """You are a DuckDB SQL expert. You have access to a Medicaid d
 - fact_five_star: provider_ccn, state_code, overall_rating, health_inspection_rating
 - fact_hospice_quality: provider_ccn, state_code, measure_id, score
 - fact_medicare_enrollment: state_code, year, total_enrolled, ma_enrolled
-- fact_opioid_prescribing: state_code, year, opioid_claim_count, opioid_prescribing_rate
+- fact_medicaid_opioid_prescribing: state_code, year, opioid_claim_count, opioid_prescribing_rate
 - fact_block_grant: state_code, allotment DOUBLE (MHBG mental health block grants)
 - fact_ltss_expenditure: state_code, year, ltss_total, institutional_total, institutional_pct, hcbs_total, hcbs_pct (LTSS spending by state, CY 2022-2023)
 - fact_ltss_users: state_code, year, ltss_total, institutional_total, hcbs_total, both_total (LTSS users by state, CY 2022-2023)

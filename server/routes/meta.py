@@ -32,7 +32,7 @@ TABLE_DESCRIPTIONS = {
     "fact_hospital_hrrp": "Hospital Readmissions Reduction Program data",
     "fact_acs_state": "Census ACS demographics — population, poverty, income, insurance",
     "fact_unemployment": "Monthly state unemployment rates from BLS LAUS",
-    "fact_opioid_prescribing": "Medicare Part D opioid prescribing rates by state",
+    "fact_medicaid_opioid_prescribing": "Medicare Part D opioid prescribing rates by state",
     "fact_maternal_health": "Hospital-level maternal health quality measures",
     "fact_telehealth_services": "Telehealth utilization by state and service type",
     "fact_dental_services": "Dental services to Medicaid children under 19",

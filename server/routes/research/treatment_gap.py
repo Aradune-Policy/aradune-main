@@ -159,7 +159,7 @@ async def treatment_gap_prescribing():
                 SELECT COALESCE(d.state_code, o.geo_code) AS state_code,
                        o.year, o.opioid_prescribing_rate,
                        o.opioid_claims, o.total_claims
-                FROM fact_opioid_prescribing o
+                FROM fact_medicaid_opioid_prescribing o
                 LEFT JOIN dim_state d ON d.state_name = o.geo_desc
                 WHERE o.geo_level = 'State'
                 ORDER BY o.year DESC, o.opioid_prescribing_rate DESC

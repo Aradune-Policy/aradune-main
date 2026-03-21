@@ -2,7 +2,7 @@
 > **The operating system for Medicaid intelligence.**
 > Read this file at the start of every session. It defines what Aradune is, how it's built, and the rules for building it.
 > Build plan: See ARADUNE_BUILD_GUIDE.md for the phased build plan, module specs, and data import architecture.
-> Last updated: 2026-03-18 (Session 34) · Live: https://www.aradune.co
+> Last updated: 2026-03-20 (Session 34) · Live: https://www.aradune.co
 > Research audit: RESEARCH_AUDIT_GUIDE.md (v1) + RESEARCH_AUDIT_GUIDE_v2.md (verification-first). Advanced methods: scripts/research_advanced_methods.py
 > Adversarial testing: docs/ADVERSARIAL_TESTING_IMPL.md (7-agent suite). All 7 agents built. Run: `python -m scripts.adversarial.runner`
 > Complete reference: ARADUNE-COMPLETE-REFERENCE.md — data catalog, module inventory, audit test catalog (hand to another Claude session for autonomous auditing)
@@ -1043,7 +1043,7 @@ Aradune/
 └── ...
 ```
 
-**db.py critical note:** Only facts in `fact_names` (currently 750+ entries) are registered as views. Always update when adding lake tables. `_latest_snapshot()` supports both `data.parquet` and `snapshot=*/data.parquet` formats.
+**db.py critical note:** Only facts in `fact_names` (currently 653 entries) are registered as views. Always update when adding lake tables. `_latest_snapshot()` supports both `data.parquet` and `snapshot=*/data.parquet` formats.
 
 ---
 
@@ -1150,7 +1150,7 @@ fly deploy --remote-only --config server/fly.toml --dockerfile server/Dockerfile
 | # | Issue | Status |
 |---|-------|--------|
 | 1 | R2 credentials need rotation | Open |
-| 2 | db.py fact_names must match filesystem (750+ entries synced) | Synced |
+| 2 | db.py fact_names must match filesystem (653 entries synced) | Synced -- cleaned in lake cleanup |
 | 3 | api/chat.js is legacy | Deprecate after Intelligence verified |
 | 4 | Password gate is client-side only | Not a security boundary |
 | 5 | GitHub CI secrets (VERCEL_TOKEN, FLY_API_TOKEN) not set | **Fixed** -- Session 34. All 6 secrets set. |
@@ -1163,7 +1163,7 @@ fly deploy --remote-only --config server/fly.toml --dockerfile server/Dockerfile
 | 12 | HPSA count shows row count not unique HPSA count | Minor -- cosmetic |
 | 13 | pharmacy/enrollment/wages routes lack error handling | **Fixed** -- Session 30. @safe_route on all ~345 endpoints. |
 | 14 | AHEAD module hardcoded to 6 states/12 hospitals | Save for last per Scott |
-| 15 | R2 has ~253/760 parquet files | Need full `sync_lake_wrangler.py` run (865 files, 4.8 GB) |
+| 15 | R2 has ~253/760 parquet files | **Fixed** -- R2 fully synced (865/865 files, 3.4 GB) |
 | 16 | "Ask Aradune" homepage button was broken in dev (StrictMode) | **Fixed** -- Session 27 |
 | 17 | Mobile: tables overflowed on small screens | **Fixed** -- Session 27, all tables wrapped |
 | 18 | sync_lake_wrangler.py missing --remote flag | **Fixed** -- Session 28 |
@@ -1175,7 +1175,7 @@ fly deploy --remote-only --config server/fly.toml --dockerfile server/Dockerfile
 | 24 | Intelligence: em-dashes in responses | **Fixed** -- Session 34. _postprocess_response strips all dash types. |
 | 25 | Intelligence: no DuckDB query timeout | **Fixed** -- Session 34. 30s statement_timeout + 120s API timeout. |
 | 26 | Cache seeds stale (contain old responses with em-dashes) | Open -- need regeneration with updated prompt |
-| 27 | ANTHROPIC_API_KEY not in GitHub secrets | Open -- needed for adversarial workflow |
+| 27 | ANTHROPIC_API_KEY not in GitHub secrets | **Fixed** -- ANTHROPIC_API_KEY set on Fly.io + GitHub |
 | 28 | 31 broken/empty raw files in data/raw/ (7 empty, 2 HTML/WAF) | Identified, not deleted. Cleanup when ready. |
 | 29 | 11 duplicate _v2 raw file pairs (~51.5MB) | Identified, not deleted. Safe to remove _v2 copies. |
 | 30 | rate_comparison_v2 had APC/facility rates contaminating physician comparison | **Fixed** -- Session 34. Facility rates filtered, CFs corrected, rebuild script created. |
@@ -1183,8 +1183,10 @@ fly deploy --remote-only --config server/fly.toml --dockerfile server/Dockerfile
 | 32 | MACPAC tables have footnote rows mixed with data (up to 19.4%) | **Guarded** -- Footnote filtering added to NL2SQL descriptions and Intelligence prompt. |
 | 33 | dim_state: OK CF=$103.59 (should be $27.35), SD CF=$0.40 (N/A) | **Fixed** -- OK corrected to $27.35. SD set to NULL (pct-of-medicare methodology). |
 | 34 | rate_comparison v1 has 10,772 facility rate rows (>500% MCR) | **Guarded** -- All API queries now cap at <500%. Data-level fix requires CPRA engine rebuild. |
-| 35 | 5 duplicate opioid tables (identical 539K rows each) | Open -- cleanup when convenient. |
+| 35 | 5 duplicate opioid tables (identical 539K rows each) | **Fixed** -- Deleted in lake cleanup (84 duplicate tables removed) |
 | 36 | SD rate data may use raw multipliers instead of dollar amounts | Open -- needs investigation of source PDF parsing. |
+| 37 | Clerk auth key mismatch (frontend pk_test vs backend sk_test from different apps) | Open -- Clerk disabled, using password gate. Fix requires aligning keys from same Clerk app. |
+| 38 | ANTHROPIC_API_KEY may need refresh if Anthropic Console key was rotated | Monitor -- set on Fly.io, verify if Intelligence stops working |
 
 ---
 

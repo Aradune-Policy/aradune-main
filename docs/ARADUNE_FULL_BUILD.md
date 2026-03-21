@@ -2095,14 +2095,20 @@ Stock-flow ODE modeling for Medicaid policy analysis. No other Medicaid analytic
 - RateBrowse: Provider Participation (rate change slider)
 - All collapsible, 400ms debounce, Recharts charts, calibration sources
 
-### Current State (March 18, 2026)
+### Lake Cleanup & Production Fixes (Session 34 continued)
+
+- Lake cleanup: 84 duplicate/broken tables deleted. Lake reduced from 722 tables / 4.7 GB to 638 tables / 3.4 GB. Route references updated (6 files). db.py FACT_NAMES cleaned.
+- R2 fully synced: 865/865 files uploaded. All 11 state context sections populated on production.
+- Clerk auth disabled (key mismatch). Intelligence using password gate fallback. Clerk fix deferred.
+
+### Current State (March 20, 2026)
 
 | Metric | Value |
 |--------|-------|
-| Lake views | 750+ |
+| Lake views | 653 |
 | Total rows | 400M+ |
-| Parquet size | 4.9 GB |
-| Ontology domains | 20 (722 tables mapped) |
+| Parquet size | 3.4 GB |
+| Ontology domains | 20 (638 tables mapped) |
 | Entity types | 16 |
 | Relationship edges | 28 |
 | Named metrics | 19 (deterministic, defined in ontology/metrics/) |
@@ -2111,10 +2117,10 @@ Stock-flow ODE modeling for Medicaid policy analysis. No other Medicaid analytic
 | Engines | 11 (Intelligence, Query Router, RAG, Caseload, Expenditure, CPRA Upload, CPRA Engine, Skillbook v2, Reflector v2, Validator, System Dynamics) |
 | Frontend modules | 28 standalone (15 core + 13 research) |
 | Export formats | 6 (CSV, Excel, DOCX, PDF, PNG, SVG) |
-| R2 parquet files | 890+ |
+| R2 parquet files | 865 |
 | Demo responses | 27 pre-cached |
 | CI/CD | Vercel + Fly.io deploying + weekly adversarial testing workflow |
-| Auth | Clerk (JWT, test keys active -- switch to production before demo) |
+| Auth | Clerk disabled (key mismatch). Password gate fallback active. |
 | Fee schedule coverage | All 54 jurisdictions (50 states + DC + PR/GU/VI; 51 published, 3 T-MSIS) |
 | Rate comparison rows | 483,154 across 54 jurisdictions |
 | Skillbook | v2: CRUSP lifecycle, score decay (30-day half-life), graph expansion (1-hop), 24+ seed skills, auto-learning from every query |
